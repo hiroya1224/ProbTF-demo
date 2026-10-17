@@ -8,6 +8,7 @@ or a Gaussian projection. Finite numerical trials serve initial proposals only.
 
 from pathlib import Path
 from dataclasses import dataclass
+from functools import partial
 from types import SimpleNamespace
 import hashlib
 import math
@@ -30,6 +31,34 @@ from probtf.spherical_law.support import (
     require_in_support, require_same_support,
 )
 from scipy.spatial.transform import Rotation
+
+from .stiffness_bayes_factor import (
+    ContinuousStiffnessBFS, LocalLaplaceEvidence, ResetMeasure,
+    StiffnessEvidenceUnavailable,
+)
+
+
+def _stiffness_surprise_settings(settings):
+    supplied = settings.get('bayes_factor_surprise', {})
+    if not isinstance(supplied, dict):
+        raise ValueError('stiffness bayes_factor_surprise must be a mapping.')
+    enabled = supplied.get('enabled', False)
+    if not isinstance(enabled, bool):
+        raise ValueError('stiffness bayes_factor_surprise.enabled must be a boolean.')
+    probability = float(supplied.get('change_probability', .10))
+    ContinuousStiffnessBFS._validate_rho(probability)
+    if enabled and probability > 0.:
+        required = dict(reset_measure='initial_log_stiffness',
+            event_probability_unit='per_effective_sensor_event', evidence_method='laplace')
+        missing = [name for name in required if supplied.get(name) is None]
+        if missing:
+            raise ValueError('Positive stiffness Bayes surprise requires explicit configuration: '+
+                ', '.join('bayes_factor_surprise.'+name+'='+required[name] for name in missing)+'.')
+        for name, expected in required.items():
+            if supplied[name] != expected:
+                raise ValueError('Unsupported stiffness bayes_factor_surprise.'+name+
+                                 '; the implemented explicit option is '+expected+'.')
+    return dict(supplied, enabled=enabled, change_probability=probability)
 
 
 def _density(distribution, value, support=None):
@@ -57,6 +86,19 @@ def _log_weight(component):
     supplied = getattr(component, 'log_weight', None)
     return (float(supplied) if supplied is not None else
             -np.inf if component.weight == 0 else math.log(component.weight))
+
+
+def _continuous_initial_density(components, x):
+    value, score, _, _ = _mixture_density(components, np.asarray(x, dtype=float))
+    return value, score
+
+
+def _initial_density_id(components):
+    identity = hashlib.sha256()
+    for item in components:
+        identity.update(item.distribution.mean.tobytes()+item.distribution.covariance.tobytes())
+        identity.update(repr(_log_weight(item)).encode())
+    return identity.hexdigest()
 
 
 def _same_mixture(left, right):
@@ -287,6 +329,7 @@ class StiffnessIdentifier:
 
     def __init__(self, urdf_path, body_edge_ids, settings):
         self.settings = dict(settings)
+        self.stiffness_surprise_settings = _stiffness_surprise_settings(settings)
         self.body_edge_ids = tuple(body_edge_ids)
         self.robot = RobotArm(str(urdf_path), tip_link='tool0', base_link='base_link')
         self.spring = LinearSpringModel()
@@ -307,6 +350,23 @@ class StiffnessIdentifier:
         self.factors = ()
         self.factor_cache = {}
         self.observation_ids = frozenset()
+        self.stiffness_bfs = None
+        self.pending_stiffness_events = ()
+        self._bfs_evidence_modes = ()
+        if (self.stiffness_surprise_settings['enabled']
+                and self.stiffness_surprise_settings['change_probability'] > 0.):
+            initial_density = partial(_continuous_initial_density, self.initial_components)
+            initial_source_id = _initial_density_id(self.initial_components)
+            reset = ResetMeasure(initial_source_id, initial_density,
+                description='explicit initial_log_stiffness continuous Gaussian-mixture reset; no point reset')
+            laplace_settings = self.stiffness_surprise_settings.get('laplace', {})
+            if not isinstance(laplace_settings, dict):
+                raise ValueError('stiffness bayes_factor_surprise.laplace must be a mapping.')
+            integrator = LocalLaplaceEvidence(self._evidence_starts, **laplace_settings)
+            self.stiffness_bfs = ContinuousStiffnessBFS(initial_density,
+                initial_source_id=initial_source_id,
+                rho0=self.stiffness_surprise_settings['change_probability'],
+                reset=reset, integrator=integrator)
         self.prior_source = dict(file=str(config_path), sha256=hashlib.sha256(
             config_path.read_bytes()).hexdigest(), kp_min=limits[0], kp_max=limits[1],
             initialization='deflecomp_core.estimator.initialization initial_log_kp_state/std',
@@ -336,6 +396,54 @@ class StiffnessIdentifier:
         self.last_stamp = None
         self.last_key = self.last_record = None
         self._branch_anchor = None
+
+    def _evidence_starts(self):
+        """Numerical evidence-mode starts; never a finite stiffness prior."""
+        candidates = []
+        for item in self.initial_components:
+            centre = item.distribution.mean
+            scale = np.linalg.cholesky(item.distribution.covariance)
+            candidates.append(centre.copy())
+            for direction in scale.T:
+                candidates.extend((centre+direction, centre-direction))
+            coupled = np.sum(scale, axis=1)
+            candidates.extend((centre+coupled, centre-coupled))
+        candidates.extend(self._bfs_evidence_modes)
+        previous = getattr(self, '_proposal_representative', None)
+        if previous is not None:
+            candidates.append(previous['logK'])
+        return tuple(candidates)
+
+    def _apply_pending_stiffness_events(self):
+        """Apply queued factors in order, committing each complete BFS atomically.
+
+        A failed numerical integral leaves the frozen factor in this queue.
+        Later events cannot bypass it. Observation data are consequently not
+        discarded merely because a local evidence approximation failed.
+        """
+        recovered = []
+        while self.pending_stiffness_events:
+            factor, event_id, metadata = self.pending_stiffness_events[0]
+            record = self.stiffness_bfs.advance(factor.factor_id, factor.observation_ids,
+                partial(self._factor_evaluation, factor), event_id=event_id,
+                identity_factor=bool(factor.ratio.identity), metadata=metadata)
+            # Only after both branch integrals succeeded does the accepted
+            # expression, factor list and consumed-ID set advance together.
+            self.factors += (factor,)
+            self.observation_ids = self.observation_ids.union(factor.observation_ids)
+            self.pending_stiffness_events = self.pending_stiffness_events[1:]
+            modes = []
+            for name in ('keep_evidence', 'reset_evidence'):
+                evidence = record.get(name)
+                mode = None if evidence is None else evidence['diagnostics'].get('mode')
+                if mode is not None:
+                    value = np.asarray(mode, dtype=float)
+                    if not any(np.array_equal(value, old) for old in modes):
+                        modes.append(value)
+            if modes:
+                self._bfs_evidence_modes = tuple(modes)
+            recovered.append(record)
+        return recovered
 
     def _refine_equilibrium(self, theta, command, stiffness):
         theta = np.asarray(theta).copy()
@@ -493,8 +601,11 @@ class StiffnessIdentifier:
                      for item in result.stages[-1].components))
         if key == self.last_key:
             return self.last_record
-        if self.last_stamp is not None and state.stamp <= self.last_stamp:
-            raise ValueError('An observation time may update stiffness only once and must increase.')
+        bfs = getattr(self, 'stiffness_bfs', None)
+        if self.last_stamp is not None and (state.stamp < self.last_stamp
+                or state.stamp == self.last_stamp and bfs is None
+                    and result.records.get('sensor_event') is None):
+            raise ValueError('Stiffness acquisition times must increase; distinct configured sensor events may share a time.')
         if isinstance(raw_prior, Gaussian) and (
                 not np.array_equal(raw_prior.mean, state.mean)
                 or not np.array_equal(raw_prior.covariance, state.covariance)):
@@ -552,6 +663,7 @@ class StiffnessIdentifier:
             body_posterior_labels=[item.label for item in displayed],
             observation_ids=list(observation_ids))
         prior_record = self._density_record()
+        prior_bfs_event_count = 0 if bfs is None else len(bfs.updates)
         record = dict(metadata, prior=prior_record, posterior=prior_record,
             status='not_updated', update_applied=False, information_rank=None,
             information_eigenvalues=None, prior_source=self.prior_source,
@@ -572,42 +684,90 @@ class StiffnessIdentifier:
         if len(set(observation_ids)) != len(observation_ids):
             raise ValueError('New stiffness evidence contains a duplicate observation ID.')
         repeated = self.observation_ids.intersection(observation_ids)
+        if bfs is not None:
+            pending_ids = {identifier for factor, _, _ in self.pending_stiffness_events
+                           for identifier in factor.observation_ids}
+            repeated = repeated.union(pending_ids.intersection(observation_ids))
         if repeated:
             raise ValueError('A stiffness density factor cannot count an old observation again: '+repr(sorted(repeated)))
+        sensor_event = result.records.get('sensor_event')
+        if bfs is not None and observation_ids:
+            if len(observation_ids) != 1:
+                raise ValueError('per_effective_sensor_event stiffness BFS requires one separately fused sensor event, not a multi-sensor packet.')
+            if sensor_event is not None and (
+                    sensor_event.get('kind') not in ('imu', 'image')
+                    or not sensor_event.get('enabled', False)
+                    or sensor_event.get('event_id') != observation_ids[0]):
+                raise ValueError('Stiffness BFS observation identity does not match its effective sensor event.')
         try:
             ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids,
                                            posterior_branch=projected_numerator)
             record['body_marginal'] = dict(edge_ids=list(self.body_edge_ids), **ratio.record())
-            if ratio.identity:
+            if ratio.identity and (bfs is None or not observation_ids):
                 self.observation_ids = self.observation_ids.union(observation_ids)
                 record.update(status='identity_density_ratio', log_density_ratio=0.,
                               information_rank=0, identity_preserved_bitwise=True)
             else:
                 if not observation_ids:
                     raise ValueError('A changed posterior without new observation IDs is not new stiffness evidence.')
-                properness = self._properness_bounds(ratio)
+                properness = (dict(verified=True, log_factor_lower_bound=0.,
+                    log_factor_upper_bound=0., argument='declared exact identity body density ratio')
+                    if ratio.identity else self._properness_bounds(ratio))
                 # An equilibrium query failure does not become a zero
                 # likelihood. The frozen density factor remains in memory.
-                try:
-                    with np.errstate(over='raise', invalid='raise'):
-                        self._freeze_branch(branches[0].reference_state, record)
-                    anchor = self._branch_anchor
-                except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                    anchor = None
-                    record.update(proposal_status='unavailable', proposal_failure_reason=str(error))
+                anchor = None
+                if not ratio.identity:
+                    try:
+                        with np.errstate(over='raise', invalid='raise'):
+                            self._freeze_branch(branches[0].reference_state, record)
+                        anchor = self._branch_anchor
+                    except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                        record.update(proposal_status='unavailable', proposal_failure_reason=str(error))
                 factor = FrozenStiffnessFactor(digest.hexdigest(), observation_ids, ratio,
                     tuple(branch.reference_state for branch in branches), anchor, properness)
-                self.factors += (factor,)
-                self.observation_ids = self.observation_ids.union(observation_ids)
+                if bfs is None:
+                    self.factors += (factor,)
+                    self.observation_ids = self.observation_ids.union(observation_ids)
+                else:
+                    event_id = (sensor_event['event_id'] if sensor_event is not None else
+                        hashlib.sha256(repr(observation_ids).encode()).hexdigest())
+                    event_metadata = dict(source_stamp=state.stamp,
+                        source_command=list(state.command), source_prior_state_id=state.state_id,
+                        body_posterior_state_ids=metadata['body_posterior_state_ids'],
+                        probability_unit=self.stiffness_surprise_settings['event_probability_unit'],
+                        sensor_event=None if sensor_event is None else dict(sensor_event))
+                    self.pending_stiffness_events += ((factor, event_id, event_metadata),)
+                    applied_events = self._apply_pending_stiffness_events()
+                    record['bayes_factor_surprise'] = applied_events[-1]
+                    record['recovered_pending_events'] = applied_events[:-1]
                 record.update(status='updated_density_factor', update_applied=True,
                     posterior=self._density_record(), new_factor_id=factor.factor_id,
                     new_factor_properness=properness,
                     new_factor_observation_ids=list(observation_ids))
         except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+            retained = self._density_record() if bfs is not None else prior_record
             record.update(status='failed_density_factor', failure_reason=str(error),
                           update_applied=False, posterior=None,
-                          retained_prior=prior_record, prior_retained=True,
+                          retained_prior=retained, prior_retained=True,
                           information_rank=None, information_eigenvalues=None)
+            if bfs is not None:
+                record.update(stiffness_posterior_defined=False,
+                    pending_factor_ids=[factor.factor_id for factor, _, _ in self.pending_stiffness_events],
+                    pending_observation_ids=[list(factor.observation_ids)
+                                             for factor, _, _ in self.pending_stiffness_events],
+                    evidence_failure_diagnostics=(dict(error.diagnostics)
+                        if isinstance(error, StiffnessEvidenceUnavailable) else None),
+                    recovered_pending_events=[item.record for item in bfs.updates[prior_bfs_event_count:]])
+        if bfs is not None and self.pending_stiffness_events and record['posterior'] is not None:
+            record.update(status='pending_stiffness_evidence', posterior=None,
+                retained_prior=self._density_record(), prior_retained=True,
+                stiffness_posterior_defined=False,
+                failure_reason='A previously acquired stiffness factor still awaits a valid evidence calculation.',
+                pending_factor_ids=[factor.factor_id for factor, _, _ in self.pending_stiffness_events],
+                pending_observation_ids=[list(factor.observation_ids)
+                                         for factor, _, _ in self.pending_stiffness_events])
+        if bfs is not None and record['posterior'] is not None:
+            record['stiffness_posterior_defined'] = True
         self.last_stamp = state.stamp
         self.last_key, self.last_record = key, record
         return record
@@ -664,7 +824,7 @@ class StiffnessIdentifier:
                 x_est=item.distribution.mean.tolist(), P_est=item.distribution.covariance.tolist()))
         for factor in factors:
             identity.update(factor.factor_id.encode())
-        return dict(density_id=identity.hexdigest(), factor_ids=[item.factor_id for item in factors],
+        record = dict(density_id=identity.hexdigest(), factor_ids=[item.factor_id for item in factors],
             initial_components=initial_records,
             representation='initial log-K Gaussian mixture times frozen body density-ratio factors',
             normalization_constant=None,
@@ -674,8 +834,38 @@ class StiffnessIdentifier:
                 log_normalization_lower_bound=sum(item.properness['log_factor_lower_bound'] for item in factors),
                 log_normalization_upper_bound=sum(item.properness['log_factor_upper_bound'] for item in factors)),
             parameterization='x = log(K / (1 N m/rad))', K_units='N m/rad')
+        bfs = getattr(self, 'stiffness_bfs', None)
+        if bfs is not None:
+            # Finite upper/lower bounds prove integrability of the retained
+            # expression even when the branch masses used for comparison
+            # are local approximations. Do not reuse product-only Z bounds.
+            lower = upper = bfs.initial_log_mass
+            for update, factor in zip(bfs.updates, factors):
+                if update.rho0:
+                    reset_term = math.log(update.rho0)+update.keep_log_mass
+                    if update.rho0 == 1.:
+                        lower = upper = update.keep_log_mass
+                    else:
+                        keep_term = math.log1p(-update.rho0)
+                        lower = float(logsumexp([keep_term+lower, reset_term]))
+                        upper = float(logsumexp([keep_term+upper, reset_term]))
+                lower += factor.properness['log_factor_lower_bound']
+                upper += factor.properness['log_factor_upper_bound']
+            record.update(density_id=bfs.density_id,
+                representation='continuous initial log-K law with every body-ratio factor and Keep/Reset logsumexp recurrence',
+                normalization_definition='mass of the retained continuous recurrence; local evidence estimates set branch-relative scales only',
+                normalization_log_mass_estimate=bfs.log_mass,
+                normalization_estimate_is_exact=False,
+                bayes_factor_surprise=bfs.record(),
+                bayes_factor_configuration=dict(self.stiffness_surprise_settings),
+                properness=dict(verified=all(item.properness['verified'] for item in factors),
+                    log_normalization_lower_bound=lower, log_normalization_upper_bound=upper,
+                    proof='bounded positive full-joint body ratio factors and finite branch-relative scales; no claim of exact Laplace normalization'))
+        return record
 
     def _factor_evaluation(self, factor, x):
+        if factor.ratio.identity:
+            return 0., np.zeros_like(np.asarray(x, dtype=float))
         key = (factor.factor_id, np.asarray(x, dtype=float).tobytes())
         if key not in self.factor_cache:
             saved = self._branch_anchor
@@ -701,6 +891,9 @@ class StiffnessIdentifier:
         global moments are not replaced by point candidates or a Gaussian.
         """
         x = np.asarray(x, dtype=float)
+        bfs = getattr(self, 'stiffness_bfs', None)
+        if bfs is not None:
+            return bfs.evaluate(x)
         total, gradient, _, _ = _mixture_density(self.initial_components, x)
         for factor in self.factors:
             contribution, derivative = self._factor_evaluation(factor, x)
@@ -732,7 +925,15 @@ class StiffnessIdentifier:
                 or [_log_weight(item) for item in result.stages[-1].components]
                     != self.last_record['body_posterior_log_weights']):
             raise ValueError('A stiffness command proposal must use the current recorded body update.')
+        bfs = getattr(self, 'stiffness_bfs', None)
+        if bfs is not None and self.last_record.get('posterior') is None:
+            self.last_record.update(proposal_status='undefined_stiffness_posterior', command_proposal=None,
+                proposal_failure_reason='Pending stiffness evidence has no valid posterior; retained prior is not relabeled as an update.')
+            return None
         if not self.factors:
+            self.last_record.update(proposal_status='no_informative_density_factor', command_proposal=None)
+            return None
+        if bfs is not None and not any(not item.ratio.identity for item in self.factors):
             self.last_record.update(proposal_status='no_informative_density_factor', command_proposal=None)
             return None
         if self.last_record.get('command_proposal') is not None:
@@ -761,7 +962,10 @@ class StiffnessIdentifier:
             raise ValueError('Stiffness representative optimization requires valid iteration limits and tolerance.')
         factor_ids = tuple(factor.factor_id for factor in self.factors)
         previous = getattr(self, '_proposal_representative', None)
-        unchanged_density = previous is not None and previous['factor_ids'] == factor_ids
+        density_id = (None if bfs is None else self.last_record['posterior']['density_id'])
+        unchanged_density = (previous is not None and (
+            previous['factor_ids'] == factor_ids if bfs is None else
+            previous.get('density_id') == density_id))
         evaluations, failures, cache, density_cache = [], [], {}, {}
         density_evaluations, equilibrium_evaluations = 0, 0
 
@@ -925,6 +1129,8 @@ class StiffnessIdentifier:
                 score=selected['score'].copy(), candidate_index=index,
                 step_scale=(selection['line_search'][-1]['scale']
                     if selection['line_search'] and selection['line_search'][-1]['accepted'] else 0.))
+            if bfs is not None:
+                self._proposal_representative['density_id'] = density_id
 
         x, equilibrium, active = selected['logK'], selected['equilibrium'], selected['active']
         selection.update(base_candidate_index=index, base_logK=base['logK'].tolist(),

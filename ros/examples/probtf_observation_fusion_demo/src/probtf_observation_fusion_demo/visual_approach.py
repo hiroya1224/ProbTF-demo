@@ -85,9 +85,10 @@ class VisualApproach:
             raise ValueError('Visual approach command differs from the configured joints.')
         record = dict(enabled=self.enabled, phase='near' if self.near_latched else 'far',
             near_latched=self.near_latched, near_distance_m=self.near_distance,
+            near_distance_role='visual initial-proposal latch only; not an IK feasibility constraint',
             selection_criterion='all-mode expected local image-centering and hand-position squared loss',
             full_gaussian_bingham_criterion_used_for_selection=False,
-            full_gaussian_bingham_criterion_role='diagnostic in far phase; selection in near phase',
+            full_gaussian_bingham_criterion_role='proposal acceptance and one gradient update in every reaching phase',
             linearization='core mean and full covariance; analytic modal joint-action Jacobian; moment correction and covariance frozen during this short local model',
             camera_model='normalized calibrated pinhole bearing (x/z, y/z)',
             field_of_view_guaranteed=False,

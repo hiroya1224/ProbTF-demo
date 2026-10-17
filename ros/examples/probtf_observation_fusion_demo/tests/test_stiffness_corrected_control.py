@@ -27,6 +27,8 @@ def corrected(tmp_path_factory):
                               imu_target_link='tool0')
     inputs = scene.sensor_inputs(scene.step(0., 1000.))
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
+    # Historical combined-packet source for command-law compatibility.
+    settings['bayes_factor_surprise'] = {'enabled': False}
     contexts = {}
     for name in ('imu_hand', 'imu_marker'):
         observations = yaml.safe_load((PACKAGE/'config'/f'{name}.yaml').read_text())['observations']

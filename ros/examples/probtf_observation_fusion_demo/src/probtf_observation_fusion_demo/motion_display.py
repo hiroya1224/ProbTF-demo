@@ -269,7 +269,8 @@ class MotionDisplay:
         proposal = record.get('proposal_approximation')
         if proposal is None:
             estimated_proposal = record.get('command_proposal')
-            command_proposal = record.get('execution_command_proposal', estimated_proposal)
+            command_proposal = record.get('action_command_proposal',
+                record.get('execution_command_proposal', estimated_proposal))
             if command_proposal is not None:
                 values = np.asarray(command_proposal['selected_K'], dtype=float)
                 if values.ndim != 1 or not np.all(np.isfinite(values)):
@@ -287,6 +288,23 @@ class MotionDisplay:
                     proposal_line = 'IK correction K [Nm/rad]: '+', '.join('{:.4g}'.format(value) for value in values)
                     detail = 'Equilibrium command action; global moments not evaluated'
                 execution = record.get('execution_stiffness')
+                action = record.get('action_stiffness')
+                if action is not None:
+                    if (execution is not None or estimated_proposal is None
+                            or correction is None
+                            or action['estimated_density_id'] != density['density_id']
+                            or action['estimated_source_stamp'] != estimated_proposal['source_stamp']
+                            or not np.array_equal(action['selected_K'], estimated_proposal['selected_K'])
+                            or not np.array_equal(action['selected_K'], values)
+                            or correction.get('action_stiffness') != action
+                            or correction['captured_parameter_packet'].get('action_stiffness') != action
+                            or command_proposal['source_stamp'] != snapshot.stamp
+                            or tuple(command_proposal['source_command']) != tuple(snapshot.command)
+                            or command_proposal['body_posterior_state_ids'] != record['body_posterior_state_ids']):
+                        raise ValueError('Displayed estimated K and direct IK K_est must retain the same source and action.')
+                    estimate_text = ', '.join('{:.4g}'.format(value) for value in estimated_proposal['selected_K'])
+                    proposal_line = 'Estimated K [Nm/rad]: '+estimate_text+'\nIK K_est [Nm/rad]: '+estimate_text
+                    detail = 'Direct estimated representative; captured anchor action; density unchanged'
                 if execution is not None:
                     if (estimated_proposal is None
                             or not np.array_equal(execution['estimated_K'], estimated_proposal['selected_K'])
@@ -422,7 +440,7 @@ class MotionDisplay:
                         execution['observation_age_s'], execution['displayed_prediction_age_s'])
                     if execution['finished']:
                         clock = ('FINISHED: wall-clock motion | ' if execution['estimation_drained']
-                                 else 'FINISHED: motion | processing final capture\n')+clock
+                                 else 'FINISHED: motion | draining queued observations\n')+clock
                 elif execution is not None and execution['execution_mode'] == 'live':
                     hz = execution['actual_update_hz']
                     rate = 'measuring' if hz is None else '{:.2f} Hz'.format(hz)

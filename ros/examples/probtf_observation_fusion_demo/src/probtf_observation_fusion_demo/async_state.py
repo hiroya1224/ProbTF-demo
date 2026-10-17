@@ -8,6 +8,8 @@ versions may give a nonzero net body action even on a closed command path.
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, replace
+import hashlib
+import re
 
 import numpy as np
 
@@ -248,7 +250,42 @@ class RecordedCommandPath:
             raise ValueError('A recorded path cannot be used for another endpoint or joint action.')
         return _recorded_action(state, self.target_command, np.asarray(self.joint_increment), self._signature)
 
-    def record(self):
+    def record(self, ledger_reference=None):
+        if ledger_reference is None:
+            history = dict(steps=[step.record() for step in self.steps])
+        else:
+            reference = deepcopy(ledger_reference)
+            required = {'path', 'start_index', 'end_index_exclusive', 'step_count',
+                        'prefix_chain_sha256'}
+            if (not isinstance(reference, dict) or not required <= set(reference)
+                    or set(reference)-required-{'source_prefix_chain_sha256'}):
+                raise ValueError('A compact command record requires the declared ledger-reference schema.')
+            if (not isinstance(reference['path'], str) or not reference['path']
+                    or '\x00' in reference['path']):
+                raise ValueError('A compact ledger reference requires its nonempty canonical journal path.')
+            for key in ('start_index', 'end_index_exclusive', 'step_count'):
+                value = reference[key]
+                if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                    raise ValueError('Compact ledger-reference indices and count must be nonnegative integers.')
+            start, end = reference['start_index'], reference['end_index_exclusive']
+            if (end-start != len(self.steps) or reference['step_count'] != len(self.steps)
+                    or (self.steps and (start != self.steps[0].index or end != self.steps[-1].index+1))):
+                raise ValueError('Compact ledger-reference range does not match the actual ordered action intervals.')
+            for key in ('prefix_chain_sha256', 'source_prefix_chain_sha256'):
+                if key in reference and (not isinstance(reference[key], str)
+                        or re.fullmatch(r'[0-9a-f]{64}', reference[key]) is None):
+                    raise ValueError('A compact ledger reference requires lowercase SHA256 chain digests.')
+            source_hash = reference.get('source_prefix_chain_sha256')
+            if source_hash is not None:
+                if start == 0 and source_hash != hashlib.sha256(b'ProbTF actual-command ledger v1').hexdigest():
+                    raise ValueError('The ledger source-prefix digest does not match the declared empty prefix.')
+                if start == end and source_hash != reference['prefix_chain_sha256']:
+                    raise ValueError('An empty ledger range cannot change its prefix-chain digest.')
+            history = dict(step_count=len(self.steps), first_interval_index=(
+                    None if not self.steps else self.steps[0].index),
+                last_interval_index=(None if not self.steps else self.steps[-1].index),
+                ledger_reference=reference,
+                ledger_reference_validation='schema, range and endpoint validated locally; chain digests are supplied by the append-only ledger owner, not recomputed by replaying every historical record')
         return dict(kind='recorded_executed_command_history',
             source_stamp=self.source_stamp, source_command=list(self.source_command),
             source_prior_state_id=self._source_prior_id,
@@ -261,7 +298,7 @@ class RecordedCommandPath:
             goal_source_weights=[item.weight for item in self._goals],
             goal_source_log_weights=[component_log_weight(item) for item in self._goals],
             target_stamp=self.target_stamp, target_command=list(self.target_command),
-            joint_increment=list(self.joint_increment), steps=[step.record() for step in self.steps],
+            joint_increment=list(self.joint_increment), **history,
             axes=[dict(edge_id=name, joint_index=joint, axis=list(axis))
                   for name, joint, axis in self._signature],
             covariance_action='G P G.T on the full joint state, G=diag(I,D_j.T); environmental block is identity',
@@ -270,16 +307,18 @@ class RecordedCommandPath:
             observations_assimilated=0, bayes_factor_updates=0, stiffness_factor_updates=0,
             physical_truth_received=False, monte_carlo_used=False)
 
-    def selection_record(self, command):
+    def selection_record(self, command, ledger_reference=None):
         if tuple(command) != self.target_command:
             raise ValueError('A recorded path has only its actual executed endpoint.')
-        return dict(self.record(), command=list(self.target_command), command_jacobian=None)
+        return dict(self.record(ledger_reference=ledger_reference),
+                    command=list(self.target_command), command_jacobian=None)
 
     def jacobian(self, _command):
         raise ValueError('An executed command history is not a future IK prediction family.')
 
 
-def predict_result(result, steps, target_stamp, frame_index, body_ids, actions):
+def predict_result(result, steps, target_stamp, frame_index, body_ids, actions,
+                   ledger_reference=None):
     """Expose one transported law to control/display, without another update.
 
     The observation result and all its frozen Bayes/stiffness charts remain
@@ -292,6 +331,9 @@ def predict_result(result, steps, target_stamp, frame_index, body_ids, actions):
     target_stamp = float(target_stamp)
     if not np.isfinite(target_stamp) or target_stamp != path.target_stamp:
         raise ValueError('The present prediction timestamp must equal the recorded history endpoint.')
+    path_record = path.record(ledger_reference=ledger_reference)
+    if ledger_reference is not None and path_record['ledger_reference']['end_index_exclusive'] != int(frame_index):
+        raise ValueError('A compact ledger reference endpoint must match the target physical frame index.')
     body, goals = control_components(result)
     version = max(max(item.state.version for item in body)+1, 3*int(frame_index)+2)
     def predict_components(components, prefix):
@@ -325,7 +367,7 @@ def predict_result(result, steps, target_stamp, frame_index, body_ids, actions):
             parent_goal_state_ids=[item.state.state_id for item in goals],
             body_state_ids=[item.state.state_id for item in predicted_body],
             goal_state_ids=[item.state.state_id for item in predicted_goals],
-            command_path=path.record(), observations_assimilated=0,
+            command_path=path_record, observations_assimilated=0,
             bayes_factor_updates=0, stiffness_factor_updates=0),
         fixed_goal_memory=deepcopy(result.records.get('fixed_goal_memory')),
         fixed_goal_memory_event='prediction_hold',
@@ -337,6 +379,39 @@ def predict_result(result, steps, target_stamp, frame_index, body_ids, actions):
         records['stiffness'] = deepcopy(result.records['stiffness'])
     if 'behavior' in result.records:
         records['behavior'] = deepcopy(result.records['behavior'])
+    if result.records.get('sensor_event') is not None:
+        # Acquisition metadata belongs to the original observation, not the
+        # present prediction clock or the newest physical frame.
+        records['sensor_event'] = deepcopy(result.records['sensor_event'])
+    if result.records.get('candidate_measure') is not None:
+        measure = deepcopy(result.records['candidate_measure'])
+        expected_source = [item.state.state_id for item in body]
+        expected_shape = dict(shape_source_state_ids=expected_source,
+            shape_source_versions=[item.state.version for item in body],
+            shape_source_stamps=[item.state.stamp for item in body],
+            shape_source_commands=[list(item.state.command) for item in body],
+            shape_log_weights=[component_log_weight(item) for item in body])
+        if any(measure.get(key) != value for key, value in expected_shape.items()):
+            raise ValueError('A predicted candidate measure must describe its actual source body law.')
+        if 'observation_source' not in measure:
+            measure['observation_source'] = dict(
+                sensor_event=deepcopy(result.records.get('sensor_event')),
+                shape_source_state_ids=deepcopy(measure['shape_source_state_ids']),
+                shape_source_versions=deepcopy(measure['shape_source_versions']),
+                shape_source_stamps=deepcopy(measure['shape_source_stamps']),
+                shape_source_commands=deepcopy(measure['shape_source_commands']),
+                shape_log_weights=deepcopy(measure['shape_log_weights']),
+                log_total_mass=measure['log_total_mass'])
+        measure.update(
+            shape_source_state_ids=[item.state.state_id for item in predicted_body],
+            shape_source_versions=[item.state.version for item in predicted_body],
+            shape_source_stamps=[item.state.stamp for item in predicted_body],
+            shape_source_commands=[list(item.state.command) for item in predicted_body],
+            shape_log_weights=[component_log_weight(item) for item in predicted_body],
+            prediction_log_mass_increment=0.,
+            measure_transport='push-forward of the same joint candidate by the recorded executed command path; total mass and original observation evidence unchanged',
+            prediction_parent_shape_source_state_ids=expected_source)
+        records['candidate_measure'] = measure
     predicted = replace(result, prior=predicted_body[0].state, stages=(stage,),
         sensor_posteriors=(), local_estimates=(), records=records,
         frozen_body_prior=None, frozen_body_posterior=None,

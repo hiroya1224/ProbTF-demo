@@ -1,5 +1,4 @@
 """Every reaching update selects the complete criterion on the displayed law/K."""
-from dataclasses import replace
 import io
 import json
 from pathlib import Path
@@ -11,10 +10,10 @@ import yaml
 from visualization_msgs.msg import MarkerArray
 
 from probtf_observation_fusion_demo.async_motion import control_worker
-from probtf_observation_fusion_demo.execution_stiffness import LogStiffnessDamper
 from probtf_observation_fusion_demo.async_state import predict_result
 from probtf_observation_fusion_demo.async_stiffness import (
-    PhysicalActionEngine, capture_stiffness_packet, reanchor_retained_stiffness,
+    FrozenActionKPacket, PhysicalActionEngine, capture_stiffness_packet,
+    capture_direct_stiffness_action, reanchor_retained_stiffness,
 )
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
 from probtf_observation_fusion_demo.moving_control import MovingController, _relative_density
@@ -38,6 +37,10 @@ def problems(tmp_path_factory):
                               imu_target_link='tool0')
     inputs = scene.sensor_inputs(scene.step(0., 1792080000.))
     stiffness = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
+    # This compatibility fixture intentionally supplies the old simultaneous
+    # packet, whose K-change clock is undefined. Event integration below uses
+    # the enabled default and its explicit per-effective-sensor-event clock.
+    stiffness['bayes_factor_surprise'] = {'enabled': False}
     result = {}
     for name in ('imu_marker', 'imu', 'no_sensors'):
         templates = yaml.safe_load((PACKAGE/('config/'+name+'.yaml')).read_text())['observations']
@@ -53,7 +56,8 @@ def problems(tmp_path_factory):
             view, mapping = predicted, None
         else:
             engine = PhysicalActionEngine(scene.urdf, inference.body_ids, stiffness)
-            view, mapping = reanchor_retained_stiffness(engine, predicted, packet)
+            action = capture_direct_stiffness_action(engine, predicted, packet)
+            view, mapping = reanchor_retained_stiffness(engine, predicted, action)
         result[name] = scene, inference, source, view, mapping, packet, templates
     return result
 
@@ -191,17 +195,16 @@ def test_marker_disabled_never_enters_visual_phase_or_changes_ordinary_IK(proble
 def test_actual_control_worker_selects_full_K_IK_and_serializes_the_same_law(problems, tmp_path, monkeypatch):
     scene, inference, source, _, _, packet, templates = problems['imu_marker']
     requests, replies = Queue(), Queue()
-    sample = LogStiffnessDamper(inference.settings['control']['execution_stiffness']).advance(
-        packet.proposal['selected_K'], source.prior.stamp)
     requests.put(dict(result=source, steps=(), stamp=source.prior.stamp,
-        index=0, capture_index=0, packet=packet, execution_sample=sample,
-        execution_packet=None, velocity=np.zeros(6)))
+        index=0, capture_index=0, event_id='standalone-visual-fixture', request_id=0,
+        packet=packet, action_packet=None, velocity=np.zeros(6)))
     requests.put(None)
     forbid_sampling(monkeypatch)
     control_worker(requests, replies, scene.robot_description, str(scene.urdf), templates,
                    str(tmp_path), .5)
     reply = replies.get_nowait()
     assert not reply.get('failed'), reply
+    assert isinstance(reply['packet'], FrozenActionKPacket)
     record = json.loads((tmp_path/'control.jsonl').read_text())
     diagnostics = reply['diagnostics']
     assert diagnostics['reaching_phase'] == 'indet_ik'
@@ -220,7 +223,9 @@ def test_actual_control_worker_selects_full_K_IK_and_serializes_the_same_law(pro
     assert snapshot.stiffness_record['captured_packet_id'] == reply['packet'].packet_id
     assert snapshot.stiffness_record['captured_estimate_packet_id'] == packet.packet_id
     assert snapshot.stiffness_record['command_proposal'] == packet.proposal
-    assert snapshot.stiffness_record['execution_command_proposal']['selected_K'] == sample['execution_K']
+    assert snapshot.stiffness_record['action_command_proposal']['selected_K'] == packet.proposal['selected_K']
+    assert 'execution_command_proposal' not in snapshot.stiffness_record
+    assert 'execution_stiffness' not in snapshot.stiffness_record
     assert record['stiffness'] == snapshot.stiffness_record
     display = inference.common['display']
     verify_wire_identity(snapshot, MarkerArray().deserialize(reply['markers_wire']),
@@ -249,11 +254,18 @@ def test_phase_source_commits_with_active_law_and_incoming_interval_is_preserved
     current.submit_control()
     second = _complete_control(current)
     current.control_replies.put(second); current.poll()
+    # The single in-flight request was started before that IMU update. Its
+    # own completed law is adopted first; the following request captures K.
+    assert second['packet'] is None
+    assert current.latest_result is updated
+    current.submit_control()
+    second = _complete_control(current)
+    current.control_replies.put(second); current.poll()
     selected = {key: second['diagnostics'][key] for key in SOURCE_KEYS}
     assert selected != expected
     manifest = current.manifest()
     assert manifest['reaching_phase_source'] == expected
-    assert manifest['planned_reaching_phase_source'] == selected
+    assert current.reaching_phase() == ('indet_ik', selected)
     assert current.current_control['snapshot'].stiffness_record['captured_packet_id'] == second['packet'].packet_id
     assert current.latest_packet.packet_id == packet.packet_id
     assert current.latest_result is updated

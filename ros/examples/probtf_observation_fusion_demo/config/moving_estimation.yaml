@@ -4,15 +4,20 @@ root_frame: base_link
 body_law_package: probtf_switch_press_demo
 body_law_file: config/independent_transform_laws.yaml
 body_law_source: unchanged directly specified six-link family from the switch-press example; translation Gaussians and full Bingham rotations, transported by its explicit right_joint_action
-temporal_policy: retain a single full joint moment proxy; on each fresh valid observation packet compare continuation with a direct-family body redraw by Bayes-factor surprise; retain the unknown marker marginal and all goal modes; no invented process noise
+temporal_policy: retain a single full joint moment proxy and explicit candidate log mass; process every acquired enabled sensor event in acquisition order; retain the unknown marker marginal and all goal modes; no invented process noise
 bayes_factor_surprise:
   enabled: true
   change_probability: 0.25
+  # Implementation choice for the asynchronous event scheme, not an additional
+  # agreement claimed from THEORETICAL_FRAMEWORK_20261018.md.
+  event_probability_unit: per_effective_sensor_event
 async_execution:
-  motion_period_s: 0.05
-  camera_hz: 15.0
+  physics_hz: 120.0
+  joint_hz: 40.0
+  imu_hz: 30.0
+  image_hz: 12.0
   ik_horizon_s: 0.5
-  observation_scheduling: latest_archived_capture_when_idle
+  observation_scheduling: all_acquired_events_in_timestamp_order
 marker_prior:
   edge_id: marker
   translation: [1.16, -0.04, 0.72]
@@ -48,12 +53,8 @@ control:
   max_joint_acceleration: 0.3
   damping: 0.025
   integration_steps: 480
-  # Three successive IK updates form the short receding trajectory.
-  # Deflecomp-style log-K execution damping at the 20 Hz motion cadence.
-  # Each single-gradient IK calculation captures that time's filtered value.
-  execution_stiffness:
-    kp_exec_tau: 0.5
-    max_log_kp_exec_step: 0.05
+  # One full-criterion gradient update; directly capture K_est for all trials.
+  # The existing 0.5 s position reference is retained pending trajectory design.
   gradient_step: 0.00001
   gradient_max_backtracks: 3
   visual_approach:

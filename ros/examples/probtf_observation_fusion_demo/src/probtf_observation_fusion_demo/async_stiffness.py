@@ -44,6 +44,88 @@ class FrozenKPacket:
 
 
 @dataclass(frozen=True)
+class FrozenActionKPacket:
+    """The unchanged estimated K and a current-command stable branch anchor."""
+    estimated_packet: FrozenKPacket
+    action_json: str
+    packet_id: str
+
+    @property
+    def record(self):
+        return self.estimated_packet.record
+
+    @property
+    def proposal(self):
+        return self.estimated_packet.proposal
+
+    @property
+    def action(self):
+        return json.loads(self.action_json)
+
+
+def _action_packet_id(estimated_packet, action_json):
+    return hashlib.sha256(('direct-action\n'+estimated_packet.packet_id+'\n'+action_json).encode()).hexdigest()
+
+
+def capture_direct_stiffness_action(engine, result, estimated_packet, previous=None):
+    """Capture K_est verbatim and reanchor its action at the current command.
+
+    The previous adopted action supplies only the stable-branch initial
+    equilibrium. The final equilibrium is solved with the exact new K_est;
+    no parameter density is evaluated or changed here.
+    """
+    if not isinstance(estimated_packet, FrozenKPacket):
+        raise TypeError('A direct action needs an original estimated K packet.')
+    if previous is not None and not isinstance(previous, FrozenActionKPacket):
+        raise TypeError('A direct action continues a captured direct-action packet.')
+    estimate = estimated_packet.record
+    if float(estimate['source_stamp']) > result.prior.stamp:
+        raise ValueError('A direct action cannot use an estimate from the future.')
+    if previous is not None and previous.action['anchor_stamp'] > result.prior.stamp:
+        raise ValueError('A direct action cannot continue a branch from the future.')
+    body, goals = control_components(result)
+    command = np.asarray(result.prior.command, dtype=float)
+    if (not body or any(item.state.command != tuple(command)
+                       or item.state.stamp != result.prior.stamp for item in body)):
+        raise ValueError('A direct action needs a coherent current body prediction.')
+    # Validate the new estimate before using the previous adopted branch.
+    engine.set(estimated_packet)
+    if previous is not None:
+        engine.set(previous)
+    initial = engine._evaluate(command)[0]
+    initial_K = engine.stiffness.tolist()
+    stiffness = np.asarray(estimated_packet.proposal['selected_K'], dtype=float)
+    theta, _, _, active = engine.identifier._refine_equilibrium(initial, command, stiffness)
+    action = dict(
+        estimated_packet_id=estimated_packet.packet_id,
+        estimated_density_id=estimated_packet.proposal['density_id'],
+        estimated_source_stamp=estimate['source_stamp'],
+        selected_K=estimated_packet.proposal['selected_K'],
+        anchor_command=command.tolist(), anchor_stamp=result.prior.stamp,
+        auxiliary_equilibrium=theta.tolist(),
+        auxiliary_active_joint_limits=np.asarray(active, dtype=bool).tolist(),
+        anchor_prior_state_id=result.prior.state_id,
+        anchor_body_state_ids=[item.state.state_id for item in body],
+        anchor_body_versions=[item.state.version for item in body],
+        anchor_body_weights=[item.weight for item in body],
+        anchor_body_log_weights=[component_log_weight(item) for item in body],
+        anchor_goal_state_ids=[item.state.state_id for item in goals],
+        anchor_goal_versions=[item.state.version for item in goals],
+        anchor_goal_weights=[item.weight for item in goals],
+        anchor_goal_log_weights=[component_log_weight(item) for item in goals],
+        previous_action_packet_id=None if previous is None else previous.packet_id,
+        branch_initial_packet_id=engine.packet.packet_id,
+        branch_initial_K=initial_K, branch_initial_equilibrium=initial.tolist(),
+        branch_policy='continue the captured stable branch to the current command, then refine with the exact estimated K; every trial starts at this new captured anchor',
+        role='direct estimated K representative; original parameter density and proposal unchanged',
+        parameter_density_updated=False, body_reconstructed_from_stiffness=False,
+        physical_truth_received=False, monte_carlo_used=False)
+    encoded = json.dumps(action, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    return FrozenActionKPacket(estimated_packet, encoded,
+                              _action_packet_id(estimated_packet, encoded))
+
+
+@dataclass(frozen=True)
 class FrozenExecutionKPacket:
     """A control value and branch, separate from its unchanged K estimate."""
     estimated_packet: FrozenKPacket
@@ -135,6 +217,8 @@ def capture_stiffness_packet(result):
     record = result.records.get('stiffness')
     if record is not None and record.get('execution_stiffness') is not None:
         raise ValueError('An execution parameter view cannot become a new stiffness estimate.')
+    if record is not None and record.get('action_stiffness') is not None:
+        raise ValueError('An action parameter view cannot become a new stiffness estimate.')
     proposal = None if record is None else record.get('command_proposal')
     density = None if record is None else record.get('posterior') or record.get('retained_prior')
     body, _ = control_components(result)
@@ -176,9 +260,10 @@ class PhysicalActionEngine:
         self.equilibrium_evaluation_count = 0
 
     def set(self, packet):
-        if not isinstance(packet, (FrozenKPacket, FrozenExecutionKPacket)):
+        if not isinstance(packet, (FrozenKPacket, FrozenActionKPacket, FrozenExecutionKPacket)):
             raise TypeError('A command action requires an immutable captured K packet.')
-        estimated = packet.estimated_packet if isinstance(packet, FrozenExecutionKPacket) else packet
+        estimated = (packet.estimated_packet
+                     if isinstance(packet, (FrozenActionKPacket, FrozenExecutionKPacket)) else packet)
         if not isinstance(estimated, FrozenKPacket):
             raise TypeError('An execution packet must reference an original estimated K packet.')
         if hashlib.sha256(estimated.record_json.encode()).hexdigest() != estimated.packet_id:
@@ -186,6 +271,9 @@ class PhysicalActionEngine:
         execution = packet.execution if isinstance(packet, FrozenExecutionKPacket) else None
         if execution is not None and packet.packet_id != _execution_packet_id(estimated, packet.execution_json):
             raise ValueError('An execution K packet hash does not match its captured control value.')
+        action = packet.action if isinstance(packet, FrozenActionKPacket) else None
+        if action is not None and packet.packet_id != _action_packet_id(estimated, packet.action_json):
+            raise ValueError('An action K packet hash does not match its captured anchor.')
         if self.packet is not None and packet.packet_id == self.packet.packet_id:
             return
         record = packet.record
@@ -209,9 +297,18 @@ class PhysicalActionEngine:
                 execution_sample_record(execution['filter_sample'], estimated) != execution['filter_sample']
                 or any(execution.get(key) != value for key, value in execution['filter_sample'].items())):
             raise ValueError('An execution packet must freeze its exact interpolated filter sample.')
+        if action is not None and (
+                action['estimated_packet_id'] != estimated.packet_id
+                or action['estimated_density_id'] != proposal['density_id']
+                or action['estimated_source_stamp'] != record['source_stamp']
+                or not np.isfinite(action['anchor_stamp'])
+                or action['anchor_stamp'] < record['source_stamp']
+                or not np.array_equal(action['selected_K'], proposal['selected_K'])):
+            raise ValueError('A direct action packet must retain the exact source estimate.')
         stiffness = _readonly(proposal['selected_K'] if execution is None else execution['execution_K'])
-        captured_command = _readonly(proposal['source_command'] if execution is None else execution['anchor_command'])
-        captured_equilibrium = _readonly(proposal['auxiliary_equilibrium'] if execution is None else execution['auxiliary_equilibrium'])
+        anchor = action if action is not None else execution
+        captured_command = _readonly(proposal['source_command'] if anchor is None else anchor['anchor_command'])
+        captured_equilibrium = _readonly(proposal['auxiliary_equilibrium'] if anchor is None else anchor['auxiliary_equilibrium'])
         if (stiffness.shape != (self.identifier.robot.nv,)
                 or captured_command.shape != stiffness.shape
                 or captured_equilibrium.shape != stiffness.shape
@@ -230,12 +327,15 @@ class PhysicalActionEngine:
                 or not np.all(np.isfinite(hessian))
                 or np.linalg.eigvalsh(.5*(hessian+hessian.T))[0] <= 0.):
             raise ValueError('The captured K anchor is not a stable bounded equilibrium.')
+        if action is not None and not np.array_equal(action['auxiliary_active_joint_limits'], active):
+            raise ValueError('A direct action packet must retain its actual equilibrium active set.')
         self.packet = packet
         self.stiffness = stiffness
         self.captured_command = captured_command
         self.captured_equilibrium = captured_equilibrium
         self._captured_record = record
         self._execution_record = execution
+        self._action_record = action
         self._cache = {}
         self.equilibrium_evaluation_count = 0
         self._store(captured_command, captured_equilibrium, hessian, active)
@@ -287,6 +387,12 @@ class PhysicalActionEngine:
                 execution_packet_id=self.packet.packet_id,
                 execution_stiffness=self.packet.execution,
                 stiffness_role='damped execution K; captured density and its representative are unchanged')
+        elif self._action_record is not None:
+            result.update(estimated_K=list(proposal['selected_K']),
+                estimated_packet_id=self.packet.estimated_packet.packet_id,
+                action_packet_id=self.packet.packet_id,
+                action_stiffness=self.packet.action,
+                stiffness_role='direct estimated K representative; original parameter density and proposal unchanged')
         return result
 
     def anchor(self, command):
@@ -326,6 +432,9 @@ class RetainedStiffnessCommandMap(StiffnessCommandMap):
         if isinstance(engine.packet, FrozenExecutionKPacket):
             self._record['stiffness_role'] = 'damped execution control parameter; original estimated representative and density unchanged'
             self._record['execution_stiffness'] = engine.packet.execution
+        elif isinstance(engine.packet, FrozenActionKPacket):
+            self._record['stiffness_role'] = engine.provenance()['stiffness_role']
+            self._record['action_stiffness'] = engine.packet.action
 
     def _evaluate(self, command):
         if self._action_engine.packet.packet_id != self._packet_id:
@@ -350,14 +459,27 @@ def reanchor_retained_stiffness(engine, result, packet=None):
     if not body or any(item.state.command != command or item.state.stamp != result.prior.stamp
                        for item in body):
         raise ValueError('A retained-K view requires one coherent current body prediction.')
+    if isinstance(engine.packet, FrozenActionKPacket):
+        action = engine.packet.action
+        if action['anchor_stamp'] > result.prior.stamp:
+            raise ValueError('A direct action view cannot use an anchor from the future.')
+        if action['anchor_stamp'] == result.prior.stamp and (
+                action['anchor_command'] != list(command)
+                or action['anchor_prior_state_id'] != result.prior.state_id
+                or action['anchor_body_state_ids'] != [item.state.state_id for item in body]
+                or action['anchor_body_versions'] != [item.state.version for item in body]
+                or action['anchor_body_weights'] != [item.weight for item in body]
+                or action['anchor_body_log_weights'] != [component_log_weight(item) for item in body]):
+            raise ValueError('A direct action anchor belongs to a different current body source.')
     captured = engine.packet.record
     density = captured.get('posterior') or captured.get('retained_prior')
     anchor = engine.anchor(command)
     damped = isinstance(engine.packet, FrozenExecutionKPacket)
+    direct = isinstance(engine.packet, FrozenActionKPacket)
     # The original estimated command proposal is kept verbatim below. The
     # execution proposal is a separate current-body action, never a new mode
     # or density/score evaluation at the filtered value.
-    proposal = (dict(density_id=density['density_id']) if damped else
+    proposal = (dict(density_id=density['density_id']) if damped or direct else
                 dict(captured['command_proposal']))
     proposal.update(command=(2.*np.asarray(command)-np.asarray(anchor['equilibrium'])).tolist(),
         source_command=list(command), source_stamp=result.prior.stamp,
@@ -372,6 +494,8 @@ def reanchor_retained_stiffness(engine, result, packet=None):
         captured_parameter_packet=engine.provenance())
     if damped:
         proposal['selected_logK'] = engine.packet.execution['execution_logK']
+    elif direct:
+        proposal['selected_logK'] = captured['command_proposal']['selected_logK']
     view = dict(source_stamp=result.prior.stamp, source_command=list(command),
         source_prior_state_id=result.prior.state_id, source_prior_version=result.prior.version,
         source_prior_state_ids=[result.prior.state_id], source_prior_weights=[1.],
@@ -411,6 +535,11 @@ def reanchor_retained_stiffness(engine, result, packet=None):
             proposal_status='damped_execution_K',
             approximation='same observed body advanced by recorded execution-K actions; estimated stiffness density unchanged')
         view['proposal_selection']['method'] = 'no density reevaluation; damped execution control value, separate from the estimated representative'
+    elif direct:
+        view.update(command_proposal=captured['command_proposal'],
+            action_command_proposal=proposal, action_stiffness=engine.packet.action,
+            captured_estimate_packet_id=engine.packet.estimated_packet.packet_id,
+            proposal_status='direct_estimated_K_action')
     view_result = replace(result, records=dict(result.records, stiffness=view))
     # This identifier is private to this consumer. The original inference
     # identifier and its last_record/factors are never accessed or modified.

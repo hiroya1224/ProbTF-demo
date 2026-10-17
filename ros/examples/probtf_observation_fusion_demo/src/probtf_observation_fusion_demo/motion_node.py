@@ -98,8 +98,13 @@ class MotionSession:
         self.scene = (MovingSwitchScene(self.output) if imu_target_link is None
                       else MovingSwitchScene(self.output, imu_target_link=imu_target_link))
         self.inference = MovingInference(self.scene.robot_description, self.templates)
+        # Explicit historical packet diagnostic; the default async runtime
+        # uses separate timestamped events and positive stiffness BFS instead.
+        parameter_settings = yaml.safe_load((self.package/'config/stiffness_identification.yaml').read_text())
+        parameter_settings['bayes_factor_surprise'] = dict(enabled=False,
+            disabled_reason='legacy synchronous combined-packet diagnostic; not the event runtime')
         self.stiffness = StiffnessIdentifier(self.scene.urdf, tuple(self.inference.body_ids),
-            yaml.safe_load((self.package/'config/stiffness_identification.yaml').read_text()))
+            parameter_settings)
         control = self.inference.settings['control']
         self.controller = MovingController(self.inference, self.scene.robot_description,
             control['goal_offset'], control['goal_orientation_wxyz'], control,

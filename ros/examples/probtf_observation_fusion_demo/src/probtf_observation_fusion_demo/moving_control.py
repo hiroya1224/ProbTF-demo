@@ -87,97 +87,41 @@ def _component_log_weight(component):
         np.log(component.weight) if component.weight > 0. else -np.inf))
 
 
-def _bounded_gradient_direction(metric, gradient, baseline, lower, upper,
-                                position_gradient):
-    """Solve the coupled local quadratic within joint and progress bounds.
+def _bounded_gradient_direction(metric, gradient, baseline, lower, upper):
+    """Precondition the complete-criterion gradient within command bounds.
 
-    The quadratic only preconditions the complete-criterion gradient. The
-    caller still checks the actual full criterion and actual propagated
-    position-error expectation on every line-search trial.
+    The quadratic is a numerical step model, not an additional task
+    criterion. The caller checks the actual complete criterion on each
+    line-search trial.
     """
-    metric, gradient, baseline, lower, upper, position_gradient = map(np.asarray,
-        (metric, gradient, baseline, lower, upper, position_gradient))
+    metric, gradient, baseline, lower, upper = map(np.asarray,
+        (metric, gradient, baseline, lower, upper))
     scale = np.maximum(np.maximum(upper-baseline, baseline-lower), 1e-12)
     quadratic = scale[:, None]*metric*scale[None, :]
     linear = scale*gradient
     normalization = max(1., float(np.linalg.norm(quadratic, ord=np.inf)),
                         float(np.linalg.norm(linear, ord=np.inf)))
     quadratic, linear = quadratic/normalization, linear/normalization
-    progress = scale*position_gradient
-    progress_scale = float(np.linalg.norm(progress))
-    constraints = () if progress_scale == 0. else ({
-        'type': 'ineq', 'fun': lambda value: -float(progress @ value)/progress_scale,
-        'jac': lambda value: -progress/progress_scale},)
     solved = minimize(lambda value: .5*value @ quadratic @ value+linear @ value,
         np.zeros_like(baseline), jac=lambda value: quadratic @ value+linear,
         bounds=list(zip((lower-baseline)/scale, (upper-baseline)/scale)),
-        constraints=constraints, method='SLSQP',
+        method='SLSQP',
         options=dict(maxiter=80, ftol=1e-12))
     direction = scale*solved.x
     feasible = (np.all(np.isfinite(direction))
         and np.all(baseline+direction >= lower-1e-12)
-        and np.all(baseline+direction <= upper+1e-12)
-        and float(position_gradient @ direction) <= 1e-12*max(1., progress_scale))
+        and np.all(baseline+direction <= upper+1e-12))
     accepted = bool(solved.success and feasible and gradient @ direction < 0.)
     if not accepted:
         direction = np.zeros_like(baseline)
-    return direction, dict(method='coupled box-constrained Fisher quadratic with linearized position-expectation nonincrease',
+    return direction, dict(method='coupled box-constrained Fisher quadratic',
         solver='deterministic SLSQP with analytic quadratic gradient',
         solver_success=bool(solved.success), solver_status=int(solved.status),
         solver_message=str(solved.message), iterations=int(solved.nit),
         constraints_satisfied=bool(feasible),
-        accepted=accepted, linearized_position_change=float(position_gradient @ direction),
+        accepted=accepted,
         objective_slope=float(gradient @ direction),
         fallback='zero direction at the feasible initial point' if not accepted else None)
-
-
-def _position_error_expectation(item, goal_offset):
-    return float(sum(branch['weight']*(
-        np.sum((query.mean[:3]-goal_offset)**2)
-        +np.trace(query.covariance[:3, :3])) for branch, query in zip(item[2], item[3])))
-
-
-def _position_interior_directions(direction, gradient, position_gradient,
-                                  baseline, lower, upper):
-    """Correct a rejected tangent using the already computed two gradients.
-
-    Convex combinations with a feasible coordinate position-descent direction
-    preserve the coupled QP's box. The mixing fraction is bounded analytically
-    so both objective and position directional derivatives are strictly
-    negative. These are optimizer directions, never candidate-law samples.
-    The caller must still check the unchanged exact J and s on every trial.
-    """
-    direction, gradient, position_gradient, baseline, lower, upper = map(np.asarray,
-        (direction, gradient, position_gradient, baseline, lower, upper))
-    objective_slope = float(gradient @ direction)
-    if objective_slope >= 0.:
-        return
-    candidates = []
-    for axis, derivative in enumerate(position_gradient):
-        coordinate = np.zeros_like(direction)
-        coordinate[axis] = (lower[axis]-baseline[axis] if derivative > 0.
-                            else upper[axis]-baseline[axis])
-        if float(position_gradient @ coordinate) >= 0.:
-            continue
-        coordinate_objective = float(gradient @ coordinate)
-        fraction = .3
-        if coordinate_objective >= 0.:
-            # Stay halfway inside the J-descent cone, even when this
-            # coordinate alone would improve s at the expense of J.
-            fraction = min(fraction, -.5*objective_slope /
-                           (coordinate_objective-objective_slope))
-        corrected = (1.-fraction)*direction+fraction*coordinate
-        corrected_objective = float(gradient @ corrected)
-        corrected_position = float(position_gradient @ corrected)
-        if corrected_objective < 0. and corrected_position < 0.:
-            candidates.append((corrected, dict(axis=int(axis), fraction_toward_position_descent=float(fraction),
-                objective_slope=corrected_objective,
-                linearized_position_change=corrected_position,
-                coordinate_direction=coordinate.tolist(), direction=corrected.tolist())))
-    # Prefer a genuine interior position slope to a tiny difference artefact
-    # on a nominally tangent coordinate. All retain at least half the
-    # original negative J slope and need the same exact line-search checks.
-    yield from sorted(candidates, key=lambda item: item[1]['linearized_position_change'])
 
 
 def switch_goal_queries(state, marker_path, goal_offset, goal_orientation,
@@ -543,8 +487,6 @@ class MovingController:
         baseline = np.clip(np.zeros_like(self.velocity), lower, upper)
         initial_item = evaluate(baseline)
         braking_item = initial_item
-        position_limit = _position_error_expectation(braking_item, self.goal_offset)
-        position_tolerance = 1e-12
         proposal_diagnostics = {'available': stiffness_proposal is not None,
                                 'accepted_as_initial_point': False}
         if stiffness_proposal is not None:
@@ -572,9 +514,7 @@ class MovingController:
                 log_braking_criterion=braking_item[0],
                 role='initial command proposal only; accepted by the same complete body criterion',
                 physical_truth_received=False)
-            proposal_diagnostics['position_error_expectation'] = _position_error_expectation(candidate, self.goal_offset)
-            if (candidate[0] > initial_item[0]
-                    and proposal_diagnostics['position_error_expectation'] <= position_limit+position_tolerance):
+            if candidate[0] > initial_item[0]:
                 initial_item = candidate
                 baseline = candidate[1].copy()
                 proposal_diagnostics['accepted_as_initial_point'] = True
@@ -588,18 +528,13 @@ class MovingController:
             candidate = evaluate(np.clip(proposed-command, lower, upper))
             approach_proposal.update(requested_command=proposed.tolist(),
                 projected_command=(command+candidate[1]).tolist(),
-                proposed_objective=-candidate[0], comparison_objective=-initial_item[0],
-                position_error_expectation=_position_error_expectation(candidate, self.goal_offset),
-                position_error_limit=position_limit)
-            if (candidate[0] > initial_item[0]
-                    and approach_proposal['position_error_expectation'] <= position_limit+position_tolerance):
+                proposed_objective=-candidate[0], comparison_objective=-initial_item[0])
+            if candidate[0] > initial_item[0]:
                 initial_item = candidate
                 baseline = candidate[1].copy()
                 approach_proposal['accepted_as_initial_point'] = True
         initial_cost = -initial_item[0]
-        initial_position = _position_error_expectation(initial_item, self.goal_offset)
         raw_gradient = np.zeros_like(baseline)
-        position_gradient = np.zeros_like(baseline)
         difference_steps = np.zeros_like(baseline)
         for index in range(baseline.size):
             forward = min(self.gradient_step, upper[index]-baseline[index])
@@ -613,14 +548,12 @@ class MovingController:
             # logdet, Bingham parameter/normalizer and weight enters each value.
             probed = evaluate(probe)
             raw_gradient[index] = (-probed[0]-initial_cost)/difference
-            position_gradient[index] = (
-                _position_error_expectation(probed, self.goal_offset)-initial_position)/difference
             difference_steps[index] = difference
         command_jacobian = (None if command_map is None
                             else command_map.jacobian(command+baseline))
         metric = self._step_metric(components, initial_item[3], command_jacobian)
         direction, quadratic_record = _bounded_gradient_direction(
-            metric, raw_gradient, baseline, lower, upper, position_gradient)
+            metric, raw_gradient, baseline, lower, upper)
         solver_failed = not (quadratic_record['solver_success']
                              and quadratic_record['constraints_satisfied'])
         if solver_failed:
@@ -633,48 +566,19 @@ class MovingController:
         line_search = []
         accepted_step = False
         step_scale = 0.0
-        selected_direction = direction
         accepted_backtracks = 0
-        def search(candidate_direction, kind, correction=None):
-            nonlocal selected, accepted_step, step_scale, selected_direction, accepted_backtracks
-            candidate_slope = float(raw_gradient @ candidate_direction)
-            if candidate_slope >= 0.:
-                return False
+        if slope < 0.:
             for backtracks in range(self.max_backtracks+1):
                 scale = 0.5**backtracks
-                trial = evaluate(baseline+scale*candidate_direction)
+                trial = evaluate(baseline+scale*direction)
                 trial_cost = -trial[0]
-                sufficient_decrease = initial_cost+1e-4*scale*candidate_slope
-                trial_position = _position_error_expectation(trial, self.goal_offset)
-                position_feasible = trial_position <= position_limit+position_tolerance
+                sufficient_decrease = initial_cost+1e-4*scale*slope
                 line_search.append({"scale": scale, "objective": trial_cost,
                     "armijo_bound": sufficient_decrease,
-                    "position_error_expectation": trial_position,
-                    "position_error_limit": position_limit,
-                    "position_progress_feasible": bool(position_feasible),
-                    "direction_kind": kind, "backtracks": backtracks,
-                    "direction_axis": None if correction is None else correction['axis']})
-                if trial_cost <= sufficient_decrease and position_feasible:
+                    "direction_kind": "coupled quadratic", "backtracks": backtracks})
+                if trial_cost <= sufficient_decrease:
                     selected, accepted_step, step_scale = trial, True, scale
-                    selected_direction, accepted_backtracks = candidate_direction, backtracks
-                    return True
-            return False
-        search(direction, 'coupled quadratic')
-        interior_record = dict(attempted=False, applied=False, candidates=[],
-            reason='original direction accepted or exact position rejection absent',
-            gradients_reused=True, additional_gradient_evaluations=0,
-            exact_criterion_or_constraint_modified=False, monte_carlo_used=False)
-        if (not solver_failed and not accepted_step and quadratic_record['accepted']
-                and any(not item['position_progress_feasible'] for item in line_search)):
-            interior_record.update(attempted=True,
-                reason='full-J descending quadratic direction rejected by the exact propagated position constraint')
-            for corrected, correction in _position_interior_directions(
-                    direction, raw_gradient, position_gradient, baseline, lower, upper):
-                accepted = search(corrected, 'strict position interior', correction)
-                correction['accepted'] = accepted
-                interior_record['candidates'].append(correction)
-                if accepted:
-                    interior_record.update(applied=True, selected_axis=correction['axis'])
+                    accepted_backtracks = backtracks
                     break
         increment = selected[1]
         projected_gradient = raw_gradient.copy()
@@ -705,20 +609,6 @@ class MovingController:
             "preconditioner_damping": self.damping,
             "preconditioner_matrix": metric.tolist(),
             "quadratic_step": quadratic_record,
-            "position_descent_correction": interior_record,
-            "position_progress": dict(
-                quantity='sum_k w_k * (squared relative position mean error + trace of relative position covariance)',
-                frame='marker', units='m^2',
-                reference='maximally braking feasible increment evaluated on the same frozen law and K action',
-                reference_increment=braking_item[1].tolist(),
-                reference_error_expectation=position_limit,
-                initial_error_expectation=initial_position,
-                selected_error_expectation=_position_error_expectation(selected, self.goal_offset),
-                gradient=position_gradient.tolist(),
-                tolerance=position_tolerance,
-                constraint_satisfied=bool(_position_error_expectation(selected, self.goal_offset)
-                    <= position_limit+position_tolerance),
-                new_observations_or_physical_truth_used=False),
             "feasible_baseline_increment": baseline.tolist(),
             "feasible_baseline_objective": initial_cost,
             "braking_baseline_increment": braking_item[1].tolist(),
@@ -730,14 +620,14 @@ class MovingController:
             "step_backtracks": (accepted_backtracks if accepted_step else
                                  max((item['backtracks'] for item in line_search), default=0)),
             "maximum_line_search_backtracks": self.max_backtracks,
-            "selected_gradient_direction": selected_direction.tolist(),
+            "selected_gradient_direction": direction.tolist(),
             "line_search": line_search,
             "improved_from_feasible_baseline": bool(selected[0] > initial_item[0]),
             "zero_increment_feasible": bool(np.all(lower <= 0.0) and np.all(upper >= 0.0)),
             "baseline_motion_required_by_acceleration_limits": bool(
                 np.any(lower > 0.0) or np.any(upper < 0.0)),
             "selection_reason": ("full-objective Armijo gradient step" if accepted_step
-                else ("validated complete-criterion and position-feasible initial proposal retained; no gradient trial accepted"
+                else ("validated complete-criterion initial proposal retained; no gradient trial accepted"
                     if selected is initial_item and initial_item is not braking_item
                     else "feasible braking baseline retained; no gradient trial accepted")),
             "convergence_claimed": False,

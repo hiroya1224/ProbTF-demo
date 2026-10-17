@@ -80,6 +80,7 @@ def test_all_modes_full_covariances_and_source_metadata_are_actual_core_queries(
     assert record['mixture_collapsed'] is False
     assert record['physical_truth_received'] is record['monte_carlo_used'] is False
     assert record['full_gaussian_bingham_criterion_used_for_selection'] is False
+    assert record['near_distance_role'] == 'visual initial-proposal latch only; not an IK feasibility constraint'
     assert record['field_of_view_guaranteed'] is False
     camera_path = tuple((name, not inverse) for name, inverse in reversed(result.camera_path))+result.marker_path
     squared = 0.
@@ -241,6 +242,8 @@ def corrected(tmp_path_factory):
     inference = MovingInference(scene.robot_description, observations)
     result = inference.update(inputs, 0)
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
+    # Historical combined-packet source for command-law compatibility.
+    settings['bayes_factor_surprise'] = {'enabled': False}
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     result.records['stiffness'] = identifier.update(result)
     proposal = identifier.command_proposal(result)

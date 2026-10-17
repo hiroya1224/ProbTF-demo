@@ -33,6 +33,9 @@ def observed(tmp_path_factory):
     inference = MovingInference(scene.robot_description, templates)
     result = inference.update(inputs, 0)
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
+    # This legacy packet fixture tests the historical density-product path;
+    # event-based positive BFS is covered by separate acquisition tests.
+    settings['bayes_factor_surprise'] = {'enabled': False}
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     result.records['stiffness'] = identifier.update(result)
     assert identifier.command_proposal(result) is not None

@@ -424,6 +424,8 @@ def test_local_actions_use_the_exact_same_K_corrected_laws_next_prior_and_publis
     inference = MovingInference(scene.robot_description, contexts['imu_marker'][0].templates, config_path=scene.legacy_inference_config)
     result = inference.update(inputs, 0)
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
+    # Historical combined-packet source for command-law compatibility.
+    settings['bayes_factor_surprise'] = {'enabled': False}
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     result.records['stiffness'] = identifier.update(result)
     proposal = identifier.command_proposal(result)

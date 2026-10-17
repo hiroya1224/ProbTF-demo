@@ -8,10 +8,11 @@ or invented process covariance enters inference.
 """
 
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import dataclass, replace
 import hashlib
 import json
 from pathlib import Path
+import re
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -32,6 +33,21 @@ from .body_projection import project_update, retain_goal_components
 from .moving_control import command_state
 from .bayes_factor import transition_priors, projection_input, retain_transition_goals
 from .fresh_goal import fresh_marker_goals
+from .sensor_event_store import _encode
+
+
+@dataclass(frozen=True)
+class CandidateMeasureView:
+    """Unnormalized candidate scale and the actual normalized joint proxy.
+
+    The proxy objects are the ones consumed by control and display. Their
+    normalization is a computational view, not a unit-mass declaration for
+    the underlying candidate measure. Log mass uses an explicit arbitrary
+    initial reference and the recorded sensor-proxy evidence measure.
+    """
+    components: tuple
+    log_total_mass: float
+    evidence_measure: str
 
 
 def _origin(joint):
@@ -77,8 +93,8 @@ class MovingInference:
         self.surprise_settings = dict(settings.get('bayes_factor_surprise', {}))
         self.surprise_enabled = bool(self.surprise_settings.get('enabled', False))
         self.change_probability = float(self.surprise_settings.get('change_probability', .25))
-        if not np.isfinite(self.change_probability) or not 0. < self.change_probability < 1.:
-            raise ValueError('Bayes-factor change probability must be strictly between zero and one.')
+        if not np.isfinite(self.change_probability) or not 0. <= self.change_probability < 1.:
+            raise ValueError('Bayes-factor change probability must lie in [0, 1).')
         self.last_key = None
         self.last_result = None
         self.last_observation_signature = None
@@ -86,6 +102,10 @@ class MovingInference:
         self.goal_components = ()
         self.fixed_goal_memory = None
         self.last_observations = ()
+        self.candidate_measure = None
+        self._sensor_events = {}
+        self._last_sensor_event_id = None
+        self._last_event_image = None
 
         # URDF is used only for declared geometry.  The direct uncertain laws
         # supply each active edge; masses/inertia and physics are never read.
@@ -189,7 +209,133 @@ class MovingInference:
 
     def update(self, sensor_inputs, frame_index, *, command_map=None):
         """Run one same-time common update; duplicate ticks return that snapshot."""
+        return self._update_common(sensor_inputs, frame_index, command_map=command_map)
+
+    def update_sensor_event(self, event, event_index=None, *, command_map=None,
+                            probability_unit=None):
+        """Assimilate only this acquired sensor into the retained joint law.
+
+        Distinct sensors may share an acquisition stamp; their immutable DB
+        sequence orders the separate updates. Joint events are command-context
+        notifications, never a measured-angle likelihood or a surprise event.
+        The physical frame index comes from explicit ``event_index`` or the
+        acquisition metadata, falling back to sequence for standalone callers.
+        The immediate identical replay returns the same object. Replaying an
+        older consumed ID raises instead of rolling the current law backwards.
+        """
+        from .moving_scene import SensorInputs
+
+        if event.kind not in ('joint', 'imu', 'image'):
+            raise ValueError('Unsupported sensor event kind.')
+        if event.status not in ('pending', 'processing', 'completed'):
+            raise ValueError('A sensor event must have a ready, chronologically released payload.')
+        payload = event.payload
+        allowed = {'time', 'frame_index'} | ({'image', 'image_stamp', 'image_path',
+            'image_sha256'} if event.kind == 'image' else
+            {'gravity_in_sensor', 'imu_target_link', 'imu_sigma_rad'} if event.kind == 'imu'
+            else {'command_velocity'})
+        if set(payload)-allowed:
+            raise ValueError('Undeclared sensor-event fields: '+', '.join(sorted(set(payload)-allowed)))
+        if 'frame_index' in payload and (isinstance(payload['frame_index'], bool)
+                or not isinstance(payload['frame_index'], int) or payload['frame_index'] < 0):
+            raise ValueError('Acquisition frame_index must be a nonnegative integer.')
+        if 'image_path' in payload and (not isinstance(payload['image_path'], str)
+                or not payload['image_path'] or '\x00' in payload['image_path']):
+            raise ValueError('Acquisition image_path must be a nonempty path string.')
+        if 'image_sha256' in payload and (not isinstance(payload['image_sha256'], str)
+                or re.fullmatch(r'[0-9a-fA-F]{64}', payload['image_sha256']) is None):
+            raise ValueError('Acquisition image_sha256 must be a 64-digit hexadecimal SHA256.')
+        stamp = float(event.stamp)
+        command = np.asarray(event.command, dtype=float)
+        if (not np.isfinite(stamp) or command.shape != self.reference_command.shape
+                or not np.all(np.isfinite(command))):
+            raise ValueError('Sensor acquisition stamp and sent command must be finite and valid.')
+        requested_index = payload.get('frame_index', event.sequence) if event_index is None else event_index
+        if (isinstance(requested_index, (bool, np.bool_)) or
+                not isinstance(requested_index, (int, np.integer)) or requested_index < 0):
+            raise ValueError('The event index must be a nonnegative integer.')
+        index = int(requested_index)
+        if 'frame_index' in payload and index != payload['frame_index']:
+            raise ValueError('Requested event index and acquired physical frame_index disagree.')
+        _, _, payload_hash = _encode(payload)
+        signature = (event.kind, stamp, tuple(command), payload_hash)
+        if event.event_id in self._sensor_events:
+            if self._sensor_events[event.event_id] != signature:
+                raise ValueError('A repeated sensor event has different acquisition data.')
+            if event.event_id != self._last_sensor_event_id:
+                raise ValueError('An already consumed older sensor event requires checkpoint replay.')
+            return self.last_result
+        if event.kind == 'image':
+            if 'image' not in payload:
+                raise ValueError('A ready image event must contain acquired pixels.')
+            if float(payload.get('image_stamp', stamp)) != stamp:
+                raise ValueError('Image payload and acquisition timestamps disagree.')
+            image = np.asarray(payload['image'])
+            if (image.dtype != np.uint8 or image.ndim not in (2, 3)
+                    or (image.ndim == 3 and image.shape[2] not in (1, 3, 4))):
+                raise ValueError('An image event requires uint8 camera pixels.')
+            if ('image_sha256' in payload and hashlib.sha256(image.tobytes()).hexdigest()
+                    != payload['image_sha256'].lower()):
+                raise ValueError('Acquisition image_sha256 disagrees with the acquired pixels.')
+        else:
+            image = (np.zeros((int(self.common['camera']['height']),
+                               int(self.common['camera']['width']), 3), dtype=np.uint8)
+                     if self._last_event_image is None else self._last_event_image)
+        if event.kind == 'imu':
+            if 'gravity_in_sensor' not in payload:
+                raise ValueError('An IMU event requires its acquired direction.')
+            gravity = np.asarray(payload['gravity_in_sensor'], dtype=float)
+            target = str(payload.get('imu_target_link', 'link_3'))
+            sigma = float(payload.get('imu_sigma_rad', .018))
+            if (gravity.shape != (3,) or not np.all(np.isfinite(gravity))
+                    or np.linalg.norm(gravity) == 0. or not np.isfinite(sigma) or sigma <= 0.):
+                raise ValueError('An IMU event needs a finite nonzero direction and positive sigma.')
+            if target not in self.body_ids and target not in ('tool0',):
+                raise ValueError('The acquired IMU target is outside the known body.')
+        else:
+            gravity, target, sigma = np.array([0., 0., -1.]), 'link_3', .018
+        sensor = {'imu': 'imu', 'image': 'marker', 'joint': None}[event.kind]
+        templates = tuple(item for item in self.templates if item['sensor'] == sensor)
+        if len(templates) > 1:
+            raise ValueError('One acquired sensor event must identify exactly one enabled sensor template.')
+        probability_unit = (self.surprise_settings.get('event_probability_unit')
+                            if probability_unit is None else probability_unit)
+        if (self.surprise_enabled and self.change_probability > 0. and templates
+                and probability_unit != 'per_effective_sensor_event'):
+            raise ValueError('Sensor-event Bayes surprise requires an explicitly configured '
+                             'event_probability_unit=per_effective_sensor_event.')
+        inputs = SensorInputs(time=float(payload.get('time', stamp)), stamp=stamp,
+            command=command, image=image, gravity_in_sensor=gravity,
+            imu_target_link=target, imu_sigma_rad=sigma)
+        if not np.isfinite(inputs.time):
+            raise ValueError('Sensor event simulation time must be finite.')
+        event_record = dict(event_id=str(event.event_id), kind=event.kind,
+            sequence=int(event.sequence), event_index=index, acquisition_stamp=stamp,
+            sent_command=command.tolist(), enabled=bool(templates),
+            observation_id=str(event.event_id) if templates else None,
+            probability_unit=probability_unit,
+            chronological_separate_sensor_update=True, simultaneous_sensor_wait=False,
+            joint_notification_is_observation=False, payload_hash=payload_hash,
+            acquisition_metadata={key: payload[key] for key in
+                ('frame_index', 'image_path', 'image_sha256') if key in payload},
+            acquisition_metadata_is_observation=False,
+            law_metadata_index='physical acquisition frame index; may repeat across separate sensor events',
+            update_identity='event_id and sequence plus content-derived state_id; numeric version alone is not an observation identifier',
+            physical_truth_received=False, monte_carlo_used=False)
+        result = self._update_common(inputs, index, command_map=command_map,
+            observation_templates=templates, sensor_event=event_record)
+        self._sensor_events[event.event_id] = signature
+        self._last_sensor_event_id = event.event_id
+        if event.kind == 'image':
+            self._last_event_image = np.array(image, copy=True)
+            self._last_event_image.setflags(write=False)
+        return result
+
+    def _update_common(self, sensor_inputs, frame_index, *, command_map=None,
+                       observation_templates=None, sensor_event=None):
         key = (int(frame_index), float(sensor_inputs.stamp), tuple(sensor_inputs.command))
+        if sensor_event is not None:
+            key += (sensor_event['event_id'],)
         signature = hashlib.sha256(np.asarray(sensor_inputs.image).tobytes()
             + np.asarray(sensor_inputs.gravity_in_sensor).tobytes()
             + repr((sensor_inputs.imu_target_link, sensor_inputs.imu_sigma_rad)).encode()
@@ -199,9 +345,11 @@ class MovingInference:
             if signature != self.last_observation_signature:
                 raise ValueError("A repeated physical tick contains different observation data.")
             return self.last_result
-        if self.last_key is not None and int(frame_index) <= self.last_key[0]:
+        if self.last_key is not None and (int(frame_index) < self.last_key[0]
+                or (sensor_event is None and int(frame_index) == self.last_key[0])):
             raise ValueError("Frame indices must increase; construct a fresh inference on replay.")
-        if self.last_key is not None and float(sensor_inputs.stamp) <= self.last_key[1]:
+        if self.last_key is not None and (float(sensor_inputs.stamp) < self.last_key[1]
+                or (sensor_event is None and float(sensor_inputs.stamp) == self.last_key[1])):
             raise ValueError("A new observation tick must have an increasing timestamp.")
         prediction = []
         goal_prediction = []
@@ -249,12 +397,14 @@ class MovingInference:
                     log_weight=component_log_weight(source)))
             predicted_goals = tuple(goals)
         observations = []
-        for template in self.templates:
+        for template in (self.templates if observation_templates is None else observation_templates):
             observation = deepcopy(template)
             if observation["sensor"] == "imu":
                 observation["sensor_id"] = "imu_" + sensor_inputs.imu_target_link
             observation["observation_id"] = "{}:frame:{:05d}".format(
                 observation["sensor_id"], int(frame_index))
+            if sensor_event is not None:
+                observation['observation_id'] = sensor_event['event_id']
             if observation["sensor"] == "imu":
                 observation.update(target_link=sensor_inputs.imu_target_link,
                     gravity_in_root=[0., 0., -1.],
@@ -266,11 +416,13 @@ class MovingInference:
             change_probability=self.change_probability,
             prior_change_odds=self.change_probability/(1.-self.change_probability),
             probability_unit='one fresh nonempty valid observation packet; common across sensors',
-            reason='disabled' if not self.surprise_enabled else 'no valid new observations',
+            reason=('disabled' if not self.surprise_enabled else
+                    'zero change probability: ordinary observation fusion'
+                    if self.change_probability == 0. else 'no valid new observations'),
             log_bayes_factor=None, posterior_change_probability=None,
             log_keep_evidence=None, log_reset_evidence=None,
             monte_carlo_used=False, physical_truth_received=False)
-        if self.surprise_enabled and observations:
+        if self.surprise_enabled and self.change_probability > 0. and observations:
             native_priors, transition_record = transition_priors(priors[0],
                 self.prior_at(sensor_inputs.command, sensor_inputs.stamp, frame_index),
                 self.change_probability, marker_id=self.marker.edge_id)
@@ -312,13 +464,21 @@ class MovingInference:
                 result.records['sensor_estimates'] = missing.records['sensor_estimates']
         else:
             result = run(self.common, tuple(observations), sensor_inputs.image,
-                         prior_components=priors, paths=self.paths)
+                         prior_components=priors, paths=self.paths,
+                         joint_evidence=sensor_event is not None)
         result.records['bayes_factor_surprise'] = surprise
         result = self._project_internal_update(result, predicted_goals)
         surprise['internal_state_id'] = result.stages[-1].components[0].state.state_id
         surprise['goal_source_state_ids'] = [item.state.state_id
                                             for item in result.stages[-1].goal_components]
         self._record_fixed_goal_memory(result)
+        if sensor_event is not None:
+            result.records['sensor_event'] = sensor_event
+            if sensor_event['kind'] != 'image' and result.records['fixed_goal_memory_event'] == 'image_missing_hold':
+                result.records['fixed_goal_memory_event'] = 'no_image_event_hold'
+            surprise['probability_unit'] = (sensor_event['probability_unit'] if observations
+                                             else 'not applied: no enabled observation in this event')
+            self._record_candidate_measure(result)
         result.records["prediction"] = prediction
         result.records["goal_prediction"] = goal_prediction
         result.records["prediction_command_correction"] = (
@@ -344,6 +504,38 @@ class MovingInference:
         self.goal_components = tuple(result.stages[-1].goal_components)
         self.last_observations = tuple(observations)
         return result
+
+    def _record_candidate_measure(self, result):
+        previous = 0. if self.candidate_measure is None else self.candidate_measure.log_total_mass
+        evidence = result.records.get('joint_observation_evidence')
+        valid = bool(result.records.get('valid_observation_count', 0))
+        increment = 0. if not valid else float(evidence['log_evidence'])
+        if not np.isfinite(increment):
+            raise ValueError('Candidate mass requires finite comparable observation evidence.')
+        measure = ('arbitrary initial log-scale zero; normalized linearized Bingham-derived '
+            'sensor Gaussian proxy evidence with declared native image chart-volume correction')
+        self.candidate_measure = CandidateMeasureView(tuple(result.stages[-1].components),
+                                                      previous+increment, measure)
+        result.records['candidate_measure'] = dict(
+            kind='unnormalized retained joint transform candidate measure',
+            normalized_shape_view=True, log_total_mass=self.candidate_measure.log_total_mass,
+            previous_log_total_mass=previous, log_mass_increment=increment,
+            initial_global_log_scale=0., global_scale_is_arbitrary=True,
+            evidence_measure=measure, observation_evidence=deepcopy(evidence),
+            shape_source_state_ids=[item.state.state_id for item in self.candidate_measure.components],
+            shape_source_versions=[item.state.version for item in self.candidate_measure.components],
+            shape_source_stamps=[item.state.stamp for item in self.candidate_measure.components],
+            shape_source_commands=[list(item.state.command) for item in self.candidate_measure.components],
+            shape_log_weights=[component_log_weight(item) for item in self.candidate_measure.components],
+            no_observation_mass_is_identity=not valid,
+            body_edge_ids=list(self.body_ids),
+            joint_proxy_includes_retained_environment_and_all_cross_covariances=True,
+            body_candidate_is_joint_proxy_marginal_with_the_same_total_mass=True,
+            bayes_factor_hypothesis_scale=dict(normalized_proxy_views=True,
+                keep_log_total_mass=previous, reset_log_total_mass=previous,
+                reset_kernel_preserves_total_mass=True),
+            approximation='same analytic joint moment proxy; not exact raw-pixel Bayesian evidence',
+            monte_carlo_used=False)
 
     def _project_internal_update(self, result, predicted_goals):
         """Keep one recursive internal law and the explicit current goal mixture.

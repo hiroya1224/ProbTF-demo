@@ -1,46 +1,47 @@
-"""Motion advances while inference is busy; every actual action is retained."""
-from dataclasses import replace
+"""Lossless sensor-event scheduling and direct-K asynchronous execution."""
 import io
 import json
 from pathlib import Path
-from queue import Queue
-from types import SimpleNamespace
+import pickle
+from queue import Empty, Queue
 
 import numpy as np
 import pytest
 import yaml
-from scipy.special import logsumexp
 from visualization_msgs.msg import MarkerArray
 
 from probtf_observation_fusion_demo.async_motion import AsyncMotionSession, _freeze_arrays
 from probtf_observation_fusion_demo.async_state import RecordedCommandPath, predict_result
-from probtf_observation_fusion_demo.async_stiffness import (
-    PhysicalActionEngine, capture_stiffness_packet, execution_stiffness_packet,
-    reanchor_retained_stiffness,
-)
+from probtf_observation_fusion_demo.async_stiffness import FrozenActionKPacket, capture_stiffness_packet
+from probtf_observation_fusion_demo.async_workers import _handoff_result, control_worker
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
-from probtf_observation_fusion_demo.motion_display import MotionDisplay
-from probtf_observation_fusion_demo.marker_search import MarkerSearchPolicy
-from probtf_observation_fusion_demo.moving_control import MovingController
+from probtf_observation_fusion_demo.marker_search import marker_observed
+from probtf_observation_fusion_demo.moving_inference import MovingInference
 from probtf_observation_fusion_demo.node import build_snapshot
+from probtf_observation_fusion_demo.sensor_event_store import SensorEventStore
 from probtf_observation_fusion_demo.stiffness_identification import StiffnessIdentifier
-
 
 PACKAGE = Path(__file__).resolve().parents[1]
 
 
 class FakeProcess:
-    exitcode = None
-    def __init__(self, **kwargs):
-        pass
+    def __init__(self, target, args, **_kwargs):
+        self.target, self.args = target, args
+        self.exitcode = None
+        self.running = False
+        self.terminated = False
     def start(self):
-        pass
+        self.running = True
     def is_alive(self):
-        return True
-    def join(self, **kwargs):
-        pass
+        return self.running
+    def join(self, **_kwargs):
+        incoming = self.args[0]
+        with incoming.mutex:
+            stopped = any(item is None for item in incoming.queue)
+        if stopped:
+            self.running, self.exitcode = False, 0
     def terminate(self):
-        pass
+        self.running, self.terminated, self.exitcode = False, True, -15
 
 
 class LocalQueue(Queue):
@@ -55,523 +56,450 @@ class Context:
     Process = FakeProcess
 
 
-@pytest.fixture
-def session(tmp_path):
+def _complete_acquisitions(current):
+    """Run the actual acquisition worker on this finite batch and real DB."""
+    jobs = LocalQueue()
+    count = processed = 0
+    while True:
+        try:
+            request = current.acquisition_requests.get_nowait()
+            jobs.put(request)
+            processed += 1
+            count += request['kind'] in ('joint', 'imu', 'image')
+        except Empty:
+            break
+    if processed:
+        jobs.put(None)
+        process = current.workers[2]
+        process.target(jobs, *process.args[1:])
+        current.collect_archives()
+    return count
+
+
+def _select_next_estimate(current):
+    """Deliver the asynchronous DB selection/ACK before inference can start."""
+    for _ in range(4):
+        current.submit_estimate()
+        if current.inference_busy:
+            return True
+        if current.acquisition_requests.empty():
+            return False
+        _complete_acquisitions(current)
+    raise AssertionError('Finite DB handshake did not dispatch its selected event.')
+
+
+def _complete_estimate(current, previous_result, identifier, *, acknowledge=True):
+    """Complete exactly the claimed oldest event with the actual estimator."""
+    assert _select_next_estimate(current)
+    event, index, steps = current.estimate_requests.get_nowait()
+    inference = current._test_inference
+    path = (None if previous_result is None else RecordedCommandPath(previous_result, steps,
+        body_ids=inference.body_ids, actions=inference.actions))
+    result = inference.update_sensor_event(event, event_index=index, command_map=path,
+        probability_unit='per_effective_sensor_event')
+    result.records['stiffness'] = identifier.update(result)
+    proposal = identifier.command_proposal(result)
+    packet = None if proposal is None else capture_stiffness_packet(result)
+    transferred = _handoff_result(result)
+    current.estimate_replies.put(dict(result=transferred, packet=packet,
+        event_id=event.event_id, event_sequence=event.sequence, sensor_kind=event.kind,
+        capture_index=index, capture_stamp=event.stamp,
+        marker_observed=marker_observed(result), work_seconds=0.))
+    current.poll()
+    if acknowledge:
+        _complete_acquisitions(current)
+    return transferred, packet, index
+
+
+def _complete_control(current):
+    """The actual control worker owns its separate mechanics and serialization."""
+    request = current.control_requests.get_nowait()
+    if 'ledger_delta' in request:
+        ledger = getattr(current, '_test_control_ledger', [])
+        for step in request['ledger_delta']:
+            assert step.index == len(ledger)
+            ledger.append(step)
+        current._test_control_ledger = ledger
+        assert request['ledger_target_index'] == len(ledger)
+        # This finite synchronous worker starts afresh; give it the identical
+        # complete prefix that its persistent counterpart already retained.
+        request = dict(request, ledger_delta=tuple(ledger))
+    requests, replies = LocalQueue(), LocalQueue()
+    requests.put(request); requests.put(None)
+    control_worker(requests, replies, current.scene.robot_description, str(current.scene.urdf),
+        current.templates, str(current.output), current.horizon)
+    reply = replies.get_nowait()
+    assert not reply.get('failed'), reply
+    return reply
+
+
+def _new_session(tmp_path, case='imu', duration=1.):
     clock = [100.]
-    current = AsyncMotionSession(PACKAGE/'config/imu.yaml', tmp_path/'run',
-        clock=lambda: clock[0], context=Context(), duration=1.)
-    inputs, index, _ = current.estimate_requests.get_nowait()
-    result = current.inference_description.update(inputs, index)
+    current = AsyncMotionSession(PACKAGE/('config/'+case+'.yaml'), tmp_path/'run',
+        clock=lambda: clock[0], context=Context(), duration=duration)
+    current.probability_unit = 'per_effective_sensor_event'
+    current._test_inference = MovingInference(current.scene.robot_description, current.templates)
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
     identifier = StiffnessIdentifier(current.scene.urdf, current.inference_description.body_ids, settings)
-    result.records['stiffness'] = identifier.update(result)
-    identifier.command_proposal(result)
-    packet = capture_stiffness_packet(result)
-    current.estimate_replies.put(dict(result=result, packet=packet, capture_index=0))
-    current.poll()
+    _complete_acquisitions(current)
+    current.submit_estimate()
+    result, _, _ = _complete_estimate(current, None, identifier)
     assert current.start()
-    current.desired_velocity[:] = [.02, -.01, .005, .01, -.005, .005]
-    yield current, clock, result, identifier
-    current.close()
+    return current, clock, result, identifier
 
 
-def test_twenty_hz_motion_and_fifteen_hz_archiving_continue_during_blocked_inference(session):
-    current, clock, result, identifier = session
-    original_ids = tuple(identifier.factors)
-    for index in range(1, 21):
-        clock[0] = 100.+index*.05
+@pytest.fixture
+def session(tmp_path):
+    value = _new_session(tmp_path)
+    yield value
+    value[0].close()
+
+
+def _advance_ticks(current, clock, ticks):
+    for index in range(1, ticks+1):
+        clock[0] = 100.+index/120.
         current.advance()
-        # No further inference reply is supplied: expensive work is blocked.
-        if index >= 2:
-            assert current.inference_busy
-    assert current.motion_finished
+
+
+def _drain_estimates(current, previous, identifier):
+    for _ in range(200):
+        if _select_next_estimate(current):
+            previous, _, _ = _complete_estimate(current, previous, identifier)
+        elif current.store.stats()['earliest_unfinished'] is None:
+            return previous
+    raise AssertionError('Finite acquired event set did not drain.')
+
+
+def test_120hz_physics_and_independent_40_30_12hz_acquisition_continue_while_workers_are_busy(session):
+    current, clock, result, identifier = session
+    current.submit_control()
+    plan = _complete_control(current)
+    current.control_replies.put(plan); current.poll()
+    assert _select_next_estimate(current)
+    factor_ids = tuple(x.factor_id for x in identifier.factors)
+    _advance_ticks(current, clock, 120)
+    assert current.motion_finished and not current.estimation_finished
     assert current.frame.time == 1.
-    assert len(current.actions) == 20
-    assert len(current.capture_indices) == 16  # includes t=0, ends at t=1
-    assert np.linalg.norm(current.command-current.scene.initial_command) > .015
-    assert current.assimilated == [0]
-    assert tuple(identifier.factors) == original_ids
+    assert len(current.actions) == 120
+    assert current.inference_busy and current.control_busy
+    assert current.assimilated == ['joint:00000000']
     assert current.latest_result is result
-    rows = [json.loads(line) for line in (current.output/'commands.jsonl').read_text().splitlines()]
+    assert tuple(x.factor_id for x in identifier.factors) == factor_ids
+    assert current.period == pytest.approx(1/120.)
+    assert current.rates == {'joint': 40., 'imu': 30., 'image': 12.}
+    assert len(current.capture_indices) == 13
+    # Rendering/database writes were not allowed to run during the 120 ticks.
+    assert current.acquisition_completed == 3
+    assert current.acquisition_submitted == 85
+    assert _complete_acquisitions(current) == 82
+    events = current.store.events()
+    assert {kind: sum(e.kind == kind for e in events) for kind in current.rates} == {
+        'joint': 41, 'imu': 31, 'image': 13}
+    assert [(e.stamp, e.sequence) for e in events] == sorted((e.stamp, e.sequence) for e in events)
+    assert current.acquisition_completed == current.acquisition_submitted == 85
+    assert current.manifest()['all_captured_sensor_data_archived']
+    assert current.manifest()['target_physics_hz'] == 120.
     previous_velocity = np.zeros(6)
-    for row in rows:
-        step = row['step']
-        dt = step['end_stamp']-step['start_stamp']
+    for step, row in zip(current.actions, _jsonlines(current.output/'commands.jsonl')):
+        dt = step.end_stamp-step.start_stamp
         velocity = np.asarray(row['velocity'])
         assert np.max(np.abs(velocity)) <= current.servo.speed+1e-10
         assert np.max(np.abs(velocity-previous_velocity)) <= current.servo.acceleration*dt+1e-7
-        assert step['density_id'] == current.latest_packet.proposal['density_id']
         previous_velocity = velocity
-    captures = [json.loads(line) for line in (current.output/'captures.jsonl').read_text().splitlines()]
-    assert len(captures) == 16
-    # Acquisition does not wait for the archive thread. The fake clock
-    # advanced faster than PNG writes, so verify every completed archive at
-    # the end; a failed writer must propagate its actual exception.
-    for job in current.archive_jobs:
-        job.result(timeout=5.)
-    current.collect_archives()
-    assert all((current.output/row['image']).exists() for row in captures)
-    assert all(row['observation_assimilated_at_capture'] is False for row in captures)
+    for event in events:
+        assert not {'camera_pose', 'marker_pose', 'equilibrium', 'stiffness'} & set(event.payload)
+        if event.kind == 'joint':
+            assert set(event.payload) == {'time', 'frame_index', 'command_velocity'}
+        if event.kind == 'image':
+            assert (current.output/event.payload['image_path']).is_file()
 
 
-def test_latest_capture_selection_keeps_posterior_and_full_intervening_action_path(session):
-    current, clock, result, _ = session
-    for index in range(1, 21):
-        clock[0] = 100.+index*.05
-        current.advance()
-    # Consume the request already sent at t=.1. Simulate its completion with
-    # a real core update, then choose the newest archived capture at t=1.
-    inputs, index, steps = current.estimate_requests.get_nowait()
-    path = RecordedCommandPath(result, steps, body_ids=current.inference_description.body_ids,
-                               actions=current.inference_description.actions)
-    updated = current.inference_description.update(inputs, index, command_map=path)
-    current.latest_result = updated
-    current.last_assimilated_capture = index
-    current.inference_busy = False
+def test_physics_does_not_write_the_DB_and_next_selection_waits_for_completion_ACK(session, monkeypatch):
+    current, clock, initial, identifier = session
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError('The physical coordinator must not perform blocking DB writes.')
+    monkeypatch.setattr(current.store, 'claim_next', forbidden)
+    monkeypatch.setattr(current.store, 'complete', forbidden)
+    assert _select_next_estimate(current)
+    result, _, _ = _complete_estimate(current, initial, identifier, acknowledge=False)
+    assert current.database_ack_pending == 'imu:00000000'
+    assert not current.inference_busy and current.latest_result is result
+    assert current.store.get('imu:00000000').status == 'processing'
+    for _ in range(3):
+        current.submit_estimate()
+    assert not current.database_selection_pending
+    with current.acquisition_requests.mutex:
+        operations = list(current.acquisition_requests.queue)
+    assert len(operations) == 1 and operations[0]['operation'] == 'complete'
+    archived = current.acquisition_completed
+    _advance_ticks(current, clock, 6)
+    assert len(current.actions) == 6
+    assert current.database_ack_pending == 'imu:00000000'
+    assert current.acquisition_completed == archived
+    raw_count = _complete_acquisitions(current)
+    assert raw_count == 3
+    assert current.acquisition_completed == archived+raw_count
+    assert current.database_ack_pending is None
+    assert current.store.get('imu:00000000').status == 'completed'
+    assert _select_next_estimate(current)
+    selected, _, _ = current.estimate_requests.get_nowait()
+    assert selected.kind == 'imu' and selected.stamp > result.prior.stamp
+    assert current.acquisition_completed == archived+raw_count
+
+
+@pytest.mark.parametrize('reply, message', [
+    (dict(kind='database_selection', event=None), 'Unexpected database selection'),
+    (dict(kind='database_completed', event_id='wrong-event'), 'another event'),
+])
+def test_unsolicited_DB_replies_do_not_count_as_archived_sensor_events(session, reply, message):
+    current = session[0]
+    before = current.acquisition_completed
+    current.acquisition_replies.put(reply)
+    with pytest.raises(ValueError, match=message):
+        current.collect_archives()
+    assert current.acquisition_completed == before
+
+
+def _jsonlines(path):
+    return [json.loads(row) for row in path.read_text().splitlines() if row]
+
+
+def test_oldest_events_are_processed_without_latest_only_selection_or_omissions(tmp_path):
+    current, clock, result, identifier = _new_session(tmp_path, duration=.2)
+    try:
+        _advance_ticks(current, clock, 24)
+        _complete_acquisitions(current)
+        result = _drain_estimates(current, result, identifier)
+        events = current.store.events()
+        selected = _jsonlines(current.output/'assimilation_selection.jsonl')
+        assert current.estimation_finished and not current.closed
+        assert all(e.status == 'completed' for e in events)
+        expected = [e.event_id for e in events if e.kind == 'imu' or e.event_id == 'joint:00000000']
+        assert current.assimilated == expected
+        assert [x['event_id'] for x in selected] == expected
+        assert all(x['archived_not_assimilated_capture_indices'] == [] for x in selected)
+        assert all(x['posterior_reset'] is False for x in selected)
+        assert [x['selected_stamp'] for x in selected] == sorted(x['selected_stamp'] for x in selected)
+        for event in events:
+            if event.kind == 'joint' and event.event_id != 'joint:00000000':
+                assert event.result_metadata['observation_fused'] is False
+                assert event.result_metadata['reason'] == 'command notification'
+            if event.kind == 'image':
+                assert event.result_metadata['observation_fused'] is False
+                assert event.result_metadata['reason'] == 'sensor not enabled in this comparison case'
+        assert result.records['sensor_event']['kind'] == 'imu'
+    finally:
+        current.close()
+
+
+def test_same_frame_IMU_and_image_are_distinct_ordered_updates(tmp_path):
+    current, _, result, identifier = _new_session(tmp_path, case='imu_marker', duration=.1)
+    try:
+        assert current.assimilated == ['joint:00000000']
+        current.submit_estimate()
+        imu, _, imu_index = _complete_estimate(current, result, identifier)
+        current.submit_estimate()
+        image, _, image_index = _complete_estimate(current, imu, identifier)
+        assert imu_index == image_index == 0
+        assert imu.prior.stamp == image.prior.stamp
+        assert imu.prior.command == image.prior.command
+        assert current.assimilated == ['joint:00000000', 'imu:00000000', 'image:00000000']
+        assert imu.records['sensor_event']['kind'] == 'imu'
+        assert image.records['sensor_event']['kind'] == 'image'
+        assert imu.records['sensor_event']['sequence'] < image.records['sensor_event']['sequence']
+        assert imu.records['observation_ids'] and image.records['observation_ids']
+        assert set(imu.records['observation_ids']).isdisjoint(image.records['observation_ids'])
+        assert len(identifier.factors) == 2
+        assert imu.stages[-1].components[0].state.state_id != image.stages[-1].components[0].state.state_id
+        assert not image.records['sensor_event']['simultaneous_sensor_wait']
+    finally:
+        current.close()
+
+
+def test_completed_old_law_is_adopted_atomically_without_rolling_back_new_inference(session):
+    current, clock, original, identifier = session
+    assert current.latest_packet is None
+    current.submit_control()
+    old_plan = _complete_control(current)
+    assert old_plan['packet'] is None
     current.submit_estimate()
-    latest_inputs, selected, remaining = current.estimate_requests.get_nowait()
-    assert selected == 20
-    assert latest_inputs.stamp == current.frame.stamp
-    assert len(remaining) == 20-index
-    assert remaining[0].start_stamp == updated.prior.stamp
-    assert remaining[-1].end_stamp == current.frame.stamp
-    records = [json.loads(line) for line in (current.output/'assimilation_selection.jsonl').read_text().splitlines()]
-    assert records[-1]['selected_capture_index'] == 20
-    assert records[-1]['archived_not_assimilated_capture_indices']
-    assert records[-1]['posterior_reset'] is False
-    assert current.latest_result is updated
+    updated, raw, _ = _complete_estimate(current, original, identifier)
+    assert raw is not None
+    assert current.current_control is None
+    # An inference reply cannot pre-adopt K under an in-flight rigid plan.
+    assert current.engine.packet is None
+    current.control_replies.put(old_plan); current.poll()
+    assert current.current_control is old_plan
+    assert current.latest_result is updated and current.latest_packet is raw
+    assert current.engine.packet is None
+    clock[0] = 100.05; current.advance()
+    assert current.actions[-1].selected_K is None
+    # The next request uses the latest result and its exact estimated K.
+    direct = _complete_control(current)
+    assert isinstance(direct['packet'], FrozenActionKPacket)
+    assert direct['packet'].estimated_packet is raw
+    current.control_replies.put(direct); current.poll()
+    clock[0] = 100.10; current.advance()
+    np.testing.assert_array_equal(current.actions[-1].selected_K, raw.proposal['selected_K'])
+    assert current.actions[-1].provenance['action_packet_id'] == direct['packet'].packet_id
+    assert current.latest_result is updated and current.latest_packet is raw
+    assert current.current_control['snapshot'].stiffness_record['command_proposal'] == raw.proposal
+    assert 'execution_stiffness' not in current.current_control['snapshot'].stiffness_record
 
 
-def test_display_and_control_use_the_same_caught_up_law_after_an_inference_delay(session):
+def test_marker_only_archives_IMU_but_updates_once_for_the_distinct_image_event(tmp_path):
+    current, _, initial, identifier = _new_session(tmp_path, case='marker', duration=.1)
+    try:
+        current.submit_estimate()
+        result, packet, index = _complete_estimate(current, initial, identifier)
+        assert index == 0
+        assert current.assimilated == ['joint:00000000', 'image:00000000']
+        assert result.records['sensor_event']['kind'] == 'image'
+        assert packet is not None and len(identifier.factors) == 1
+        skipped = current.store.get('imu:00000000')
+        assert skipped.status == 'completed'
+        assert np.asarray(skipped.payload['gravity_in_sensor']).shape == (3,)
+        assert skipped.result_metadata['observation_fused'] is False
+        assert skipped.result_metadata['reason'] == 'sensor not enabled in this comparison case'
+        assert current.store.get('image:00000000').result_metadata['observation_fused']
+    finally:
+        current.close()
+
+
+def test_duplicate_control_reply_cannot_change_the_active_bundle(session):
+    current, _, _, _ = session
+    current.submit_control(); plan = _complete_control(current)
+    current.control_replies.put(plan); current.poll()
+    expected = current.current_control
+    current.control_replies.put(dict(plan, velocity=-np.ones(6)))
+    with pytest.raises(ValueError, match='outstanding frozen-law request'):
+        current.poll()
+    assert current.current_control is expected
+    np.testing.assert_array_equal(current.desired_velocity, plan['velocity'])
+
+
+def test_mismatched_control_reply_does_not_complete_the_outstanding_request(session):
+    current = session[0]
+    current.submit_control(); plan = _complete_control(current)
+    request_id = current.pending_control_request
+    current.control_replies.put(dict(plan, request_id=request_id+1))
+    with pytest.raises(ValueError, match='outstanding frozen-law request'):
+        current.poll()
+    assert current.current_control is None and current.control_busy
+    assert current.pending_control_request == request_id
+    current.control_replies.put(plan); current.poll()
+    assert current.current_control is plan and not current.control_busy
+
+
+def test_the_claimed_inference_event_is_not_replaceable_by_another_ID(session):
+    current, _, result, _ = session
+    assert _select_next_estimate(current)
+    event, index, _ = current.estimate_requests.get_nowait()
+    current.estimate_replies.put(dict(event_id='other-event', result=result, packet=None,
+        sensor_kind=event.kind, capture_index=index, marker_observed=False, work_seconds=0.))
+    with pytest.raises(ValueError, match='claimed acquisition event'):
+        current.poll()
+    assert current.store.get(event.event_id).status == 'processing'
+
+
+def test_existing_half_second_source_clock_reference_holds_its_finite_endpoint(session):
+    current, _, _, _ = session
+    current.submit_control(); plan = _complete_control(current)
+    current.control_replies.put(plan); current.poll()
+    diagnostics = plan['diagnostics']
+    assert diagnostics['duration'] == .5
+    assert diagnostics['ik_update_count'] == 1 and diagnostics['future_ik_updates'] == 0
+    source, target = np.array(diagnostics['source_command']), np.array(diagnostics['next_command'])
+    _, middle = current._reaching_plan_velocity(.05, diagnostics['source_stamp']+.25)
+    np.testing.assert_allclose(middle['reference_command'], source+.5*(target-source), atol=1e-14)
+    requested, late = current._reaching_plan_velocity(.05, diagnostics['source_stamp']+1.)
+    np.testing.assert_array_equal(late['reference_command'], target)
+    np.testing.assert_array_equal(requested, (target-current.command)/.05)
+    assert late['past_selected_duration']
+    assert np.linalg.norm(requested) > 0.
+    assert 'trajectory_commands' not in diagnostics and 'rollout_steps' not in diagnostics
+
+
+def test_motion_end_drain_and_close_are_distinct_and_pending_work_remains_recoverable(tmp_path):
+    current, clock, result, identifier = _new_session(tmp_path, duration=.1)
+    _advance_ticks(current, clock, 13)
+    _complete_acquisitions(current)
+    assert current.motion_finished and not current.estimation_finished and not current.closed
+    assert current.frame.time == pytest.approx(current.scene.duration, abs=1e-6)
+    assert current.manifest()['motion_terminal_tolerance_s'] == 1e-6
+    stamp, action_count = current.frame.stamp, len(current.actions)
+    _drain_estimates(current, result, identifier)
+    assert current.estimation_finished and not current.closed
+    clock[0] = 101.; current.advance()
+    assert current.frame.stamp == stamp and len(current.actions) == action_count
+    path = current.output/'observations.sqlite3'
+    count = current.store.stats()['total']
+    current.close(); current.close()
+    with SensorEventStore(path) as reopened:
+        assert reopened.stats()['total'] == count
+        assert reopened.stats()['earliest_unfinished'] is None
+
+    other, _, _, _ = _new_session(tmp_path/'pending', duration=.1)
+    path = other.output/'observations.sqlite3'
+    assert other.store.stats()['earliest_unfinished'] is not None
+    other.close()
+    with SensorEventStore(path) as reopened:
+        assert reopened.stats()['earliest_unfinished'] is not None
+        assert not all(e.status == 'completed' for e in reopened.events())
+
+
+def test_missed_deadlines_are_reported_without_interpolating_fabricated_observations(session):
+    current, clock, _, _ = session
+    clock[0] = 101.; current.advance()
+    _complete_acquisitions(current)
+    assert len(current.actions) == 1
+    assert current.missed_acquisition_deadlines == {'joint': 39, 'imu': 29, 'image': 11}
+    events = current.store.events()
+    assert len(events) == 6
+    assert sorted({e.stamp for e in events}) == [1792080000., 1792080001.]
+    assert not current.manifest()['SG_interpolation_used']
+
+
+def test_display_and_control_share_the_same_caught_up_law_after_a_delay(session):
     current, clock, result, _ = session
-    for index in range(1, 5):
-        clock[0] = 100.+index*.05
-        current.advance()
+    _advance_ticks(current, clock, 4)
     inference = current.inference_description
     predicted = predict_result(result, tuple(current.actions), target_stamp=current.frame.stamp,
         frame_index=4, body_ids=inference.body_ids, actions=inference.actions)
     snapshot = build_snapshot(predicted, predicted.stages[-1], inference.common)
     display = inference.common['display']
-    markers = make_markers(snapshot, display['seed'], display['point_size'])
-    wire = io.BytesIO()
-    markers.serialize(wire)
-    verify_wire_identity(snapshot, MarkerArray().deserialize(wire.getvalue()),
-                         seed=display['seed'], point_size=display['point_size'])
-    assert snapshot.command == tuple(current.command)
-    assert snapshot.stamp == current.frame.stamp
-    assert snapshot.observation_ids == ()  # prediction is no new observation
-    assert {p.query.state_id for p in snapshot.points if p.frame_label == 'hand'} == {
-        predicted.stages[-1].components[0].state.state_id}
+    message = make_markers(snapshot, display['seed'], display['point_size'])
+    buffer = io.BytesIO(); message.serialize(buffer)
+    assert verify_wire_identity(snapshot, MarkerArray().deserialize(buffer.getvalue()),
+        seed=display['seed'], point_size=display['point_size'])
+    assert snapshot.command == tuple(current.command) and snapshot.stamp == current.frame.stamp
+    assert snapshot.observation_ids == ()
 
 
 def test_process_serialization_restores_readonly_law_arrays_without_changing_values(session):
-    import pickle
-    _, _, result, _ = session
+    result = session[2]
     restored = _freeze_arrays(pickle.loads(pickle.dumps(result)))
-    source = result.stages[-1].components[0].state
-    target = restored.stages[-1].components[0].state
+    source, target = result.stages[-1].components[0].state, restored.stages[-1].components[0].state
     np.testing.assert_array_equal(source.covariance, target.covariance)
     assert source.state_id == target.state_id
-    assert not target.covariance.flags.writeable
-    assert not target.transforms[0].bingham.flags.writeable
+    assert not target.covariance.flags.writeable and not target.transforms[0].bingham.flags.writeable
 
 
-def test_async_display_rejects_unlabelled_or_mismatched_delayed_sources(session, monkeypatch):
-    current, _, result, _ = session
-    snapshot = build_snapshot(result, result.stages[-1], current.inference_description.common)
-    display = MotionDisplay.__new__(MotionDisplay)
-    bad = dict(execution_mode='async', physical_stamp=current.frame.stamp,
-        command=current.command.tolist(), displayed_prediction_stamp=snapshot.stamp,
-        displayed_prediction_command=list(snapshot.command), displayed_prediction_age_s=.2)
-    with pytest.raises(AssertionError, match='source clocks'):
-        display.publish(current.frame, 0, snapshot, 0, execution=bad)
+def test_acquisition_failure_is_explicit_and_reserved_image_is_not_skipped(session, monkeypatch):
+    current = session[0]
+    event = current.store.reserve('image:failed', 'image', current.frame.stamp+.01,
+        current.command)
+    current.acquisition_replies.put(dict(failed=True, traceback='test image encoder failure'))
+    with pytest.raises(RuntimeError, match='image encoder failure'):
+        current.collect_archives()
+    assert current.failure['failed']
+    assert current.store.get(event.event_id).status == 'awaiting_payload'
 
 
 def test_update_rates_exclude_waiting_for_the_user_to_start_motion(session):
-    current, _, _, _ = session
-    # Bootstrap work finished long before the start service. Subsequent
-    # independent workers both complete at 2 Hz while the body is moving.
+    current = session[0]
     current.control_times = [1., 100., 100.5, 101.]
     current.estimate_times = [2., 100.25, 100.75, 101.25]
     current.started = 100.
-    record = current.manifest()
-    assert record['actual_control_hz'] == 2.
-    assert record['actual_estimate_hz'] == 2.
-
-
-def _complete_estimate(current, previous_result, identifier):
-    """A real delayed update, delivered through the coordinator's reply queue."""
-    inputs, index, steps = current.estimate_requests.get_nowait()
-    inference = current.inference_description
-    path = RecordedCommandPath(previous_result, steps,
-        body_ids=inference.body_ids, actions=inference.actions)
-    result = inference.update(inputs, index, command_map=path)
-    result.records['stiffness'] = identifier.update(result)
-    assert identifier.command_proposal(result) is not None
-    packet = capture_stiffness_packet(result)
-    current.estimate_replies.put(dict(result=result, packet=packet, capture_index=index))
-    current.poll()
-    return result, packet, index
-
-
-def _complete_control(current):
-    """Use a separate mechanics workspace, as the actual control process does."""
-    request = current.control_requests.get_nowait()
-    inference = current.inference_description
-    predicted = predict_result(request['result'], request['steps'],
-        target_stamp=request['stamp'], frame_index=request['index'],
-        body_ids=inference.body_ids, actions=inference.actions)
-    settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
-    engine = PhysicalActionEngine(current.scene.urdf, inference.body_ids, settings)
-    execution_packet = execution_stiffness_packet(engine, predicted, request['packet'],
-        request['execution_sample'], request.get('execution_packet'))
-    view, mapping = reanchor_retained_stiffness(engine, predicted, execution_packet)
-    control = inference.settings['control']
-    controller = MovingController(inference, current.scene.robot_description,
-        control['goal_offset'], control['goal_orientation_wxyz'], control,
-        integration_steps=control['integration_steps'])
-    controller.velocity = np.array(request['velocity'], copy=True)
-    command, diagnostics = controller.reaching_step(view, current.horizon, command_map=mapping)
-    planned_velocity = (np.asarray(command)-np.asarray(view.prior.command))/current.horizon
-    snapshot = replace(build_snapshot(view, view.stages[-1], inference.common),
-        stiffness_record=view.records['stiffness'])
-    display = inference.common['display']
-    markers = make_markers(snapshot, display['seed'], display['point_size'])
-    verify_wire_identity(snapshot, markers, seed=display['seed'], point_size=display['point_size'])
-    return dict(index=request['index'], capture_index=request['capture_index'],
-        packet=execution_packet, velocity=planned_velocity.copy(),
-        snapshot=snapshot, markers=markers, diagnostics=diagnostics, work_seconds=0.)
-
-
-def test_faster_inference_cannot_starve_completed_IK_or_roll_back_the_latest_posterior(session):
-    current, clock, initial, identifier = session
-    initial_packet = current.latest_packet
-    current.submit_control()
-    delayed_first_control = _complete_control(current)
-    # Two real inference results complete before the first IK reply arrives.
-    for index in (1, 2):
-        clock[0] = 100.+.05*index
-        current.advance()
-    second, _, second_index = _complete_estimate(current, initial, identifier)
-    clock[0] = 100.15
-    current.advance()
-    third, third_packet, third_index = _complete_estimate(current, second, identifier)
-    assert third_index > second_index > delayed_first_control['capture_index']
-    assert current.current_control is None
-    current.control_replies.put(delayed_first_control)
-    current.poll()
-    first_execution_packet = delayed_first_control['packet']
-    assert first_execution_packet.estimated_packet.packet_id == initial_packet.packet_id
-    assert current.current_control is delayed_first_control
-    assert current.current_control['capture_index'] == 0
-    assert current.engine.packet.packet_id == first_execution_packet.packet_id
-    np.testing.assert_array_equal(current.desired_velocity, delayed_first_control['velocity'])
-    assert current.latest_result is third
-    assert current.latest_packet is third_packet
-    assert current.last_assimilated_capture == third_index
-    assert len(current.control_times) == 1
-
-    # The next IK starts with that newest law. Another observation overtakes
-    # it too; its completion must still supply a usable atomic active plan.
-    current.submit_control()
-    delayed_third_control = _complete_control(current)
-    assert delayed_third_control['capture_index'] == third_index
-    clock[0] = 100.20
-    current.advance()
-    fourth, fourth_packet, fourth_index = _complete_estimate(current, third, identifier)
-    assert fourth_index > third_index
-    # An inference reply alone must not switch K under an already active plan.
-    assert current.engine.packet.packet_id == first_execution_packet.packet_id
-    current.control_replies.put(delayed_third_control)
-    current.poll()
-    assert current.current_control is delayed_third_control
-    assert current.engine.packet.packet_id == delayed_third_control['packet'].packet_id
-    assert current.engine.packet.estimated_packet.packet_id == third_packet.packet_id
-    assert current.latest_packet is fourth_packet
-    assert current.latest_result is fourth
-    assert current.last_assimilated_capture == fourth_index
-    assert len(current.control_times) == 2
-    np.testing.assert_array_equal(current.desired_velocity, delayed_third_control['velocity'])
-    assert current.current_control['snapshot'].stiffness_record['captured_packet_id'] == delayed_third_control['packet'].packet_id
-    assert current.current_control['snapshot'].stiffness_record['captured_estimate_packet_id'] == third_packet.packet_id
-    assert current.current_control['diagnostics']['stiffness_command_correction'][
-        'captured_parameter_packet']['packet_id'] == delayed_third_control['packet'].packet_id
-    clock[0] = 100.25
-    current.advance()
-    assert current.actions[-1].provenance['packet_id'] == delayed_third_control['packet'].packet_id
-    assert current.actions[-1].density_id == third_packet.proposal['density_id']
-    np.testing.assert_array_equal(current.actions[-1].selected_K, delayed_third_control['packet'].execution['execution_K'])
-
-
-def test_an_older_control_reply_cannot_replace_the_active_law_K_or_velocity(session):
-    current, clock, initial, identifier = session
-    current.submit_control()
-    initial_control = _complete_control(current)
-    current.control_replies.put(initial_control)
-    current.poll()
-    for index in (1, 2):
-        clock[0] = 100.+.05*index
-        current.advance()
-    updated, packet, capture_index = _complete_estimate(current, initial, identifier)
-    # Finish the older in-flight IK; the next submission can use the update.
-    old_inflight = _complete_control(current)
-    current.control_replies.put(old_inflight)
-    current.poll()
-    current.submit_control()
-    active = _complete_control(current)
-    assert active['capture_index'] == capture_index
-    current.control_replies.put(active)
-    current.poll()
-    expected_velocity = current.desired_velocity.copy()
-    expected_control_count = len(current.control_times)
-    assert current.engine.packet.packet_id == active['packet'].packet_id
-    assert current.engine.packet.estimated_packet.packet_id == packet.packet_id
-    # A duplicate/late reply from the older capture has different numerical
-    # values. It cannot roll back any member of the active source bundle.
-    late = dict(initial_control, velocity=-np.ones(6))
-    current.control_replies.put(late)
-    current.poll()
-    assert current.current_control is active
-    assert current.current_control['snapshot'] is active['snapshot']
-    assert current.engine.packet.packet_id == active['packet'].packet_id
-    np.testing.assert_array_equal(current.desired_velocity, expected_velocity)
-    assert len(current.control_times) == expected_control_count
-    assert current.latest_result is updated
-    assert current.latest_packet is packet
-
-
-def test_execution_K_keeps_interpolating_at_motion_cadence_without_new_estimates_or_IK_replies(session):
-    current, clock, initial, identifier = session
-    current.submit_control()
-    initial_plan = _complete_control(current)
-    current.control_replies.put(initial_plan)
-    current.poll()
-    initial_execution_K = np.asarray(initial_plan['packet'].execution['execution_K'])
-    for index in (1, 2):
-        clock[0] = 100.+.05*index
-        current.advance()
-    _, target, _ = _complete_estimate(current, initial, identifier)
-    target_log = np.log(target.proposal['selected_K'])
-    assert np.max(np.abs(target_log-np.log(initial_execution_K))) > 1e-10
-    samples = []
-    for index in range(3, 18):
-        clock[0] = 100.+.05*index
-        current.advance()
-        samples.append(dict(current.execution_sample))
-        # Filtering continues while the active IK law and its actual command
-        # actions retain the value captured for the active completed plan.
-        assert current.latest_packet is target
-        assert current.current_control is initial_plan
-        assert current.engine.packet.packet_id == initial_plan['packet'].packet_id
-        np.testing.assert_array_equal(current.engine.stiffness, initial_execution_K)
-        np.testing.assert_array_equal(current.actions[-1].selected_K, initial_execution_K)
-    assert current.inference_busy and current.control_busy
-    errors = [np.linalg.norm(np.asarray(sample['execution_logK'])-target_log) for sample in samples]
-    assert all(left > right for left, right in zip(errors, errors[1:]))
-    assert errors[-1] < errors[0]/3.
-    assert all(abs(sample['actual_dt']-.05) < 1e-6 for sample in samples)
-    assert all(np.max(np.abs(sample['applied_delta_logK'])) <= .05 for sample in samples)
-    assert all(sample['estimated_packet_id'] == target.packet_id for sample in samples)
-
-
-def test_selected_duration_does_not_force_a_stop_while_workers_are_busy(session):
-    current,clock,_,_ = session
-    current.horizon = .1
-    current.submit_control()
-    completed = _complete_control(current)
-    assert np.linalg.norm(completed['velocity']) > 1e-6
-    current.control_replies.put(completed)
-    current.poll()
-    target = np.asarray(completed['diagnostics']['next_command'])
-    original_distance = np.linalg.norm(target-current.command)
-    assert original_distance > 0.
-    # A late worker reply still names a finite position. Its duration is
-    # not permission to replace that position request with zero velocity.
-    request, reference = current._reaching_plan_velocity(.05,
-        completed['diagnostics']['source_stamp']+.2)
-    assert reference['past_selected_duration']
-    np.testing.assert_allclose(request, (target-current.command)/.05, atol=0., rtol=0.)
-    assert np.linalg.norm(request) > 0.
-    previous_velocity = current.velocity.copy()
-    for index in range(1,21):
-        clock[0] = 100.+.05*index
-        current.advance()
-        dt = current.actions[-1].end_stamp-current.actions[-1].start_stamp
-        assert np.max(np.abs(current.velocity-previous_velocity)) <= current.servo.acceleration*dt+1e-7
-        assert np.max(np.abs(current.velocity)) <= current.servo.speed+1e-10
-        previous_velocity = current.velocity.copy()
-    rows = [json.loads(line) for line in (current.output/'commands.jsonl').read_text().splitlines()]
-    for row in rows:
-        reference = row['reaching_execution']
-        if reference is not None and reference['past_selected_duration']:
-            np.testing.assert_array_equal(reference['reference_command'], target)
-            before = np.asarray(reference['actual_command_before'])
-            interval = row['step']['end_stamp']-row['step']['start_stamp']
-            np.testing.assert_allclose(reference['requested_velocity'], (target-before)/interval,
-                atol=1e-8, rtol=1e-5)
-    assert np.linalg.norm(current.command-target) < original_distance
-    assert current.inference_busy and current.control_busy
-    assert len(current.control_times) == 1
-    assert current.manifest()['ik_command_past_selected_duration']
-    assert np.all(current.command >= current.servo.lower)
-    assert np.all(current.command <= current.servo.upper)
-
-
-def test_reacquisition_waits_for_the_new_goal_mixture_to_be_committed_with_IK(tmp_path):
-    clock = [100.]
-    current = AsyncMotionSession(PACKAGE/'config/marker.yaml',tmp_path/'marker_resume',
-        clock=lambda:clock[0],context=Context(),duration=1.5)
-    try:
-        inputs,index,_ = current.estimate_requests.get_nowait()
-        initial = current.inference_description.update(inputs,index)
-        settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
-        identifier = StiffnessIdentifier(current.scene.urdf,
-            current.inference_description.body_ids,settings)
-        initial.records['stiffness'] = identifier.update(initial)
-        assert identifier.command_proposal(initial) is not None
-        current.estimate_replies.put(dict(result=initial,
-            packet=capture_stiffness_packet(initial),capture_index=0))
-        current.poll()
-        assert current.start()
-        current.submit_control()
-        old_plan = _complete_control(current)
-        current.control_replies.put(old_plan)
-        current.poll()
-        assert old_plan['snapshot'].goal_memory['available']
-
-        # Inject an image-loss event at the initial capture, then let the
-        # actual stop/settle policy run. Drain image jobs before overriding
-        # this test's visibility event, so thread timing cannot change it.
-        current.last_marker_missing_capture = 0
-        current.latest_marker_observed = False
-        for index in range(1,8):
-            for job in current.archive_jobs:
-                job.result()
-            current.collect_archives()
-            current.marker_preview_visible = False
-            clock[0] = 100.+.05*index
-            current.advance()
-        assert current.last_action_mode != 'reaching'
-        assert current.current_control is old_plan
-
-        # A genuine later marker likelihood updates all goal branches, but
-        # that result alone cannot resume an older active reaching plan.
-        fresh,_,fresh_index = _complete_estimate(current,initial,identifier)
-        assert fresh_index > current.last_marker_missing_capture
-        assert current.latest_marker_observed
-        assert fresh.records['fixed_goal_memory']['observation_stamp'] > initial.prior.stamp
-        detected = next(item.detector_result for item in fresh.local_estimates
-                        if item.detector_result is not None)
-        native = detected.record.distribution.components
-        assert len(fresh.stages[-1].goal_components) == len(native)
-        assert [goal.weight for goal in fresh.stages[-1].goal_components] == list(detected.weights)
-        np.testing.assert_array_equal([goal.log_weight for goal in fresh.stages[-1].goal_components],
-            np.asarray(detected.log_masses)-logsumexp(detected.log_masses))
-        assert all(goal.label.endswith(mode.component_id)
-                   for goal,mode in zip(fresh.stages[-1].goal_components,native))
-        for job in current.archive_jobs:
-            job.result()
-        current.collect_archives()
-        current.marker_preview_visible = True
-        clock[0] = 100.40
-        current.advance()
-        assert current.last_action_mode == 'settling'
-        assert current.current_control is old_plan
-        stop_stamp = current.behavior.stop_source_stamp
-        stop_time = current.behavior.settle_started
-        assert fresh.prior.stamp >= stop_stamp-1e-9
-
-        # Discard the simulated unfinished old request, then finish the real
-        # configured reaching controller on the new mixture and commit it.
-        while not current.control_requests.empty():
-            current.control_requests.get_nowait()
-        current.control_busy = False
-        current.submit_control()
-        fresh_plan = _complete_control(current)
-        assert fresh_plan['capture_index'] == fresh_index
-        remembered = fresh_plan['snapshot'].goal_memory['goal_components']
-        assert len(remembered) == len(native)
-        assert [goal['weight'] for goal in remembered] == list(detected.weights)
-        np.testing.assert_array_equal([goal['log_weight'] for goal in remembered],
-            np.asarray(detected.log_masses)-logsumexp(detected.log_masses))
-        current.control_replies.put(fresh_plan)
-        current.poll()
-        for job in current.archive_jobs:
-            job.result()
-        current.collect_archives()
-        current.marker_preview_visible = True
-        clock[0] = 100.45
-        current.advance()
-        # Detection held the existing stopped viewpoint while IK was busy;
-        # it did not create another outward sweep and another stop. Only the
-        # matching post-stop fused goal plus committed plan can resume.
-        assert current.last_action_mode == 'reaching'
-        assert current.current_control is fresh_plan
-        assert fresh_plan['snapshot'].goal_memory['observation_stamp'] == fresh.prior.stamp
-        assert current.engine.packet.packet_id == fresh_plan['packet'].packet_id
-        policy = json.loads((current.output/'commands.jsonl').read_text().splitlines()[-1])['behavior']
-        assert policy['time']-stop_time >= current.behavior.settle_time-1e-9
-        assert policy['marker_observation_stamp'] >= stop_stamp-1e-9
-    finally:
-        current.close()
-
-
-def test_visible_marker_holds_stationary_while_workers_are_busy_and_searches_only_after_pixel_loss(session):
-    current, clock, _, _ = session
-    current.behavior = MarkerSearchPolicy({}, marker_enabled=True)
-    current.latest_marker_observed = False
-    current.velocity[:] = 0.
-    stopped_command = current.command.copy()
-    # No new inference or IK reply arrives. Pixel detection alone prevents
-    # an outward search but cannot activate an unavailable fused goal.
-    for index in range(1, 17):
-        for job in current.archive_jobs:
-            job.result()
-        current.collect_archives()
-        current.marker_preview_visible = True
-        clock[0] = 100.+.05*index
-        current.advance()
-        assert current.last_action_mode == 'settling'
-        np.testing.assert_array_equal(current.command, stopped_command)
-        np.testing.assert_array_equal(current.velocity, np.zeros(6))
-    assert current.inference_busy and current.control_busy
-    # An actual subsequent negative preview allows the existing bounded
-    # search after the already completed exposure hold.
-    for job in current.archive_jobs:
-        job.result()
-    current.collect_archives()
-    current.marker_preview_visible = False
-    clock[0] = 100.85
-    current.advance()
-    assert current.last_action_mode == 'searching'
-    assert np.linalg.norm(current.command-stopped_command) > 0.
-    assert np.max(np.abs(current.velocity)) <= current.servo.acceleration*.05+1e-7
-
-
-def test_close_flushes_archives_and_is_idempotent_for_workers_and_queues(session,monkeypatch):
-    current,_,_,_ = session
-    calls = []
-    for index,worker in enumerate(current.workers):
-        monkeypatch.setattr(worker,'join',lambda index=index,**kwargs:calls.append(('join',index)))
-        monkeypatch.setattr(worker,'terminate',lambda index=index:calls.append(('terminate',index)))
-    queues = (current.estimate_requests,current.estimate_replies,
-              current.control_requests,current.control_replies)
-    for index,queue in enumerate(queues):
-        monkeypatch.setattr(queue,'close',lambda index=index:calls.append(('close_queue',index)))
-        monkeypatch.setattr(queue,'cancel_join_thread',
-                            lambda index=index:calls.append(('cancel_queue_join',index)))
-    current.close()
-    first_calls = tuple(calls)
-    assert current.closed
-    assert all(job.done() and job.exception() is None for job in current.archive_jobs)
-    assert all((current.output/'capture_{:05d}.png'.format(index)).exists()
-               for index in current.capture_indices)
-    assert current.estimate_requests.get_nowait() is None
-    assert current.control_requests.get_nowait() is None
-    assert [call for call in calls if call[0] == 'close_queue'] == [
-        ('close_queue',index) for index in range(4)]
-    current.close()
-    assert tuple(calls) == first_calls
-    assert current.estimate_requests.empty() and current.control_requests.empty()
-    with pytest.raises(RuntimeError,match='shutdown'):
-        current.archive_executor.submit(lambda:None)
+    assert current.manifest()['actual_control_hz'] == 2.
+    assert current.manifest()['actual_estimate_hz'] == 2.

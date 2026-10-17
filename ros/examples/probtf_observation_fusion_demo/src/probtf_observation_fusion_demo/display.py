@@ -55,6 +55,8 @@ class DisplaySnapshot:
     goal_memory: object = None
     behavior: object = None
     surprise_record: object = None
+    candidate_measure: object = None
+    sensor_event: object = None
 
 
 def query_record(point):
@@ -175,7 +177,38 @@ def goal_pose_records(snapshot):
     return records
 
 
+def verify_measure_identity(snapshot):
+    """Match the measure's normalized shape to the actual plotted body law."""
+    measure = snapshot.candidate_measure
+    if measure is None:
+        return
+    sources = {}
+    for point in snapshot.points:
+        if point.frame_label in ('marker', 'switch_goal'):
+            continue
+        query = point.query
+        source = (query.state_id, query.version, query.stamp,
+                  tuple(query.command), point.log_weight)
+        if point.component_id in sources and sources[point.component_id] != source:
+            raise ValueError('Candidate-measure display queries have inconsistent body provenance.')
+        sources[point.component_id] = source
+    actual = list(sources.values())
+    expected = list(zip(measure['shape_source_state_ids'], measure['shape_source_versions'],
+        measure['shape_source_stamps'], map(tuple, measure['shape_source_commands']),
+        measure['shape_log_weights']))
+    lengths = [len(measure[key]) for key in ('shape_source_state_ids',
+        'shape_source_versions', 'shape_source_stamps', 'shape_source_commands', 'shape_log_weights')]
+    if not actual or len(set(lengths)) != 1 or actual != expected:
+        raise ValueError('The displayed candidate measure does not belong to the plotted body law.')
+    if not np.isfinite(measure['log_total_mass']):
+        raise ValueError('A displayed finite candidate measure needs its actual finite log mass.')
+    if any(item[1] != snapshot.version or item[2] != snapshot.stamp or
+           item[3] != tuple(snapshot.command) for item in actual):
+        raise ValueError('Candidate measure and displayed snapshot have different command times.')
+
+
 def snapshot_record(snapshot):
+    verify_measure_identity(snapshot)
     record = {
         "frame_id": snapshot.frame_id,
         "stamp": snapshot.stamp,
@@ -196,6 +229,10 @@ def snapshot_record(snapshot):
         record['behavior'] = snapshot.behavior
     if snapshot.surprise_record is not None:
         record['bayes_factor_surprise'] = snapshot.surprise_record
+    if snapshot.candidate_measure is not None:
+        record['candidate_measure'] = snapshot.candidate_measure
+    if snapshot.sensor_event is not None:
+        record['sensor_event'] = snapshot.sensor_event
     axes = goal_axis_records(snapshot)
     if axes:
         record['goal_axes'] = axes
@@ -243,6 +280,7 @@ def make_markers(snapshot, seed=29, point_size=0.0074999998323619365):
     The historical ``seed`` setting is retained as the sequence's integer
     offset. No random generator is used, and no source parameter is altered.
     """
+    verify_measure_identity(snapshot)
     if int(seed) < 0:
         raise ValueError("The Gaussian quantile sequence offset must be nonnegative.")
     clear = _marker(snapshot, 0, "clear", Marker.SPHERE_LIST)

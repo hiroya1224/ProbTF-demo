@@ -18,6 +18,7 @@ from visualization_msgs.msg import MarkerArray
 from probtf.spherical_law.first_order import point_query
 from .display import (
     DisplayPoint, DisplaySnapshot, make_markers, save_snapshot, snapshot_record,
+    verify_measure_identity,
 )
 from .model import component_log_weight, load_inputs, run
 from .moving_control import switch_goal_queries
@@ -107,7 +108,10 @@ def build_snapshot(result, stage, common):
                                observation_ids, summary,
                                goal_memory=result.records.get('fixed_goal_memory'),
                                behavior=result.records.get('behavior'),
-                               surprise_record=result.records.get('bayes_factor_surprise'))
+                               surprise_record=result.records.get('bayes_factor_surprise'),
+                               candidate_measure=(result.records.get('candidate_measure')
+                                                  if stage is result.stages[-1] else None),
+                               sensor_event=result.records.get('sensor_event'))
     verify_adapter_identity(snapshot, stage)
     return snapshot
 
@@ -149,6 +153,7 @@ def verify_adapter_identity(snapshot, stage):
                 or any({point.axis for point in switch_points if point.component_id == label}
                        != {'origin', 'x', 'y', 'z'} for label in sources)):
             raise AssertionError('The switch-goal display lost a retained target component or axis.')
+    verify_measure_identity(snapshot)
 
 
 def image_message(image, stamp, frame):

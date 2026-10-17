@@ -10,3 +10,10 @@ known_model_source: >-
 optimizer_max_iterations: 80
 optimizer_gradient_tolerance: 0.000001
 laplace_fd_step: 0.0001
+bayes_factor_surprise:
+  enabled: true
+  change_probability: 0.10
+  # Explicit implementation choices for the issues left open in the framework.
+  reset_measure: initial_log_stiffness
+  event_probability_unit: per_effective_sensor_event
+  evidence_method: laplace

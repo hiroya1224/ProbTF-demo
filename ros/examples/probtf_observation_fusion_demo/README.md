@@ -1,5 +1,7 @@
 # 観測で身体候補を保持・更新するスイッチ到達デモ
 
+最新の追加は[マーカー視野因子](VISIBILITY_FACTOR_TRACKING.md)。完全タスクJとは独立な視野因子を指令選定だけで合成し、既存の減衰二階系へ渡す。以下の「完全Jの勾配だけ」という説明と実測は、視野因子追加前の履歴である。
+
 最新の追従制御は[Running Gradient Tracking](RUNNING_GRADIENT_TRACKING.md)。完全Jの勾配だけを非同期に計算し、位置と速度を保持する減衰二階系で実行する。新指示書に従う取得側の目標は物理120 Hz・Joint40 Hz・IMU30 Hz・画像12 Hz。旧端点IKは`control_mode:=single_step_ik`の比較用に保持する。以下の過去の到達・性能結果とは区別する。
 
 直前のsourceでは物理目標を240 Hzへ引き上げ、不要な全リンク変換の構築を省いた。ROS実測はno sensorの10秒試行で約219 Hz。[当時の変更・測定条件・検証](PHYSICS_UPDATE_RATE.md)を参照する。

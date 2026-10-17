@@ -50,7 +50,7 @@ class AsyncMotionSession:
     """One physical experiment with a durable, acquisition-ordered event log."""
     def __init__(self, observations_path, output, *, imu_target_link=None,
                  duration=None, clock=time.monotonic, context=None, control_mode=None,
-                 running_gradient_options=None):
+                 running_gradient_options=None, visibility_factor_options=None):
         self.clock, self.output = clock, Path(output)
         self.output.mkdir(parents=True, exist_ok=False)
         self.package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
@@ -71,6 +71,9 @@ class AsyncMotionSession:
         self.probability_unit = self.settings.get('bayes_factor_surprise', {}).get('event_probability_unit')
         control = self.settings['control']
         self.control_mode = control_mode or control.get('mode', 'single_step_ik')
+        self.visibility_options=dict(control.get('visibility_factor',{}))
+        if visibility_factor_options:
+            self.visibility_options.update(visibility_factor_options)
         if self.control_mode not in ('running_gradient', 'single_step_ik'):
             raise ValueError('Unknown asynchronous control mode: '+str(self.control_mode))
         self.servo = MovingController(self.inference_description, self.scene.robot_description,
@@ -98,7 +101,8 @@ class AsyncMotionSession:
             self.context.Process(target=event_inference_worker,
                 args=(self.estimate_requests,self.estimate_replies)+common+(self.probability_unit,),daemon=True),
             self.context.Process(target=control_worker,
-                args=(self.control_requests,self.control_replies)+common+(self.horizon,self.control_mode),daemon=True),
+                args=(self.control_requests,self.control_replies)+common+(
+                    self.horizon,self.control_mode,self.visibility_options),daemon=True),
             self.context.Process(target=acquisition_worker,
                 args=(self.acquisition_requests,self.acquisition_replies,specification,
                       str(self.output/'observations.sqlite3'),str(self.output)),daemon=True))
@@ -442,11 +446,15 @@ class AsyncMotionSession:
         self.velocity=np.asarray(step.velocity)
         self.desired_velocity=self.velocity.copy()
         mode='waiting_for_goal' if tracker.last_packet is None else 'reaching'
+        goal_acquired=bool(self.latest_result is not None and
+            self.latest_result.records.get('fixed_goal_memory',{}).get('available',False))
         behavior=dict(mode=mode,event=('waiting_for_valid_goal_and_gradient' if mode=='waiting_for_goal'
             else 'tracking_retained_goal'),marker_detected=self.marker_preview_visible,
             marker_observed=self.latest_marker_observed,
             goal_available=bool(self.current_control is not None and
                 (self.current_control['snapshot'].goal_memory or {}).get('available',False)),
+            marker_acquisition_state=('never_acquired' if not goal_acquired else
+                'acquired_visible' if self.marker_preview_visible else 'acquired_missing'),
             observation_loss_policy='continue against retained valid goal; no fresh-since-stop gate',
             amplitude_rad=0.,completed_roundtrips=0,physical_truth_received=False,
             reaching_criterion_used_for_selection=mode=='reaching')
@@ -621,6 +629,8 @@ class AsyncMotionSession:
                 max_source_age_s=self.gradient_tracker.max_source_age,
                 max_command_distance_rad=self.gradient_tracker.max_command_distance,
                 max_snapshot_update_lag=self.gradient_tracker.max_snapshot_update_lag),
+            visibility_factor_config=dict(self.visibility_options),
+            active_selection_factors=None if gradient is None else gradient.as_dict()['selection_factors'],
             velocity_clipping_enabled=self.control_mode!='running_gradient',
             acceleration_clipping_enabled=self.control_mode!='running_gradient',
             endpoint_selection_enabled=self.control_mode!='running_gradient',

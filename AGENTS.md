@@ -1,5 +1,13 @@
 # 必須条件
 
+## 視野維持因子の追加（2026年10月18日・最新）
+
+ユーザー指定の [VISIBILITY_FACTOR_INSTRUCTIONS_20261018.md](ros/examples/probtf_observation_fusion_demo/VISIBILITY_FACTOR_INSTRUCTIONS_20261018.md) に従い、既存task規準Jを変更せず、独立したview因子exp(-lambda*V)を選定層で乗算する。Vは同じ保持根元marker・身体共同候補・K_est・source指令を用いるcamera optical frame(+z正面)のmarker中心の平均pについて、各mixture成分ごとに1-pz/||p||を評価し、log weightから安定に相対重み付けする。スイッチ位置を画像中央へ動かす規準ではない。
+
+task/view/selectedの因子・勾配・同一source・K・時刻を別に記録し、視野因子を身体/K/BFSへの観測尤度として融合しない。共通の指令伝播と有限差分照会を再利用し、全cross・全mixtureを保つ。disabled/weight0では元taskの数値・指令と厳密一致し、Vを未評価なら零と偽らない。微小normや非有限値など因子使用不能は理由付きで失敗packetとして棄却し、最後の受理勾配を保持する。後方成分を消さず、背面光軸で勾配が消える幾何退化も記録する。
+
+獲得済みmarkerは画像欠落中も根元保持し、予測カメラ相対分布から両因子を計算して追従を続ける。未獲得は待機と区別する。旧探索への即時切替・旧visual初期値・s・端点IK・SG・K_exec・新しい速度/加速度clipを追加しない。既存の二階積分器と120/40/30/12 Hz・全取得DB・時刻順センサ別更新・推定/表示law同一性・core/RViz全設定を保持する。重みの根拠、weight0との両ケース比較、検出率/喪失/再取得、画像内幾何と物理到達、遅延と失敗をVISIBILITY_FACTOR_TRACKING.mdへ記録し、光軸因子を検出確率や四隅の視野保証と説明しない。本節は下記の「完全Jの勾配だけ」を選定層での独立view因子合成の範囲で更新する。
+
 ## Running Gradient Trackingへの変更（2026年10月18日・最新）
 
 ユーザー指定の [UNIFIED_RUNNING_GRADIENT_THEORY_20261018.md](ros/examples/probtf_observation_fusion_demo/UNIFIED_RUNNING_GRADIENT_THEORY_20261018.md) を現行の追従制御仕様とする。新しい既定`running_gradient`では、同じ共同候補・全cross・固定目標全mixture・直接captureしたK_estから完全Jの指令勾配だけを非同期workerで計算する。実行側は位置uと速度vを保持し、du/dt=v、dv/dt=-gamma*v-eta*gの区間一定勾配に対する厳密解で進める。観測・K・勾配の到着でu/vを初期化しない。旧端点IK、0.5秒参照、visual初期点、QP、line search、位置s、K_exec、速度・加速度clipはこの経路へ流用しない。旧経路は明示的な比較用モードとして隔離する。

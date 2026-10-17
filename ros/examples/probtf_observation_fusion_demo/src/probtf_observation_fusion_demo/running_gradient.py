@@ -85,6 +85,7 @@ class GradientPacket:
     observation_source_stamps: object = ()
     reason: object = None
     packet_id: object = None
+    selection_factors: object = None
 
     def __post_init__(self):
         for name in self.__dataclass_fields__:

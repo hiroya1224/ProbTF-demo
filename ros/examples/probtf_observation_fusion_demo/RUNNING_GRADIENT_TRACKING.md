@@ -1,5 +1,7 @@
 # Running Gradient Trackingの実装と検証（2026年10月18日）
 
+この文書は`a8f1bac`までの実装と実測を記録する。その後に追加した独立な選定用視野因子は[VISIBILITY_FACTOR_TRACKING.md](VISIBILITY_FACTOR_TRACKING.md)を参照する。下記の完全タスクJと二階積分を維持し、選定入力だけを両因子の勾配へ拡張した。
+
 ユーザー指定の原文を[UNIFIED_RUNNING_GRADIENT_THEORY_20261018.md](UNIFIED_RUNNING_GRADIENT_THEORY_20261018.md)へそのまま保存した。今回の方式は時変・非凸の規準を追う実装実験であり、収束・到達性能を確立した手法ではない。旧端点IKは`single_step_ik`として比較用に残し、既定を`running_gradient`にする。
 
 ## 変更前の状態と既存部分

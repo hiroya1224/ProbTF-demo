@@ -325,7 +325,7 @@ class MovingController:
         return pose_query(state, self.relative_path,
                           query_id="control:marker_relative_hand", frame="marker")
 
-    def _evaluate_command_objective(self, components, command, command_map):
+    def _evaluate_command_objective(self, components, command, command_map, *, trial_states=None):
         """Evaluate the unchanged relative density, independently of an IK step.
 
         All branches use the same joint law and captured command action. The
@@ -338,6 +338,8 @@ class MovingController:
             trial_state = (command_state(component.state, command,
                 self.body_ids, self.actions) if command_map is None else
                 command_map.push(component.state, command, self.body_ids, self.actions))
+            if trial_states is not None:
+                trial_states.append(trial_state)
             query = self._query(trial_state)
             queries.append(query)
             log_density, branch = _relative_density(query, self.goal_offset,
@@ -389,7 +391,8 @@ class MovingController:
             raise ValueError('The complete relative objective is not finite at the candidate command.')
         return objective, branches
 
-    def gradient_at_command(self, result, source_command=None, *, command_map=None):
+    def gradient_at_command(self, result, source_command=None, *, command_map=None,
+                            evaluation_observer=None):
         """Differentiate full J at the snapshot's sent command, not an IK endpoint.
 
         Each side is restricted only by physical joint positions and the
@@ -440,8 +443,17 @@ class MovingController:
                     attempt = dict(command=list(key), status='failed', reason=None)
                     diagnostics['evaluations'].append(attempt)
                     try:
-                        log_density, branches, _ = self._evaluate_command_objective(
-                            components, np.asarray(candidate), command_map)
+                        if evaluation_observer is None:
+                            log_density, branches, _ = self._evaluate_command_objective(
+                                components, np.asarray(candidate), command_map)
+                        else:
+                            states=[]
+                            log_density, branches, _ = self._evaluate_command_objective(
+                                components, np.asarray(candidate), command_map,trial_states=states)
+                            # Selection-layer observers receive the exact
+                            # already-transported laws, never an independent
+                            # copy or an alternative task objective.
+                            evaluation_observer(np.asarray(candidate),components,tuple(states))
                         objective = -log_density
                         if not np.isfinite(objective):
                             raise ValueError('The complete relative objective is not finite.')

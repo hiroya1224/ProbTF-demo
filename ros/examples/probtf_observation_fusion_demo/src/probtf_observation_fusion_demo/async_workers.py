@@ -22,6 +22,8 @@ from .model import component_log_weight
 from .moving_control import MovingController
 from .moving_control import control_components
 from .moving_inference import MovingInference
+from .selection_gradient import selection_gradient_at_command
+from .visibility_factor import VisibilityFactor
 from .node import build_snapshot
 from .sensor_event_store import SensorEventStore
 from .stiffness_identification import StiffnessIdentifier
@@ -101,7 +103,7 @@ def _unselected_parameter_view(result, captured):
     return replace(result, records=dict(result.records, stiffness=record))
 
 def control_worker(requests, replies, description, urdf, templates, output, horizon,
-                   control_mode=None):
+                   control_mode=None, visibility_options=None):
     """Evaluate a frozen-law gradient, or the isolated comparison endpoint IK."""
     cv2.setNumThreads(1)
     try:
@@ -110,6 +112,14 @@ def control_worker(requests, replies, description, urdf, templates, output, hori
         mode = control_mode or settings.get('mode', 'single_step_ik')
         if mode not in ('running_gradient', 'single_step_ik'):
             raise ValueError('Unknown asynchronous control mode: '+str(mode))
+        view_settings=dict(settings.get('visibility_factor',{}))
+        if visibility_options:
+            view_settings.update(visibility_options)
+        camera=inference.settings['camera']
+        matrix=camera['matrix']
+        view_settings.setdefault('intrinsics',dict(fx=matrix[0][0],fy=matrix[1][1],
+            cx=matrix[0][2],cy=matrix[1][2],width=camera['width'],height=camera['height']))
+        view_factor=VisibilityFactor(view_settings)
         controller = MovingController(inference, description, settings['goal_offset'],
             settings['goal_orientation_wxyz'], settings,
             integration_steps=int(settings['integration_steps']))
@@ -189,8 +199,8 @@ def control_worker(requests, replies, description, urdf, templates, output, hori
             gradient_evaluation = None
             if mode == 'running_gradient':
                 if predicted.records.get('fixed_goal_memory', {}).get('available', False):
-                    gradient_evaluation = controller.gradient_at_command(
-                        predicted, command_map=command_map).record
+                    gradient_evaluation = selection_gradient_at_command(
+                        controller,predicted,view_factor,command_map=command_map).record
                 else:
                     body, goals = control_components(predicted)
                     gradient_evaluation = dict(status='waiting_for_goal',
@@ -216,7 +226,7 @@ def control_worker(requests, replies, description, urdf, templates, output, hori
                     source_action_ledger=ledger_reference,
                     source_observation_ids=list(source.records.get('observation_ids', ())))
                 diagnostics = dict(gradient_evaluation,
-                    method='asynchronous full-J gradient only; no endpoint selection',
+                    method='asynchronous independent full-J task and visibility factor gradients; no endpoint selection',
                     control_mode=mode, reaching_phase='running_gradient',
                     source_version=predicted.prior.version,
                     body_source_state_ids=gradient_evaluation['body_state_ids'],

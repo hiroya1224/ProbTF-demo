@@ -127,16 +127,18 @@ def _complete_control(current):
     requests, replies = LocalQueue(), LocalQueue()
     requests.put(request); requests.put(None)
     control_worker(requests, replies, current.scene.robot_description, str(current.scene.urdf),
-        current.templates, str(current.output), current.horizon, current.control_mode)
+        current.templates, str(current.output), current.horizon, current.control_mode,
+        current.visibility_options)
     reply = replies.get_nowait()
     assert not reply.get('failed'), reply
     return reply
 
 
-def _new_session(tmp_path, case='imu', duration=1., control_mode='single_step_ik'):
+def _new_session(tmp_path, case='imu', duration=1., control_mode='single_step_ik', visibility_factor_options=None):
     clock = [100.]
     current = AsyncMotionSession(PACKAGE/('config/'+case+'.yaml'), tmp_path/'run',
-        clock=lambda: clock[0], context=Context(), duration=duration, control_mode=control_mode)
+        clock=lambda: clock[0], context=Context(), duration=duration, control_mode=control_mode,
+        visibility_factor_options=visibility_factor_options)
     current.probability_unit = 'per_effective_sensor_event'
     current._test_inference = MovingInference(current.scene.robot_description, current.templates)
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())

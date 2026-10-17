@@ -12,7 +12,7 @@ bayes_factor_surprise:
   # agreement claimed from THEORETICAL_FRAMEWORK_20261018.md.
   event_probability_unit: per_effective_sensor_event
 async_execution:
-  physics_hz: 120.0
+  physics_hz: 240.0
   joint_hz: 40.0
   imu_hz: 30.0
   image_hz: 12.0

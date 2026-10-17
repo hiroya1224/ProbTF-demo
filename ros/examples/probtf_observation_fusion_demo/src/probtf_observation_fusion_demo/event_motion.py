@@ -43,7 +43,7 @@ class AsyncMotionSession:
         self.inference_description = MovingInference(self.scene.robot_description, self.templates)
         self.settings = self.inference_description.settings
         self.options = dict(self.settings.get('async_execution', {}))
-        self.period = 1./float(self.options.get('physics_hz', 120.))
+        self.period = 1./float(self.options.get('physics_hz', 240.))
         self.rates = {kind: float(self.options.get(kind+'_hz', rate))
                       for kind, rate in (('joint',40.),('imu',30.),('image',12.))}
         if any(not np.isfinite(v) or v <= 0 for v in (*self.rates.values(),1/self.period)):

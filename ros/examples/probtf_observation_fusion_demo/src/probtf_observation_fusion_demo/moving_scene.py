@@ -136,6 +136,18 @@ class MovingSwitchScene:
             urdf_sha256=hashlib.sha256(self.urdf.read_bytes()).hexdigest(),
             scene_config_sha256=self.config_sha256)
         self.initial_command = _readonly(self.config["initial_command"])
+        # This scene's root is fixed to the world. Resolve its invariant
+        # transform and all frame names once; internal integration points
+        # need only the camera transform, not eleven detached link poses.
+        robot = self.plant.robot
+        if robot.model.frames[robot.base_fid].parentJoint != 0:
+            raise ValueError('The physical scene requires a fixed root frame.')
+        robot._fk_update(self.initial_command)
+        self._base_inverse = _readonly(np.linalg.inv(
+            np.asarray(robot.data.oMf[robot.base_fid].homogeneous)))
+        names = (["base_link"] + ["link_{}".format(index + 1) for index in range(6)]
+                 + ["tool0", "press_rod", "rod_tip", "camera_optical_frame"])
+        self._frame_ids = {name: robot.get_frame_id(name) for name in names}
         self.duration = float(self.config["motion"].get("duration_s", 36.0))
         if not np.isfinite(self.duration) or self.duration <= 0.:
             raise ValueError("The common experiment duration must be finite and positive.")
@@ -176,11 +188,14 @@ class MovingSwitchScene:
     def _link_poses(self, joints):
         robot = self.plant.robot
         robot._fk_update(joints)
-        base_inverse = np.linalg.inv(np.asarray(robot.data.oMf[robot.base_fid].homogeneous))
-        return {name: _readonly(base_inverse @ np.asarray(
-            robot.data.oMf[robot.get_frame_id(name)].homogeneous)) for name in
-            ["base_link"] + ["link_{}".format(index + 1) for index in range(6)]
-            + ["tool0", "press_rod", "rod_tip", "camera_optical_frame"]}
+        return {name: _readonly(self._base_inverse @ np.asarray(
+            robot.data.oMf[fid].homogeneous)) for name, fid in self._frame_ids.items()}
+
+    def _camera_pose(self, joints):
+        robot = self.plant.robot
+        robot._fk_update(joints)
+        return _readonly(self._base_inverse @ np.asarray(
+            robot.data.oMf[self._frame_ids['camera_optical_frame']].homogeneous))
 
     def _remember_camera(self, time, pose):
         item = (float(time), _readonly(pose))
@@ -230,7 +245,7 @@ class MovingSwitchScene:
         if self.pose is None:
             self.pose = self.plant.equilibrium(self.initial_command)
             self.dynamics.reset(self.pose, self.joint_velocity, command=self.initial_command)
-            self._remember_camera(0., self._link_poses(self.pose)['camera_optical_frame'])
+            self._remember_camera(0., self._camera_pose(self.pose))
             if self.collision_checking:
                 initial_gap, _ = self._clearance(self.plant.boxes(self.pose))
                 self.monitor.update(apply(self.plant.flange(self.pose), self.tip_offset), initial_gap, 0.)
@@ -249,12 +264,12 @@ class MovingSwitchScene:
                 continue
             if stationary:
                 self._remember_camera(start_time+previous_offset,
-                    self._link_poses(previous_pose)['camera_optical_frame'])
+                    self._camera_pose(previous_pose))
             if self.collision_checking:
                 sample_boxes = self.plant.boxes(sample_pose)
                 self._monitor_segment(previous_pose, previous_boxes, sample_pose, sample_boxes)
                 previous_boxes = sample_boxes
-            camera = self._link_poses(sample_pose)['camera_optical_frame']
+            camera = self._camera_pose(sample_pose)
             self._remember_camera(start_time+float(offset), camera)
             previous_pose = sample_pose
             previous_offset, stationary = float(offset), False

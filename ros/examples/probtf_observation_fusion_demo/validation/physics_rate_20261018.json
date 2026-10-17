@@ -1,0 +1,415 @@
+{
+  "date": "2026-10-18",
+  "source_parent_commit": "a5db0eb6a8a88dfbac2e0ddf0b1dafe353655dbf",
+  "target_physics_hz": 240.0,
+  "sensor_target_hz": {
+    "joint": 40.0,
+    "imu": 30.0,
+    "image": 12.0
+  },
+  "runtime_env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "status": "unchanged common.launch settings, explicitly matched by final probes"
+  },
+  "changes": [
+    "Raise outer target from120Hz to240Hz",
+    "Cache fixed base transform and immutable frame IDs",
+    "Construct only the required camera transform at internal camera-history endpoints",
+    "Pair CPU benchmark with the exact same floating-point dt"
+  ],
+  "native_integrator_max_step_s": 0.001,
+  "physical_damping_ratio_parameter": 2.0,
+  "collision_checking": false,
+  "core_and_IK_law_changed": false,
+  "camera_history_subsampled": false,
+  "regression": {
+    "passed": 623,
+    "failed": 0,
+    "seconds": 233.01,
+    "log": "/tmp/probtf_240_full_suite_20261018.log",
+    "sha256": "805a68053cfef9d1585abc95a91c9055d88193492e6ddad908c7434a125a97e8"
+  },
+  "benchmark": {
+    "test": "prescribed-command physics throughput and nonlinear held-command ringdown",
+    "reaching_or_estimation_validation": false,
+    "wall_clock_paced": false,
+    "nominal_physics_hz": 240.0,
+    "simulated_duration_s": 2.0,
+    "native_advance": {
+      "count": 480,
+      "mean_ms": 0.11116701255862911,
+      "median_ms": 0.10787253268063068,
+      "p95_ms": 0.13351880479604006,
+      "max_ms": 0.32912101596593857
+    },
+    "physical_frame_without_image_rendering": {
+      "count": 480,
+      "mean_ms": 0.42068259402488667,
+      "median_ms": 0.40924595668911934,
+      "p95_ms": 0.5017826799303293,
+      "max_ms": 0.997389666736126
+    },
+    "collision_checking_enabled": false,
+    "image_rendering_or_ros_publication_included": false,
+    "default_heavy_damping_ringdown": {
+      "duration_s": 5.0,
+      "held_command": true,
+      "finite": true,
+      "damping_ratio": 2.0,
+      "displaced_joint_index": 3,
+      "initial_displacement_rad": 0.03,
+      "displacement_min_rad": 4.2930995997753074e-11,
+      "displacement_max_rad": 0.029999999999999995,
+      "equilibrium_crossings": 0,
+      "initial_excess_energy_j": 0.026075492797055233,
+      "final_excess_energy_j": 0.0,
+      "final_position_error_norm_rad": 5.544991396696371e-10,
+      "peak_actual_speed_rad_s": 0.17203960723132752,
+      "diagnostics": {
+        "time_s": 5.0,
+        "energy_j": 58.04233722306016,
+        "kinetic_energy_j": 3.777462341537548e-21,
+        "gravity_energy_j": 55.48567759772714,
+        "spring_energy_j": 2.5566596253330207,
+        "damping_loss_j": 0.026075492827030422,
+        "command_work_j": 0.0,
+        "impact_loss_j": 0.0,
+        "energy_balance_residual_j": 2.997518899761076e-11,
+        "max_torque_residual_nm": 1.8323820683008307e-08,
+        "min_accepted_step_s": 0.0009999999999999996,
+        "max_accepted_step_s": 0.001,
+        "last_advance_dt_s": 5.0,
+        "accepted_substeps": 5000,
+        "newton_iterations": 3910,
+        "line_search_evaluations": 3910,
+        "step_halvings": 0,
+        "joint_impacts": 0,
+        "active_stop_substeps": 0,
+        "stiffness": [
+          350.0,
+          125.0,
+          95.0,
+          60.0,
+          40.0,
+          30.0
+        ],
+        "damping": [
+          56.98944259561644,
+          45.59764280446439,
+          41.897751010862514,
+          8.220586861095924,
+          7.892049981967445,
+          1.84122178115633
+        ],
+        "reference_mass": [
+          [
+            0.5799636727426896,
+            0.002183291263553941,
+            -0.0024118697551409763,
+            -0.14986505338378192,
+            0.001817991150403736,
+            -0.006030928663279844
+          ],
+          [
+            0.002183291263553941,
+            1.0395725146617618,
+            0.5191515533072727,
+            0.0026776609308169987,
+            0.1923219457342789,
+            0.005938221222313459
+          ],
+          [
+            -0.0024118697551409763,
+            0.5191515533072727,
+            1.1548825919527834,
+            0.006532111009114971,
+            0.20315986732834018,
+            0.006459895064944541
+          ],
+          [
+            -0.14986505338378192,
+            0.0026776609308169987,
+            0.006532111009114971,
+            0.07039380035502389,
+            0.0007686200860472934,
+            0.0069823498109748625
+          ],
+          [
+            0.001817991150403736,
+            0.1923219457342789,
+            0.20315986732834018,
+            0.0007686200860472934,
+            0.09731945768417555,
+            0.0028450740985556215
+          ],
+          [
+            -0.006030928663279844,
+            0.005938221222313459,
+            0.006459895064944541,
+            0.0069823498109748625,
+            0.0028450740985556215,
+            0.007062703432092685
+          ]
+        ],
+        "damping_ratio": 2.0,
+        "damping_fixed_after_initial_reset": true,
+        "backend_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_flexible_dynamics.so",
+        "backend_sha256": "770adaa9b7c296f60a9a851218fa3d2c4dbe9234a785dce51fbc2b98816b2339",
+        "pinocchio_python_version": "3.3.1",
+        "loaded_native_libraries": [
+          "/home/leus/.local/lib/python3.8/site-packages/cmeel.prefix/lib/libboost_python38.so.1.87.0",
+          "/opt/openrobots/lib/libpinocchio_collision.so.3.3.1",
+          "/opt/openrobots/lib/libpinocchio_default.so.3.3.1",
+          "/opt/openrobots/lib/libpinocchio_parsers.so.3.3.1",
+          "/opt/ros/noetic/lib/x86_64-linux-gnu/libeigenpy.so",
+          "/usr/lib/x86_64-linux-gnu/libboost_python38.so.1.71.0"
+        ],
+        "last_advance_failed": false,
+        "last_advance_error": null,
+        "advance_diagnostics_scope": "accepted_state_and_last_successful_advance",
+        "integration_method": "implicit midpoint with full rigid-body dynamics, joint springs and fixed damping",
+        "equilibrium_samples_used": false,
+        "synthetic_oscillations_added": false
+      }
+    },
+    "low_damping_oscillation_check": {
+      "duration_s": 5.0,
+      "held_command": true,
+      "finite": true,
+      "damping_ratio": 0.1,
+      "displaced_joint_index": 3,
+      "initial_displacement_rad": 0.03,
+      "displacement_min_rad": -0.010275453856266232,
+      "displacement_max_rad": 0.029999999999999995,
+      "equilibrium_crossings": 32,
+      "initial_excess_energy_j": 0.026075492797055233,
+      "final_excess_energy_j": 1.105947688984088e-08,
+      "final_position_error_norm_rad": 1.0304763016930753e-05,
+      "peak_actual_speed_rad_s": 0.8313652567259151,
+      "diagnostics": {
+        "time_s": 5.0,
+        "energy_j": 58.042337234119636,
+        "kinetic_energy_j": 5.634987337461772e-09,
+        "gravity_energy_j": 55.485890359624236,
+        "spring_energy_j": 2.5564468688604114,
+        "damping_loss_j": 0.02607548184174846,
+        "command_work_j": 0.0,
+        "impact_loss_j": 0.0,
+        "energy_balance_residual_j": 1.0417011697683165e-10,
+        "max_torque_residual_nm": 1.8292823256160773e-08,
+        "min_accepted_step_s": 0.0009999999999999996,
+        "max_accepted_step_s": 0.001,
+        "last_advance_dt_s": 5.0,
+        "accepted_substeps": 5000,
+        "newton_iterations": 6291,
+        "line_search_evaluations": 6291,
+        "step_halvings": 0,
+        "joint_impacts": 0,
+        "active_stop_substeps": 0,
+        "stiffness": [
+          350.0,
+          125.0,
+          95.0,
+          60.0,
+          40.0,
+          30.0
+        ],
+        "damping": [
+          2.849472129780822,
+          2.27988214022322,
+          2.0948875505431257,
+          0.4110293430547962,
+          0.3946024990983723,
+          0.09206108905781651
+        ],
+        "reference_mass": [
+          [
+            0.5799636727426896,
+            0.002183291263553941,
+            -0.0024118697551409763,
+            -0.14986505338378192,
+            0.001817991150403736,
+            -0.006030928663279844
+          ],
+          [
+            0.002183291263553941,
+            1.0395725146617618,
+            0.5191515533072727,
+            0.0026776609308169987,
+            0.1923219457342789,
+            0.005938221222313459
+          ],
+          [
+            -0.0024118697551409763,
+            0.5191515533072727,
+            1.1548825919527834,
+            0.006532111009114971,
+            0.20315986732834018,
+            0.006459895064944541
+          ],
+          [
+            -0.14986505338378192,
+            0.0026776609308169987,
+            0.006532111009114971,
+            0.07039380035502389,
+            0.0007686200860472934,
+            0.0069823498109748625
+          ],
+          [
+            0.001817991150403736,
+            0.1923219457342789,
+            0.20315986732834018,
+            0.0007686200860472934,
+            0.09731945768417555,
+            0.0028450740985556215
+          ],
+          [
+            -0.006030928663279844,
+            0.005938221222313459,
+            0.006459895064944541,
+            0.0069823498109748625,
+            0.0028450740985556215,
+            0.007062703432092685
+          ]
+        ],
+        "damping_ratio": 0.1,
+        "damping_fixed_after_initial_reset": true,
+        "backend_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_flexible_dynamics.so",
+        "backend_sha256": "770adaa9b7c296f60a9a851218fa3d2c4dbe9234a785dce51fbc2b98816b2339",
+        "pinocchio_python_version": "3.3.1",
+        "loaded_native_libraries": [
+          "/home/leus/.local/lib/python3.8/site-packages/cmeel.prefix/lib/libboost_python38.so.1.87.0",
+          "/opt/openrobots/lib/libpinocchio_collision.so.3.3.1",
+          "/opt/openrobots/lib/libpinocchio_default.so.3.3.1",
+          "/opt/openrobots/lib/libpinocchio_parsers.so.3.3.1",
+          "/opt/ros/noetic/lib/x86_64-linux-gnu/libeigenpy.so",
+          "/usr/lib/x86_64-linux-gnu/libboost_python38.so.1.71.0"
+        ],
+        "last_advance_failed": false,
+        "last_advance_error": null,
+        "advance_diagnostics_scope": "accepted_state_and_last_successful_advance",
+        "integration_method": "implicit midpoint with full rigid-body dynamics, joint springs and fixed damping",
+        "equilibrium_samples_used": false,
+        "synthetic_oscillations_added": false
+      }
+    },
+    "physical_source": {
+      "backend_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_flexible_dynamics.so",
+      "backend_sha256": "770adaa9b7c296f60a9a851218fa3d2c4dbe9234a785dce51fbc2b98816b2339",
+      "urdf_sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2",
+      "scene_config_sha256": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a"
+    },
+    "source_sha256": {
+      "config/switch_press_scene.yaml": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a",
+      "native/flexible_dynamics.cpp": "95989db25ddf96b250b1f32edd9762fd695f4be166d47fe96b4da6fc05402829",
+      "native/flexible_dynamics.h": "66082d0d845c769d12c493e9601be74c6067e4a0008b44bbec5df853159e98b0",
+      "scripts/benchmark_physics.py": "cbf522226572dd9f81e72a89a8117ab7fb2b1c27d2b4c1ede8542c4f218a39fc",
+      "src/probtf_observation_fusion_demo/dynamic_physics.py": "99fe6a394b86b22247f18220987409ec66ef381b480d9387a623a1ff2750e453",
+      "src/probtf_observation_fusion_demo/moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29"
+    }
+  },
+  "ros": {
+    "no_sensors": {
+      "evidence_directory": "/tmp/probtf_240_ros_no_sensors_launch_env_20261018",
+      "duration_s": 10.0,
+      "physical_frames": 2194,
+      "rates": {
+        "actual_motion_hz": 219.19685603478885,
+        "actual_camera_hz": 11.998445602230747,
+        "actual_control_hz": 4.705666092505157,
+        "actual_estimate_hz": null,
+        "actual_update_hz": null,
+        "actual_joint_hz": 39.43716732297715,
+        "actual_imu_hz": 29.703955816334066
+      },
+      "raw_acquired": 814,
+      "raw_archived": 814,
+      "all_enabled_observations_processed": true,
+      "command_intervals": 2193,
+      "selected_K_in_every_interval": false,
+      "initial_estimated_K_packet_id": null,
+      "wire_source_check": true,
+      "topic_receive_counts": {
+        "joint": 394,
+        "imu": 297,
+        "image": 120,
+        "snapshot": 50,
+        "wire": 50,
+        "metadata": 665
+      },
+      "raw_publisher_calls": {
+        "joint": 395,
+        "imu": 298,
+        "image": 121
+      },
+      "publication_graceful": true,
+      "source_unchanged": true,
+      "completed": true,
+      "physical_motion_hz_excludes_drain": true,
+      "inference_control_completion_rates_include_drain": true
+    },
+    "imu_selected_K": {
+      "evidence_directory": "/tmp/probtf_240_ros_selected_k_launch_env_20261018",
+      "duration_s": 1.0,
+      "physical_frames": 216,
+      "rates": {
+        "actual_motion_hz": 214.0232542147422,
+        "actual_camera_hz": 12.029402292145011,
+        "actual_control_hz": 0.21303482280307198,
+        "actual_estimate_hz": 0.17944567131970562,
+        "actual_update_hz": 0.17944567131970562,
+        "actual_joint_hz": 38.96588671438873,
+        "actual_imu_hz": 30.66976765301924
+      },
+      "raw_acquired": 84,
+      "raw_archived": 84,
+      "all_enabled_observations_processed": true,
+      "command_intervals": 215,
+      "selected_K_in_every_interval": true,
+      "initial_estimated_K_packet_id": "4c16d8e19e31267b5a78f042b4e3c3c27a04d21f81c1fe9dd25b1135de470cb2",
+      "wire_source_check": true,
+      "topic_receive_counts": null,
+      "raw_publisher_calls": {
+        "joint": 40,
+        "imu": 31,
+        "image": 13
+      },
+      "publication_graceful": true,
+      "source_unchanged": true,
+      "completed": true,
+      "physical_motion_hz_excludes_drain": true,
+      "inference_control_completion_rates_include_drain": true
+    }
+  },
+  "preservation": {
+    "passed": true,
+    "evidence_path": "/tmp/probtf_240_preservation_20261018.json",
+    "rviz_files": 37,
+    "user_files": 28,
+    "core_files": 142,
+    "native_binary_sha256": "770adaa9b7c296f60a9a851218fa3d2c4dbe9234a785dce51fbc2b98816b2339"
+  },
+  "earlier_unset_BLAS_diagnostics": {
+    "no_sensors_10s_hz": 218.57181419931507,
+    "selected_K_imu_point5s_hz": 97.20893487517215,
+    "not_comparable_to_normal_launch_env": true,
+    "single_cause_for_jitter_not_established": true
+  },
+  "selected_K_IMU_post_motion_drain_approximately_s": 179.0,
+  "limitations": [
+    "240Hz is a target, not a guaranteed deadline.",
+    "No sensor trial10s and selected-K IMU trial1s are short; no long-horizon reaching claim.",
+    "Physical rate is distinct from inference/IK completion rate; all-event backlog remains.",
+    "GPU/RViz rendering throughput was not measured."
+  ],
+  "source_sha256": {
+    "AGENTS.md": "35f3b85573779dc927a03340b6490804c72f1e9e6bb581fe09294cd20f545ad2",
+    "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml": "ea8bbe09c392d0b1aff4d1a7ca9d13d7c07eb5bb75070c41b8423125310ba879",
+    "ros/examples/probtf_observation_fusion_demo/scripts/benchmark_physics.py": "cbf522226572dd9f81e72a89a8117ab7fb2b1c27d2b4c1ede8542c4f218a39fc",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py": "0783b2432835416f1a2390f3199c338d009e95eba6c0e25445949eb362d9df94",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_async_execution.py": "d0bba53ed734e96784b10bf7c2c90288109816669e1f9c9e0156b8def4072e94",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_physics_rate.py": "b9553859cd3f4518d541b38d8feb197ab4c9d8e68fb924d81140f59be44a3c4b"
+  }
+}

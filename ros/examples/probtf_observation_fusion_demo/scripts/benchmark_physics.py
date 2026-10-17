@@ -67,18 +67,23 @@ def benchmark(output, *, duration=2., physics_hz=120.):
     period = duration/count
     native_times, frame_times = [], []
     previous = np.asarray(initial.command)
+    previous_elapsed = initial.time
     for index in range(count):
         elapsed = (index+1)*period
         command = np.array(initial.command, copy=True)
         command[3:5] += [.015*np.sin(2*np.pi*.7*elapsed), .01*np.sin(2*np.pi*.4*elapsed)]
         started = time.perf_counter()
-        native.advance(period, previous, command)
+        # Match the scene's actual floating-point interval exactly. Using
+        # nominal period here can change ceil(dt / max_step_s) at a boundary
+        # and compare two different midpoint discretizations.
+        native.advance(elapsed-previous_elapsed, previous, command)
         native_times.append(time.perf_counter()-started)
         started = time.perf_counter()
         frame = scene.step(elapsed, command=command, render_camera=False)
         frame_times.append(time.perf_counter()-started)
         np.testing.assert_allclose(frame.joints, native.state()['position'], rtol=0., atol=2e-9)
         previous = command
+        previous_elapsed = elapsed
     # A physical initial displacement is released under a constant spring
     # command. No sinusoidal term or equilibrium replacement is in the plant.
     heavy = ringdown(scene, initial, damping_ratio=settings['damping_ratio'])

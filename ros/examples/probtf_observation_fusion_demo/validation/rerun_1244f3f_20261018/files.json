@@ -1,0 +1,98 @@
+{
+  "file_count": 23,
+  "total_bytes": 1809495,
+  "files": {
+    "README.md": {
+      "bytes": 1915,
+      "sha256": "30a80bde5393ab638ac315be55b5beef21dc9a798f52419a152f73f906a91733"
+    },
+    "control_damping_spectrum.json": {
+      "bytes": 8451,
+      "sha256": "5c5f23ec2b7bdd86dbcf21db64404e2f1e0578b0c12fec71134078818a2584d0"
+    },
+    "motion/REPORT.md": {
+      "bytes": 5873,
+      "sha256": "a49a6d3f9071dc1b1791edf265535e81936536ecee84c1f591f6d38977cd1901"
+    },
+    "motion/action_alignment.json": {
+      "bytes": 60991,
+      "sha256": "a2817b0434077769a562799f215f50b1b1371686c9418deef289d20331249d6a"
+    },
+    "motion/reproduce_action_alignment.py": {
+      "bytes": 8242,
+      "sha256": "cad2621cd37a01f7bd79c2db373f849489cfa057233c2d1792cc4fe774aafdf4"
+    },
+    "motion/reproduce_motion.py": {
+      "bytes": 6859,
+      "sha256": "ba84d0ccad367b0d7db7fcadc0da732fc996cefe85fa9dc4ce06b2077bb1e96b"
+    },
+    "motion/summary.json": {
+      "bytes": 30787,
+      "sha256": "1f3094c390f21d6a072e629a5f1afbd276ca2833c855fa410d93f0737e074430"
+    },
+    "motion/trajectory_efficiency.png": {
+      "bytes": 190774,
+      "sha256": "e0d9c10e1b6a284f171227287eabbbe0b998477bfbb8e04ee2fce38a0e7d96ba"
+    },
+    "objective/REPORT.md": {
+      "bytes": 6344,
+      "sha256": "7b138cebdaacbaee1a6c7e6fa01a46d8d5313c0d97d75b812bddaa46a2defc13"
+    },
+    "objective/decompose_objective.py": {
+      "bytes": 20626,
+      "sha256": "d71f3f41cd06d0d70e662e78dbd9377500bf58d5ea1839c777f7e7075d3c548f"
+    },
+    "objective/extract_sources.py": {
+      "bytes": 3388,
+      "sha256": "10ae82f5c1a87bcc3c8f546950cc0f05158438fbd0f9998500816f4ada2a5ac3"
+    },
+    "objective/imu_marker_123_decomposition.json": {
+      "bytes": 23514,
+      "sha256": "3cb140222ebd4117e9966abe1c38a7df3c51142635f821cbddb9bb4aa64f52eb"
+    },
+    "objective/imu_marker_140_decomposition.json": {
+      "bytes": 23584,
+      "sha256": "7101550207c17449728677598bf92ff92ac833bed68e9a25c34a10f7a87ae594"
+    },
+    "objective/imu_marker_179_decomposition.json": {
+      "bytes": 23606,
+      "sha256": "10ccb4e38b58ead5648cb317cd5fa6345f7b6704e0359989d13893bdad8d0b87"
+    },
+    "objective/manifest.json": {
+      "bytes": 12825,
+      "sha256": "aa7bb128224a9efe274e67240fe09d319ebb5afd9fcd36daab7f27b1ca1effa8"
+    },
+    "objective/marker_112_decomposition.json": {
+      "bytes": 24320,
+      "sha256": "14e3f12ee45c10e0515d7059a26396599d03a1ae6b16c457b84b118d30a0bd4c"
+    },
+    "objective/marker_158_decomposition.json": {
+      "bytes": 23465,
+      "sha256": "18362419d3c8b7bb5a1dee06c3bd8e71defc3d80a61c06258909bbf3695e9c9b"
+    },
+    "objective/marker_179_decomposition.json": {
+      "bytes": 24481,
+      "sha256": "a25d7a7a694dd50c0183d97959b3c3e87b93b3b0f0eb33954c040f1939d2df8e"
+    },
+    "objective/physical_comparison.json": {
+      "bytes": 3982,
+      "sha256": "58c4508a67a14cedd16ec4088e7617c6e3167aa9e023fc36cffc6468c1bc3f06"
+    },
+    "objective/summary.json": {
+      "bytes": 183959,
+      "sha256": "83c88f31763164552551bc1803ee02b54d5346dc2900e99556c38fe97a0b4c1c"
+    },
+    "physical_180s_imu_marker.png": {
+      "bytes": 589918,
+      "sha256": "b0dd5cb83e27e6f07d5cf7719999488d5d6591c80e8aa211b9063534af0e06ac"
+    },
+    "physical_180s_marker.png": {
+      "bytes": 527207,
+      "sha256": "638359e6d356554837429efc5ee973ae31d22cbc9d527ae6d00bee58d34cd296"
+    },
+    "rerun_summary.json": {
+      "bytes": 4384,
+      "sha256": "73460e3377ba739a0d49b4d99b1a1a96e9857712726b63e3062d1eb68c522eae"
+    }
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "schema": "1244f3f_actual_RViz_rerun_summary_v1",
+  "git_HEAD": "1244f3fcd838165b040fadc701f6b00f47ada7f6",
+  "source_unchanged_through_shutdown": true,
+  "native_binaries_unchanged": true,
+  "rviz_unchanged": true,
+  "rviz_baseline_sha256": "b76838c3adefecfa2eaec00118af0a6c7c8ae2a713d3cbad386d5b39ca66bde1",
+  "physical_duration_s": 180.0,
+  "post_motion_drain_budget_s": 60.0,
+  "stop_reason": "bounded post-motion drain budget elapsed; body processing complete; unfinished K archives retained",
+  "cases": {
+    "marker": {
+      "physical_cutoff": {
+        "simulated_elapsed_s": 180.0,
+        "finished": true,
+        "reached": false,
+        "final_physical_error_m": 0.2393760696812406,
+        "actual_motion_hz": 37.74585929848285,
+        "actual_camera_hz": 10.437020173239166,
+        "actual_control_hz": 5.143319546744038,
+        "stiffness_jobs_completed": 58,
+        "stiffness_jobs_submitted": 85
+      },
+      "sampled_tick_minimum": {
+        "time_s": 157.8066607923247,
+        "distance_m": 0.19926463855925752
+      },
+      "post_motion_drain_cutoff": {
+        "body_estimation_drained": true,
+        "stiffness_estimation_drained": false,
+        "all_captured_sensor_data_archived": true,
+        "all_enabled_observations_processed": false,
+        "stiffness_jobs_completed": 68,
+        "stiffness_jobs_submitted": 87
+      },
+      "shutdown": {
+        "launch_returncode": 0,
+        "graceful_node_shutdown_requested": true,
+        "acquisition_submitted": 10353,
+        "acquisition_acknowledged": 10353,
+        "raw_DB_rows": 10353,
+        "ready_payloads": 10353,
+        "raw_DB_status": {
+          "completed": 10353
+        },
+        "pending_K_job_archives": 19,
+        "actual_K_job_archive_count": 87
+      },
+      "K_body_diagnostics": {
+        "status_counts": {
+          "unavailable": 17,
+          "available": 920
+        },
+        "unavailable_reason_counts": {
+          "no captured direct-action K packet": 17
+        },
+        "all_records_nongating_no_law_modification_no_truth": true
+      },
+      "execution_failure_recorded": false
+    },
+    "imu_marker": {
+      "physical_cutoff": {
+        "simulated_elapsed_s": 180.0,
+        "finished": true,
+        "reached": false,
+        "final_physical_error_m": 0.041189650381362665,
+        "actual_motion_hz": 36.1543300847375,
+        "actual_camera_hz": 10.002659672703665,
+        "actual_control_hz": 4.7590046601446065,
+        "stiffness_jobs_completed": 88,
+        "stiffness_jobs_submitted": 303
+      },
+      "sampled_tick_minimum": {
+        "time_s": 180.0,
+        "distance_m": 0.041189650381362665
+      },
+      "post_motion_drain_cutoff": {
+        "body_estimation_drained": true,
+        "stiffness_estimation_drained": false,
+        "all_captured_sensor_data_archived": true,
+        "all_enabled_observations_processed": false,
+        "stiffness_jobs_completed": 100,
+        "stiffness_jobs_submitted": 323
+      },
+      "shutdown": {
+        "launch_returncode": 0,
+        "graceful_node_shutdown_requested": true,
+        "acquisition_submitted": 9916,
+        "acquisition_acknowledged": 9916,
+        "raw_DB_rows": 9916,
+        "ready_payloads": 9916,
+        "raw_DB_status": {
+          "completed": 9916
+        },
+        "pending_K_job_archives": 223,
+        "actual_K_job_archive_count": 323
+      },
+      "K_body_diagnostics": {
+        "status_counts": {
+          "unavailable": 11,
+          "available": 869
+        },
+        "unavailable_reason_counts": {
+          "no captured direct-action K packet": 11
+        },
+        "all_records_nongating_no_law_modification_no_truth": true
+      },
+      "execution_failure_recorded": false
+    }
+  },
+  "comprehensive_wire_or_full_raw_hash_audit_performed_this_rerun": false,
+  "screenshots": "window_captures/initial_prior_*.png, motion_20s_*.png, physical_180s_*.png; direct unchanged RViz content only",
+  "all_inference_drain_completed": false,
+  "bounded_drain_budget_elapsed": true,
+  "original_summary_path": "/tmp/probtf_1244f3f_rviz_rerun_20261018/rerun_summary.json",
+  "original_summary_sha256": "d82ff5fe77c205fc3617599a7b1d7dbca318b06043c9a8fd969b76393efdfecf",
+  "selection_note": "Selected small report and figures copied to repository; raw acquisition DB, full JSONL, native binaries, full K history and source snapshots remain in /tmp."
+}

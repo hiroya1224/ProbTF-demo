@@ -1,0 +1,836 @@
+{
+  "case": "imu_marker",
+  "request_id": 854,
+  "candidate_id": "b66e14ef8047254dd4c0a91b59fad890497b8d464b4d5087d016967396c791f4",
+  "actual_used_gradient_packet_id": "787958593c10e6e446c3d0baf7ccb2ef90a1d10da7770ac5511a6fdf7e0377ea",
+  "physical_sample_stamp": 1792080179.0127103,
+  "physical_sample_offset_s": 179.01271033287048,
+  "source_stamp": 1792080178.7253604,
+  "source_command": [
+    -0.010334627410726506,
+    -1.2603681399673143,
+    1.3405197911667845,
+    0.15526710709035915,
+    -0.8900344124011417,
+    -0.05064622568023392
+  ],
+  "current_command": [
+    -0.01033781431205469,
+    -1.2601363191824755,
+    1.3400385020538559,
+    0.15539398881736594,
+    -0.8897979691587486,
+    -0.05065631237524214
+  ],
+  "velocity": [
+    -5.50177684989394e-06,
+    0.0008004194916271693,
+    -0.001672396114104058,
+    0.0004396855727495046,
+    0.0008177945729127131,
+    -3.442495709217244e-05
+  ],
+  "source_K": [
+    105.1603512980037,
+    97.58011736780277,
+    119.19126165509556,
+    102.56632156881717,
+    67.97508635623738,
+    100.86249418881597
+  ],
+  "density_id": "5296d2625ba9baffdb910e542fbe66ba1da1087b268d19601058420e62f390aa",
+  "source_goal_offset": [
+    0.0,
+    -0.24,
+    0.045
+  ],
+  "body_source_state_ids": [
+    "319709c82be97cb28d861cbc128969a3e025b05960b4d83b83861eccdbca8b25"
+  ],
+  "goal_source_state_ids": [
+    "91a4d98e4c230067fba20803e6a41f1c755901365e00b4e7e4c1989c084b62f1"
+  ],
+  "full_candidate_identity_reconstructed_exact": true,
+  "complete_actual_ledger_chain_verified": true,
+  "source_task_gradient_maximum_replay_difference": 0.0,
+  "original_gradient_effective_force_maximum_difference": 0.0,
+  "metadata": {
+    "native_component_count": 1,
+    "source_responsibility": [
+      1.0
+    ],
+    "native_weights": [
+      1.0
+    ],
+    "source_observation_stamp": 1792080141.8269298,
+    "K_observation_stamp": 1792080015.7925158,
+    "probe_count": 26,
+    "new_sensor_updates": 0,
+    "new_K_density_evaluations": 0,
+    "physical_truth_received": false
+  },
+  "frozen_source": {
+    "J": 3953.108478566926,
+    "weighted_view": 0.0,
+    "selected": 3953.108478566926,
+    "mean_distance_m": 0.04693051338727086,
+    "rms_distance_m": 0.04806463366653309,
+    "modal_distance_m": 0.04827377072745203,
+    "relative_mean": [
+      -0.02188785898104637,
+      -0.22455223043064523,
+      0.08353259829483024
+    ],
+    "relative_mode": [
+      -0.022447365071306118,
+      -0.22197121730420996,
+      0.08374836430238175
+    ],
+    "mean_correction_norm_m": 0.0026497605163266443,
+    "position_covariance_eigenvalues": [
+      [
+        8.06232385046936e-08,
+        4.973277304133359e-07,
+        0.00010715797173629796
+      ]
+    ],
+    "position_covariance_eigenvectors": [
+      [
+        [
+          0.41179204649338796,
+          -0.06002701524002465,
+          -0.9092986681427403
+        ],
+        [
+          0.8808813940486963,
+          0.28178740935710933,
+          0.38032068777103684
+        ],
+        [
+          -0.23339940030688397,
+          0.957597312741208,
+          -0.16891449484044935
+        ]
+      ]
+    ],
+    "position_precision_matrices": [
+      [
+        [
+          2118234.2531556175,
+          4461959.742428494,
+          -1306260.8798556542
+        ],
+        [
+          4461959.742428494,
+          9785432.928405963,
+          -2008120.3156824363
+        ],
+        [
+          -1306260.879855654,
+          -2008120.3156824356,
+          2519783.112928522
+        ]
+      ]
+    ],
+    "corrected_position_error": [
+      -0.02188785898104637,
+      0.015447769569354758,
+      0.038532598294830245
+    ],
+    "corrected_error_components_in_covariance_eigenbasis": [
+      [
+        -0.004399078784246958,
+        0.04256556239198674,
+        0.019268992991245865
+      ]
+    ],
+    "relative_mean_command_jacobian": [
+      [
+        -1.0265042094349879,
+        0.1081331827374459,
+        -0.012588594276983464,
+        0.42114280070895893,
+        -0.05999716068294074,
+        0.00040138044225106396
+      ],
+      [
+        -0.1371426381222063,
+        -1.1375213274803373,
+        -0.6721871836920896,
+        -0.010446420016508407,
+        -0.5336550888936782,
+        -0.00026109619327688624
+      ],
+      [
+        -0.13767590664668378,
+        -0.14816499813968897,
+        0.1734848211506782,
+        0.037669642927136225,
+        -0.09869033651247422,
+        9.488259483655818e-06
+      ]
+    ],
+    "relative_mode_command_jacobian": [
+      [
+        -1.0260396134826533,
+        0.11131997880543046,
+        -0.010591490850614395,
+        0.42138427047154664,
+        -0.05846997348938724,
+        0.00040233392988713203
+      ],
+      [
+        -0.13677878221846632,
+        -1.1467944829709842,
+        -0.6780747748330582,
+        -0.011131925914387133,
+        -0.5385787077202361,
+        -0.0002639888585508645
+      ],
+      [
+        -0.13733074377201288,
+        -0.15230167705296427,
+        0.17116324349349402,
+        0.03726552133747222,
+        -0.10071477387745037,
+        8.16425815841376e-06
+      ]
+    ],
+    "per_native_terms": [
+      [
+        1943.3093440597763,
+        -19.994350980906137,
+        2.756815599614018,
+        2043.9586864292505,
+        -16.92201654080892
+      ]
+    ],
+    "gradient_parts": {
+      "position_quadratic": {
+        "vector": [
+          18398.16887189802,
+          -873.0761027720392,
+          25971.546717835667,
+          -8722.46947052682,
+          -1637.6834337695025,
+          -7.703231460707144
+        ],
+        "norm": 33053.587682279205,
+        "cosine_with_distance_gradient": 0.2741865449531788,
+        "distance_derivative_under_negative_unit_gradient": -0.19146098313725127,
+        "directional_derivative_at_actual_velocity": -49.408930983904746
+      },
+      "position_logdet": {
+        "vector": [
+          0.03388299010254197,
+          4.112882021418385,
+          2.188469298033498,
+          1.984396137542324,
+          0.6763668752216263,
+          0.0024912134577440713
+        ],
+        "norm": 5.108977474436011,
+        "cosine_with_distance_gradient": -0.809083231567758,
+        "distance_derivative_under_negative_unit_gradient": 0.5649725480959685,
+        "directional_derivative_at_actual_velocity": 0.001057410722423407
+      },
+      "position_normalizer": {
+        "vector": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "norm": 0.0,
+        "cosine_with_distance_gradient": null,
+        "distance_derivative_under_negative_unit_gradient": null,
+        "directional_derivative_at_actual_velocity": 0.0
+      },
+      "bingham_quadratic": {
+        "vector": [
+          -18439.31141556898,
+          -5669.701009136734,
+          -12579.512235888058,
+          5144.140937040304,
+          -4973.848566464666,
+          200.8769428356867
+        ],
+        "norm": 24117.204444019117,
+        "cosine_with_distance_gradient": -0.09657085373293114,
+        "distance_derivative_under_negative_unit_gradient": 0.06743420105194453,
+        "directional_derivative_at_actual_velocity": 14.788540167810863
+      },
+      "bingham_normalizer": {
+        "vector": [
+          3.7875870416927295,
+          -0.613000833911562,
+          5.0585874043941885,
+          -1.8642177785447531,
+          11.752682296570978,
+          0.0016055277995969477
+        ],
+        "norm": 13.48746617479967,
+        "cosine_with_distance_gradient": -0.1266525464948335,
+        "distance_derivative_under_negative_unit_gradient": 0.08843986517601769,
+        "directional_derivative_at_actual_velocity": -0.000179903325125845
+      }
+    },
+    "task": {
+      "vector": [
+        -37.321073639164226,
+        -6539.277230721266,
+        13399.281538650035,
+        -3578.2083551275177,
+        -6599.102951062376,
+        193.1778081162369
+      ],
+      "norm": 16694.1108709553,
+      "cosine_with_distance_gradient": 0.403015663677193,
+      "distance_derivative_under_negative_unit_gradient": -0.2814207210661035,
+      "directional_derivative_at_actual_velocity": -34.61951330869659
+    },
+    "view": {
+      "vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "norm": 0.0,
+      "cosine_with_distance_gradient": null,
+      "distance_derivative_under_negative_unit_gradient": null,
+      "directional_derivative_at_actual_velocity": 0.0
+    },
+    "position_mean_term": {
+      "vector": [
+        18747.625456474696,
+        10132.672685102923,
+        32822.663893769204,
+        -7879.700439001998,
+        5066.157539783995,
+        -4.013719152486966
+      ],
+      "norm": 40239.62510286707,
+      "cosine_with_distance_gradient": -0.06226758160092979,
+      "distance_derivative_under_negative_unit_gradient": 0.04348066165292266,
+      "directional_derivative_at_actual_velocity": -46.20662836972686
+    },
+    "position_covariance_term": {
+      "vector": [
+        -349.4568950321118,
+        -11005.746421768054,
+        -6851.116973196356,
+        -842.7689961264477,
+        -6703.841260717061,
+        -3.6895129374562643
+      ],
+      "norm": 14623.205498261837,
+      "cosine_with_distance_gradient": 0.7911036479606759,
+      "distance_derivative_under_negative_unit_gradient": -0.5524176331405386,
+      "directional_derivative_at_actual_velocity": -3.20230127690361
+    },
+    "position_quadratic_chain_split_error_inf": 0.002366106909107657,
+    "source_distance_gradient": [
+      0.32056799857857393,
+      -0.5465133686213404,
+      -0.07294687701998265,
+      -0.1689258928331109,
+      -0.22870762977390827,
+      -0.00026535198864577537
+    ],
+    "source_rms_gradient": [
+      0.31545639428907823,
+      -0.5329199398284221,
+      -0.0712212184248076,
+      -0.1656799082391533,
+      -0.22335134651563565,
+      -0.00025978140368024635
+    ],
+    "term_gradient_sum_error_inf": 3.382183422218077e-12
+  },
+  "at_actual_command": {
+    "J": 3943.1604012391485,
+    "weighted_view": 0.0,
+    "selected_objective": 3943.1604012391485,
+    "mean_distance_m": 0.04676242049104226,
+    "rms_distance_m": 0.04790056992943425,
+    "modal_distance_m": 0.048104707896130215,
+    "relative_mean": [
+      -0.021814221277220925,
+      -0.2246194793705416,
+      0.08339665747713329
+    ],
+    "relative_mode": [
+      -0.022373559543903666,
+      -0.22203903465365643,
+      0.08361205095478424
+    ],
+    "mean_correction_norm_m": 0.0026491411030163813,
+    "per_native_terms": [
+      [
+        1929.0842968705213,
+        -19.994028891559935,
+        2.756815599614018,
+        2048.2353764361033,
+        -16.922058775529997
+      ]
+    ],
+    "task": {
+      "vector": [
+        -125.82185481910811,
+        -6453.091195893989,
+        13344.253756804746,
+        -3542.622803320405,
+        -6537.531698404563,
+        188.51021315473557
+      ],
+      "norm": 16584.702547299003,
+      "cosine_with_distance_gradient": 0.3978207776848173,
+      "distance_derivative_under_negative_unit_gradient": -0.27768591628239087,
+      "directional_derivative_at_actual_velocity": -34.39185339468467
+    },
+    "gradient_parts": {
+      "position_quadratic": {
+        "vector": [
+          18350.339917003566,
+          -776.3887387568501,
+          25937.255307076153,
+          -8689.3916072313,
+          -1569.7468590019523,
+          -7.652237729871557
+        ],
+        "norm": 32985.582572839354,
+        "cosine_with_distance_gradient": 0.27135593145148285,
+        "distance_derivative_under_negative_unit_gradient": -0.1894112240750427,
+        "directional_derivative_at_actual_velocity": -49.20382830085618
+      },
+      "position_logdet": {
+        "vector": [
+          -0.02231853581946552,
+          4.172999375740005,
+          2.1826806577252,
+          2.0180741810094105,
+          0.6743470638781446,
+          0.002529344378388032
+        ],
+        "norm": 5.167774232759803,
+        "cosine_with_distance_gradient": -0.8151101877865042,
+        "distance_derivative_under_negative_unit_gradient": 0.5689612812177797,
+        "directional_derivative_at_actual_velocity": 0.0011286745788398733
+      },
+      "position_normalizer": {
+        "vector": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "norm": 0.0,
+        "cosine_with_distance_gradient": null,
+        "distance_derivative_under_negative_unit_gradient": null,
+        "directional_derivative_at_actual_velocity": 0.0
+      },
+      "bingham_quadratic": {
+        "vector": [
+          -18479.892909817863,
+          -5680.270700395339,
+          -12600.247733644208,
+          5146.604649780784,
+          -4980.244138278067,
+          196.158311155159
+        ],
+        "norm": 24163.34019373865,
+        "cosine_with_distance_gradient": -0.09713649418274048,
+        "distance_derivative_under_negative_unit_gradient": 0.06780298542617538,
+        "directional_derivative_at_actual_velocity": 14.810996650824832
+      },
+      "bingham_normalizer": {
+        "vector": [
+          3.7534565310082253,
+          -0.6047561175392957,
+          5.063502715074719,
+          -1.8539200508982387,
+          11.784951811577569,
+          0.0016103850697390951
+        ],
+        "norm": 13.50612220391577,
+        "cosine_with_distance_gradient": -0.12881261316312467,
+        "distance_derivative_under_negative_unit_gradient": 0.08991347491475322,
+        "directional_derivative_at_actual_velocity": -0.00015041923215684333
+      }
+    },
+    "position_mean_term": {
+      "vector": [
+        18697.71679432233,
+        10166.260079956352,
+        32736.61216756436,
+        -7850.076624429886,
+        5081.7550569527675,
+        -3.99112942655643
+      ],
+      "norm": 40150.85536997835,
+      "cosine_with_distance_gradient": -0.06330468128054809,
+      "distance_derivative_under_negative_unit_gradient": 0.04418778357595224,
+      "directional_derivative_at_actual_velocity": -46.00977725425587
+    },
+    "position_covariance_term": {
+      "vector": [
+        -347.3772060346964,
+        -10942.646403371604,
+        -6799.356663336297,
+        -839.3149456883184,
+        -6651.502205749355,
+        -3.6611073539324153
+      ],
+      "norm": 14527.228808090036,
+      "cosine_with_distance_gradient": 0.7911053623513846,
+      "distance_derivative_under_negative_unit_gradient": -0.5522054898663505,
+      "directional_derivative_at_actual_velocity": -3.1940496619284544
+    },
+    "view": {
+      "vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "norm": 0.0,
+      "cosine_with_distance_gradient": null,
+      "distance_derivative_under_negative_unit_gradient": null,
+      "directional_derivative_at_actual_velocity": 0.0
+    },
+    "selected": {
+      "vector": [
+        -125.82185481910811,
+        -6453.091195893989,
+        13344.253756804746,
+        -3542.622803320405,
+        -6537.531698404563,
+        188.51021315473557
+      ],
+      "norm": 16584.702547299003,
+      "cosine_with_distance_gradient": 0.3978207776848173,
+      "distance_derivative_under_negative_unit_gradient": -0.27768591628239087,
+      "directional_derivative_at_actual_velocity": -34.39185339468467
+    },
+    "effective_local_gradient": {
+      "vector": [
+        1.860690115396281,
+        -6365.78960605953,
+        13357.65853696134,
+        -3503.989659627545,
+        -6509.942276258052,
+        270.3353199298065
+      ],
+      "norm": 16543.297601174607,
+      "cosine_with_distance_gradient": 0.3970357636232779,
+      "distance_derivative_under_negative_unit_gradient": -0.27713796262787904,
+      "directional_derivative_at_actual_velocity": -34.30836399382216
+    },
+    "actual_vs_local_gradient_cosine": 0.9999428886956668,
+    "distance_derivative_at_actual_velocity_m_per_s": -0.0005783666190879922,
+    "modal_distance_derivative_at_actual_velocity_m_per_s": -0.0005813817730382401,
+    "rms_derivative_at_actual_velocity_m_per_s": -0.0005644406874984742,
+    "relative_position_velocity": [
+      0.0002493065597972774,
+      -0.00022657576297571697,
+      -0.00047198227816211375
+    ],
+    "distance_gradient": [
+      0.32070663936005495,
+      -0.5461916024091656,
+      -0.07278295084227338,
+      -0.16891622808476447,
+      -0.22851799922861402,
+      -0.00026509604407476406
+    ],
+    "rms_gradient": [
+      0.31554710772929706,
+      -0.53251260076978,
+      -0.07105052020062175,
+      -0.16564469462777842,
+      -0.22312830502690947,
+      -0.0002594897366425819
+    ]
+  },
+  "local_model": {
+    "regularization_added": 100004.16859058061,
+    "task_curvature": [
+      [
+        3600055.8205101234,
+        6147331.503195627,
+        4160957.6433558203,
+        -744164.3540927031,
+        3079810.8372221575,
+        521648.8318824819
+      ],
+      [
+        6147331.503195627,
+        11255433.126779517,
+        7472277.5076994235,
+        -1468848.6910482266,
+        5701655.216938471,
+        472880.0696246979
+      ],
+      [
+        4160957.6433558203,
+        7472277.5076994235,
+        5139662.752408683,
+        -1055089.709386519,
+        3796797.643260338,
+        262977.43455469713
+      ],
+      [
+        -744164.3540927031,
+        -1468848.6910482266,
+        -1055089.709386519,
+        866353.9076038419,
+        -889320.3593764198,
+        771889.01835677
+      ],
+      [
+        3079810.8372221575,
+        5701655.216938471,
+        3796797.643260338,
+        -889320.3593764198,
+        2936166.4874037835,
+        46855.865702617084
+      ],
+      [
+        521648.8318824819,
+        472880.0696246979,
+        262977.43455469713,
+        771889.01835677,
+        46855.865702617084,
+        1213871.3889595107
+      ]
+    ],
+    "view_curvature": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "curvature": [
+      [
+        3700059.989100704,
+        6147331.503195627,
+        4160957.6433558203,
+        -744164.3540927031,
+        3079810.8372221575,
+        521648.8318824819
+      ],
+      [
+        6147331.503195627,
+        11355437.295370098,
+        7472277.5076994235,
+        -1468848.6910482266,
+        5701655.216938471,
+        472880.0696246979
+      ],
+      [
+        4160957.6433558203,
+        7472277.5076994235,
+        5239666.920999264,
+        -1055089.709386519,
+        3796797.643260338,
+        262977.43455469713
+      ],
+      [
+        -744164.3540927031,
+        -1468848.6910482266,
+        -1055089.709386519,
+        966358.0761944224,
+        -889320.3593764198,
+        771889.01835677
+      ],
+      [
+        3079810.8372221575,
+        5701655.216938471,
+        3796797.643260338,
+        -889320.3593764198,
+        3036170.655994364,
+        46855.865702617084
+      ],
+      [
+        521648.8318824819,
+        472880.0696246979,
+        262977.43455469713,
+        771889.01835677,
+        46855.865702617084,
+        1313875.5575500913
+      ]
+    ],
+    "actual_increment_l2": 0.0005979099963914102,
+    "actual_increment": [
+      -3.1869013281844716e-06,
+      0.00023182078483885427,
+      -0.0004812891129286623,
+      0.00012688172700678346,
+      0.00023644324239302517,
+      -1.0086695008217073e-05
+    ],
+    "force_changes": {
+      "task": [
+        39.500467172265644,
+        150.30457981191034,
+        6.507915901433535,
+        61.529993881322525,
+        65.51536492994887,
+        78.1662233616931
+      ],
+      "view": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "regularization": [
+        -0.31870341770530514,
+        23.183044849825496,
+        -48.13091759012893,
+        12.688701618650398,
+        23.645309874375606,
+        -1.008711548123508
+      ]
+    }
+  },
+  "diagnostic_directions": {
+    "negative_source_selected_gradient": {
+      "command_direction": [
+        37.321073639164226,
+        6539.277230721266,
+        -13399.281538650035,
+        3578.2083551275177,
+        6599.102951062376,
+        -193.1778081162369
+      ],
+      "direction_norm": 16694.1108709553,
+      "unit_command_direction": [
+        0.002235583190243217,
+        0.3917116210183085,
+        -0.8026352312037375,
+        0.21433955858966683,
+        0.3952952632262439,
+        -0.01157161406255729
+      ],
+      "source_selected_J_slope_per_unit_command": -16694.1108709553,
+      "source_corrected_mean_distance_slope_per_unit_command": -0.28142072106610344,
+      "source_modal_distance_slope_per_unit_command": -0.28338588786023095,
+      "source_RMS_distance_slope_per_unit_command": -0.2746795269956827,
+      "corrected_mean_radial_rate_per_unit_command": -0.28142072610236585,
+      "corrected_mean_tangential_rate_per_unit_command": 0.030699926116159716,
+      "modal_radial_rate_per_unit_command": -0.283385892641247,
+      "modal_tangential_rate_per_unit_command": 0.020912764765143723
+    },
+    "negative_source_Fisher_inverse_gradient": {
+      "command_direction": [
+        0.01709275970109093,
+        0.016389668205162397,
+        -0.06329110456981463,
+        0.017733738988282594,
+        0.03858255501864313,
+        -0.01195859712703213
+      ],
+      "direction_norm": 0.08070102026157773,
+      "unit_command_direction": [
+        0.2118035143259385,
+        0.20309121436182911,
+        -0.784266473517534,
+        0.2197461560064779,
+        0.47809253084514636,
+        -0.14818396456786426
+      ],
+      "source_selected_J_slope_per_unit_command": -15814.486984460505,
+      "source_corrected_mean_distance_slope_per_unit_command": -0.13230974925688593,
+      "source_modal_distance_slope_per_unit_command": -0.12761425060226692,
+      "source_RMS_distance_slope_per_unit_command": -0.12871180904479868,
+      "corrected_mean_radial_rate_per_unit_command": -0.13230975045259555,
+      "corrected_mean_tangential_rate_per_unit_command": 0.2286411411143481,
+      "modal_radial_rate_per_unit_command": -0.1276142516408426,
+      "modal_tangential_rate_per_unit_command": 0.23133039551135953
+    },
+    "actual_command_velocity": {
+      "command_direction": [
+        -5.50177684989394e-06,
+        0.0008004194916271693,
+        -0.001672396114104058,
+        0.0004396855727495046,
+        0.0008177945729127131,
+        -3.442495709217244e-05
+      ],
+      "direction_norm": 0.002073862782017147,
+      "unit_command_direction": [
+        -0.0026529126698260266,
+        0.3859558590702128,
+        -0.8064159927097002,
+        0.21201285666636224,
+        0.3943339839086574,
+        -0.016599438203278295
+      ],
+      "source_selected_J_slope_per_unit_command": -16693.251650441332,
+      "source_corrected_mean_distance_slope_per_unit_command": -0.278952194547011,
+      "source_modal_distance_slope_per_unit_command": -0.2804012188653525,
+      "source_RMS_distance_slope_per_unit_command": -0.27228350659479683,
+      "corrected_mean_radial_rate_per_unit_command": -0.27895219954187644,
+      "corrected_mean_tangential_rate_per_unit_command": 0.02008176265932571,
+      "modal_radial_rate_per_unit_command": -0.28040122360064507,
+      "modal_tangential_rate_per_unit_command": 0.011729896676970565
+    }
+  },
+  "diagnostic_direction_comparison_is_not_a_new_controller_or_acceptance_rule": true
+}

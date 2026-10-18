@@ -1,0 +1,1518 @@
+{
+  "schema": "captured_K_increment_actual_alignment_v1",
+  "script_sha256": "cad2621cd37a01f7bd79c2db373f849489cfa057233c2d1792cc4fe774aafdf4",
+  "source_run": "/tmp/probtf_1244f3f_rviz_rerun_20261018",
+  "truth_only_posthoc": true,
+  "source_edited": false,
+  "new_equilibrium_solve": false,
+  "controller_prediction_reconstructed": false,
+  "meaning": "Frozen auxiliary equilibrium increments are compared at an oracle actual initial configuration, to distinguish action sensitivity/dynamic mismatch from an erroneous absolute body anchor. This is not a claim that the controller used physical truth.",
+  "cases": {
+    "marker": {
+      "posthoc_lag_scan": {
+        "start_s": 100.0,
+        "end_s": 180.0,
+        "resampling_step_s": 0.025,
+        "actual_delay_search_s": [
+          0.0,
+          1.0
+        ],
+        "zero_lag": {
+          "actual_delay_s": 0.0,
+          "vector_velocity_normalized_inner_product": 0.9142792977508146
+        },
+        "maximum": {
+          "actual_delay_s": 0.25,
+          "vector_velocity_normalized_inner_product": 0.9796572605469359
+        },
+        "interpretation": "Only a diagnostic correlation of recorded quasistatic increments and actual dynamic response; irregular samples are linearly interpolated, no plant parameter/control gain is fitted or changed.",
+        "tested_delay_count": 41
+      },
+      "exact_recorded_increment_vs_endpoint_equilibrium_max_abs": 0.0,
+      "all_recorded_command_K_density_provenance_exact": true,
+      "K_supported_interval_count": 6727,
+      "windows": [
+        {
+          "start_s": 0,
+          "end_s": 60,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 1.7671766482485196,
+          "actual_tip_arc_m": 1.6245779387973185,
+          "predicted_mean_signed_inward_velocity_m_s": 0.0030041594647383335,
+          "actual_mean_signed_inward_velocity_m_s": 0.0015520665455241141,
+          "predicted_mean_tangent_velocity_m_s": 0.027005062798464426,
+          "actual_mean_tangent_velocity_m_s": 0.025067540324894097,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.08074013598573705,
+          "direction_cosine_timeweighted_mean": 0.9273196372098906,
+          "direction_cosine_actual_arc_weighted_mean": 0.9470236990348473,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.011823028180658193,
+            "rms": 0.023611034309599578,
+            "p50": 0.003599022793716834,
+            "p95": 0.05485792591471244,
+            "max": 0.17082403437714933
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        },
+        {
+          "start_s": 60,
+          "end_s": 120,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 0.5738405657161857,
+          "actual_tip_arc_m": 0.5784420275445213,
+          "predicted_mean_signed_inward_velocity_m_s": 0.0016186309185269798,
+          "actual_mean_signed_inward_velocity_m_s": 0.0009340889185167902,
+          "predicted_mean_tangent_velocity_m_s": 0.00857848459198402,
+          "actual_mean_tangent_velocity_m_s": 0.008937653036885866,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.04386669635617484,
+          "direction_cosine_timeweighted_mean": 0.951794225556251,
+          "direction_cosine_actual_arc_weighted_mean": 0.9208102365973748,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.004017843993378802,
+            "rms": 0.01760455811771368,
+            "p50": 0.0001750637159574242,
+            "p95": 0.017810167025994975,
+            "max": 0.2013620541456326
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        },
+        {
+          "start_s": 120,
+          "end_s": 180,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 0.3044178101513953,
+          "actual_tip_arc_m": 0.34153463979453663,
+          "predicted_mean_signed_inward_velocity_m_s": -0.0001329093303963063,
+          "actual_mean_signed_inward_velocity_m_s": -0.00012276557222778346,
+          "predicted_mean_tangent_velocity_m_s": 0.0045882840944144925,
+          "actual_mean_tangent_velocity_m_s": 0.005270535687268618,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.052044503041543067,
+          "direction_cosine_timeweighted_mean": 0.9706604815188737,
+          "direction_cosine_actual_arc_weighted_mean": 0.9805501343722618,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.0013377088774433425,
+            "rms": 0.001843711359698886,
+            "p50": 0.0011241941605639356,
+            "p95": 0.002776554684225437,
+            "max": 0.01247276560886073
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        },
+        {
+          "start_s": 100,
+          "end_s": 180,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 0.5996591265893669,
+          "actual_tip_arc_m": 0.6347252143189553,
+          "predicted_mean_signed_inward_velocity_m_s": 0.0011972076385318637,
+          "actual_mean_signed_inward_velocity_m_s": 0.0008382016166382572,
+          "predicted_mean_tangent_velocity_m_s": 0.0067279081009652434,
+          "actual_mean_tangent_velocity_m_s": 0.007300811613112296,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.044383626972557974,
+          "direction_cosine_timeweighted_mean": 0.9748884373462975,
+          "direction_cosine_actual_arc_weighted_mean": 0.9816123091255864,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.0021776948846955473,
+            "rms": 0.007464430473043141,
+            "p50": 0.0009428255386379448,
+            "p95": 0.005553158149597948,
+            "max": 0.10691936921561031
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        },
+        {
+          "start_s": 0,
+          "end_s": 180,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 2.6454350241161,
+          "actual_tip_arc_m": 2.5445546061363764,
+          "predicted_mean_signed_inward_velocity_m_s": 0.0014966270176230028,
+          "actual_mean_signed_inward_velocity_m_s": 0.0007877966306043738,
+          "predicted_mean_tangent_velocity_m_s": 0.013390610494954314,
+          "actual_mean_tangent_velocity_m_s": 0.01309190968301619,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.058883778461151656,
+          "direction_cosine_timeweighted_mean": 0.9499759363198533,
+          "direction_cosine_actual_arc_weighted_mean": 0.9455646895343832,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.005726193683826777,
+            "rms": 0.017037220814703807,
+            "p50": 0.0010858633745415068,
+            "p95": 0.02939887845993985,
+            "max": 0.2013620541456326
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        }
+      ],
+      "selected_half_second_windows": [
+        {
+          "start_index": 5063,
+          "end_index_exclusive": 5077,
+          "start_s": 100.02362459339201,
+          "end_s": 100.54201752040535,
+          "duration_s": 0.5183929270133376,
+          "first_request_id": 575,
+          "request_ids": [
+            575,
+            576,
+            577,
+            578
+          ],
+          "gradient_packet_ids": [
+            "e29d3999bcf8fb422d5b795a6b429f862145a155dd5c7f19d377a2114eb51e9f",
+            "93225a1d1db9195afd07a82f1578af2b02d200a1b0de0ed9c11256bfc892eb9f",
+            "b8eb0c93ca1d8133328d8fd9d67de78e8014f671fb4a1b6ede185a443bf1e7d9",
+            "39b231db4cb795f078b6650df4f06a61f6f47a2457b3cffa8ca93a2df8fdd9cd"
+          ],
+          "density_ids": [
+            "2eedb9369ebc0a8aed5f888bb50f4b8bccb26ff11e540a454baa60a83f79c6fa"
+          ],
+          "selected_K_values": [
+            [
+              105.71474384509428,
+              91.42431926759623,
+              81.53835893616036,
+              98.61399647457132,
+              124.57913079176636,
+              109.37444456859743
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080024.1062722
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            -0.00032069690843539167,
+            -0.0005075305193324997,
+            -0.0008554466449545162
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            -0.0003088500550701978,
+            -0.00046205418372213813,
+            -0.0008210553330435522
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            -0.00035445095183650466,
+            -0.00042695518459609505,
+            -0.000799255681398825
+          ],
+          "actual_signed_start_radial_delta_m": -0.0007671319764531965,
+          "predicted_signed_start_radial_delta_m": -0.000723725623771036,
+          "auxiliary_own_anchor_signed_radial_delta_m": -0.000735198289950044,
+          "actual_exact_distance_shortening_m": -0.0007679598982863745,
+          "predicted_exact_distance_shortening_m": -0.0007244805211934491,
+          "actual_tangential_delta_m": 0.0007097402540372677,
+          "predicted_tangential_delta_m": 0.0006776691719626024,
+          "actual_predicted_displacement_cosine": 0.9997511566405838,
+          "actual_predicted_tip_displacement_error_m": 5.823407396155502e-05,
+          "actual_delta_theta": [
+            -0.000837122525517181,
+            0.0002513908187797842,
+            0.0007702318867428559,
+            -0.0008383641698189448,
+            -9.400553315874749e-05,
+            0.00037557769901135074
+          ],
+          "captured_K_joint_increment_sum": [
+            -0.0007854999931530271,
+            0.00021926618057954705,
+            0.0007583753346209754,
+            -0.0008333658393375465,
+            -8.327451988499046e-05,
+            0.0003781351201801175
+          ],
+          "joint_increment_error_norm": 6.312000009442653e-05
+        },
+        {
+          "start_index": 5371,
+          "end_index_exclusive": 5384,
+          "start_s": 112.22426609322429,
+          "end_s": 112.72624810738489,
+          "duration_s": 0.5019820141606033,
+          "first_request_id": 632,
+          "request_ids": [
+            632,
+            633,
+            634
+          ],
+          "gradient_packet_ids": [
+            "d804e1cf7cac3773f478a6f84e7ab39baad6c0ab8a8fdd952653e5928c3f02f7",
+            "0e11348a71492557f49de8ce5350bc912d3e6ac2c5c0c79a1cc30ede0b710ce2",
+            "96878b0ce9539c95509c0d82d512fff8eefc5fa5af2d4697bf4d21c42f4515c8"
+          ],
+          "density_ids": [
+            "2eedb9369ebc0a8aed5f888bb50f4b8bccb26ff11e540a454baa60a83f79c6fa"
+          ],
+          "selected_K_values": [
+            [
+              105.71474384509428,
+              91.42431926759623,
+              81.53835893616036,
+              98.61399647457132,
+              124.57913079176636,
+              109.37444456859743
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080024.1062722
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.0056008848661039945,
+            0.03229798547483703,
+            0.055721838799052126
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.003973307535387827,
+            0.030400842535706463,
+            0.05712078667562981
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.00464673435480889,
+            0.03094295540787098,
+            0.05704729042003487
+          ],
+          "actual_signed_start_radial_delta_m": 0.03676748016878067,
+          "predicted_signed_start_radial_delta_m": 0.03494716430112456,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.0357385055007,
+          "actual_exact_distance_shortening_m": 0.031291650715255304,
+          "predicted_exact_distance_shortening_m": 0.029216580220479904,
+          "actual_tangential_delta_m": 0.05317523388008752,
+          "predicted_tangential_delta_m": 0.05460291546615989,
+          "actual_predicted_displacement_cosine": 0.9990249880036346,
+          "actual_predicted_tip_displacement_error_m": 0.002864474552223383,
+          "actual_delta_theta": [
+            0.03144049503832577,
+            -0.039923541889644865,
+            -0.009312927962719098,
+            -0.01861318784008871,
+            -0.018913912031244928,
+            0.001321193274904403
+          ],
+          "captured_K_joint_increment_sum": [
+            0.02969012391926168,
+            -0.04519683454040346,
+            -0.006929451343165027,
+            -0.016312134224807567,
+            -0.01676988431869675,
+            0.0017025077569834124
+          ],
+          "joint_increment_error_norm": 0.006825648580008746
+        },
+        {
+          "start_index": 5376,
+          "end_index_exclusive": 5391,
+          "start_s": 112.43565201433375,
+          "end_s": 112.97484324825928,
+          "duration_s": 0.5391912339255214,
+          "first_request_id": 633,
+          "request_ids": [
+            633,
+            634,
+            635,
+            636
+          ],
+          "gradient_packet_ids": [
+            "0e11348a71492557f49de8ce5350bc912d3e6ac2c5c0c79a1cc30ede0b710ce2",
+            "96878b0ce9539c95509c0d82d512fff8eefc5fa5af2d4697bf4d21c42f4515c8",
+            "65f23b8f65e34b7580f8818a7735ef93cb8fd2b372fd785ab87c8377a39cbff1",
+            "172a08036ead00870070fa325d853db867be52b6bd35e590f5daaf061994f32e"
+          ],
+          "density_ids": [
+            "2eedb9369ebc0a8aed5f888bb50f4b8bccb26ff11e540a454baa60a83f79c6fa"
+          ],
+          "selected_K_values": [
+            [
+              105.71474384509428,
+              91.42431926759623,
+              81.53835893616036,
+              98.61399647457132,
+              124.57913079176636,
+              109.37444456859743
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080024.1062722
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.0031566162801380804,
+            0.03127444642167476,
+            0.05810415720093659
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.0026761845458544986,
+            0.028313412040139013,
+            0.050567303893356896
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.003046601396763604,
+            0.028770612099209558,
+            0.05047075173301102
+          ],
+          "actual_signed_start_radial_delta_m": 0.03046962104901565,
+          "predicted_signed_start_radial_delta_m": 0.026946368709185632,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.027447543531135942,
+          "actual_exact_distance_shortening_m": 0.02359220099991599,
+          "predicted_exact_distance_shortening_m": 0.02171877937751887,
+          "actual_tangential_delta_m": 0.05861527533401828,
+          "predicted_tangential_delta_m": 0.05137856266488863,
+          "actual_predicted_displacement_cosine": 0.9998603574700331,
+          "actual_predicted_tip_displacement_error_m": 0.008111886157973279,
+          "actual_delta_theta": [
+            0.03046314241844489,
+            -0.0426314583146532,
+            -0.009951760819721489,
+            -0.016114171275277103,
+            -0.0177313772086376,
+            0.0023724860245375456
+          ],
+          "captured_K_joint_increment_sum": [
+            0.027769606037730737,
+            -0.03894031437878542,
+            -0.0074166295764959145,
+            -0.013641465034380532,
+            -0.014477463954220338,
+            0.002620471788146686
+          ],
+          "joint_increment_error_norm": 0.006638546284383097
+        },
+        {
+          "start_index": 5380,
+          "end_index_exclusive": 5394,
+          "start_s": 112.58232808904722,
+          "end_s": 113.10791663406417,
+          "duration_s": 0.5255885450169444,
+          "first_request_id": 634,
+          "request_ids": [
+            634,
+            635,
+            636
+          ],
+          "gradient_packet_ids": [
+            "96878b0ce9539c95509c0d82d512fff8eefc5fa5af2d4697bf4d21c42f4515c8",
+            "65f23b8f65e34b7580f8818a7735ef93cb8fd2b372fd785ab87c8377a39cbff1",
+            "172a08036ead00870070fa325d853db867be52b6bd35e590f5daaf061994f32e"
+          ],
+          "density_ids": [
+            "2eedb9369ebc0a8aed5f888bb50f4b8bccb26ff11e540a454baa60a83f79c6fa"
+          ],
+          "selected_K_values": [
+            [
+              105.71474384509428,
+              91.42431926759623,
+              81.53835893616036,
+              98.61399647457132,
+              124.57913079176636,
+              109.37444456859743
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080024.1062722
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.001643535595808876,
+            0.028045014976260996,
+            0.05326053307801726
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.0019384593208580103,
+            0.024982472359586144,
+            0.04261496497934386
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.002278955013653605,
+            0.02533791838721211,
+            0.042516381241185563
+          ],
+          "actual_signed_start_radial_delta_m": 0.023130889772939606,
+          "predicted_signed_start_radial_delta_m": 0.020145994249227136,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.020581446633287245,
+          "actual_exact_distance_shortening_m": 0.0168947316888462,
+          "predicted_exact_distance_shortening_m": 0.01606540379609467,
+          "actual_tangential_delta_m": 0.055595596915044294,
+          "predicted_tangential_delta_m": 0.045144830331245216,
+          "actual_predicted_displacement_cosine": 0.9988921037220805,
+          "actual_predicted_tip_displacement_error_m": 0.011081257483969913,
+          "actual_delta_theta": [
+            0.02736627452534296,
+            -0.03947657658093906,
+            -0.009308227693684223,
+            -0.013427795281027152,
+            -0.015328575660381705,
+            0.0026694531660438336
+          ],
+          "captured_K_joint_increment_sum": [
+            0.024612156177827443,
+            -0.032026043383892144,
+            -0.00713965670182537,
+            -0.011191804320526924,
+            -0.012025701099859343,
+            0.0028224594332784403
+          ],
+          "joint_increment_error_norm": 0.009150429486912021
+        },
+        {
+          "start_index": 5776,
+          "end_index_exclusive": 5789,
+          "start_s": 130.01372450124472,
+          "end_s": 130.54267704905942,
+          "duration_s": 0.528952547814697,
+          "first_request_id": 712,
+          "request_ids": [
+            712,
+            713,
+            714,
+            715
+          ],
+          "gradient_packet_ids": [
+            "ff8e47b647b4d0dd24f4b10dd03508e50321cd9bbe1d2374ad94d043817607e0",
+            "5b051f99d083e906165ea4b01263a5f0334067354aade3f2b2b8cffeae1797b4",
+            "e45691167d74b71f82b7d65a11c89b7246d89a9d646e0464676cc76c789b8d4e",
+            "195888e348507d123f659d28d4f26cc557979c0d379b1ce0c1b96341e9aaf624"
+          ],
+          "density_ids": [
+            "4f92c0fb25e6bfb1a18badc416bbd8fb1c3762f2845280b621a44e7724068ec4"
+          ],
+          "selected_K_values": [
+            [
+              22.36067977499789,
+              448.820808887204,
+              22.36067977499789,
+              255.1326671021595,
+              437.4094415427839,
+              11.944201056106419
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080027.3781312
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.0006977970289638868,
+            -0.006225434163089794,
+            -0.0031963301635389296
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.0005806326603352563,
+            -0.00604059608740129,
+            -0.0018797518794863022
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            3.060579046898493e-05,
+            -0.00505806627756035,
+            -0.0015038506276568442
+          ],
+          "actual_signed_start_radial_delta_m": 0.00018764516798325628,
+          "predicted_signed_start_radial_delta_m": -0.00030004825651902946,
+          "auxiliary_own_anchor_signed_radial_delta_m": -0.0006912689534477836,
+          "actual_exact_distance_shortening_m": 6.840151219064672e-05,
+          "predicted_exact_distance_shortening_m": -0.0003969814295589347,
+          "actual_tangential_delta_m": 0.007030239470877054,
+          "predicted_tangential_delta_m": 0.006345815436141202,
+          "actual_predicted_displacement_cosine": 0.9852379174450973,
+          "actual_predicted_tip_displacement_error_m": 0.0013346426418855857,
+          "actual_delta_theta": [
+            -0.006053467620505695,
+            0.004819987892170197,
+            -0.002165840964560406,
+            0.001576447812594181,
+            0.0011264245880214796,
+            6.30974034502782e-05
+          ],
+          "captured_K_joint_increment_sum": [
+            -0.005898375827263214,
+            0.0039119502598390365,
+            -0.0026426601946534234,
+            0.0014826160190145599,
+            0.0011250650346344981,
+            5.018637500763673e-05
+          ],
+          "joint_increment_error_norm": 0.0010415926904382888
+        },
+        {
+          "start_index": 6215,
+          "end_index_exclusive": 6229,
+          "start_s": 150.0087812943384,
+          "end_s": 150.54591838410124,
+          "duration_s": 0.5371370897628367,
+          "first_request_id": 804,
+          "request_ids": [
+            804,
+            805,
+            806
+          ],
+          "gradient_packet_ids": [
+            "a9c1377afa477e180c7a7e051f7c0b88599aa5a0e752b787ff1f34eff1ba522a",
+            "7378e214b95bdc8ca23b0c21762cc1e6724f5795dae1af0583edc601f7d3d03a",
+            "ab7711fdc8ecbb40599ce3cca2510f8e26a6698267e3c74273a804a74c3d3f68"
+          ],
+          "density_ids": [
+            "7f09be4ff3272793e8e212d83fab9725bd654c0c6880b6ace25aa8da6768594a"
+          ],
+          "selected_K_values": [
+            [
+              22.36067977499794,
+              1322.541111481022,
+              22.36067977499789,
+              928.6814189886028,
+              1259.042301888629,
+              6.663194606605413
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080028.7814803
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.00035288110391529237,
+            0.00020132392555871625,
+            -0.0011301914600974627
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.00036253051228807287,
+            0.00018544512376936217,
+            -0.0005985123691354399
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.00022991003675021382,
+            0.0002368218826118984,
+            -0.00045843086074881523
+          ],
+          "actual_signed_start_radial_delta_m": 0.00025080859462120903,
+          "predicted_signed_start_radial_delta_m": 0.0003222252759212193,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.00025475731079770527,
+          "actual_exact_distance_shortening_m": 0.0002473874435031109,
+          "predicted_exact_distance_shortening_m": 0.0003211827798833833,
+          "actual_tangential_delta_m": 0.001174514445140721,
+          "predicted_tangential_delta_m": 0.0006482331323183797,
+          "actual_predicted_displacement_cosine": 0.9681328044766698,
+          "actual_predicted_tip_displacement_error_m": 0.0005320036684031542,
+          "actual_delta_theta": [
+            1.8340045650683257e-05,
+            0.0015160100813735866,
+            -0.0004960627181749278,
+            -0.0008585352688791764,
+            0.00023153468430553437,
+            -0.00015228203405605323
+          ],
+          "captured_K_joint_increment_sum": [
+            1.2678093991108641e-05,
+            0.0012047764686826667,
+            -0.0007334766214235344,
+            -0.0008269033542492032,
+            0.00021725843043562953,
+            -0.00016483388335913896
+          ],
+          "joint_increment_error_norm": 0.00039322476929819526
+        },
+        {
+          "start_index": 6413,
+          "end_index_exclusive": 6424,
+          "start_s": 158.47415644908324,
+          "end_s": 158.98061050614342,
+          "duration_s": 0.5064540570601821,
+          "first_request_id": 848,
+          "request_ids": [
+            848,
+            849,
+            850
+          ],
+          "gradient_packet_ids": [
+            "86d200f4290f1cf6b46dcd0caee435bee1c070dc6f888b29f36655fc664c2a42",
+            "c0cca4d4ca345f94b488ce6fa7c5baa699ad42f1a139af1adccdace8000c9157",
+            "4253097401de1482a05784e58a81cb2445ea07ce10d2622d43ab070999bb615d"
+          ],
+          "density_ids": [
+            "60310f58be6ffcb7e5521e2648906e41a18eeddeef616adfdee61ab6ec6d29cc"
+          ],
+          "selected_K_values": [
+            [
+              105.69417324017047,
+              110.61306326128951,
+              127.7115417861728,
+              105.46749655977499,
+              106.2446128823517,
+              105.59162121957988
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080030.8701034
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.00031419426080581125,
+            -0.0013139535657593904,
+            -0.009613229616607655
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.00019988280144900283,
+            -0.0014640463401654757,
+            -0.007845346153587507
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.0005110772771311778,
+            -0.0014674701926669087,
+            -0.007975897870369064
+          ],
+          "actual_signed_start_radial_delta_m": -0.00335930777782899,
+          "predicted_signed_start_radial_delta_m": -0.002982999336252991,
+          "auxiliary_own_anchor_signed_radial_delta_m": -0.002772861439553075,
+          "actual_exact_distance_shortening_m": -0.0035606315017802093,
+          "predicted_exact_distance_shortening_m": -0.0031163439531930737,
+          "actual_tangential_delta_m": 0.009107932088127102,
+          "predicted_tangential_delta_m": 0.007405035857441308,
+          "actual_predicted_displacement_cosine": 0.9987908830156588,
+          "actual_predicted_tip_displacement_error_m": 0.0017779220707020062,
+          "actual_delta_theta": [
+            -0.002359839897043192,
+            0.008102534048929133,
+            0.0006844346789705025,
+            -0.00400136455144437,
+            0.0019363147674906211,
+            0.0003091724220763842
+          ],
+          "captured_K_joint_increment_sum": [
+            -0.0023894474986863035,
+            0.00654405435944061,
+            0.0005039511927820151,
+            -0.0034792493923313655,
+            0.001801641113432395,
+            0.00031610176863312855
+          ],
+          "joint_increment_error_norm": 0.0016592465427798086
+        },
+        {
+          "start_index": 6694,
+          "end_index_exclusive": 6706,
+          "start_s": 175.00695136515424,
+          "end_s": 175.52858911827207,
+          "duration_s": 0.5216377531178296,
+          "first_request_id": 909,
+          "request_ids": [
+            909,
+            910,
+            911,
+            912
+          ],
+          "gradient_packet_ids": [
+            "fcf24f35af90a08f694ddb50b921ace892bf0c9ca7acabd0e33d2f4b9276663d",
+            "ff228096569c60d45691a88be0f3c4520daa6019471dfe5b7decff7b2c7fcd39",
+            "5f87b76bfbee69fc3b2e196d381b687259511d7f9cac2c59cecda9d38181b9e0",
+            "e77ae2b4b6ca62a5d41e6551c231cb0fe7cffebb564997a9b30856101d0ddcb4"
+          ],
+          "density_ids": [
+            "719e90298e72e67a5d3618011b369f3a9f4521109fffb20ae61da6d72d5c3708"
+          ],
+          "selected_K_values": [
+            [
+              105.4865165154858,
+              109.11799760190264,
+              56.224851577107046,
+              89.9229437305844,
+              119.2152380489466,
+              99.19375401144663
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080032.8598905
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.00010936645220305241,
+            -0.0002449892934267006,
+            -0.0004154883617358829
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.00011982106882291177,
+            -0.0002475445964426892,
+            -0.0003828337403402049
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            9.766709852354616e-05,
+            -0.00019295319695258883,
+            -0.00037495994886160844
+          ],
+          "actual_signed_start_radial_delta_m": -0.0002852013924990794,
+          "predicted_signed_start_radial_delta_m": -0.00026139300484265266,
+          "auxiliary_own_anchor_signed_radial_delta_m": -0.00024375607699028204,
+          "actual_exact_distance_shortening_m": -0.0002855328808909485,
+          "predicted_exact_distance_shortening_m": -0.00026170543724376993,
+          "actual_tangential_delta_m": 0.00040406870605845047,
+          "predicted_tangential_delta_m": 0.00039226366837121076,
+          "actual_predicted_displacement_cosine": 0.998619424603272,
+          "actual_predicted_tip_displacement_error_m": 3.438245018416853e-05,
+          "actual_delta_theta": [
+            -0.0004873443010440792,
+            0.0007695116134078805,
+            -0.0004368022935992144,
+            -0.001060717013408765,
+            8.500279028522684e-05,
+            8.607610798534726e-05
+          ],
+          "captured_K_joint_increment_sum": [
+            -0.00048409429735440934,
+            0.0007670553176202244,
+            -0.000469624737807095,
+            -0.0010454829482089711,
+            8.37952267979114e-05,
+            8.878800434047873e-05
+          ],
+          "joint_increment_error_norm": 3.653488867763533e-05
+        }
+      ]
+    },
+    "imu_marker": {
+      "posthoc_lag_scan": {
+        "start_s": 100.0,
+        "end_s": 180.0,
+        "resampling_step_s": 0.025,
+        "actual_delay_search_s": [
+          0.0,
+          1.0
+        ],
+        "zero_lag": {
+          "actual_delay_s": 0.0,
+          "vector_velocity_normalized_inner_product": 0.7624838709447274
+        },
+        "maximum": {
+          "actual_delay_s": 0.225,
+          "vector_velocity_normalized_inner_product": 0.9545992363937631
+        },
+        "interpretation": "Only a diagnostic correlation of recorded quasistatic increments and actual dynamic response; irregular samples are linearly interpolated, no plant parameter/control gain is fitted or changed.",
+        "tested_delay_count": 41
+      },
+      "exact_recorded_increment_vs_endpoint_equilibrium_max_abs": 0.0,
+      "all_recorded_command_K_density_provenance_exact": true,
+      "K_supported_interval_count": 6444,
+      "windows": [
+        {
+          "start_s": 0,
+          "end_s": 60,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 1.4575973287546946,
+          "actual_tip_arc_m": 1.3951413269161994,
+          "predicted_mean_signed_inward_velocity_m_s": 0.0036342945261600298,
+          "actual_mean_signed_inward_velocity_m_s": 0.002616215509002615,
+          "predicted_mean_tangent_velocity_m_s": 0.022805937849085266,
+          "actual_mean_tangent_velocity_m_s": 0.02200879695608128,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.0401000425995638,
+          "direction_cosine_timeweighted_mean": 0.9201633120000617,
+          "direction_cosine_actual_arc_weighted_mean": 0.9512594020046621,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.009279734367377146,
+            "rms": 0.016227711221106843,
+            "p50": 0.004133950859321244,
+            "p95": 0.03649418090905683,
+            "max": 0.10071092093086936
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        },
+        {
+          "start_s": 60,
+          "end_s": 120,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 0.4555805601914859,
+          "actual_tip_arc_m": 0.43358451811885973,
+          "predicted_mean_signed_inward_velocity_m_s": 0.002351077038211398,
+          "actual_mean_signed_inward_velocity_m_s": 0.002110033654729354,
+          "predicted_mean_tangent_velocity_m_s": 0.006927049100084353,
+          "actual_mean_tangent_velocity_m_s": 0.0066063253986062,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.004303941635104517,
+          "direction_cosine_timeweighted_mean": 0.971276786894246,
+          "direction_cosine_actual_arc_weighted_mean": 0.9687317441966531,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.0018667108302909817,
+            "rms": 0.006107394614511157,
+            "p50": 0.0004555175895588188,
+            "p95": 0.010036925428856128,
+            "max": 0.07444588052061249
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        },
+        {
+          "start_s": 120,
+          "end_s": 180,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 0.26203669239311567,
+          "actual_tip_arc_m": 0.24746725058225005,
+          "predicted_mean_signed_inward_velocity_m_s": 0.0012090029322400506,
+          "actual_mean_signed_inward_velocity_m_s": 0.0009996726033837484,
+          "predicted_mean_tangent_velocity_m_s": 0.0036821293275422435,
+          "actual_mean_tangent_velocity_m_s": 0.0034844436754542366,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.03486370371344189,
+          "direction_cosine_timeweighted_mean": 0.937638296465136,
+          "direction_cosine_actual_arc_weighted_mean": 0.8757490265106916,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.002129427829307208,
+            "rms": 0.006207063271289337,
+            "p50": 0.00022439805168855069,
+            "p95": 0.013374201110705463,
+            "max": 0.0534743306810667
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        },
+        {
+          "start_s": 100,
+          "end_s": 180,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 0.365733990473028,
+          "actual_tip_arc_m": 0.349234557150841,
+          "predicted_mean_signed_inward_velocity_m_s": 0.0011546278455574943,
+          "actual_mean_signed_inward_velocity_m_s": 0.0009790375222473598,
+          "predicted_mean_tangent_velocity_m_s": 0.003970878891070827,
+          "actual_mean_tangent_velocity_m_s": 0.0038083637175149974,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.029375734011409804,
+          "direction_cosine_timeweighted_mean": 0.9467957988997723,
+          "direction_cosine_actual_arc_weighted_mean": 0.9058146223534829,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.0017859614380565168,
+            "rms": 0.005452872318978511,
+            "p50": 0.00024814081004129136,
+            "p95": 0.010206063798552786,
+            "max": 0.0534743306810667
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        },
+        {
+          "start_s": 0,
+          "end_s": 180,
+          "oracle_anchored_captured_K_delta_tip_arc_m": 2.175214581339296,
+          "actual_tip_arc_m": 2.076193095617309,
+          "predicted_mean_signed_inward_velocity_m_s": 0.002398124832203826,
+          "actual_mean_signed_inward_velocity_m_s": 0.0019086405890385726,
+          "predicted_mean_tangent_velocity_m_s": 0.011138372092237288,
+          "actual_mean_tangent_velocity_m_s": 0.01069985534338057,
+          "opposite_predicted_actual_radial_sign_time_fraction": 0.02642256264937007,
+          "direction_cosine_timeweighted_mean": 0.9430954446030644,
+          "direction_cosine_actual_arc_weighted_mean": 0.9459079691499989,
+          "delta_velocity_model_error_m_s": {
+            "mean": 0.00442529100899178,
+            "rms": 0.010632756226347365,
+            "p50": 0.0006542466160043575,
+            "p95": 0.023417279730122618,
+            "max": 0.10071092093086936
+          },
+          "one_interval_limit": "quasistatic prediction vs dynamic physical response; sign mismatch alone cannot be attributed solely to wrong K"
+        }
+      ],
+      "selected_half_second_windows": [
+        {
+          "start_index": 4912,
+          "end_index_exclusive": 4928,
+          "start_s": 100.01886874297634,
+          "end_s": 100.53958563786,
+          "duration_s": 0.5207168948836625,
+          "first_request_id": 543,
+          "request_ids": [
+            543,
+            544,
+            545,
+            546
+          ],
+          "gradient_packet_ids": [
+            "b6b504fafab2e487e5bee288951bf0fec45c47c04e023e6e4ca598d9f07a80c7",
+            "17437d9eddc29a1090781a9e5f00fe92502f8d528983446228b1e00eb5544b0b",
+            "41cec156dfcdc9ee6654d0e48506339d0f61cd11322dc649115bce77c4717e9c",
+            "367102d605664ee023e651f76343e2f8aa642b5fa7bcdb5414cbaad47cf7bb86"
+          ],
+          "density_ids": [
+            "9dc8329b1d25f96c5707c7e7e224f7b8b0ae7e69fbae842c95a7e0e84bfd38b1"
+          ],
+          "selected_K_values": [
+            [
+              105.29457047962117,
+              97.37180411938186,
+              122.73278345061792,
+              105.11451026340806,
+              91.40973764842998,
+              104.00211700391812
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080011.435513
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.0007664488414467208,
+            0.00012171381284518251,
+            0.0022924929343790534
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.0008692949283894968,
+            5.8535036665814666e-05,
+            0.0018603499542525492
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.0008643194752320227,
+            6.376394704847577e-05,
+            0.0017827557827994611
+          ],
+          "actual_signed_start_radial_delta_m": 0.0009281240335263013,
+          "predicted_signed_start_radial_delta_m": 0.001002770975636181,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.000990913179074415,
+          "actual_exact_distance_shortening_m": 0.0009067482678891264,
+          "predicted_exact_distance_shortening_m": 0.0009890094711814401,
+          "actual_tangential_delta_m": 0.002235255625507088,
+          "predicted_tangential_delta_m": 0.0017928893846945193,
+          "actual_predicted_displacement_cosine": 0.9932274531211661,
+          "actual_predicted_tip_displacement_error_m": 0.0004486829957013971,
+          "actual_delta_theta": [
+            -2.8491766390276174e-05,
+            0.0010465056865434086,
+            -0.0036023103491888975,
+            -0.0003616782803615992,
+            -0.0003790176466623718,
+            0.0008652486426133782
+          ],
+          "captured_K_joint_increment_sum": [
+            -6.437396941519347e-05,
+            0.0015526540870187677,
+            -0.0037381806818916896,
+            -0.000280356487578709,
+            -0.00032138889459065734,
+            0.0008649207871166825
+          ],
+          "joint_increment_error_norm": 0.0005346670904800916
+        },
+        {
+          "start_index": 5408,
+          "end_index_exclusive": 5421,
+          "start_s": 123.57474727882072,
+          "end_s": 124.11502341972664,
+          "duration_s": 0.5402761409059167,
+          "first_request_id": 638,
+          "request_ids": [
+            638,
+            639,
+            640
+          ],
+          "gradient_packet_ids": [
+            "655ff79fb82b5fab35e8ac9427a4aafe466f7113c39aea677ab082b7f5dfa89b",
+            "0e5586cf6561f89b36320d7259f7b34f9b6faaf36738149a710ff56e7f61e360",
+            "3d75d4391c5e871a10f708271a85689147592058312cef0f2e457de9cd75f277"
+          ],
+          "density_ids": [
+            "c8d051695244b63620e0c27f7efb96bb52dd83a806105b72b14fc7d009f1329c"
+          ],
+          "selected_K_values": [
+            [
+              105.23939109505817,
+              95.76631176887705,
+              121.94337025238794,
+              104.49369028006862,
+              83.01780298273515,
+              103.02276542834908
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080013.215925
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            -0.0005571165458591043,
+            -0.003149288152562005,
+            0.014899138172789483
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.00014825754973002425,
+            0.0009189532566598047,
+            0.005378685266095473
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.00022082635524545147,
+            0.0010076921003076,
+            0.005357512042361623
+          ],
+          "actual_signed_start_radial_delta_m": 0.008013759104976327,
+          "predicted_signed_start_radial_delta_m": 0.0032303963122633666,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.0032798728134708307,
+          "actual_exact_distance_shortening_m": 0.0070813456217864446,
+          "predicted_exact_distance_shortening_m": 0.003127904970676623,
+          "actual_tangential_delta_m": 0.012961187368941904,
+          "predicted_tangential_delta_m": 0.004400142071161497,
+          "actual_predicted_displacement_cosine": 0.92762281043909,
+          "actual_predicted_tip_displacement_error_m": 0.010377242616755844,
+          "actual_delta_theta": [
+            -0.0041072789003967144,
+            -0.005213738405453361,
+            -0.004768920321632786,
+            -0.004513231553435637,
+            -0.009346172162617128,
+            -0.0002801473461719328
+          ],
+          "captured_K_joint_increment_sum": [
+            -0.0003231431186036197,
+            -0.001020563554948506,
+            -0.002266620498579064,
+            -0.0037831817406525914,
+            -0.003940155485922969,
+            -0.0002640802219854993
+          ],
+          "joint_increment_error_norm": 0.008241489582395132
+        },
+        {
+          "start_index": 5570,
+          "end_index_exclusive": 5585,
+          "start_s": 130.00226000789553,
+          "end_s": 130.51077773794532,
+          "duration_s": 0.508517730049789,
+          "first_request_id": 667,
+          "request_ids": [
+            667,
+            668,
+            669,
+            670
+          ],
+          "gradient_packet_ids": [
+            "19f08ab4bbfbca16fd235a7c6dc3b5125a2bc36f68fc4e47b2aebbb87448fc67",
+            "7dfdb03a3568ea228766afe3c746696efb0d6ad62437b163231fac23499fc7fa",
+            "7624ffdee7e1c35af9a40195b8080bae8e7436734419882f86e3a39e918c8883",
+            "6c2bb68722051283ac82fcc8834f98af5eedb3203f02f8fafe2060fa3e71b6df"
+          ],
+          "density_ids": [
+            "eddab83b851a59f0576f7bf541a89bc9ccc3eb1463ea8aeef852404bcd95a08e"
+          ],
+          "selected_K_values": [
+            [
+              105.22764195554231,
+              96.15955378884607,
+              121.99607143019423,
+              104.297994591693,
+              80.54507653242325,
+              102.77913341675017
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080013.5038192
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.0008543493372872302,
+            0.00029889777474777224,
+            0.00011680054520435412
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.0008665649081598392,
+            0.00030016709056886193,
+            -6.4213271793178706e-06
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.0008347266139721032,
+            0.00031076602712951096,
+            -9.078493136965848e-05
+          ],
+          "actual_signed_start_radial_delta_m": 0.0008815487246896875,
+          "predicted_signed_start_radial_delta_m": 0.000871106430831542,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.0008252919137510393,
+          "actual_exact_distance_shortening_m": 0.0008811681149719919,
+          "predicted_exact_distance_shortening_m": 0.0008705451552644683,
+          "actual_tangential_delta_m": 0.00023615012858416843,
+          "predicted_tangential_delta_m": 0.0002867923323963209,
+          "actual_predicted_displacement_cosine": 0.9908513055538941,
+          "actual_predicted_tip_displacement_error_m": 0.00012383239143348297,
+          "actual_delta_theta": [
+            -0.00014458358179834365,
+            0.0020765249281016196,
+            -0.002880132468590757,
+            -0.0010251739818922245,
+            0.000469603911461669,
+            0.0003886651496964877
+          ],
+          "captured_K_joint_increment_sum": [
+            -0.00012958965875133175,
+            0.002168258960449587,
+            -0.0028632523903142637,
+            -0.0009876767549417964,
+            0.0004865955202358885,
+            0.00039153855600550236
+          ],
+          "joint_increment_error_norm": 0.0001030917102550101
+        },
+        {
+          "start_index": 5953,
+          "end_index_exclusive": 5965,
+          "start_s": 148.03684031171724,
+          "end_s": 148.5510627371259,
+          "duration_s": 0.5142224254086614,
+          "first_request_id": 744,
+          "request_ids": [
+            744,
+            745,
+            746
+          ],
+          "gradient_packet_ids": [
+            "d617ecbc6e0467eac05754a927a1d36ef9dadad17645113be14e6a9b97e468a7",
+            "500b43eb88f9391657887541f4e745088e643eccc38ad974b06151fac607e61a",
+            "74f3faf5ca5511331f8d01f48cd1c7f44d1625742d4489c1acbc792caf1c0139"
+          ],
+          "density_ids": [
+            "dd4f21e1b8492d244448d924b57fec968b9d7e5c640c4cdcf2e2f5fc18e06f2b"
+          ],
+          "selected_K_values": [
+            [
+              105.2055127204272,
+              96.97846694163432,
+              121.95007688917303,
+              103.88179183200802,
+              76.13433166578355,
+              102.33306695232721
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080014.6243186
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.0003942115015838077,
+            -0.0008353746497418296,
+            -0.0024179633470770012
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.0003704773629311653,
+            -0.0008847313064728884,
+            -0.0020832688729016113
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.00033878167334022713,
+            -0.0009137819369810923,
+            -0.002095667560971848
+          ],
+          "actual_signed_start_radial_delta_m": -0.0015210120728450611,
+          "predicted_signed_start_radial_delta_m": -0.0013454510560682123,
+          "auxiliary_own_anchor_signed_radial_delta_m": -0.0013853935842822423,
+          "actual_exact_distance_shortening_m": -0.0015506441465342746,
+          "predicted_exact_distance_shortening_m": -0.0013688126193479033,
+          "actual_tangential_delta_m": 0.002094354921086593,
+          "predicted_tangential_delta_m": 0.001857356619936876,
+          "actual_predicted_displacement_cosine": 0.9976384174767082,
+          "actual_predicted_tip_displacement_error_m": 0.00033914566183985186,
+          "actual_delta_theta": [
+            -0.0011074492628003509,
+            0.00024641931720603694,
+            -0.00015047147131608263,
+            -0.00030801017531850716,
+            0.004310201918390044,
+            0.0014138286114811077
+          ],
+          "captured_K_joint_increment_sum": [
+            -0.0011705858524751304,
+            6.954057554353632e-05,
+            -0.00021882349382940092,
+            -0.00037681907220973865,
+            0.004162258799880747,
+            0.0013318855698953996
+          ],
+          "joint_increment_error_norm": 0.00027070428489311623
+        },
+        {
+          "start_index": 6000,
+          "end_index_exclusive": 6012,
+          "start_s": 150.0029814648442,
+          "end_s": 150.50563907902688,
+          "duration_s": 0.5026576141826808,
+          "first_request_id": 754,
+          "request_ids": [
+            754,
+            755,
+            756,
+            757
+          ],
+          "gradient_packet_ids": [
+            "64b5b78414d88e7f06a77ba8b3c3b1e5b6ba2196a86dc31417337f1dc07fdecd",
+            "041c9cae53542901f44d8f24224e379e2bbd5cddc5c5d206037a678e358b3180",
+            "deeda908cbf8a90d5ebbcf89319b1ecdfb2613a3d25283cc497831bf7241eb0a",
+            "14579a3c553c45fc4e4087aa29b5a3a18f54fd22703e645f4ddb13aaf7a01902"
+          ],
+          "density_ids": [
+            "dd4f21e1b8492d244448d924b57fec968b9d7e5c640c4cdcf2e2f5fc18e06f2b"
+          ],
+          "selected_K_values": [
+            [
+              105.2055127204272,
+              96.97846694163432,
+              121.95007688917303,
+              103.88179183200802,
+              76.13433166578355,
+              102.33306695232721
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080014.6243186
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.00028610895038938544,
+            -0.000176368104817054,
+            0.0006596064781416167
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.00030282030133599314,
+            -0.00010722548159589063,
+            0.0006700045673431188
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.0003304410019038251,
+            -0.00010530527142713075,
+            0.000649837887764404
+          ],
+          "actual_signed_start_radial_delta_m": 0.0005549277144225463,
+          "predicted_signed_start_radial_delta_m": 0.0005982487111793606,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.0006040843482397092,
+          "actual_exact_distance_shortening_m": 0.0005533130826255728,
+          "predicted_exact_distance_shortening_m": 0.000596941971188869,
+          "actual_tangential_delta_m": 0.0004899999772059496,
+          "predicted_tangential_delta_m": 0.0004406836037766394,
+          "actual_predicted_displacement_cosine": 0.9953091417113562,
+          "actual_predicted_tip_displacement_error_m": 7.18894418910513e-05,
+          "actual_delta_theta": [
+            -0.0005140488842311081,
+            -7.433206584483987e-05,
+            -0.0011592519573084825,
+            -0.0008490426816109564,
+            0.000909677206151982,
+            -0.0003197030130045464
+          ],
+          "captured_K_joint_increment_sum": [
+            -0.0004472518759710137,
+            -3.50826333028742e-06,
+            -0.0012128299787987906,
+            -0.0008521020027167092,
+            0.0008347398894450464,
+            -0.00032621738555654867
+          ],
+          "joint_increment_error_norm": 0.00013422314864636916
+        },
+        {
+          "start_index": 6130,
+          "end_index_exclusive": 6142,
+          "start_s": 158.61903344281018,
+          "end_s": 159.1460946276784,
+          "duration_s": 0.5270611848682165,
+          "first_request_id": 781,
+          "request_ids": [
+            781,
+            782,
+            783
+          ],
+          "gradient_packet_ids": [
+            "59c8b3306295ba999ba14b6ccabd8ffed50f6ec0fe932e1199b2e9960a56cde0",
+            "a2a556184effd1dab37e7989fffeca75ac21b74ed136177a1e93ec3f201ff0f7",
+            "82ad67f294b057c332a590567bf67a96bb8fb721d546a64228da8c015beb6a75"
+          ],
+          "density_ids": [
+            "cef03bdf0db9067c2001bf6fc043d569afa5a56365cfc752ca6dff60447646b6"
+          ],
+          "selected_K_values": [
+            [
+              105.19703152043104,
+              97.52650872013423,
+              121.78650844753525,
+              103.69215894824232,
+              74.54463870983756,
+              102.12622779860077
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080015.166917
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            -0.0005840799264487107,
+            -0.0019984202091582193,
+            0.01517771562988618
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.0004884046364981298,
+            0.005092857557060432,
+            0.003015844965726322
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.0006623185886971417,
+            0.0051741647561112936,
+            0.003063019669084288
+          ],
+          "actual_signed_start_radial_delta_m": 0.006911638816602992,
+          "predicted_signed_start_radial_delta_m": 0.00429832102623744,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.004483721601701294,
+          "actual_exact_distance_shortening_m": 0.005301858455754593,
+          "predicted_exact_distance_shortening_m": 0.004158214511309245,
+          "actual_tangential_delta_m": 0.013672129801291764,
+          "predicted_tangential_delta_m": 0.004098230642382433,
+          "actual_predicted_displacement_cosine": 0.38809898022781325,
+          "actual_predicted_tip_displacement_error_m": 0.014119048889609328,
+          "actual_delta_theta": [
+            -0.0020381221629737073,
+            -0.008442932756799304,
+            -0.0054552722360927675,
+            -0.0008091485222788963,
+            -0.0020287816170287964,
+            0.0006281754062514716
+          ],
+          "captured_K_joint_increment_sum": [
+            0.003633004585719482,
+            -0.0035772288255483398,
+            -0.0009893563528200477,
+            -0.0024161251930213123,
+            0.0035215261699329536,
+            0.0008212556284360878
+          ],
+          "joint_increment_error_norm": 0.010450202320784011
+        },
+        {
+          "start_index": 6131,
+          "end_index_exclusive": 6143,
+          "start_s": 158.64972397778183,
+          "end_s": 159.15188220795244,
+          "duration_s": 0.5021582301706076,
+          "first_request_id": 781,
+          "request_ids": [
+            781,
+            782,
+            783
+          ],
+          "gradient_packet_ids": [
+            "59c8b3306295ba999ba14b6ccabd8ffed50f6ec0fe932e1199b2e9960a56cde0",
+            "a2a556184effd1dab37e7989fffeca75ac21b74ed136177a1e93ec3f201ff0f7",
+            "82ad67f294b057c332a590567bf67a96bb8fb721d546a64228da8c015beb6a75"
+          ],
+          "density_ids": [
+            "cef03bdf0db9067c2001bf6fc043d569afa5a56365cfc752ca6dff60447646b6"
+          ],
+          "selected_K_values": [
+            [
+              105.19703152043104,
+              97.52650872013423,
+              121.78650844753525,
+              103.69215894824232,
+              74.54463870983756,
+              102.12622779860077
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080015.166917
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            -0.00046461580596868224,
+            -0.001057937185980129,
+            0.014035677801365054
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.0005604681523110333,
+            0.0055758730981620985,
+            0.0018902872932645698
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.0007118960822478648,
+            0.005664105418368731,
+            0.0019329820604002124
+          ],
+          "actual_signed_start_radial_delta_m": 0.006544520915556446,
+          "predicted_signed_start_radial_delta_m": 0.004008751585135576,
+          "auxiliary_own_anchor_signed_radial_delta_m": 0.004180076422387864,
+          "actual_exact_distance_shortening_m": 0.005206861846657938,
+          "predicted_exact_distance_shortening_m": 0.0038513753488987404,
+          "actual_tangential_delta_m": 0.012470148205462973,
+          "predicted_tangential_delta_m": 0.004348284964938848,
+          "actual_predicted_displacement_cosine": 0.2445913472053443,
+          "actual_predicted_tip_displacement_error_m": 0.013876914159919377,
+          "actual_delta_theta": [
+            -0.0012619469594406588,
+            -0.007943095552819135,
+            -0.005056847608660764,
+            -0.000989104297807547,
+            -0.001557394527488265,
+            0.0006420911173478511
+          ],
+          "captured_K_joint_increment_sum": [
+            0.004045404109077704,
+            -0.00302799225100292,
+            -0.0005824614986560395,
+            -0.00246121733740573,
+            0.0038351218752269434,
+            0.0008363583967013061
+          ],
+          "joint_increment_error_norm": 0.010179903566545502
+        },
+        {
+          "start_index": 6430,
+          "end_index_exclusive": 6436,
+          "start_s": 175.87319053895772,
+          "end_s": 176.40077889990062,
+          "duration_s": 0.5275883609429002,
+          "first_request_id": 841,
+          "request_ids": [
+            841,
+            842,
+            843
+          ],
+          "gradient_packet_ids": [
+            "cbdf05d0e14be2eef058d97885f2736c465f79565196811651ff56b90728a9b8",
+            "c7bc11cf89df2db96ee9e7cf420710881088af0ee38b965ecd6b8557485874cb",
+            "1e0e7ffee3e9b0c55e05b85915a16cb3130f440aa524f198a1047f696ff12c8e"
+          ],
+          "density_ids": [
+            "65a970e116582fa4ab78515f0f1a0f817c9c1d678d1aa74dc92c8bef281f0f97",
+            "5296d2625ba9baffdb910e542fbe66ba1da1087b268d19601058420e62f390aa"
+          ],
+          "selected_K_values": [
+            [
+              105.16538095181919,
+              99.26113658052978,
+              120.50190888565295,
+              102.7245797859593,
+              68.87449828819616,
+              101.03182524109972
+            ],
+            [
+              105.1603512980037,
+              97.58011736780277,
+              119.19126165509556,
+              102.56632156881717,
+              67.97508635623738,
+              100.86249418881597
+            ]
+          ],
+          "K_estimated_source_stamps": [
+            1792080015.367357,
+            1792080015.7925158
+          ],
+          "exact_original_interval_provenance_verified": true,
+          "actual_delta_tip_m": [
+            0.00026148581326568276,
+            -0.00020915314438763044,
+            -0.00018558836719662075
+          ],
+          "oracle_anchored_K_delta_tip_m": [
+            0.00025951268886892365,
+            -0.0001874173887462527,
+            -0.00019328645262245425
+          ],
+          "auxiliary_FK_own_anchor_delta_tip_m": [
+            0.00024541516396525687,
+            -0.00019411709543268318,
+            -0.0002155814396146427
+          ],
+          "actual_signed_start_radial_delta_m": 5.401975885673682e-05,
+          "predicted_signed_start_radial_delta_m": 5.605875645918173e-05,
+          "auxiliary_own_anchor_signed_radial_delta_m": 3.174328151625089e-05,
+          "actual_exact_distance_shortening_m": 5.2306066030738396e-05,
+          "predicted_exact_distance_shortening_m": 5.442796343486933e-05,
+          "actual_tangential_delta_m": 0.0003790049815480217,
+          "predicted_tangential_delta_m": 0.0003697150008859056,
+          "actual_predicted_displacement_cosine": 0.9984056587224889,
+          "actual_predicted_tip_displacement_error_m": 2.3142964641769668e-05,
+          "actual_delta_theta": [
+            -0.00011521159373437811,
+            0.0006833388601971135,
+            -0.0009088235145136014,
+            0.00027427285509232235,
+            0.000432874211897305,
+            -3.821366963348283e-05
+          ],
+          "captured_K_joint_increment_sum": [
+            -9.836555492371765e-05,
+            0.0006855057411701004,
+            -0.0008934102947577571,
+            0.00026375660137847867,
+            0.00041798716136387526,
+            -3.7156637707772e-05
+          ],
+          "joint_increment_error_norm": 2.931526773294276e-05
+        }
+      ]
+    }
+  }
+}

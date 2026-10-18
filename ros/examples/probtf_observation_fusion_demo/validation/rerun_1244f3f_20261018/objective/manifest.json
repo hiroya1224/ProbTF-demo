@@ -1,0 +1,284 @@
+{
+  "source_run": "/tmp/probtf_1244f3f_rviz_rerun_20261018",
+  "no_production_edits": true,
+  "not_a_new_control_policy": true,
+  "source_inputs": {
+    "marker_112": {
+      "source_extract_path": "/tmp/probtf_1244_objective_analysis_20261018/marker_112_source.json",
+      "source_extract_bytes": 3094324,
+      "source_extract_sha256": "41b0378071e176380dc49290110c9f76cce0216e950e062b1f463d4a2270388a",
+      "original_control_log": "/tmp/probtf_1244f3f_rviz_rerun_20261018/marker/control.jsonl",
+      "request_id": 634,
+      "candidate_id": "d764f07e1f76bedbf884a188148c318a69f41aee58b87e79071cdcdd7c5131c6",
+      "archive_reference": {
+        "archived_wall_time_s": 1792319851.7076466,
+        "batch_id": "f177dc1e94ec1b97f6b62796757b3a93cfd5da56efc038ed235223f8f4cb41ee",
+        "initialize_only": false,
+        "job_sequence": 76,
+        "kind": "stiffness_job_reference",
+        "path": "/tmp/probtf_1244f3f_rviz_rerun_20261018/marker/stiffness_jobs/00000076_f3a0e06b2b1fbc1f.pickle",
+        "payload_bytes": 3789798,
+        "payload_sha256": "67027aa240cf5ed07d6564694166ab8afca159a984286dfbc551eba408c103b8",
+        "source_candidate_id": "490aefff004c231e5ede8ba66558cfccb4aa3b42c4d9ee947824432fbb0bfad0",
+        "source_command": [
+          -0.20053403667761024,
+          -1.7225137241748563,
+          1.8984740822274628,
+          0.14393543066759049,
+          -0.5877209587864511,
+          -0.10223880359371333
+        ],
+        "source_stamp": 1792080098.5903769,
+        "source_version": 15076,
+        "status": "pending"
+      },
+      "source_actual_ledger_reference": {
+        "path": "commands.jsonl",
+        "start_index": 5025,
+        "end_index_exclusive": 5374,
+        "step_count": 349,
+        "prefix_chain_sha256": "bd7dbe4cfc19e44fc5d65aefa8e5926f0745dd9a0c3ea83677ecc67899f9c2bb",
+        "source_prefix_chain_sha256": "d54948f1f6548867241bce6b19b7b4b7a9f2f78e5c4bac722942bd1afd1763b4"
+      }
+    },
+    "marker_158": {
+      "source_extract_path": "/tmp/probtf_1244_objective_analysis_20261018/marker_158_source.json",
+      "source_extract_bytes": 3424221,
+      "source_extract_sha256": "eb7ca1bce6f681130b03b163246e69ab95426d06550ef54a14dcfe4b2a140390",
+      "original_control_log": "/tmp/probtf_1244f3f_rviz_rerun_20261018/marker/control.jsonl",
+      "request_id": 848,
+      "candidate_id": "7f9feed781c400d8e91d6462d78dc16178fe48a8c5df093992bb0644d945170e",
+      "archive_reference": {
+        "archived_wall_time_s": 1792319897.8481014,
+        "batch_id": "3440f0944a27c2329e69a18bc5064bcf6c454c3dd0c9318bf25b3092823c4705",
+        "initialize_only": false,
+        "job_sequence": 82,
+        "kind": "stiffness_job_reference",
+        "path": "/tmp/probtf_1244f3f_rviz_rerun_20261018/marker/stiffness_jobs/00000082_118624511bc563d8.pickle",
+        "payload_bytes": 4380721,
+        "payload_sha256": "877599a74894dd1f9d3dc84759603f455ae0f29c01cb45771dfb3d7eb5ea7d28",
+        "source_candidate_id": "cffefc020858ea39094bc5c13f1a79c475b11f4b9aefa739e30cdc338d782618",
+        "source_command": [
+          -0.14922672502107662,
+          -1.6699485107977452,
+          1.7221136334440503,
+          0.10137355390256142,
+          -0.5992257739106773,
+          -0.0660861298817968
+        ],
+        "source_stamp": 1792080140.8449862,
+        "source_version": 17983,
+        "status": "pending"
+      },
+      "source_actual_ledger_reference": {
+        "path": "commands.jsonl",
+        "start_index": 5994,
+        "end_index_exclusive": 6405,
+        "step_count": 411,
+        "prefix_chain_sha256": "32584adc973ac27fc21491881c3c0300dc44f9412e9b884e6744aa141eef20ac",
+        "source_prefix_chain_sha256": "547338cc2be0f9b239b00985e5dc05908e8c0093f59a88de108e2e042a7a1663"
+      }
+    },
+    "marker_179": {
+      "source_extract_path": "/tmp/probtf_1244_objective_analysis_20261018/marker_179_source.json",
+      "source_extract_bytes": 3584454,
+      "source_extract_sha256": "d036ad81f0f8ab74b29a209ac196458ee93009deff569bf5e384fe2edc686dd3",
+      "original_control_log": "/tmp/probtf_1244f3f_rviz_rerun_20261018/marker/control.jsonl",
+      "request_id": 927,
+      "candidate_id": "e3598bb4197fc04f57c0431024311833aa4672a9ccec78c82c9824613ab56e6d",
+      "archive_reference": {
+        "archived_wall_time_s": 1792319917.7295442,
+        "batch_id": "cadc4c31d0f1753d4b6af7b5b5720ce522b36413b422f969664afbbd92cb352b",
+        "initialize_only": false,
+        "job_sequence": 83,
+        "kind": "stiffness_job_reference",
+        "path": "/tmp/probtf_1244f3f_rviz_rerun_20261018/marker/stiffness_jobs/00000083_4aec16ec793d4708.pickle",
+        "payload_bytes": 1615211,
+        "payload_sha256": "4a6616303d404e3803f0fdfb7356420d06a2bc5f16179411cd6b202bb5e708ee",
+        "source_candidate_id": "c197ce21efa2a9dcd84df220ee0650fbc8e9d7f1f1ac4073f5806722b0bcfe33",
+        "source_command": [
+          -0.14942524535851834,
+          -1.669650049282921,
+          1.722021639202293,
+          0.10134619499692891,
+          -0.599114517879244,
+          -0.0661391843193169
+        ],
+        "source_stamp": 1792080140.9221194,
+        "source_version": 17986,
+        "status": "pending"
+      },
+      "source_actual_ledger_reference": {
+        "path": "commands.jsonl",
+        "start_index": 5995,
+        "end_index_exclusive": 6766,
+        "step_count": 771,
+        "prefix_chain_sha256": "9e7df8ab1b519ac393a4b66d4e0f718d490c5e300ea9d99e289f716e303d96fd",
+        "source_prefix_chain_sha256": "66c00ee8c292affda9b79c445b7f33c2384c01b4f419ede4335dddc56d45e80d"
+      }
+    },
+    "imu_marker_123": {
+      "source_extract_path": "/tmp/probtf_1244_objective_analysis_20261018/imu_marker_123_source.json",
+      "source_extract_bytes": 4262283,
+      "source_extract_sha256": "46b9314d96cbd0f44f9174c583d1aac66eb716768dfb0277ed8a5d128c26858c",
+      "original_control_log": "/tmp/probtf_1244f3f_rviz_rerun_20261018/imu_marker/control.jsonl",
+      "request_id": 637,
+      "candidate_id": "d486530eabcc7d0341acaba10336696d9ee09cf910c3ef31794cb91fbc7a5bff",
+      "archive_reference": {
+        "archived_wall_time_s": 1792319862.6179774,
+        "batch_id": "2c7efaca3b5958fb9e11d2206fc11a192d13d1d93c20ff0f273a1e2b884d0129",
+        "initialize_only": false,
+        "job_sequence": 277,
+        "kind": "stiffness_job_reference",
+        "path": "/tmp/probtf_1244f3f_rviz_rerun_20261018/imu_marker/stiffness_jobs/00000277_ddcb6d80041003d4.pickle",
+        "payload_bytes": 1900895,
+        "payload_sha256": "80807ffac50e55073da4d92d6e9412f6bcd810029bae07b0a2f617917b0ae29e",
+        "source_candidate_id": "c289d25eb3dc260bc8d0f6a964db66204ab589d72e83d24968c68e4470ce6510",
+        "source_command": [
+          0.03358120594832964,
+          -1.4035665277436935,
+          1.6091260800061957,
+          0.17795922717138457,
+          -0.9764727377353339,
+          -0.11897799214851543
+        ],
+        "source_stamp": 1792080102.787458,
+        "source_version": 14980,
+        "status": "pending"
+      },
+      "source_actual_ledger_reference": {
+        "path": "commands.jsonl",
+        "start_index": 4993,
+        "end_index_exclusive": 5397,
+        "step_count": 404,
+        "prefix_chain_sha256": "4bc596396a18d033ed9bd48c7b88d3bf4eadf4e8fb90c26e655a6b4981bbfbe2",
+        "source_prefix_chain_sha256": "2a1820652b27d624cb8513e09d87cafb39cab2cfcf9171004c3709348b9f4c0f"
+      }
+    },
+    "imu_marker_140": {
+      "source_extract_path": "/tmp/probtf_1244_objective_analysis_20261018/imu_marker_140_source.json",
+      "source_extract_bytes": 4455142,
+      "source_extract_sha256": "173fc5611376b5d583bd1aecc3157bab289a238499631a72f883894a6d8635e2",
+      "original_control_log": "/tmp/probtf_1244f3f_rviz_rerun_20261018/imu_marker/control.jsonl",
+      "request_id": 703,
+      "candidate_id": "dd64ff98c1f8285d52e50e2c3c73ec64cd816c8d69734a757a0273897648a5b6",
+      "archive_reference": {
+        "archived_wall_time_s": 1792319880.1446981,
+        "batch_id": "0f8f9c707cd7ece13074e8d5e9afb67707ac9e0e21a6995e1adda8d57f15f9fc",
+        "initialize_only": false,
+        "job_sequence": 285,
+        "kind": "stiffness_job_reference",
+        "path": "/tmp/probtf_1244f3f_rviz_rerun_20261018/imu_marker/stiffness_jobs/00000285_bbeb8a6085640c77.pickle",
+        "payload_bytes": 1893414,
+        "payload_sha256": "5b23371076b1b4b5197d2a632db36fc92c9707304ad93a3b96a9154be8b86128",
+        "source_candidate_id": "c4112238be717330af292732f4b64eaea4176dc3b4432d192866c9dff78ad7c3",
+        "source_command": [
+          0.04085593704437786,
+          -1.357992931161727,
+          1.5522800239681425,
+          0.1845922048910278,
+          -0.9702784019270264,
+          -0.11050999475304009
+        ],
+        "source_stamp": 1792080112.1874166,
+        "source_version": 15562,
+        "status": "pending"
+      },
+      "source_actual_ledger_reference": {
+        "path": "commands.jsonl",
+        "start_index": 5187,
+        "end_index_exclusive": 5736,
+        "step_count": 549,
+        "prefix_chain_sha256": "96a6dcc6a1f1aad28e731460d496e7021b1dfff8b5a36ad80580162706974bc2",
+        "source_prefix_chain_sha256": "c29c31f5519c137d0fa98592761f7487cab620c5f26dbcc7b8b489ca6117ed93"
+      }
+    },
+    "imu_marker_179": {
+      "source_extract_path": "/tmp/probtf_1244_objective_analysis_20261018/imu_marker_179_source.json",
+      "source_extract_bytes": 4894905,
+      "source_extract_sha256": "c69a4575dfad74f93f7c8368c4ca799d1ba4b1ba6612a187dbca7d852db247f0",
+      "original_control_log": "/tmp/probtf_1244f3f_rviz_rerun_20261018/imu_marker/control.jsonl",
+      "request_id": 854,
+      "candidate_id": "b66e14ef8047254dd4c0a91b59fad890497b8d464b4d5087d016967396c791f4",
+      "archive_reference": {
+        "archived_wall_time_s": 1792319904.757448,
+        "batch_id": "b4305c4a8eb6bb33e32d209fdec40e55705f0fec94553b4b63fd2fbedc56fcba",
+        "initialize_only": false,
+        "job_sequence": 302,
+        "kind": "stiffness_job_reference",
+        "path": "/tmp/probtf_1244f3f_rviz_rerun_20261018/imu_marker/stiffness_jobs/00000302_c7e56fca6c68dca5.pickle",
+        "payload_bytes": 1489068,
+        "payload_sha256": "60d45c8fdc974a6e11d5184bf89037729a86355dec2edbb3c0591bf07f05879f",
+        "source_candidate_id": "5cdad4d1f22c36877878760e2351c8f5ba9104090458dbdac50f8c05f07fbb09",
+        "source_command": [
+          -0.003845137554769713,
+          -1.2763488491371866,
+          1.428966695275166,
+          0.14592327078334097,
+          -0.9558895361933006,
+          -0.09982272236053792
+        ],
+        "source_stamp": 1792080141.8269298,
+        "source_version": 17371,
+        "status": "pending"
+      },
+      "source_actual_ledger_reference": {
+        "path": "commands.jsonl",
+        "start_index": 5790,
+        "end_index_exclusive": 6480,
+        "step_count": 690,
+        "prefix_chain_sha256": "d50f324e4f8fa774daae0c462b0c1699fb27ed97752216bba718da18e6feb45b",
+        "source_prefix_chain_sha256": "6647d3ee6359c89e4598bd71808eb8cc5f8eac64f56ae2ca349f274f37b24fc4"
+      }
+    }
+  },
+  "files": {
+    "REPORT.md": {
+      "bytes": 6344,
+      "sha256": "7b138cebdaacbaee1a6c7e6fa01a46d8d5313c0d97d75b812bddaa46a2defc13"
+    },
+    "summary.json": {
+      "bytes": 183959,
+      "sha256": "83c88f31763164552551bc1803ee02b54d5346dc2900e99556c38fe97a0b4c1c"
+    },
+    "physical_comparison.json": {
+      "bytes": 3982,
+      "sha256": "58c4508a67a14cedd16ec4088e7617c6e3167aa9e023fc36cffc6468c1bc3f06"
+    },
+    "extract_sources.py": {
+      "bytes": 3388,
+      "sha256": "10ae82f5c1a87bcc3c8f546950cc0f05158438fbd0f9998500816f4ada2a5ac3"
+    },
+    "decompose_objective.py": {
+      "bytes": 20626,
+      "sha256": "d71f3f41cd06d0d70e662e78dbd9377500bf58d5ea1839c777f7e7075d3c548f"
+    },
+    "marker_112_decomposition.json": {
+      "bytes": 24320,
+      "sha256": "14e3f12ee45c10e0515d7059a26396599d03a1ae6b16c457b84b118d30a0bd4c"
+    },
+    "marker_158_decomposition.json": {
+      "bytes": 23465,
+      "sha256": "18362419d3c8b7bb5a1dee06c3bd8e71defc3d80a61c06258909bbf3695e9c9b"
+    },
+    "marker_179_decomposition.json": {
+      "bytes": 24481,
+      "sha256": "a25d7a7a694dd50c0183d97959b3c3e87b93b3b0f0eb33954c040f1939d2df8e"
+    },
+    "imu_marker_123_decomposition.json": {
+      "bytes": 23514,
+      "sha256": "3cb140222ebd4117e9966abe1c38a7df3c51142635f821cbddb9bb4aa64f52eb"
+    },
+    "imu_marker_140_decomposition.json": {
+      "bytes": 23584,
+      "sha256": "7101550207c17449728677598bf92ff92ac833bed68e9a25c34a10f7a87ae594"
+    },
+    "imu_marker_179_decomposition.json": {
+      "bytes": 23606,
+      "sha256": "10ccb4e38b58ead5648cb317cd5fa6345f7b6704e0359989d13893bdad8d0b87"
+    }
+  },
+  "large_source_extracts_are_external_inputs_not_copied": true,
+  "production_source_changed": false,
+  "reproduction_scripts_syntax_checked": true
+}

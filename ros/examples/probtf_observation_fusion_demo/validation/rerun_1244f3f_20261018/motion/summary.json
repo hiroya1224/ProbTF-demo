@@ -1,0 +1,791 @@
+{
+  "schema": "actual_radial_tangential_motion_v1",
+  "source_run": "/tmp/probtf_1244f3f_rviz_rerun_20261018",
+  "script_sha256": "ba84d0ccad367b0d7db7fcadc0da732fc996cefe85fa9dc4ce06b2077bb1e96b",
+  "goal_in_root": [
+    1.135,
+    -0.060000000000000005,
+    0.45999999999999996
+  ],
+  "truth_only_posthoc": true,
+  "source_edited": false,
+  "velocity_clipping_added": false,
+  "configured_old_servo_component_speed_reference_rad_s": 0.048,
+  "old_servo_speed_limit_active_in_running_gradient": false,
+  "cases": {
+    "marker": {
+      "physical_rows": 6797,
+      "command_intervals": 6796,
+      "command_frame_lineage_exact": true,
+      "goal_distance_crosscheck_max_abs_m": 2.7755575615628914e-16,
+      "windows": [
+        {
+          "start_s": 0,
+          "end_s": 60,
+          "actual_duration_s": 60.0,
+          "start_distance_m": 0.36959607396520466,
+          "end_distance_m": 0.28356935123639376,
+          "net_inward_progress_m": 0.0860267227288109,
+          "Cartesian_arc_m": 1.6245779387973185,
+          "net_progress_per_arc": 0.052953275231902276,
+          "absolute_start_radial_arc_m": 0.48373047785765616,
+          "start_tangential_arc_m": 1.5040524194936455,
+          "inward_duration_s": 40.24076675577089,
+          "outward_duration_s": 19.759233244229108,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.32932055407048516,
+          "tip_speed_m_s": {
+            "mean": 0.027076298979955307,
+            "rms": 0.039518763111470546,
+            "p50": 0.017610281982628408,
+            "p95": 0.08780967263312832,
+            "max": 0.20104213355890663
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.0015520665455241141,
+            "rms": 0.014855280594055192,
+            "p50": 0.001641304390927338,
+            "p95": 0.017042956239237718,
+            "max": 0.11131903125104978
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.025067540324894097,
+            "rms": 0.03662039426784497,
+            "p50": 0.01582620677375276,
+            "p95": 0.08180479560620689,
+            "max": 0.17560776073629727
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.028340644060568677,
+            "rms": 0.044038118175611755,
+            "p50": 0.01827616620498396,
+            "p95": 0.09870053647428448,
+            "max": 0.26442833555302026
+          },
+          "command_any_component_above_dormant_048_fraction": 0.12392255564530691
+        },
+        {
+          "start_s": 60,
+          "end_s": 120,
+          "actual_duration_s": 60.0,
+          "start_distance_m": 0.28356935123639376,
+          "end_distance_m": 0.2303621600464986,
+          "net_inward_progress_m": 0.05320719118989517,
+          "Cartesian_arc_m": 0.5784420275445213,
+          "net_progress_per_arc": 0.091983619198209,
+          "absolute_start_radial_arc_m": 0.18117559603955374,
+          "start_tangential_arc_m": 0.5362591822131519,
+          "inward_duration_s": 11.720334019046277,
+          "outward_duration_s": 48.27966598095372,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.804661099682562,
+          "tip_speed_m_s": {
+            "mean": 0.009640700459075354,
+            "rms": 0.023357113162750187,
+            "p50": 0.0030133443178147626,
+            "p95": 0.04103168133776549,
+            "max": 0.15045803784599743
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.0009340889185167902,
+            "rms": 0.00903604372918972,
+            "p50": -0.0009038155627549809,
+            "p95": 0.00414645879127604,
+            "max": 0.07628177595568816
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.008937653036885866,
+            "rms": 0.021538445835799974,
+            "p50": 0.002740659037368157,
+            "p95": 0.03898312384292344,
+            "max": 0.1411586615243488
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.009333438711984094,
+            "rms": 0.028028280007336946,
+            "p50": 0.003996122457703385,
+            "p95": 0.025162391327512596,
+            "max": 0.38874569738060016
+          },
+          "command_any_component_above_dormant_048_fraction": 0.028112277233352263
+        },
+        {
+          "start_s": 120,
+          "end_s": 180,
+          "actual_duration_s": 60.0,
+          "start_distance_m": 0.2303621600464986,
+          "end_distance_m": 0.23937606968124076,
+          "net_inward_progress_m": -0.009013909634742162,
+          "Cartesian_arc_m": 0.34153463979453663,
+          "net_progress_per_arc": -0.026392373084512973,
+          "absolute_start_radial_arc_m": 0.09507938064744346,
+          "start_tangential_arc_m": 0.31623214123611704,
+          "inward_duration_s": 29.53328706882894,
+          "outward_duration_s": 30.46671293117106,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.507778548852851,
+          "tip_speed_m_s": {
+            "mean": 0.005692243996575611,
+            "rms": 0.0074454319082745265,
+            "p50": 0.004142846615619516,
+            "p95": 0.014900673971073775,
+            "max": 0.028224376892223468
+          },
+          "signed_inward_speed_m_s": {
+            "mean": -0.00012276557222778346,
+            "rms": 0.002233438899866251,
+            "p50": -5.819041825162295e-05,
+            "p95": 0.0029526749597512066,
+            "max": 0.004381339594303761
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.005270535687268618,
+            "rms": 0.007102549329734832,
+            "p50": 0.003608453278470439,
+            "p95": 0.01478554887418606,
+            "max": 0.027996020414801023
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.005576963531029672,
+            "rms": 0.007009748418791317,
+            "p50": 0.003968306720922471,
+            "p95": 0.013308857241318231,
+            "max": 0.03208163333714181
+          },
+          "command_any_component_above_dormant_048_fraction": 0.0
+        },
+        {
+          "start_s": 100,
+          "end_s": 180,
+          "actual_duration_s": 80.0,
+          "start_distance_m": 0.3034095275158587,
+          "end_distance_m": 0.23937606968124076,
+          "net_inward_progress_m": 0.06403345783461795,
+          "Cartesian_arc_m": 0.6347252143189553,
+          "net_progress_per_arc": 0.10088374684047219,
+          "absolute_start_radial_arc_m": 0.19184462545305855,
+          "start_tangential_arc_m": 0.5840649290489835,
+          "inward_duration_s": 37.37532565649599,
+          "outward_duration_s": 42.62467434350401,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.5328084292938001,
+          "tip_speed_m_s": {
+            "mean": 0.007934065178986942,
+            "rms": 0.017374719265987847,
+            "p50": 0.004070235498381596,
+            "p95": 0.019181214284038652,
+            "max": 0.13240721797885505
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.0008382016166382572,
+            "rms": 0.007160844034677616,
+            "p50": -0.00028981956429907467,
+            "p95": 0.0038665037946820796,
+            "max": 0.07628177595568816
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.007300811613112296,
+            "rms": 0.015830451108004195,
+            "p50": 0.003219388918810282,
+            "p95": 0.018887765177665418,
+            "max": 0.11746260052131814
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.006908332955999604,
+            "rms": 0.01208016568889216,
+            "p50": 0.003910708380517486,
+            "p95": 0.01620368638311864,
+            "max": 0.09342281036245648
+          },
+          "command_any_component_above_dormant_048_fraction": 0.01375997657305561
+        },
+        {
+          "start_s": 0,
+          "end_s": 180,
+          "actual_duration_s": 180.0,
+          "start_distance_m": 0.36959607396520466,
+          "end_distance_m": 0.23937606968124076,
+          "net_inward_progress_m": 0.1302200042839639,
+          "Cartesian_arc_m": 2.5445546061363764,
+          "net_progress_per_arc": 0.051175951960287666,
+          "absolute_start_radial_arc_m": 0.7599854545446534,
+          "start_tangential_arc_m": 2.356543742942914,
+          "inward_duration_s": 81.49438784364611,
+          "outward_duration_s": 98.50561215635389,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.5472534008686327,
+          "tip_speed_m_s": {
+            "mean": 0.014136414478535425,
+            "rms": 0.026849716506627503,
+            "p50": 0.006187092785779291,
+            "p95": 0.055571345578892574,
+            "max": 0.20104213355890663
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.0007877966306043738,
+            "rms": 0.010121226821609087,
+            "p50": -0.00041011222082108133,
+            "p95": 0.010151460215767814,
+            "max": 0.11131903125104978
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.01309190968301619,
+            "rms": 0.024869017755267418,
+            "p50": 0.00560401230692954,
+            "p95": 0.0513268134471895,
+            "max": 0.17560776073629727
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.014417015434527487,
+            "rms": 0.030408753704120457,
+            "p50": 0.00658214535410949,
+            "p95": 0.04894569508596959,
+            "max": 0.38874569738060016
+          },
+          "command_any_component_above_dormant_048_fraction": 0.05067827762621972
+        }
+      ],
+      "selected_intervals": {
+        "largest_tangential_speed": {
+          "index": 5380,
+          "start_s": 112.58232808904722,
+          "end_s": 112.60841853311285,
+          "request_id": 634,
+          "gradient_packet_id": "96878b0ce9539c95509c0d82d512fff8eefc5fa5af2d4697bf4d21c42f4515c8",
+          "density_id": "2eedb9369ebc0a8aed5f888bb50f4b8bccb26ff11e540a454baa60a83f79c6fa",
+          "selected_K": [
+            105.71474384509428,
+            91.42431926759623,
+            81.53835893616036,
+            98.61399647457132,
+            124.57913079176636,
+            109.37444456859743
+          ],
+          "K_source_stamp": 1792080024.1062722,
+          "gradient_source_stamp": 1792080112.3482652,
+          "source_command": [
+            -0.16693346423441807,
+            -1.7639134433144092,
+            1.9092213671822929,
+            0.09736496202429108,
+            -0.6126683500606964,
+            -0.09187793528627664
+          ],
+          "body_source_state_ids": null,
+          "actual_delta_tip": [
+            0.00021141159643289775,
+            0.0016122729035278616,
+            0.002957772153948268
+          ],
+          "actual_radial_progress_m": 0.0013967453724278434,
+          "start_radial_projection_m": 0.0014143714633543243,
+          "tangential_displacement_m": 0.0030646514087049434,
+          "tip_speed_m_s": 0.12936855067682249,
+          "signed_inward_speed_m_s": 0.05421032542782626,
+          "tangential_speed_m_s": 0.11746260052131814
+        },
+        "largest_outward_speed": {
+          "index": 6413,
+          "start_s": 158.47415644908324,
+          "end_s": 158.5101932892576,
+          "request_id": 848,
+          "gradient_packet_id": "86d200f4290f1cf6b46dcd0caee435bee1c070dc6f888b29f36655fc664c2a42",
+          "density_id": "60310f58be6ffcb7e5521e2648906e41a18eeddeef616adfdee61ab6ec6d29cc",
+          "selected_K": [
+            105.69417324017047,
+            110.61306326128951,
+            127.7115417861728,
+            105.46749655977499,
+            106.2446128823517,
+            105.59162121957988
+          ],
+          "K_source_stamp": 1792080030.8701034,
+          "gradient_source_stamp": 1792080158.0611954,
+          "source_command": [
+            -0.1495132851386913,
+            -1.6088990520226534,
+            1.710853062995106,
+            0.0532396725961965,
+            -0.5852945329109903,
+            -0.0708032238073919
+          ],
+          "body_source_state_ids": null,
+          "actual_delta_tip": [
+            2.8566139443464422e-05,
+            -7.176229681560287e-05,
+            -0.0007944963546796524
+          ],
+          "actual_radial_progress_m": -0.0002585375889452013,
+          "start_radial_projection_m": -0.00025712975534536073,
+          "tangential_displacement_m": 0.0007556947783875743,
+          "tip_speed_m_s": 0.022150721533577056,
+          "signed_inward_speed_m_s": -0.007135191490190603,
+          "tangential_speed_m_s": 0.020970062156712505
+        },
+        "largest_inward_speed": {
+          "index": 5371,
+          "start_s": 112.22426609322429,
+          "end_s": 112.26458838535473,
+          "request_id": 632,
+          "gradient_packet_id": "d804e1cf7cac3773f478a6f84e7ab39baad6c0ab8a8fdd952653e5928c3f02f7",
+          "density_id": "2eedb9369ebc0a8aed5f888bb50f4b8bccb26ff11e540a454baa60a83f79c6fa",
+          "selected_K": [
+            105.71474384509428,
+            91.42431926759623,
+            81.53835893616036,
+            98.61399647457132,
+            124.57913079176636,
+            109.37444456859743
+          ],
+          "K_source_stamp": 1792080024.1062722,
+          "gradient_source_stamp": 1792080112.0417554,
+          "source_command": [
+            -0.1878075117033145,
+            -1.7366774975256711,
+            1.9190260482056762,
+            0.11011032871847846,
+            -0.6000193143743914,
+            -0.09213489839231935
+          ],
+          "body_source_state_ids": null,
+          "actual_delta_tip": [
+            0.0006616398191403583,
+            0.0027220497981248204,
+            0.004102168489449276
+          ],
+          "actual_radial_progress_m": 0.0030495481293473237,
+          "start_radial_projection_m": 0.003075856054314068,
+          "tangential_displacement_m": 0.0039005407577300754,
+          "tip_speed_m_s": 0.12319251606569014,
+          "signed_inward_speed_m_s": 0.07628177595568816,
+          "tangential_speed_m_s": 0.09673410294018091
+        },
+        "largest_actual_speed": {
+          "index": 5376,
+          "start_s": 112.43565201433375,
+          "end_s": 112.46787226526067,
+          "request_id": 633,
+          "gradient_packet_id": "0e11348a71492557f49de8ce5350bc912d3e6ac2c5c0c79a1cc30ede0b710ce2",
+          "density_id": "2eedb9369ebc0a8aed5f888bb50f4b8bccb26ff11e540a454baa60a83f79c6fa",
+          "selected_K": [
+            105.71474384509428,
+            91.42431926759623,
+            81.53835893616036,
+            98.61399647457132,
+            124.57913079176636,
+            109.37444456859743
+          ],
+          "K_source_stamp": 1792080024.1062722,
+          "gradient_source_stamp": 1792080112.1697671,
+          "source_command": [
+            -0.17882974782354052,
+            -1.7485277727351805,
+            1.914891646588587,
+            0.10445878361164218,
+            -0.6055439981478656,
+            -0.09214681566696951
+          ],
+          "body_source_state_ids": null,
+          "actual_delta_tip": [
+            0.00038349723987896045,
+            0.002125412645935326,
+            0.0036791249485003674
+          ],
+          "actual_radial_progress_m": 0.0021279223204546116,
+          "start_radial_projection_m": 0.0021526180902813577,
+          "tangential_displacement_m": 0.0036832926563833968,
+          "tip_speed_m_s": 0.13240721797885505,
+          "signed_inward_speed_m_s": 0.06680947628757888,
+          "tangential_speed_m_s": 0.11431607608328531
+        }
+      }
+    },
+    "imu_marker": {
+      "physical_rows": 6511,
+      "command_intervals": 6510,
+      "command_frame_lineage_exact": true,
+      "goal_distance_crosscheck_max_abs_m": 2.7755575615628914e-16,
+      "windows": [
+        {
+          "start_s": 0,
+          "end_s": 60,
+          "actual_duration_s": 60.0,
+          "start_distance_m": 0.36959607396520466,
+          "end_distance_m": 0.22250249827511845,
+          "net_inward_progress_m": 0.14709357569008621,
+          "Cartesian_arc_m": 1.3951413269161994,
+          "net_progress_per_arc": 0.10543274208299726,
+          "absolute_start_radial_arc_m": 0.39295161986790444,
+          "start_tangential_arc_m": 1.320527817364877,
+          "inward_duration_s": 39.05117696430534,
+          "outward_duration_s": 20.94882303569466,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.34914705059491097,
+          "tip_speed_m_s": {
+            "mean": 0.023252355448603323,
+            "rms": 0.032682440397238346,
+            "p50": 0.014732173565435816,
+            "p95": 0.07458789002191221,
+            "max": 0.16768156603773657
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.002616215509002615,
+            "rms": 0.00929937821005977,
+            "p50": 0.0020974851995333357,
+            "p95": 0.019268060166646804,
+            "max": 0.037404973863494256
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.02200879695608128,
+            "rms": 0.03133150930334035,
+            "p50": 0.014397001761857453,
+            "p95": 0.07182890273627943,
+            "max": 0.1649338962047569
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.0231076122378079,
+            "rms": 0.03348951836083517,
+            "p50": 0.013297190040458238,
+            "p95": 0.06937615005998424,
+            "max": 0.1712704402137787
+          },
+          "command_any_component_above_dormant_048_fraction": 0.1326615259749815
+        },
+        {
+          "start_s": 60,
+          "end_s": 120,
+          "actual_duration_s": 60.0,
+          "start_distance_m": 0.22250249827511845,
+          "end_distance_m": 0.09978463411551161,
+          "net_inward_progress_m": 0.12271786415960684,
+          "Cartesian_arc_m": 0.43358451811885973,
+          "net_progress_per_arc": 0.28303101017542753,
+          "absolute_start_radial_arc_m": 0.13731350500680461,
+          "start_tangential_arc_m": 0.396379523916372,
+          "inward_duration_s": 53.76985223591328,
+          "outward_duration_s": 6.230147764086723,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.10383579606811205,
+          "tip_speed_m_s": {
+            "mean": 0.007226408635314329,
+            "rms": 0.010900604269925172,
+            "p50": 0.004667449158274541,
+            "p95": 0.01759605244953845,
+            "max": 0.08465419485606175
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.002110033654729354,
+            "rms": 0.003311031244126837,
+            "p50": 0.0013893202809070197,
+            "p95": 0.006982017885659321,
+            "max": 0.018814673443171268
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.0066063253986062,
+            "rms": 0.0103855787296581,
+            "p50": 0.004212840913968043,
+            "p95": 0.0166522022894246,
+            "max": 0.08371126329021154
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.008174355281459454,
+            "rms": 0.011419739496480253,
+            "p50": 0.006444728960270301,
+            "p95": 0.018735654623229913,
+            "max": 0.08158859374164823
+          },
+          "command_any_component_above_dormant_048_fraction": 0.008302113064564765
+        },
+        {
+          "start_s": 120,
+          "end_s": 180,
+          "actual_duration_s": 60.0,
+          "start_distance_m": 0.09978463411551161,
+          "end_distance_m": 0.04118965038136284,
+          "net_inward_progress_m": 0.05859498373414877,
+          "Cartesian_arc_m": 0.24746725058225005,
+          "net_progress_per_arc": 0.2367787397980312,
+          "absolute_start_radial_arc_m": 0.09964920558383725,
+          "start_tangential_arc_m": 0.2090666205272542,
+          "inward_duration_s": 46.33931818185374,
+          "outward_duration_s": 13.660681818146259,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.22767803030243763,
+          "tip_speed_m_s": {
+            "mean": 0.004124454176370834,
+            "rms": 0.007475279670893722,
+            "p50": 0.0017846837078300448,
+            "p95": 0.0179607300665942,
+            "max": 0.04810559907428105
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.0009996726033837484,
+            "rms": 0.0026915483917510996,
+            "p50": 0.0010038111476637992,
+            "p95": 0.004397638917662626,
+            "max": 0.018917702810663295
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.0034844436754542366,
+            "rms": 0.006973906610569074,
+            "p50": 0.0010147868598380586,
+            "p95": 0.016986031241233334,
+            "max": 0.04770541505098961
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.00485958693644345,
+            "rms": 0.006345005107972635,
+            "p50": 0.004403966387545945,
+            "p95": 0.013342293464361277,
+            "max": 0.03102049805758531
+          },
+          "command_any_component_above_dormant_048_fraction": 0.0
+        },
+        {
+          "start_s": 100,
+          "end_s": 180,
+          "actual_duration_s": 80.0,
+          "start_distance_m": 0.11782013937140848,
+          "end_distance_m": 0.04118965038136284,
+          "net_inward_progress_m": 0.07663048899004564,
+          "Cartesian_arc_m": 0.349234557150841,
+          "net_progress_per_arc": 0.21942413034729402,
+          "absolute_start_radial_arc_m": 0.12870333688364444,
+          "start_tangential_arc_m": 0.3046690974011998,
+          "inward_duration_s": 60.10917041776702,
+          "outward_duration_s": 19.890829582232982,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.24863536977791229,
+          "tip_speed_m_s": {
+            "mean": 0.004365431964385512,
+            "rms": 0.007109789505774927,
+            "p50": 0.0028840025336309707,
+            "p95": 0.015401015939125995,
+            "max": 0.04810559907428105
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.0009790375222473598,
+            "rms": 0.002477092451479527,
+            "p50": 0.0011941033036051486,
+            "p95": 0.003996614275800443,
+            "max": 0.018917702810663295
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.0038083637175149974,
+            "rms": 0.00666431690447344,
+            "p50": 0.0023534004667012582,
+            "p95": 0.013440392357512652,
+            "max": 0.04770541505098961
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.005154659647562689,
+            "rms": 0.006334299406913387,
+            "p50": 0.0047109347141201605,
+            "p95": 0.010591094003161959,
+            "max": 0.03102049805758531
+          },
+          "command_any_component_above_dormant_048_fraction": 0.0
+        },
+        {
+          "start_s": 0,
+          "end_s": 180,
+          "actual_duration_s": 180.0,
+          "start_distance_m": 0.36959607396520466,
+          "end_distance_m": 0.04118965038136284,
+          "net_inward_progress_m": 0.3284064235838418,
+          "Cartesian_arc_m": 2.076193095617309,
+          "net_progress_per_arc": 0.15817720629024518,
+          "absolute_start_radial_arc_m": 0.6299143304585462,
+          "start_tangential_arc_m": 1.9259739618085026,
+          "inward_duration_s": 139.16034738207236,
+          "outward_duration_s": 40.83965261792764,
+          "zero_distance_change_duration_s": 0.0,
+          "outward_time_fraction": 0.2268869589884869,
+          "tip_speed_m_s": {
+            "mean": 0.011534406086762828,
+            "rms": 0.020353909451885203,
+            "p50": 0.005655533818493404,
+            "p95": 0.04609215137817402,
+            "max": 0.16768156603773657
+          },
+          "signed_inward_speed_m_s": {
+            "mean": 0.0019086405890385726,
+            "rms": 0.005907221448883744,
+            "p50": 0.0013171865104687438,
+            "p95": 0.011132284756700622,
+            "max": 0.037404973863494256
+          },
+          "tangential_speed_m_s": {
+            "mean": 0.01069985534338057,
+            "rms": 0.01947784291777171,
+            "p50": 0.005084676291514742,
+            "p95": 0.043804247610717426,
+            "max": 0.1649338962047569
+          },
+          "command_component_abs_speed_rad_s": {
+            "mean": 0.012047184818570273,
+            "rms": 0.02075425562809056,
+            "p50": 0.006374292544778051,
+            "p95": 0.04634776793412532,
+            "max": 0.1712704402137787
+          },
+          "command_any_component_above_dormant_048_fraction": 0.04698787967984875
+        }
+      ],
+      "selected_intervals": {
+        "largest_tangential_speed": {
+          "index": 6130,
+          "start_s": 158.61903344281018,
+          "end_s": 158.64972397778183,
+          "request_id": 781,
+          "gradient_packet_id": "59c8b3306295ba999ba14b6ccabd8ffed50f6ec0fe932e1199b2e9960a56cde0",
+          "density_id": "cef03bdf0db9067c2001bf6fc043d569afa5a56365cfc752ca6dff60447646b6",
+          "selected_K": [
+            105.19703152043104,
+            97.52650872013423,
+            121.78650844753525,
+            103.69215894824232,
+            74.54463870983756,
+            102.12622779860077
+          ],
+          "K_source_stamp": 1792080015.166917,
+          "gradient_source_stamp": 1792080158.3823397,
+          "source_command": [
+            -0.02692312956130058,
+            -1.2715223277755845,
+            1.3924199805868835,
+            0.13778324816425916,
+            -0.9082235690721548,
+            -0.08384817782868019
+          ],
+          "body_source_state_ids": null,
+          "actual_delta_tip": [
+            -0.00011089776246309135,
+            -0.0008551401403473768,
+            0.0011971458269265378
+          ],
+          "actual_radial_progress_m": 0.0001652361677919323,
+          "start_radial_projection_m": 0.0001819849045452672,
+          "tangential_displacement_m": 0.0014641047089596856,
+          "tip_speed_m_s": 0.04807252514002387,
+          "signed_inward_speed_m_s": 0.005929675214633674,
+          "tangential_speed_m_s": 0.04770541505098961
+        },
+        "largest_outward_speed": {
+          "index": 5953,
+          "start_s": 148.03684031171724,
+          "end_s": 148.08332843799144,
+          "request_id": 744,
+          "gradient_packet_id": "d617ecbc6e0467eac05754a927a1d36ef9dadad17645113be14e6a9b97e468a7",
+          "density_id": "dd4f21e1b8492d244448d924b57fec968b9d7e5c640c4cdcf2e2f5fc18e06f2b",
+          "selected_K": [
+            105.2055127204272,
+            96.97846694163432,
+            121.95007688917303,
+            103.88179183200802,
+            76.13433166578355,
+            102.33306695232721
+          ],
+          "K_source_stamp": 1792080014.6243186,
+          "gradient_source_stamp": 1792080147.6044965,
+          "source_command": [
+            -0.01797160291923338,
+            -1.2675096428262362,
+            1.4179367813642296,
+            0.15324505696377175,
+            -0.9310901449632736,
+            -0.08184290718092263
+          ],
+          "body_source_state_ids": null,
+          "actual_delta_tip": [
+            3.7272784880526544e-05,
+            -7.117263515089844e-05,
+            -0.00023177760635800793
+          ],
+          "actual_radial_progress_m": -0.00014337900425914762,
+          "start_radial_projection_m": -0.0001431056900866956,
+          "tangential_displacement_m": 0.00019923961644444915,
+          "tip_speed_m_s": 0.00527677286813954,
+          "signed_inward_speed_m_s": -0.003078327770033651,
+          "tangential_speed_m_s": 0.004285817313205642
+        },
+        "largest_inward_speed": {
+          "index": 5408,
+          "start_s": 123.57474727882072,
+          "end_s": 123.64571557985619,
+          "request_id": 638,
+          "gradient_packet_id": "655ff79fb82b5fab35e8ac9427a4aafe466f7113c39aea677ab082b7f5dfa89b",
+          "density_id": "c8d051695244b63620e0c27f7efb96bb52dd83a806105b72b14fc7d009f1329c",
+          "selected_K": [
+            105.23939109505817,
+            95.76631176887705,
+            121.94337025238794,
+            104.49369028006862,
+            83.01780298273515,
+            103.02276542834908
+          ],
+          "K_source_stamp": 1792080013.215925,
+          "gradient_source_stamp": 1792080123.1862926,
+          "source_command": [
+            0.02083915997399305,
+            -1.3183737935102857,
+            1.5313943948648112,
+            0.19015816079293685,
+            -0.9405291065034301,
+            -0.11483206608211703
+          ],
+          "body_source_state_ids": null,
+          "actual_delta_tip": [
+            -0.0001500875992683781,
+            -0.0011967582954904299,
+            0.0026061864067286056
+          ],
+          "actual_radial_progress_m": 0.0013090988973238488,
+          "start_radial_projection_m": 0.0013425572279665925,
+          "tangential_displacement_m": 0.002538602840448053,
+          "tip_speed_m_s": 0.040465289203718176,
+          "signed_inward_speed_m_s": 0.018917702810663295,
+          "tangential_speed_m_s": 0.0357709400310919
+        },
+        "largest_actual_speed": {
+          "index": 6131,
+          "start_s": 158.64972397778183,
+          "end_s": 158.68203259678558,
+          "request_id": 781,
+          "gradient_packet_id": "59c8b3306295ba999ba14b6ccabd8ffed50f6ec0fe932e1199b2e9960a56cde0",
+          "density_id": "cef03bdf0db9067c2001bf6fc043d569afa5a56365cfc752ca6dff60447646b6",
+          "selected_K": [
+            105.19703152043104,
+            97.52650872013423,
+            121.78650844753525,
+            103.69215894824232,
+            74.54463870983756,
+            102.12622779860077
+          ],
+          "K_source_stamp": 1792080015.166917,
+          "gradient_source_stamp": 1792080158.3823397,
+          "source_command": [
+            -0.02692312956130058,
+            -1.2715223277755845,
+            1.3924199805868835,
+            0.13778324816425916,
+            -0.9082235690721548,
+            -0.08384817782868019
+          ],
+          "body_source_state_ids": null,
+          "actual_delta_tip": [
+            -0.00011557737571443738,
+            -0.0008491457497693811,
+            0.0012966148946568223
+          ],
+          "actual_radial_progress_m": 0.00018156132502933353,
+          "start_radial_projection_m": 0.00020017540705099033,
+          "tangential_displacement_m": 0.0015412808392977358,
+          "tip_speed_m_s": 0.04810559907428105,
+          "signed_inward_speed_m_s": 0.006195727741498333,
+          "tangential_speed_m_s": 0.047704943350230455
+        }
+      }
+    }
+  }
+}

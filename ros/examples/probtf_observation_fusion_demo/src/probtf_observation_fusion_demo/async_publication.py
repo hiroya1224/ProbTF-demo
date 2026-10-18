@@ -54,6 +54,7 @@ def publication_specification(session, case):
         world_base=scene.world_base, marker=scene.marker, goal=scene.goal,
         tip_offset=scene.tip_offset, imu_target_link=scene.imu_target_link,
         duration=scene.duration,
+        direct_camera_preview=bool(getattr(session, 'direct_camera_preview', False)),
         display_hz=float(session.settings['display']['publish_hz']))
 
 
@@ -92,7 +93,11 @@ class PublicationRenderer:
         self.distributions = publisher('/observation_fusion/distributions', MarkerArray, queue_size=4, latch=True)
         self.snapshots = publisher('/observation_fusion/snapshot', String, queue_size=4, latch=True)
         self.stiffness = publisher('/observation_fusion/stiffness', String, queue_size=4, latch=True)
-        self.images = publisher('/observation_fusion/detection_image', Image, queue_size=1, latch=True)
+        # A live session publishes the same captured preview directly in its
+        # acquisition process.  A second publisher here could replay older
+        # queued images after that independent live image has already arrived.
+        self.images = (None if specification.get('direct_camera_preview', False) else
+            publisher('/observation_fusion/detection_image', Image, queue_size=1, latch=True))
         self.raw_images = publisher('/observation_fusion/raw_image', Image, queue_size=4)
         self.raw_imu = publisher('/observation_fusion/imu', Imu, queue_size=32)
         self.joint_commands = publisher('/observation_fusion/joint_command', JointState, queue_size=32)
@@ -160,7 +165,7 @@ class PublicationRenderer:
         # The live image has already been acquired and archived.  Send its
         # unchanged pixels/source stamp before scene rendering and snapshot
         # serialization, without delaying or discarding any raw publication.
-        if packet.preview is not None:
+        if self.images is not None and packet.preview is not None:
             index, image, stamp = packet.preview
             if index != self.published_image:
                 with self.monitor.stage('preview_publish', **context,

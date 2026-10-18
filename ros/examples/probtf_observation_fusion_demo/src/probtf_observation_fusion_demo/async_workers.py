@@ -985,7 +985,7 @@ def acquisition_worker(requests, replies, specification, database, output):
     """
     cv2.setNumThreads(1)
     archive_queue, archive_failed = Queue(), Event()
-    writer = None
+    writer, live_preview = None, None
 
     def archive_requests():
         store = None
@@ -1079,6 +1079,9 @@ def acquisition_worker(requests, replies, specification, database, output):
                 store.close()
 
     try:
+        from .camera_live_preview import make_live_preview_publisher
+        live_preview = make_live_preview_publisher(dict(specification,
+            camera_live_preview_output=str(output)))
         board = specification['board']
         camera = (BoardCamera(specification['texture'], board,
                     specification['camera'], specification['seed'])
@@ -1117,6 +1120,10 @@ def acquisition_worker(requests, replies, specification, database, output):
             preview = _camera_preview(image, request['frame_index'], request['stamp'],
                 dictionary, parameters, detector, specification['marker_ids'])
             previewed = time.monotonic()
+            if live_preview is not None:
+                live_preview.publish(preview,
+                    received_wall_stamp=request['received_wall_stamp'],
+                    ready_wall_stamp=time.time())
             image_sha256 = hashlib.sha256(image.tobytes()).hexdigest()
             diagnostics = dict(camera.diagnostics)
             replies.put(dict(kind='preview_ready', sensor_kind=kind,
@@ -1147,3 +1154,5 @@ def acquisition_worker(requests, replies, specification, database, output):
             # A failed writer has already emitted an explicit failure reply.
             archive_queue.put(None)
             writer.join()
+        if live_preview is not None:
+            live_preview.close()

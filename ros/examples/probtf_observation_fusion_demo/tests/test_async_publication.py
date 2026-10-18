@@ -238,6 +238,7 @@ def live_wrapper(render_context,monkeypatch,tmp_path):
             self.output=Path(output);self.output.mkdir(parents=True,exist_ok=True)
             self.context=Context();self.period=1/120.;self.rates={'joint':40.}
             self.settings={'display':{'publish_hz':10.}}
+            self.direct_camera_preview=kwargs.get('direct_camera_preview',False)
             self.scene=SimpleNamespace(config={},robot_description='',urdf='robot.urdf',
                 texture_path='tag.png',world_base=np.eye(4),marker=np.eye(4),goal=np.zeros(3),
                 tip_offset=np.zeros(3),imu_target_link='link_3',duration=kwargs.get('duration'),
@@ -282,6 +283,61 @@ def test_main_timer_only_enqueues_deltas_and_new_control_without_drawing(live_wr
     assert second.metadata['publication_dispatch']['send_sequence']==1
     live.advance(None)
     assert current.steps==1 and current.started is not None
+
+
+def test_live_preview_route_bypasses_coordinator_publication_without_dropping_raw(live_wrapper):
+    live, sessions, _ = live_wrapper
+    current = live.session
+    assert current.direct_camera_preview
+    current.preview_capture_index = 0
+    current.preview_image = np.arange(18, dtype=np.uint8).reshape(2, 3, 3)
+    raw = dict(kind='image', stamp=current.frame.stamp,
+        frame_index=0, image=current.preview_image)
+    current.raw_publications = [raw]
+    live.publish(None)
+    packet = live.publication_requests.get_nowait()
+    assert packet.preview is None
+    assert packet.raw_events == (raw,)
+    assert current.preview_capture_index == 0
+    assert current.raw_publications == []
+    assert async_publication.publication_specification(current, live.case)['direct_camera_preview']
+
+
+@pytest.mark.parametrize('direct', [False, True])
+def test_headless_default_and_live_flag_reach_the_actual_acquisition_specification(tmp_path, direct):
+    options = dict(direct_camera_preview=True) if direct else {}
+    session = async_motion.AsyncMotionSession(
+        Path(__file__).resolve().parents[1]/'config/marker.yaml',
+        tmp_path/('routing_'+str(direct)), context=Context(), duration=1., **options)
+    try:
+        assert session.direct_camera_preview is direct
+        assert session.workers[2].args[2]['direct_camera_preview'] is direct
+        assert async_publication.publication_specification(session, 'marker')['direct_camera_preview'] is direct
+    finally:
+        session.close()
+
+
+def test_direct_preview_owner_disables_queued_renderer_images_but_preserves_raw(render_context, acquired):
+    original, clock, control, source = render_context
+    publishers = []
+    def publisher(*args, **kwargs):
+        result = Publisher(*args, **kwargs)
+        publishers.append(result)
+        return result
+    renderer = PublicationRenderer(dict(original.specification, direct_camera_preview=True),
+        scene_factory=lambda _:SimpleNamespace(trajectory=[]), display_factory=Display,
+        publisher_factory=publisher, clock=lambda:clock[0])
+    assert renderer.images is None
+    assert '/observation_fusion/detection_image' not in [item.topic for item in publishers]
+    pixels = acquired[1].image
+    event = dict(kind='image', stamp=source.prior.stamp, frame_index=0, image=pixels)
+    ack = renderer.process(packet_for(control, raw=(event,),
+        preview=(0, pixels, source.prior.stamp)))
+    assert ack['published_image'] is None
+    assert ack['raw_counts'] == dict(joint=0, imu=0, image=1)
+    assert renderer.raw_images.messages[0].data == pixels.tobytes()
+    assert renderer.raw_images.messages[0].header.stamp.to_sec() == source.prior.stamp
+    assert renderer.display.calls
 
 
 def test_publication_error_stops_physics_and_records_original_failure(live_wrapper):
@@ -360,6 +416,7 @@ def test_replay_and_close_replace_both_sessions_and_publication_processes(live_w
     assert old.closed and not old_worker.is_alive()
     assert live.session is not old and live.publication_process is not old_worker
     assert live.session.duration==3.
+    assert live.session.direct_camera_preview
     assert live.trajectory_transmitted==0 and live.publication_sequence==0
     assert live.session.output.name=='live_replay_001'
     live.close();live.close()

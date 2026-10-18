@@ -1,0 +1,43 @@
+{
+  "scope": "complete180sphysicalmotion; allrawarchived; body/Kestimationnotdrained",
+  "cases": {
+    "marker": {
+      "output": "/tmp/probtf_camera_pipeline_rviz_recovered_20261019/marker",
+      "motion_s": 180.0,
+      "preview_count": 1786,
+      "preview_age_s": {
+        "median": 0.09072995185852051,
+        "p95": 0.5610325336456299,
+        "p99": 3.125804901123047,
+        "maximum": 5.061561346054077
+      },
+      "all_raw_archived": true,
+      "acquired": 9502,
+      "archived": 9502,
+      "body_and_K_drained": false,
+      "reached": false,
+      "final_physical_error_m": 0.09483917476251832,
+      "failure": null,
+      "stiffness_failure": null
+    },
+    "imu_marker": {
+      "output": "/tmp/probtf_camera_pipeline_rviz_recovered_20261019/imu_marker",
+      "motion_s": 180.0,
+      "preview_count": 1753,
+      "preview_age_s": {
+        "median": 0.09370899200439453,
+        "p95": 0.5061650276184082,
+        "p99": 1.5611557960510254,
+        "maximum": 3.2275259494781494
+      },
+      "all_raw_archived": true,
+      "acquired": 9147,
+      "archived": 9147,
+      "body_and_K_drained": false,
+      "reached": false,
+      "final_physical_error_m": 0.05907549441843267,
+      "failure": null,
+      "stiffness_failure": null
+    }
+  }
+}

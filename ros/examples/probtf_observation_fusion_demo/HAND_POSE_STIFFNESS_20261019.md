@@ -114,3 +114,5 @@ Marker単独とIMU併用を各180物理秒実行した。実時間の非同期�
 小容量の全数照合・出自・未完了件数は [live_summary.json](validation/hand_pose_stiffness_20261019/live_summary.json)、再集計は `validation/tools/summarize_hand_stiffness_runs.py`。実行中のsourceは不変だった。実行後に修正した記録の説明文字列と、後続のカメラpipeline改修を本試行の実行sourceへ付け替えない。
 
 専用テスト22件で、局所密度比・全cross・同一手先law・方位差・複数chart・数値勾配と独立したPinocchio棒先端FK/Jacobianを確認した。既存全体の初回回帰では1325件通過し、旧全身体式の人工fixture2件がhand_path欠落で失敗した。旧式を検証するfixtureへ明示的なlegacy指定を加え、関連52件の再実行で全件通過した。真値注入禁止の42件も確認した。
+
+後続のカメラ直接配信を含む最終sourceでは、観測融合デモとvalidation/toolsの全回帰1,350件が通過した。手先K因子・観測の時系列・分布同一性の検証を含む。旧全身体式へ戻した結果ではない。

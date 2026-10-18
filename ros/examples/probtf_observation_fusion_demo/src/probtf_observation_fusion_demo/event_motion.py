@@ -51,8 +51,10 @@ class AsyncMotionSession:
     def __init__(self, observations_path, output, *, imu_target_link=None,
                  duration=None, clock=time.monotonic, context=None, control_mode=None,
                  running_gradient_options=None, visibility_factor_options=None,
-                 event_batching=None, joint_body_batch=None, observation_selection_options=None):
+                 event_batching=None, joint_body_batch=None, observation_selection_options=None,
+                 direct_camera_preview=False):
         self.clock, self.output = clock, Path(output)
+        self.direct_camera_preview = bool(direct_camera_preview)
         self.output.mkdir(parents=True, exist_ok=False)
         from .runtime_monitor import RuntimeMonitor
         self.runtime_monitor = RuntimeMonitor(self.output, 'coordinator')
@@ -118,7 +120,8 @@ class AsyncMotionSession:
                if board.get('enabled', False) else (int(self.scene.config['marker']['id']),))
         specification = dict(board=board, camera=self.scene.config['camera'],
             texture=str(self.scene.texture_path), seed=self.scene.config['seed'],
-            marker_size=self.scene.config['marker']['size'], marker_ids=ids)
+            marker_size=self.scene.config['marker']['size'], marker_ids=ids,
+            direct_camera_preview=self.direct_camera_preview)
         self.workers = (
             self.context.Process(target=event_inference_worker,
                 args=(self.estimate_requests,self.estimate_replies)+common+(
@@ -1050,6 +1053,8 @@ class AsyncMotionSession:
             camera_preview_age_s=(None if self.preview_capture_index is None else
                 self.frame.stamp-self.frames[self.preview_capture_index].stamp),
             camera_preview_waits_for_durable_archive=False,
+            camera_preview_publication_route=('acquisition_worker_direct_ros'
+                if self.direct_camera_preview else 'coordinator_publication_fifo'),
             all_captured_sensor_data_archived=self.acquisition_completed==self.acquisition_submitted,
             all_enabled_observations_processed=self.estimation_finished,
             observation_scheduling='all events in acquisition order; no latest-only selection',

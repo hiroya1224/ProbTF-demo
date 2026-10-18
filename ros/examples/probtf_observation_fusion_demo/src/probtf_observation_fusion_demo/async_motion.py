@@ -39,7 +39,8 @@ class AsyncMotionLive:
         self.session = AsyncMotionSession(observations_path, output,
             imu_target_link=imu_target_link, duration=duration,control_mode=control_mode,
             running_gradient_options=running_gradient_options,visibility_factor_options=visibility_factor_options,
-            observation_selection_options=observation_selection_options)
+            observation_selection_options=observation_selection_options,
+            direct_camera_preview=True)
         self._start_publication()
         self.service = rospy.Service('/observation_fusion/replay', Trigger, self.replay)
         self.physics_timer = rospy.Timer(rospy.Duration(self.session.period), self.advance)
@@ -102,7 +103,8 @@ class AsyncMotionLive:
                              ('body_source_state_ids', 'goal_source_state_ids')})
         preview = None
         index = session.preview_capture_index
-        if index is not None and index != self._sent_preview_index:
+        if (not getattr(session, 'direct_camera_preview', False)
+                and index is not None and index != self._sent_preview_index):
             preview = (index, session.preview_image, session.frames[index].stamp)
         metadata = session.manifest() if current is not None else None
         if metadata is not None:
@@ -216,7 +218,8 @@ class AsyncMotionLive:
                 imu_target_link=self.imu_target_link, duration=self.duration,
                 control_mode=self.control_mode,running_gradient_options=self.running_gradient_options,
                 visibility_factor_options=self.visibility_factor_options,
-                observation_selection_options=self.observation_selection_options)
+                observation_selection_options=self.observation_selection_options,
+                direct_camera_preview=True)
             self._start_publication()
             self.autostart = True
             return TriggerResponse(True, 'Starting a fresh asynchronous experiment.')

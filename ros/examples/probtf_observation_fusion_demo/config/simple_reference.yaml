@@ -1,0 +1,25 @@
+# Active only for execution_mode=simple. Historical modes retain their config.
+# S(c) is the sole task score; these are finite numerical step settings.
+observation_update:
+  # Same fixed-prior variational objective. Frozen-image comparisons found
+  # large residuals at 24 iterations; this budget is not a convergence claim.
+  max_iterations: 160
+selection:
+  max_step_rad: 0.02
+  difference_step_rad: 0.0001
+  backtracking_steps: 8
+  duration_s: 0.5
+stiffness:
+  # One current factor and the previous full log-K Gaussian only.
+  simple_gaussian_max_iterations: 5
+  simple_gaussian_curvature_step: 0.0001
+  simple_gaussian_max_line_search: 8
+  # Numerical starts for the same current posterior; includes a coupled
+  # Cholesky-column sum so an auxiliary joint-stop plateau can be left.
+  simple_gaussian_prior_seed_scan: true
+# Measured body image update ~188ms/frame: 12fps exceeds one estimator core.
+# Keep every raw event; when a frontier is backlogged, spread the retained
+# observations over its complete original time span, never latest-only.
+observation_selection:
+  mode: uniform_time
+  max_events_per_sensor: {imu: 8, image: 2}

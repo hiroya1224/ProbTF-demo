@@ -1,0 +1,198 @@
+{
+  "scope": "Frozen first acquired V2 image, same q/t/image/law/prior; optimization initialization comparison only. No physical reaching trial and no inference truth input.",
+  "production_changes": "restore deterministic prior-derived plus/minus Cholesky-column and unnormalized column-sum initialization; unchanged current factor and single Gaussian projection",
+  "cases": {
+    "marker": {
+      "event_id": "image:00000000",
+      "source_stamp": 1792080000.0,
+      "source_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "comparisons": [
+        {
+          "scan": false,
+          "wall_s": 0.028166817966848612,
+          "status": "updated_single_gaussian",
+          "K": [
+            22.36067977499789,
+            380.9501424428494,
+            22.312708166949633,
+            22.481107216505304,
+            149.02495774481207,
+            21.901086681569836
+          ],
+          "theta": [
+            -0.15,
+            -1.8305784632466515,
+            2.7925,
+            0.003397949775890807,
+            -0.9247655323364263,
+            0.005628323575590501
+          ],
+          "active": [
+            false,
+            false,
+            true,
+            false,
+            false,
+            false
+          ],
+          "model_hand_position": [
+            0.6956803614034999,
+            -0.10663728346272365,
+            0.2667452249474748
+          ],
+          "selected_seed": "prior_mean",
+          "seed_scan_s": 3.2354146242141724e-06,
+          "factor_evaluations": 19,
+          "stationarity_score_inf": 6.072912642357817,
+          "stationarity_tolerance_met": false,
+          "prior_mean_sha256": "85288f3b00a88bf93c75e8f1e401671cf693228ba12435c9913e36335f9f7b58",
+          "prior_covariance_sha256": "8ffbbf710aa4a4f2a76c60fe75f8377e755868ef1c390962073fe4113fcd1e3b"
+        },
+        {
+          "scan": true,
+          "wall_s": 0.03548550698906183,
+          "status": "updated_single_gaussian",
+          "K": [
+            77.53888028658442,
+            119.49363345221418,
+            77.43617395002069,
+            77.98197416910264,
+            88.91617103803813,
+            77.04387216076887
+          ],
+          "theta": [
+            -0.15,
+            -1.7492992816479072,
+            2.5782329540054363,
+            0.0010905270986394124,
+            -0.9079861740689716,
+            0.0015868817048459397
+          ],
+          "active": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "model_hand_position": [
+            0.7678776458149461,
+            -0.11652717175398741,
+            0.3729454214001038
+          ],
+          "selected_seed": "plus_Cholesky_column_sum",
+          "seed_scan_s": 0.010758502874523401,
+          "factor_evaluations": 33,
+          "stationarity_score_inf": 5.749277682890676,
+          "stationarity_tolerance_met": false,
+          "prior_mean_sha256": "85288f3b00a88bf93c75e8f1e401671cf693228ba12435c9913e36335f9f7b58",
+          "prior_covariance_sha256": "8ffbbf710aa4a4f2a76c60fe75f8377e755868ef1c390962073fe4113fcd1e3b"
+        }
+      ]
+    },
+    "imu_marker": {
+      "event_id": "image:00000000",
+      "source_stamp": 1792080000.0,
+      "source_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "comparisons": [
+        {
+          "scan": false,
+          "wall_s": 0.027187053114175797,
+          "status": "updated_single_gaussian",
+          "K": [
+            22.36067977499789,
+            371.4959748360836,
+            22.282556023114754,
+            22.421592309767302,
+            142.78758742155625,
+            21.84647074267313
+          ],
+          "theta": [
+            -0.15,
+            -1.8300652059253444,
+            2.7925,
+            0.0034048434899179394,
+            -0.9236633063241856,
+            0.005642149562363349
+          ],
+          "active": [
+            false,
+            false,
+            true,
+            false,
+            false,
+            false
+          ],
+          "model_hand_position": [
+            0.6956404262608354,
+            -0.10663303562744864,
+            0.26578371756259606
+          ],
+          "selected_seed": "prior_mean",
+          "seed_scan_s": 3.285706043243408e-06,
+          "factor_evaluations": 19,
+          "stationarity_score_inf": 6.117840983336822,
+          "stationarity_tolerance_met": false,
+          "prior_mean_sha256": "85288f3b00a88bf93c75e8f1e401671cf693228ba12435c9913e36335f9f7b58",
+          "prior_covariance_sha256": "8ffbbf710aa4a4f2a76c60fe75f8377e755868ef1c390962073fe4113fcd1e3b"
+        },
+        {
+          "scan": true,
+          "wall_s": 0.036757532972842455,
+          "status": "updated_single_gaussian",
+          "K": [
+            56.88408587846276,
+            156.40317114532087,
+            75.6746204252031,
+            57.43058523579625,
+            68.68555077555527,
+            56.054960732349876
+          ],
+          "theta": [
+            -0.15,
+            -1.7767742731165184,
+            2.587197277209651,
+            0.0015268320265304487,
+            -0.8956512283651007,
+            0.002182151848131931
+          ],
+          "active": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "model_hand_position": [
+            0.7638641337979915,
+            -0.1161037180758408,
+            0.379968286330266
+          ],
+          "selected_seed": "plus_Cholesky_column_sum",
+          "seed_scan_s": 0.010941388085484505,
+          "factor_evaluations": 34,
+          "stationarity_score_inf": 1.73055355572574,
+          "stationarity_tolerance_met": false,
+          "prior_mean_sha256": "85288f3b00a88bf93c75e8f1e401671cf693228ba12435c9913e36335f9f7b58",
+          "prior_covariance_sha256": "8ffbbf710aa4a4f2a76c60fe75f8377e755868ef1c390962073fe4113fcd1e3b"
+        }
+      ]
+    }
+  }
+}

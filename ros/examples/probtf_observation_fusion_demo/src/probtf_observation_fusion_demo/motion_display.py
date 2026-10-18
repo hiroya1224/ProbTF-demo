@@ -80,6 +80,7 @@ class MotionDisplay:
             'waiting_for_control': 'WAITING FOR CONTROL',
             'waiting_for_goal': 'WAITING FOR OBSERVED GOAL',
             'running_gradient': 'RUNNING GRADIENT',
+            'simple_reference': 'FINITE POSITION STEP',
         }
         if phase not in labels:
             raise ValueError('Unknown physical reaching phase: '+str(phase))
@@ -91,7 +92,7 @@ class MotionDisplay:
               or not all(key in source for key in ('source_stamp', 'source_command',
                   'source_version', 'body_source_state_ids', 'goal_source_state_ids'))):
             raise ValueError('A reaching phase requires the full adopted control source.')
-        if execution is not None and (reported or execution.get('execution_mode') == 'async'):
+        if execution is not None and (reported or execution.get('execution_mode') in ('async', 'simple')):
             if (not all(key in execution for key in keys)
                     or any(execution[key] != trajectory_row[key] for key in keys)):
                 raise AssertionError('Physical and execution reaching phase/control source differ.')
@@ -250,6 +251,10 @@ class MotionDisplay:
     def _density_stiffness_marker(snapshot, record, versions):
         """Distinguish the full retained density from a local proposal fit."""
         posterior = record['posterior']
+        actual_density = posterior if posterior is not None else record.get('retained_prior')
+        if actual_density is not None and actual_density.get('representation') == 'single normalized full-covariance Gaussian in log K':
+            from .simple_display import simple_stiffness_marker
+            return simple_stiffness_marker(snapshot, record, versions)
         if posterior is None:
             if (record.get('prior_retained') is not True
                     or record.get('retained_prior') != record['prior']
@@ -357,7 +362,7 @@ class MotionDisplay:
         # Reject a stale or unrelated auxiliary update before publishing any
         # frame. The supplied record is the updater's own object, not a second
         # estimate reconstructed from the physical robot or its stiffness.
-        if execution is not None and execution.get('execution_mode') == 'async':
+        if execution is not None and execution.get('execution_mode') in ('async', 'simple'):
             if (execution['physical_stamp'] != frame.stamp
                     or tuple(execution['command']) != tuple(frame.command)
                     or execution['displayed_prediction_stamp'] != snapshot.stamp
@@ -445,6 +450,13 @@ class MotionDisplay:
                     if execution['finished']:
                         clock = ('FINISHED: wall-clock motion | ' if execution['estimation_drained']
                                  else 'FINISHED: motion | draining queued observations\n')+clock
+                    elif execution.get('startup_phase') == 'initial_prior':
+                        clock = 'INITIAL PRIOR | BEFORE OBSERVATIONS\n'+clock
+                elif execution is not None and execution['execution_mode'] == 'simple':
+                    clock = 'Simple reference | motion {:.1f} Hz | camera {:.1f} Hz'.format(
+                        execution['actual_motion_hz'], execution['actual_camera_hz'])
+                    if execution['finished']:
+                        clock = ('FINISHED | ' if execution['estimation_drained'] else 'FINISHED | draining observations | ')+clock
                     elif execution.get('startup_phase') == 'initial_prior':
                         clock = 'INITIAL PRIOR | BEFORE OBSERVATIONS\n'+clock
                 elif execution is not None and execution['execution_mode'] == 'live':

@@ -1,0 +1,110 @@
+{
+  "scope": "read-only replay of the next original chronological event using its saved prior and all actual command intervals",
+  "physical_truth_used": false,
+  "prior_or_covariance_changed": false,
+  "production_changed_by_audit": false,
+  "inputs": "/tmp/probtf_v4_covariance_failure_inputs.json",
+  "script": "/tmp/probtf_v4_covariance_audit.py",
+  "independent_native_algebra": "/tmp/probtf_schur_eigen_audit.cpp",
+  "cases": [
+    {
+      "case": "marker",
+      "source_event": "joint:00005609",
+      "failed_event": "imu:00005610",
+      "failed_kind": "imu",
+      "source_time_s": 47.02787184715271,
+      "failed_time_s": 47.03609657287598,
+      "source_state_id_exact_match": true,
+      "actual_ledger_count": 1,
+      "state_id": "74dbae89d8fb2f9855a0e6e7203765b18c0268338f5fd291defbc6e63772e11c",
+      "input_P_min_eigenvalue": -1.0717427893855634e-18,
+      "input_P_max_eigenvalue": 0.24448412053754334,
+      "P11_condition": 9857.607885241157,
+      "direct_point_eigenvalues": [
+        1.6363250189457968e-06,
+        1.5733455172063296e-05,
+        0.021606399790840176
+      ],
+      "conditional_point_eigenvalues_numpy": [
+        1.6363250124715545e-06,
+        1.57334551719022e-05,
+        0.021606399790838362
+      ],
+      "conditional_direct_maxdiff_numpy": 7.643191635153812e-15,
+      "native_query_error": "ValueError: Covariance has a significant negative eigenvalue.",
+      "python_reference_query_error": null,
+      "native_eigen_reproduction": {
+        "old_cond_min_eigenvalue": -1.0455774891516447e-14,
+        "old_cond_support_tolerance": 1.0267943011337748e-14,
+        "whitened_cond_min_eigenvalue": 1.4268314317250817e-18
+      },
+      "P_J_artifact": "/tmp/probtf_v4_failure_marker_transported.npz"
+    },
+    {
+      "case": "imu_marker",
+      "source_event": "joint:00005238",
+      "failed_event": "joint:00005241",
+      "failed_kind": "joint",
+      "source_time_s": 43.97932481765747,
+      "failed_time_s": 44.00427174568176,
+      "source_state_id_exact_match": true,
+      "actual_ledger_count": 3,
+      "state_id": "2a3c34f7d5f7ead16e7b007117788f7f4786acea3cf1fb334ce3dd193ffa97cd",
+      "input_P_min_eigenvalue": -1.0137074701319812e-20,
+      "input_P_max_eigenvalue": 0.4688423121153154,
+      "P11_condition": 42985.17954354457,
+      "direct_point_eigenvalues": [
+        3.702109996023472e-07,
+        3.1815489019908953e-06,
+        0.025355253213044483
+      ],
+      "conditional_point_eigenvalues_numpy": [
+        3.702109995871421e-07,
+        3.181548898586616e-06,
+        0.02535525321304096
+      ],
+      "conditional_direct_maxdiff_numpy": 4.192230330241076e-15,
+      "native_query_error": "ValueError: Covariance has a significant negative eigenvalue.",
+      "python_reference_query_error": null,
+      "native_eigen_reproduction": {
+        "old_cond_min_eigenvalue": -1.3736235708976875e-14,
+        "old_cond_support_tolerance": 1.0213191546309762e-14,
+        "whitened_cond_min_eigenvalue": 3.808399425114541e-17
+      },
+      "P_J_artifact": "/tmp/probtf_v4_failure_imu_marker_transported.npz"
+    }
+  ],
+  "same_inputs_after_demo_native_fix": [
+    {
+      "case": "marker",
+      "source_state_id_exact_match": true,
+      "failed_event": "imu:00005610",
+      "failed_time_s": 47.03609657287598,
+      "state_id": "74dbae89d8fb2f9855a0e6e7203765b18c0268338f5fd291defbc6e63772e11c",
+      "native_query_error": null,
+      "python_query_error": null,
+      "conditional_direct_point_maxdiff": 7.643191635153812e-15,
+      "direct_point_eigenvalues": [
+        1.6363250189457968e-06,
+        1.5733455172063296e-05,
+        0.021606399790840176
+      ]
+    },
+    {
+      "case": "imu_marker",
+      "source_state_id_exact_match": true,
+      "failed_event": "joint:00005241",
+      "failed_time_s": 44.00427174568176,
+      "state_id": "2a3c34f7d5f7ead16e7b007117788f7f4786acea3cf1fb334ce3dd193ffa97cd",
+      "native_query_error": null,
+      "python_query_error": null,
+      "conditional_direct_point_maxdiff": 4.192230330241076e-15,
+      "direct_point_eigenvalues": [
+        3.702109996023472e-07,
+        3.1815489019908953e-06,
+        0.025355253213044483
+      ]
+    }
+  ],
+  "fixed_library_sha256": "635be7ea261b335ec12093b86e2d0d283b660ff756d8235373bac1935d0fdfa2"
+}

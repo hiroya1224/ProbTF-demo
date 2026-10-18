@@ -1,0 +1,1042 @@
+{
+  "audited_wall_stamp": 1792348673.3890977,
+  "method": "saved original observations, finite-command intervals and one current Gaussian K record per update; uniform-time posthoc FK samples reuse saved auxiliary equilibrium angles; no estimator/control rerun or truth injection",
+  "production_source_comparison": {
+    "available": true,
+    "path": "/tmp/probtf_simple_reference_v5_rviz_20261019/source_manifest.json",
+    "manifest_sha256": "1b033a2faee950092e79e226118f45ea7e01b8d7d077a36048510f859b61dbe5",
+    "file_count": 87,
+    "rviz_file_count": 0,
+    "changed_paths": [],
+    "missing_paths": []
+  },
+  "protected_core_and_rviz": {
+    "available": true,
+    "path": "/tmp/probtf_no_concentration_authorized_baseline_20261018.json",
+    "manifest_sha256": "7f64b89bb186c74bef9dc60e8241e2546cda3612a506c2507137e157072d73a9",
+    "file_count": 214,
+    "rviz_file_count": 43,
+    "changed_paths": [],
+    "missing_paths": []
+  },
+  "limitations": [
+    "Current JSONL byte frontiers and physical completion are recorded separately from full raw/estimation drain.",
+    "K is an effective auxiliary-model parameter; orientation fit and physical hand accuracy are separate measurements.",
+    "Moment queries use the existing Bingham-derived local approximation; no exact nonlinear distribution claim.",
+    "Posthoc physical scoring does not install true K, realized joints or target truth into estimation.",
+    "Matching IDs, finite reference checks and passing audits do not establish arrival or stability.",
+    "Collision checking remains a separately reported simulation setting."
+  ],
+  "compiled_library_comparison": {
+    "available": true,
+    "path": "/tmp/probtf_simple_reference_v5_rviz_20261019/source_manifest.json",
+    "manifest_sha256": "1b033a2faee950092e79e226118f45ea7e01b8d7d077a36048510f859b61dbe5",
+    "file_count": 5,
+    "rviz_file_count": 0,
+    "changed_paths": [],
+    "missing_paths": []
+  },
+  "full_report_outside_git": "/tmp/probtf_simple_reference_v5_rviz_20261019/final_summary.json",
+  "runs": [
+    {
+      "case": "marker",
+      "run_directory": "/tmp/probtf_simple_reference_v5_rviz_20261019/marker",
+      "physical_posthoc": {
+        "elapsed_s": 180.0,
+        "saved_physical_source_clock_hz": 118.26666666666667,
+        "minimum_error_m": 0.04275079336533019,
+        "final_error_m": 0.057496170065129595,
+        "minimum_error_original_stamp": 1792080044.6751451,
+        "reached_at_least_once": false,
+        "terminal_reached": false,
+        "collision_checking_enabled": false
+      },
+      "counts": {
+        "physical_rows": 21289,
+        "processed_event_rows": 14647,
+        "fused_observation_events": 51,
+        "goal_observed_rows": 14645,
+        "K_Gaussian_updates": 50,
+        "K_unavailable_projection_rows": 1,
+        "K_numeric_changes": 50,
+        "events_without_K_update_record": 14595,
+        "selected_plan_rows": 261,
+        "selected_goal_available_plans": 259,
+        "actual_command_intervals": 21288,
+        "posthoc_model_samples": 7,
+        "posthoc_model_samples_unavailable": 0
+      },
+      "source_law_and_control_checks": {
+        "duplicate_processed_event_ID": 0,
+        "original_t_q_sequence_mismatch": 0,
+        "processing_chronological_violation": 0,
+        "fused_observation_not_selected": 0,
+        "unselected_observation_fused_or_K_updated": 0,
+        "simple_canonical_state_ID_mismatch": 0,
+        "K_matching_target_not_joint_rotation": 0,
+        "K_source_t_q_mismatch": 0,
+        "K_body_source_ID_mismatch": 0,
+        "K_BFS_enabled": 0,
+        "K_evidence_computed": 0,
+        "K_retained_history_factor_count": 0,
+        "K_history_factor_IDs_retained": 0,
+        "K_all_history_factors_reevaluated": 0,
+        "informative_observation_without_K_update_record": 0,
+        "selection_batch_repeated_ID": 0,
+        "selection_batch_unknown_raw_ID": 0,
+        "selection_batch_endpoint_range_mismatch": 0,
+        "plan_actual_start_vs_selection_source_mismatch": 0,
+        "plan_body_goal_law_ID_mismatch": 0,
+        "plan_body_reconstructed_from_K": 0,
+        "plan_S_increased": 0,
+        "same_density_ID_changed_recorded_K": 0,
+        "interval_K_source_in_future": 0,
+        "ledger_interval_clock_gap": 0,
+        "ledger_interval_command_gap": 0,
+        "posthoc_reconstructed_state_ID_mismatch": 0,
+        "posthoc_K_proposal_original_t_q_mismatch": 0,
+        "posthoc_physical_original_t_q_mismatch": 0
+      },
+      "last_processed_original_stamp": 1792080180.0,
+      "last_processed_source_age_at_physical_frontier_s": 0.0,
+      "raw_DB_status_counts": {
+        "completed": 14647
+      },
+      "archived_sensor_kind_counts": {
+        "image": 2153,
+        "imu": 5362,
+        "joint": 7132
+      },
+      "archived_event_count": 14647,
+      "processed_unique_event_count": 14647,
+      "archived_not_processed_count": 0,
+      "K_status_counts": {
+        "identity_density_ratio": 1,
+        "updated_single_gaussian": 50,
+        "single_gaussian_projection_unavailable": 1
+      },
+      "K_projection_failures": {
+        "LinAlgError: Matrix is not positive definite": 1
+      },
+      "first_selected_K": [
+        22.36067977499789,
+        22.36067977499789,
+        22.36067977499789,
+        22.36067977499789,
+        22.36067977499789,
+        22.36067977499789
+      ],
+      "last_selected_K": [
+        49.687627623645646,
+        263.3737254269537,
+        49.533667527825585,
+        99041.45930804501,
+        65.45284481899674,
+        7.348442664728138
+      ],
+      "last_K_original_stamp": 1792080180.0,
+      "maximum_body_translation_full_covariance_row_abs": 0.0,
+      "maximum_known_local_translation_change_m": 0.0,
+      "finite_reference_max_abs_error_rad": 0.0,
+      "latest_manifest": {
+        "finished": true,
+        "simulated_elapsed_s": 180.0,
+        "duration": 180.0,
+        "estimation_drained": true,
+        "all_captured_sensor_data_archived": true,
+        "processed_events": 14647,
+        "acquisition_requests": 14647,
+        "acquisition_archived": 14647,
+        "fused_observations": 51,
+        "thinned_observations": 2102,
+        "observation_selection": {
+          "mode": "uniform_time",
+          "max_events_per_sensor": {
+            "imu": 8,
+            "image": 2
+          }
+        },
+        "actual_motion_hz": 118.26666666666667,
+        "actual_camera_hz": 11.916850850246373,
+        "actual_joint_hz": 39.488498727511235,
+        "actual_imu_hz": 29.68701037325028,
+        "failure": null
+      },
+      "truth_flag_values": {
+        "False": 939
+      },
+      "forbidden_truth_payload_key_counts": {},
+      "source_hash_comparison": {
+        "expected_module_count": 71,
+        "changed_current_modules": []
+      },
+      "physical_goal_posthoc": {
+        "available": true,
+        "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml",
+        "scene_sha256": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a",
+        "position_base_link": [
+          1.1349999999999998,
+          -0.060000000000000005,
+          0.45999999999999996
+        ],
+        "only_posthoc": true,
+        "reach_tolerance_m": 0.006,
+        "physical_truth_fed_to_runtime": false
+      },
+      "camera_detection": {
+        "captured_preview_count": 2153,
+        "detected_count": 2153,
+        "detected_source_coverage": {
+          "count": 2153,
+          "original_time_range": [
+            1792080000.0,
+            1792080180.0
+          ],
+          "maximum_gap_s": 0.2900545597076416
+        },
+        "longest_detection_loss_intervals": [],
+        "loss_interval_rule": "From the first captured image with no detected marker to the first recovered capture; these are image timestamps, not exact continuous visibility boundaries.",
+        "detection_is_statistical_fusion": false
+      },
+      "execution_failures": [],
+      "observation_coverage_by_sensor_kind": {
+        "joint": {
+          "counts": {
+            "processed": 7132,
+            "eligible": 0,
+            "selected": 0,
+            "fused": 0,
+            "unselected": 0
+          },
+          "selected": {
+            "count": 0,
+            "original_time_range": null,
+            "maximum_gap_s": null
+          },
+          "fused": {
+            "count": 0,
+            "original_time_range": null,
+            "maximum_gap_s": null
+          }
+        },
+        "imu": {
+          "counts": {
+            "processed": 5362,
+            "eligible": 0,
+            "selected": 0,
+            "fused": 0,
+            "unselected": 0
+          },
+          "selected": {
+            "count": 0,
+            "original_time_range": null,
+            "maximum_gap_s": null
+          },
+          "fused": {
+            "count": 0,
+            "original_time_range": null,
+            "maximum_gap_s": null
+          }
+        },
+        "image": {
+          "counts": {
+            "processed": 2153,
+            "eligible": 2153,
+            "selected": 51,
+            "fused": 51,
+            "unselected": 2102
+          },
+          "selected": {
+            "count": 51,
+            "original_time_range": [
+              1792080000.0,
+              1792080180.0
+            ],
+            "maximum_gap_s": 13.000978231430054
+          },
+          "fused": {
+            "count": 51,
+            "original_time_range": [
+              1792080000.0,
+              1792080180.0
+            ],
+            "maximum_gap_s": 13.000978231430054
+          }
+        }
+      },
+      "finite_plan_posthoc_response": {
+        "comparison_count": 258,
+        "scope": "Each plan uses its saved fixed-law prediction and physical frames at adoption and the first frame at or after its finite duration. Physical settling after this boundary and changes from subsequent observations are not attributed to this single plan.",
+        "auxiliary_joint_limit_active_plan_counts": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "aggregate": {
+          "predicted_mean_squared_distance_change_m2": {
+            "count": 258,
+            "median": -2.4592736279615564e-07,
+            "mean": -0.0005359178762242155
+          },
+          "predicted_covariance_trace_change_m2": {
+            "count": 258,
+            "median": 0.0,
+            "mean": -8.738218878328973e-07
+          },
+          "predicted_mean_distance_reduction_m": {
+            "count": 258,
+            "median": 0.00017270136659245587,
+            "mean": 0.001463635610657291
+          },
+          "actual_physical_distance_reduction_m": {
+            "count": 258,
+            "median": 1.3237894319839683e-05,
+            "mean": 0.0010189869624938656
+          },
+          "predicted_hand_displacement_norm_m": {
+            "count": 258,
+            "median": 0.0008163645229965861,
+            "mean": 0.003835837819545335
+          },
+          "actual_hand_displacement_norm_m": {
+            "count": 258,
+            "median": 0.00018046858526485712,
+            "mean": 0.0018047383262526937
+          },
+          "predicted_actual_hand_displacement_cosine": {
+            "count": 215,
+            "median": 0.9473905613129316,
+            "mean": 0.8622483958187896
+          },
+          "predicted_hand_progress_along_estimated_goal_m": {
+            "count": 258,
+            "median": 0.0004146695807469706,
+            "mean": 0.002287534339767196
+          },
+          "actual_hand_progress_along_estimated_goal_m": {
+            "count": 258,
+            "median": 7.301816784633432e-05,
+            "mean": 0.0013665915599934094
+          },
+          "predicted_hand_goal_alignment_cosine": {
+            "count": 215,
+            "median": 0.5497287797945984,
+            "mean": 0.4331749092037348
+          },
+          "actual_hand_estimated_goal_alignment_cosine": {
+            "count": 258,
+            "median": 0.5596857781073706,
+            "mean": 0.27987274976064747
+          }
+        }
+      },
+      "goal_and_detection_checkpoints_posthoc": [
+        {
+          "label": "40_physical_seconds",
+          "requested_stamp": 1792080040.0,
+          "goal_mean": [
+            1.1019979416433847,
+            -0.05030280917887467,
+            0.5363652726843685
+          ],
+          "goal_mean_error_m": 0.08375455950426047,
+          "hand_mean_error_m": 0.12287136406836352,
+          "physical_distance_m": 0.06183654242515926,
+          "nearest_camera_detection": {
+            "index": 4772,
+            "stamp": 1792080040.0024507,
+            "visible": true,
+            "visible_marker_ids": [
+              23,
+              24,
+              25,
+              20,
+              21,
+              22,
+              17,
+              18,
+              19
+            ]
+          },
+          "fused_image_age_s": 2.7430343627929688
+        },
+        {
+          "label": "70_physical_seconds",
+          "requested_stamp": 1792080070.0,
+          "goal_mean": [
+            1.0789280569036983,
+            -0.05405547946033823,
+            0.5801828742080068
+          ],
+          "goal_mean_error_m": 0.13275286580687792,
+          "hand_mean_error_m": 0.18677272739662923,
+          "physical_distance_m": 0.05520817929289856,
+          "nearest_camera_detection": {
+            "index": 8335,
+            "stamp": 1792080070.0016778,
+            "visible": true,
+            "visible_marker_ids": [
+              23,
+              24,
+              25,
+              20,
+              21,
+              22,
+              17,
+              18,
+              19
+            ]
+          },
+          "fused_image_age_s": 0.3315880298614502
+        },
+        {
+          "label": "physical_end",
+          "requested_stamp": 1792080180.0,
+          "goal_mean": [
+            1.071526201963348,
+            -0.05563839946907667,
+            0.5903038685045163
+          ],
+          "goal_mean_error_m": 0.1450070506686875,
+          "hand_mean_error_m": 0.20014554480340374,
+          "physical_distance_m": 0.057496170065129595,
+          "nearest_camera_detection": {
+            "index": 21288,
+            "stamp": 1792080180.0,
+            "visible": true,
+            "visible_marker_ids": [
+              23,
+              24,
+              25,
+              20,
+              21,
+              22,
+              17,
+              18,
+              19
+            ]
+          },
+          "fused_image_age_s": 0.0
+        }
+      ],
+      "last_posthoc_model_sample": {
+        "event_id": "image:00021288",
+        "original_stamp": 1792080180.0,
+        "original_sequence": 14647,
+        "original_command": [
+          -0.026464074994982267,
+          -1.1291548205577855,
+          1.1641833384229554,
+          0.03675468444087497,
+          -0.8774174119621785,
+          -0.00024323828748987512
+        ],
+        "frame_index": 21288,
+        "saved_state_id": "385ae0fe0fc630dd6e4a213bdfa0710f57d0b90c8fa6e67574cdf3b9dcfad921",
+        "reconstructed_state_id": "385ae0fe0fc630dd6e4a213bdfa0710f57d0b90c8fa6e67574cdf3b9dcfad921",
+        "state_id_matches": true,
+        "selected_K": [
+          49.687627623645646,
+          263.3737254269537,
+          49.533667527825585,
+          99041.45930804501,
+          65.45284481899674,
+          7.348442664728138
+        ],
+        "density_id": "51e89d7bbd2bc88c99a478f3f8b9f28551024493eef1b85b7583722b6250b5f7",
+        "original_t_q_matches_saved_proposal": true,
+        "physical_t_q_matches": true,
+        "model_hand": [
+          1.093513952288818,
+          -0.04362006101033679,
+          0.4729373572792688
+        ],
+        "estimated_hand_mode": [
+          1.079993402030282,
+          -0.05547860386593244,
+          0.5946173158484601
+        ],
+        "estimated_hand_mean": [
+          1.0706314385087516,
+          -0.05563905344761024,
+          0.5905599400587261
+        ],
+        "physical_hand": [
+          1.1530314095928804,
+          -0.045927524122603786,
+          0.4072492344801312
+        ],
+        "model_to_estimated_mode_m": 0.1230017993175373,
+        "model_to_estimated_mean_m": 0.12042897324071339,
+        "model_to_physical_m": 0.08867119930862528,
+        "estimated_mean_to_physical_m": 0.20121352791554062,
+        "estimated_mode_to_physical_m": 0.20132702647341302,
+        "model_to_estimated_local_rotation_errors_rad": [
+          0.1521942522934036,
+          0.12674155123995176,
+          0.18979135620409074,
+          0.14084925967430545,
+          0.13727976659463226,
+          0.1203985715418355
+        ],
+        "local_rotation_RMS_rad": 0.14630295874658897,
+        "local_rotation_max_rad": 0.18979135620409074,
+        "equilibrium_resolved": false,
+        "physical_truth_used_only_for_posthoc_scoring": true
+      },
+      "last_selected_plan_model_sample": {
+        "request_id": 261,
+        "source_stamp": 1792080179.319709,
+        "source_command": [
+          -0.026464074994982267,
+          -1.1291548205577855,
+          1.1641833384229554,
+          0.03675468444087497,
+          -0.8774174119621785,
+          -0.00024323828748987512
+        ],
+        "adoption_stamp": 1792080179.5676682,
+        "original_observation_stamp": 1792080165.92445,
+        "source_state_id": "c868114d0fec82db8ec75c6ff6898c8781d04a7109c2e1003d17091c1862f821",
+        "selected_K": [
+          49.6876355727618,
+          261.6568028847772,
+          49.33114868296617,
+          82020.47006988197,
+          68.28773228102932,
+          7.69357347822664
+        ],
+        "density_id": "ce077293cdb3a828629064892e50dc483bf561419e5d019c38163c7b2cf54eac",
+        "auxiliary_equilibrium": [
+          -0.026464074994982264,
+          -0.9828767853310428,
+          1.5829009454282692,
+          0.03675698990810339,
+          -0.824216135121226,
+          0.016054059712494042
+        ],
+        "estimated_hand_mean": [
+          1.0713444305902213,
+          -0.05573117751650521,
+          0.5897029681941954
+        ],
+        "model_hand": [
+          1.0932450709409178,
+          -0.04364452640631858,
+          0.47204387300925904
+        ],
+        "model_to_same_selected_body_mean_m": 0.12028876864681862,
+        "source_t_q_matches_physical": true,
+        "model_to_physical_at_selection_source_m": 0.08819276358566343,
+        "physical_truth_used_only_for_posthoc_scoring": true,
+        "equilibrium_resolved": false
+      }
+    },
+    {
+      "case": "imu_marker",
+      "run_directory": "/tmp/probtf_simple_reference_v5_rviz_20261019/imu_marker",
+      "physical_posthoc": {
+        "elapsed_s": 180.0,
+        "saved_physical_source_clock_hz": 118.44444444444444,
+        "minimum_error_m": 0.0035360122081969634,
+        "final_error_m": 0.010813772001246887,
+        "minimum_error_original_stamp": 1792080064.3617866,
+        "reached_at_least_once": true,
+        "terminal_reached": false,
+        "collision_checking_enabled": false
+      },
+      "counts": {
+        "physical_rows": 21321,
+        "processed_event_rows": 14657,
+        "fused_observation_events": 232,
+        "goal_observed_rows": 14655,
+        "K_Gaussian_updates": 221,
+        "K_unavailable_projection_rows": 11,
+        "K_numeric_changes": 221,
+        "events_without_K_update_record": 14424,
+        "selected_plan_rows": 256,
+        "selected_goal_available_plans": 254,
+        "actual_command_intervals": 21320,
+        "posthoc_model_samples": 7,
+        "posthoc_model_samples_unavailable": 0
+      },
+      "source_law_and_control_checks": {
+        "duplicate_processed_event_ID": 0,
+        "original_t_q_sequence_mismatch": 0,
+        "processing_chronological_violation": 0,
+        "fused_observation_not_selected": 0,
+        "unselected_observation_fused_or_K_updated": 0,
+        "simple_canonical_state_ID_mismatch": 0,
+        "K_matching_target_not_joint_rotation": 0,
+        "K_source_t_q_mismatch": 0,
+        "K_body_source_ID_mismatch": 0,
+        "K_BFS_enabled": 0,
+        "K_evidence_computed": 0,
+        "K_retained_history_factor_count": 0,
+        "K_history_factor_IDs_retained": 0,
+        "K_all_history_factors_reevaluated": 0,
+        "informative_observation_without_K_update_record": 0,
+        "selection_batch_repeated_ID": 0,
+        "selection_batch_unknown_raw_ID": 0,
+        "selection_batch_endpoint_range_mismatch": 0,
+        "plan_actual_start_vs_selection_source_mismatch": 0,
+        "plan_body_goal_law_ID_mismatch": 0,
+        "plan_body_reconstructed_from_K": 0,
+        "plan_S_increased": 0,
+        "same_density_ID_changed_recorded_K": 0,
+        "interval_K_source_in_future": 0,
+        "ledger_interval_clock_gap": 0,
+        "ledger_interval_command_gap": 0,
+        "posthoc_reconstructed_state_ID_mismatch": 0,
+        "posthoc_K_proposal_original_t_q_mismatch": 0,
+        "posthoc_physical_original_t_q_mismatch": 0
+      },
+      "last_processed_original_stamp": 1792080180.0,
+      "last_processed_source_age_at_physical_frontier_s": 0.0,
+      "raw_DB_status_counts": {
+        "completed": 14657
+      },
+      "archived_sensor_kind_counts": {
+        "image": 2151,
+        "imu": 5364,
+        "joint": 7142
+      },
+      "archived_event_count": 14657,
+      "processed_unique_event_count": 14657,
+      "archived_not_processed_count": 0,
+      "K_status_counts": {
+        "identity_density_ratio": 1,
+        "updated_single_gaussian": 221,
+        "single_gaussian_projection_unavailable": 11
+      },
+      "K_projection_failures": {
+        "LinAlgError: Matrix is not positive definite": 11
+      },
+      "first_selected_K": [
+        22.36067977499789,
+        22.36067977499789,
+        22.36067977499789,
+        22.36067977499789,
+        22.36067977499789,
+        22.36067977499789
+      ],
+      "last_selected_K": [
+        317.00950587596816,
+        33.32914188945047,
+        33.71176153617719,
+        0.5584107238232313,
+        179.51071458624335,
+        0.8385417620868157
+      ],
+      "last_K_original_stamp": 1792080180.0,
+      "maximum_body_translation_full_covariance_row_abs": 0.0,
+      "maximum_known_local_translation_change_m": 0.0,
+      "finite_reference_max_abs_error_rad": 0.0,
+      "latest_manifest": {
+        "finished": true,
+        "simulated_elapsed_s": 180.0,
+        "duration": 180.0,
+        "estimation_drained": true,
+        "all_captured_sensor_data_archived": true,
+        "processed_events": 14657,
+        "acquisition_requests": 14657,
+        "acquisition_archived": 14657,
+        "fused_observations": 232,
+        "thinned_observations": 7283,
+        "observation_selection": {
+          "mode": "uniform_time",
+          "max_events_per_sensor": {
+            "imu": 8,
+            "image": 2
+          }
+        },
+        "actual_motion_hz": 118.44444444444444,
+        "actual_camera_hz": 11.905030902883267,
+        "actual_joint_hz": 39.54144500114592,
+        "actual_imu_hz": 29.696248126361688,
+        "failure": null
+      },
+      "truth_flag_values": {
+        "False": 1467
+      },
+      "forbidden_truth_payload_key_counts": {},
+      "source_hash_comparison": {
+        "expected_module_count": 71,
+        "changed_current_modules": []
+      },
+      "physical_goal_posthoc": {
+        "available": true,
+        "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml",
+        "scene_sha256": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a",
+        "position_base_link": [
+          1.1349999999999998,
+          -0.060000000000000005,
+          0.45999999999999996
+        ],
+        "only_posthoc": true,
+        "reach_tolerance_m": 0.006,
+        "physical_truth_fed_to_runtime": false
+      },
+      "camera_detection": {
+        "captured_preview_count": 2151,
+        "detected_count": 2151,
+        "detected_source_coverage": {
+          "count": 2151,
+          "original_time_range": [
+            1792080000.0,
+            1792080180.0
+          ],
+          "maximum_gap_s": 0.3673264980316162
+        },
+        "longest_detection_loss_intervals": [],
+        "loss_interval_rule": "From the first captured image with no detected marker to the first recovered capture; these are image timestamps, not exact continuous visibility boundaries.",
+        "detection_is_statistical_fusion": false
+      },
+      "execution_failures": [],
+      "observation_coverage_by_sensor_kind": {
+        "joint": {
+          "counts": {
+            "processed": 7142,
+            "eligible": 0,
+            "selected": 0,
+            "fused": 0,
+            "unselected": 0
+          },
+          "selected": {
+            "count": 0,
+            "original_time_range": null,
+            "maximum_gap_s": null
+          },
+          "fused": {
+            "count": 0,
+            "original_time_range": null,
+            "maximum_gap_s": null
+          }
+        },
+        "imu": {
+          "counts": {
+            "processed": 5364,
+            "eligible": 5364,
+            "selected": 185,
+            "fused": 185,
+            "unselected": 5179
+          },
+          "selected": {
+            "count": 185,
+            "original_time_range": [
+              1792080000.0,
+              1792080180.0
+            ],
+            "maximum_gap_s": 1.5999560356140137
+          },
+          "fused": {
+            "count": 185,
+            "original_time_range": [
+              1792080000.0,
+              1792080180.0
+            ],
+            "maximum_gap_s": 1.5999560356140137
+          }
+        },
+        "image": {
+          "counts": {
+            "processed": 2151,
+            "eligible": 2151,
+            "selected": 47,
+            "fused": 47,
+            "unselected": 2104
+          },
+          "selected": {
+            "count": 47,
+            "original_time_range": [
+              1792080000.0,
+              1792080180.0
+            ],
+            "maximum_gap_s": 10.919867277145386
+          },
+          "fused": {
+            "count": 47,
+            "original_time_range": [
+              1792080000.0,
+              1792080180.0
+            ],
+            "maximum_gap_s": 10.919867277145386
+          }
+        }
+      },
+      "finite_plan_posthoc_response": {
+        "comparison_count": 253,
+        "scope": "Each plan uses its saved fixed-law prediction and physical frames at adoption and the first frame at or after its finite duration. Physical settling after this boundary and changes from subsequent observations are not attributed to this single plan.",
+        "auxiliary_joint_limit_active_plan_counts": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 18,
+          "4": 0,
+          "5": 0
+        },
+        "aggregate": {
+          "predicted_mean_squared_distance_change_m2": {
+            "count": 253,
+            "median": -2.7869726464387968e-06,
+            "mean": -0.0005713180580130548
+          },
+          "predicted_covariance_trace_change_m2": {
+            "count": 253,
+            "median": 0.0,
+            "mean": -1.4570529101995953e-06
+          },
+          "predicted_mean_distance_reduction_m": {
+            "count": 253,
+            "median": 0.000266513321269736,
+            "mean": 0.0018053764173614378
+          },
+          "actual_physical_distance_reduction_m": {
+            "count": 253,
+            "median": 1.1201870181162116e-05,
+            "mean": 0.0011834150587785182
+          },
+          "predicted_hand_displacement_norm_m": {
+            "count": 253,
+            "median": 0.003008186250409901,
+            "mean": 0.006116373042643864
+          },
+          "actual_hand_displacement_norm_m": {
+            "count": 253,
+            "median": 0.00047692971099294406,
+            "mean": 0.002663353541526824
+          },
+          "predicted_actual_hand_displacement_cosine": {
+            "count": 176,
+            "median": 0.9016292564836539,
+            "mean": 0.76158231972986
+          },
+          "predicted_hand_progress_along_estimated_goal_m": {
+            "count": 253,
+            "median": 0.0013616278275092935,
+            "mean": 0.003850896297176384
+          },
+          "actual_hand_progress_along_estimated_goal_m": {
+            "count": 253,
+            "median": 0.00017713822566546434,
+            "mean": 0.0017620848970417466
+          },
+          "predicted_hand_goal_alignment_cosine": {
+            "count": 176,
+            "median": 0.6176387108560861,
+            "mean": 0.6200634193171409
+          },
+          "actual_hand_estimated_goal_alignment_cosine": {
+            "count": 253,
+            "median": 0.6240915279393426,
+            "mean": 0.37991646922189054
+          }
+        }
+      },
+      "goal_and_detection_checkpoints_posthoc": [
+        {
+          "label": "40_physical_seconds",
+          "requested_stamp": 1792080040.0,
+          "goal_mean": [
+            1.0915231443430158,
+            0.027672707589977634,
+            0.41150550648863204
+          ],
+          "goal_mean_error_m": 0.10921747357863598,
+          "hand_mean_error_m": 0.09553641755541835,
+          "physical_distance_m": 0.03932638495312458,
+          "nearest_camera_detection": {
+            "index": 4772,
+            "stamp": 1792080040.0041592,
+            "visible": true,
+            "visible_marker_ids": [
+              25,
+              24,
+              23,
+              20,
+              21,
+              22,
+              17,
+              18,
+              19
+            ]
+          },
+          "fused_image_age_s": 7.247898817062378
+        },
+        {
+          "label": "70_physical_seconds",
+          "requested_stamp": 1792080070.0,
+          "goal_mean": [
+            1.0825560938968606,
+            0.0523863378713728,
+            0.3405115519390074
+          ],
+          "goal_mean_error_m": 0.17221655392998017,
+          "hand_mean_error_m": 0.15963837305756742,
+          "physical_distance_m": 0.00569289201821554,
+          "nearest_camera_detection": {
+            "index": 8325,
+            "stamp": 1792080070.0033655,
+            "visible": true,
+            "visible_marker_ids": [
+              25,
+              24,
+              23,
+              20,
+              21,
+              22,
+              17,
+              18,
+              19
+            ]
+          },
+          "fused_image_age_s": 8.99528980255127
+        },
+        {
+          "label": "physical_end",
+          "requested_stamp": 1792080180.0,
+          "goal_mean": [
+            1.0684441720014226,
+            0.027180116399901904,
+            0.36735291246040425
+          ],
+          "goal_mean_error_m": 0.14357414030961893,
+          "hand_mean_error_m": 0.1402778793874296,
+          "physical_distance_m": 0.010813772001246887,
+          "nearest_camera_detection": {
+            "index": 21320,
+            "stamp": 1792080180.0,
+            "visible": true,
+            "visible_marker_ids": [
+              25,
+              24,
+              23,
+              20,
+              21,
+              22,
+              17,
+              18,
+              19
+            ]
+          },
+          "fused_image_age_s": 0.0
+        }
+      ],
+      "last_posthoc_model_sample": {
+        "event_id": "image:00021320",
+        "original_stamp": 1792080180.0,
+        "original_sequence": 14657,
+        "original_command": [
+          -0.06340570487915591,
+          -1.2239886277126597,
+          1.1909803804982497,
+          -0.05209164146884832,
+          -0.7922031364463091,
+          0.00022263210632537538
+        ],
+        "frame_index": 21320,
+        "saved_state_id": "9ea91b26693ffeabdd11e1e0445cc0690f3041172ec87641773941037abb6f86",
+        "reconstructed_state_id": "9ea91b26693ffeabdd11e1e0445cc0690f3041172ec87641773941037abb6f86",
+        "state_id_matches": true,
+        "selected_K": [
+          317.00950587596816,
+          33.32914188945047,
+          33.71176153617719,
+          0.5584107238232313,
+          179.51071458624335,
+          0.8385417620868157
+        ],
+        "density_id": "9298499a8ef52f922da9736be69e54232ad84caa1d4f4c9b079f2dd0addc15e7",
+        "original_t_q_matches_saved_proposal": true,
+        "physical_t_q_matches": true,
+        "model_hand": [
+          0.8431783554917933,
+          0.1878517875029562,
+          -0.42449297266764163
+        ],
+        "estimated_hand_mode": [
+          1.1063020530513543,
+          0.02152033724073365,
+          0.33615221693216846
+        ],
+        "estimated_hand_mean": [
+          1.1061187800932692,
+          0.017349757184068455,
+          0.33852573128093383
+        ],
+        "physical_hand": [
+          1.1419236611217563,
+          -0.05412982848833083,
+          0.45412278399328243
+        ],
+        "model_to_estimated_mode_m": 0.8218767158309576,
+        "model_to_estimated_mean_m": 0.8248673540684169,
+        "model_to_physical_m": 0.9590461448577658,
+        "estimated_mean_to_physical_m": 0.1405489212663814,
+        "estimated_mode_to_physical_m": 0.14459910521534022,
+        "model_to_estimated_local_rotation_errors_rad": [
+          0.2508373884913944,
+          0.9534281150484581,
+          0.1420538897463027,
+          1.142166560754626,
+          0.2533520200364529,
+          0.5205342583443104
+        ],
+        "local_rotation_RMS_rad": 0.6622954383927107,
+        "local_rotation_max_rad": 1.142166560754626,
+        "equilibrium_resolved": false,
+        "physical_truth_used_only_for_posthoc_scoring": true
+      },
+      "last_selected_plan_model_sample": {
+        "request_id": 256,
+        "source_stamp": 1792080179.6619396,
+        "source_command": [
+          -0.06340570487915591,
+          -1.2239886277126597,
+          1.1909803804982497,
+          -0.05209164146884832,
+          -0.7922031364463091,
+          0.00022263210632537538
+        ],
+        "adoption_stamp": 1792080179.9619496,
+        "original_observation_stamp": 1792080168.6745634,
+        "source_state_id": "e19e6dd26c6bbec52802ea80a4d9f714c76a88be4178b5195b4abd6ab252c13a",
+        "selected_K": [
+          317.00950599907645,
+          33.28701640957429,
+          33.934102187726765,
+          0.55535864027082,
+          173.92032391843432,
+          0.7181130632219228
+        ],
+        "density_id": "d360c4f281237089b6ff6cf5ecc553f3203f60e1318655d4ea6f58e89f7f3473",
+        "auxiliary_equilibrium": [
+          -0.06340570487915591,
+          -0.05501675067210857,
+          1.4029473379904145,
+          0.6259372937649693,
+          -0.7743350143760446,
+          0.1839023757367982
+        ],
+        "estimated_hand_mean": [
+          1.0701156591730554,
+          0.026624288981592553,
+          0.36467857337446463
+        ],
+        "model_hand": [
+          0.8281778112401126,
+          -0.27629332291039777,
+          -0.421037993252098
+        ],
+        "model_to_same_selected_body_mean_m": 0.876152683570737,
+        "source_t_q_matches_physical": true,
+        "model_to_physical_at_selection_source_m": 0.9558719857806656,
+        "physical_truth_used_only_for_posthoc_scoring": true,
+        "equilibrium_resolved": false
+      }
+    }
+  ]
+}

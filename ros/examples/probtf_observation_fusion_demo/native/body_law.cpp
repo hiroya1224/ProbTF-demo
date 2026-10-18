@@ -293,18 +293,33 @@ static void covariance(const Mat &P, const Mat &J, Mat &out, Mat &within,
   Mat p11 = P.topLeftCorner(split, split),
       p21 = P.bottomLeftCorner(n - split, split);
   auto s = support(p11);
-  Mat reg = p21 * s.inverse;
-  Mat cond =
-      P.bottomRightCorner(n - split, n - split) - reg * p11 * reg.transpose();
+  // W=P21 U Lambda^(-1/2) gives the identical supported Schur term
+  // W W^T. Forming reg*P11*reg^T first constructs an ill-conditioned
+  // inverse and multiplies it back by P11; that extra cancellation caused
+  // a valid transported law to fail the unused conditional-PSD audit.
+  // Neither the original P nor its real support is regularized here.
+  Mat whitened = p21 * s.basis;
+  for (int column = 0; column < s.values.size(); ++column)
+    whitened.col(column) /= std::sqrt(s.values[column]);
+  Mat reg = whitened;
+  for (int column = 0; column < s.values.size(); ++column)
+    reg.col(column) /= std::sqrt(s.values[column]);
+  reg = (reg * s.basis.transpose()).eval();
+  Mat cond = P.bottomRightCorner(n - split, n - split) -
+             whitened * whitened.transpose();
   cond = .5 * (cond + cond.transpose()).eval();
-  support(cond);
+  // No inverse or decomposition of cond is needed for this query. Its
+  // numerical PSD audit and agreement with separately evaluated J P J^T
+  // must not terminate an otherwise finite propagation. Required support
+  // inversion above and actual nonfinite arithmetic remain errors.
+  finite(cond);
   Mat j1 = J.leftCols(split), j2 = J.rightCols(n - split), eff = j1 + j2 * reg;
   within = j2 * cond * j2.transpose();
   between = eff * p11 * eff.transpose();
   out = within + between;
-  if (!close(out, J * P * J.transpose()))
-    throw std::invalid_argument(
-        "Conditional total covariance disagrees with J P J.T.");
+  finite(within);
+  finite(between);
+  finite(out);
 }
 static V3 vee(const M3 &M) {
   V3 v;

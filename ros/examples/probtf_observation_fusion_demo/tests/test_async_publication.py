@@ -342,6 +342,11 @@ def test_direct_preview_owner_disables_queued_renderer_images_but_preserves_raw(
 
 def test_publication_error_stops_physics_and_records_original_failure(live_wrapper):
     live,_,timers=live_wrapper
+    original_manifest = live.session.manifest
+    live.session.manifest = lambda: dict(original_manifest(), finished=False,
+        failure=live.session.failure)
+    path = live.session.output/'motion_manifest.json'
+    path.write_text(json.dumps(live.session.manifest()))
     live.publication_replies.put(dict(failed=True,worker='publication',traceback='original publication failure'))
     live.advance(None)
     assert live.closed and live.session.closed
@@ -349,6 +354,10 @@ def test_publication_error_stops_physics_and_records_original_failure(live_wrapp
     assert 'original publication failure' in live.session.failure['error']
     assert all(timer.stopped for timer in timers)
     assert (live.session.output/'execution_failure.jsonl').exists()
+    final_manifest = json.loads(path.read_text())
+    assert final_manifest['failure'] == live.session.failure
+    assert 'original publication failure' in final_manifest['failure']['error']
+    assert final_manifest['finished'] is False
 
 
 def test_real_display_scene_fields_are_preserved_and_full_draw_executes(measured_source,monkeypatch,tmp_path):

@@ -1,5 +1,17 @@
 # 必須条件
 
+## 最小参照実装へ切り替える（2026年10月19日・最新指定）
+
+ユーザー指定の [最小構成](ros/examples/probtf_observation_fusion_demo/SIMPLE_REFERENCE_REQUIREMENTS_20261019.md) を既定とする。共同身体・環境候補を一つ、log Kの単一Gaussian候補を一つ保持する。局所取付並進は既知Dirac、全リンク・環境crossと既存Bingham由来の観測Bayes更新を維持する。身体BFS・K-BFS・K evidence・全履歴Kの再評価・独立fresh goalを本経路から外す。共同方位の原取得t/qにおける観測後／前密度比を一度だけ使い、Kの逐次Gaussian近似は近似位置と式を明示する。
+
+Kの局所探索を平均一点だけから始め、補助モデルの関節拘束による零勾配を同定の完了と扱わない。固定した今回の事前×今回の因子について、事前平均、Cholesky各列の正負、全列和の正負を数値探索の初期値として比較する。これは既存の連成初期値を保持する処理であり、候補測度のサンプル・求積・真値入力ではない。有限反復後のGaussian近似、score未達と非同定を明記し、大域解や真のKの復元を主張しない。補助モデルのactive関節・指令感度と、実際の身体の拘束を区別する。
+
+点照会の条件付き全共分散でも、逆を必要としないSchur差の支持監査や別計算との一致監査を停止条件に戻さない。必要なP11の支持逆は保ち、白色化した交差ブロックで同じwithin／betweenの和を計算する。元P・全crossを変更せず、分散clipやjitterで代用しない。実際の停止入力と正定値出力は [回帰テスト](ros/examples/probtf_observation_fusion_demo/tests/test_native_conditional_covariance.py) に記録する。例外停止時には最終manifestにも実エラーを保存し、古いfailure=Noneや途中の物理時刻を完走結果として残さない。
+
+試行指令には、観測された現在の共同候補へ凍結Kのモデル予測する指令変更分だけを作用させる。身体をモデルの絶対姿勢へ置換しない。目標は同じ環境変数と既知取付から照会する。唯一のtask規準は根元座標での手先・目標位置の二乗誤差期待値であり、全crossを含む。完全J・view因子・Fisher・Hessian・二階追従・独立速度状態・旧IK phaseを指令選定に入れない。一回の短い有限位置ステップを実行し、端点以後はその有限位置を保持する。推定と選定を別workerにし、選定を観測batch末尾待ちにしない。最新の完了済み共同候補を実ledgerで現在指令へ写して選定する。画像更新約188ms/件という過負荷の実測に対し、既承認の時間均等選択（frontierごと画像2／IMU8）を使い、全raw保存・融合／未融合の理由・全実区間輸送を分けて記録する。
+
+物理の慣性・ばね・減衰、全rawと原時刻・指令・sequence、各実区間の凍結K作用ledger、同じlawの推定・選定・表示、真値禁止・モンテカルロ禁止・core/RVizと画像／粒子／軸サイズ保護は維持する。本指定は下記のBFS・全履歴密度・fresh goal・完全J・Running Gradient Tracking維持規定に、最小参照経路の範囲で優先する。直前の共同方位版はcommit `7cab05a`／tag `joint-rotation-stiffness-20261019` として保存済みで、比較用旧経路の結果と新規定の結果を混同しない。
+
 ## リンク局所方位の共同密度比でKを更新する（2026年10月19日・最新の推定案）
 
 ユーザー指定の [新しい推定案原文](ros/examples/probtf_observation_fusion_demo/JOINT_ROTATION_STIFFNESS_PROPOSAL_20261019.md) に従い、K更新の既定を `joint_rotation` とする。直前の手先6次元密度比は比較用 `hand_pose` として残すが、新しい既定の因子へ無断で加えない。全リンクの局所方位だけを元の共同身体Gaussianから周辺抽出し、全リンク間の回転crossを残した共同18次元Gaussianの観測後／前密度比を評価する。並進に条件付けたSchur式、各周辺Binghamの独立積、絶対姿勢への置換で代用しない。

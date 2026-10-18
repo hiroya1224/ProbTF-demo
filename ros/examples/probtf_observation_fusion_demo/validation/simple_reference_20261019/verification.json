@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-19",
+  "execution_mode": "simple",
+  "mathematical_state": "one joint body/environment law, one full logK Gaussian, actual sent command",
+  "source_manifest": "source_manifest.json",
+  "run_root": "/tmp/probtf_simple_reference_v5_rviz_20261019",
+  "native_build": {
+    "command": "catkin build probtf_observation_fusion_demo",
+    "succeeded_packages": 12,
+    "wall_seconds": 11.1
+  },
+  "tests": {
+    "command": "python3 -m pytest -q ros/examples/probtf_observation_fusion_demo/tests ros/examples/probtf_observation_fusion_demo/validation/tools",
+    "passed": 1439,
+    "failed": 0,
+    "wall_seconds": 246.75,
+    "warning": "existing hppfcl import deprecation"
+  },
+  "final_hash_comparison": {
+    "production_files": 87,
+    "production_mismatches": [],
+    "compiled_libraries": 5,
+    "compiled_mismatches": [],
+    "protected_files": 214,
+    "protected_mismatches": [],
+    "protected_rviz_files": 43
+  },
+  "runtime": {
+    "physical_duration_seconds": 180.0,
+    "both_estimation_drained": true,
+    "runtime_failures": 0,
+    "marker": {
+      "minimum_distance_mm": 42.75079336533019,
+      "final_distance_mm": 57.4961700651296,
+      "reached_distance_threshold": false
+    },
+    "imu_marker": {
+      "minimum_distance_mm": 3.5360122081969636,
+      "final_distance_mm": 10.813772001246887,
+      "reached_distance_threshold_at_least_once": true,
+      "inside_threshold_at_end": false
+    },
+    "distance_threshold_mm": 6.0,
+    "collision_checking_enabled": false
+  },
+  "limitations": [
+    "body information updates are temporally thinned; all raw events retained separately",
+    "finite variational body update and finite local logK Gaussian approximation; no convergence/global identification claim",
+    "all-link orientation fit does not establish accurate auxiliary absolute hand pose or its incremental action",
+    "brief distance-threshold entry is distinct from final position holding"
+  ],
+  "git_excludes": "raw camera images, database, physical/command/update streams and temporary files remain in /tmp",
+  "selected_artifact_sha256": {
+    "native_covariance_regression.json": "893ef738156a9e3f4f752e0992999330702894c544ab2498aec39fcd5b206d75",
+    "runtime_180s.json": "5123f4d349c4a5dcab96c6ad665a51f67fa42c29b98021ae928e8841d92277e8",
+    "source_manifest.json": "1b033a2faee950092e79e226118f45ea7e01b8d7d077a36048510f859b61dbe5",
+    "stiffness_initialization_comparison.json": "03cae2105f7d88a8361085554783cac8f2485fec91fc4238aa2d9b112ca84064"
+  }
+}

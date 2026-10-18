@@ -3,7 +3,7 @@
   <arg name="common" default="$(find probtf_observation_fusion_demo)/config/common.yaml" />
   <arg name="rviz" default="true" />
   <arg name="moving" default="true" />
-  <arg name="execution_mode" default="async" />
+  <arg name="execution_mode" default="simple" />
   <arg name="control_mode" default="" />
   <arg name="imu_target_link" default="" />
   <arg name="max_updates" default="0" />

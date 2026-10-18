@@ -23,7 +23,7 @@ class AsyncMotionLive:
     """Keep physics on its timer; send immutable sources to the ROS process."""
     def __init__(self, observations_path, output, case, autostart, *, imu_target_link=None,
                  max_updates=0, duration=None, control_mode=None, running_gradient_options=None,
-                 visibility_factor_options=None, observation_selection_options=None):
+                 visibility_factor_options=None, observation_selection_options=None, session_factory=None):
         if max_updates:
             raise ValueError('max_updates is a synchronous audit limit; use async_duration_s for async runs.')
         self.lock, self.publication_lock, self.case = RLock(), RLock(), case
@@ -36,7 +36,8 @@ class AsyncMotionLive:
         self.closed = False
         self.failure_publisher = None
         cv2.setNumThreads(1)
-        self.session = AsyncMotionSession(observations_path, output,
+        self.session_factory = session_factory or AsyncMotionSession
+        self.session = self.session_factory(observations_path, output,
             imu_target_link=imu_target_link, duration=duration,control_mode=control_mode,
             running_gradient_options=running_gradient_options,visibility_factor_options=visibility_factor_options,
             observation_selection_options=observation_selection_options,
@@ -163,6 +164,12 @@ class AsyncMotionLive:
             self.session.failure = dict(failed=True, error=str(error), traceback=traceback.format_exc(),
                 publication_failure=self.publication_failure)
             try:
+                failure_manifest = self.session.manifest()
+            except Exception as manifest_error:
+                failure_manifest = dict(finished=False,
+                    manifest_snapshot_error=str(manifest_error))
+            failure_manifest['failure'] = self.session.failure
+            try:
                 # Exception-only fallback: a dead publication process cannot
                 # replace its last latched status with the actual stop reason.
                 self.failure_publisher = rospy.Publisher('/observation_fusion/motion_metadata',
@@ -176,6 +183,11 @@ class AsyncMotionLive:
             self.closed = True
             self.session.close()
             self._stop_publication()
+            # The publication queue may contain older, successful snapshots.
+            # Persist the stop after that writer has exited, so its stale
+            # failure=None cannot replace the actual exception.
+            (self.session.output/'motion_manifest.json').write_text(
+                json.dumps(failure_manifest, indent=2)+'\n')
         rospy.logerr('Async execution stopped: %s', error)
 
     def advance(self, _event):
@@ -214,7 +226,7 @@ class AsyncMotionLive:
             self._stop_publication()
             self.replays += 1
             path = self.output.with_name(self.output.name+'_replay_{:03d}'.format(self.replays))
-            self.session = AsyncMotionSession(self.observations_path, path,
+            self.session = self.session_factory(self.observations_path, path,
                 imu_target_link=self.imu_target_link, duration=self.duration,
                 control_mode=self.control_mode,running_gradient_options=self.running_gradient_options,
                 visibility_factor_options=self.visibility_factor_options,

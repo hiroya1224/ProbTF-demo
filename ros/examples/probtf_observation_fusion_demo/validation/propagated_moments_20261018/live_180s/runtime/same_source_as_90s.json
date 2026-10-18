@@ -1,0 +1,10 @@
+{
+  "schema": "propagated_moments_90s_180s_source_comparison_v1",
+  "checked_wall_s": 1792309742.0026312,
+  "source_90": "/tmp/probtf_propagated_moments_live_20261018/source_freeze.json",
+  "source_180": "/tmp/probtf_propagated_moments_180s_live_20261018/source_freeze.json",
+  "file_lists_equal": true,
+  "source_differences": [],
+  "native_binaries_equal": true,
+  "runner_note": "Only /tmp orchestration duration/output/ports and capture labels change; production/config/native/body/observation law unchanged. Both input setups restart from the initial prior. Runtime timing differs, so raw acquisition trajectories need not be identical across runs."
+}

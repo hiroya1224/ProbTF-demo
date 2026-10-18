@@ -1,0 +1,21 @@
+{
+  "views": {
+    "marker": {
+      "port": 11881,
+      "master_pid": 4010335,
+      "gui_pid": 4010351,
+      "rviz_loaded": "/tmp/probtf_propagated_moments_180s_live_20261018/marker.rviz",
+      "rviz_loaded_sha256": "b76838c3adefecfa2eaec00118af0a6c7c8ae2a713d3cbad386d5b39ca66bde1"
+    },
+    "imu_marker": {
+      "port": 11882,
+      "master_pid": 4010352,
+      "gui_pid": 4010408,
+      "rviz_loaded": "/tmp/probtf_propagated_moments_180s_live_20261018/imu_marker.rviz",
+      "rviz_loaded_sha256": "b76838c3adefecfa2eaec00118af0a6c7c8ae2a713d3cbad386d5b39ca66bde1"
+    }
+  },
+  "demo_workers_closed": true,
+  "independent_master_and_RViz_left_visible": true,
+  "wall_s": 1792309969.0327384
+}

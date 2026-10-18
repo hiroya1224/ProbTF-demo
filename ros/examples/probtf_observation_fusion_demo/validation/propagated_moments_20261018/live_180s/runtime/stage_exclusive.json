@@ -1,0 +1,1604 @@
+{
+  "schema": "saved_runtime_nested_stage_exclusive_estimate_v1",
+  "cases": {
+    "marker": {
+      "coordinator": {
+        "stages": {},
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "inference": {
+        "stages": {
+          "body_event_update": {
+            "inclusive": {
+              "count": 55,
+              "median": 0.18441161327064037,
+              "p95": 0.3537067009601742,
+              "maximum": 0.3789119557477534,
+              "total": 11.653046221937984
+            },
+            "covered": {
+              "count": 55,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 55,
+              "median": 0.18441161327064037,
+              "p95": 0.3537067009601742,
+              "maximum": 0.3789119557477534,
+              "total": 11.653046221937984
+            }
+          },
+          "stiffness_job_archive_and_enqueue": {
+            "inclusive": {
+              "count": 53,
+              "median": 0.01766959996894002,
+              "p95": 0.053617043979465956,
+              "maximum": 0.10529606696218252,
+              "total": 1.3240680266171694
+            },
+            "covered": {
+              "count": 53,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 53,
+              "median": 0.01766959996894002,
+              "p95": 0.053617043979465956,
+              "maximum": 0.10529606696218252,
+              "total": 1.3240680266171694
+            }
+          },
+          "raw_batch_completion_and_checkpoints": {
+            "inclusive": {
+              "count": 28,
+              "median": 1.0770528563298285,
+              "p95": 3.667736906954087,
+              "maximum": 4.047720341011882,
+              "total": 39.74079273408279
+            },
+            "covered": {
+              "count": 28,
+              "median": 0.49245588202029467,
+              "p95": 0.6147101244423538,
+              "maximum": 0.6608062479645014,
+              "total": 12.977114248555154
+            },
+            "exclusive": {
+              "count": 28,
+              "median": 0.5326229771599174,
+              "p95": 3.0791049029678104,
+              "maximum": 3.4250930715352297,
+              "total": 26.763678485527635
+            }
+          },
+          "batch_completion_handoff": {
+            "inclusive": {
+              "count": 28,
+              "median": 0.00131376669742167,
+              "p95": 0.004787505744025111,
+              "maximum": 0.006407575681805611,
+              "total": 0.05127243511378765
+            },
+            "covered": {
+              "count": 28,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 28,
+              "median": 0.00131376669742167,
+              "p95": 0.004787505744025111,
+              "maximum": 0.006407575681805611,
+              "total": 0.05127243511378765
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "stiffness": {
+        "stages": {
+          "archived_job_load": {
+            "inclusive": {
+              "count": 53,
+              "median": 0.05519888224080205,
+              "p95": 0.1513235185295343,
+              "maximum": 0.17310260608792305,
+              "total": 4.051920237950981
+            },
+            "covered": {
+              "count": 53,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 53,
+              "median": 0.05519888224080205,
+              "p95": 0.1513235185295343,
+              "maximum": 0.17310260608792305,
+              "total": 4.051920237950981
+            }
+          },
+          "stiffness.endpoint_body_ratio_diagnostic": {
+            "inclusive": {
+              "count": 53,
+              "median": 0.001549778040498495,
+              "p95": 0.0020442851819097996,
+              "maximum": 0.0033950740471482277,
+              "total": 0.08702229475602508
+            },
+            "covered": {
+              "count": 53,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 53,
+              "median": 0.001549778040498495,
+              "p95": 0.0020442851819097996,
+              "maximum": 0.0033950740471482277,
+              "total": 0.08702229475602508
+            }
+          },
+          "stiffness.laplace.seed_ranking": {
+            "inclusive": {
+              "count": 105,
+              "median": 0.01588041102513671,
+              "p95": 0.10295655187219381,
+              "maximum": 0.11273308983072639,
+              "total": 3.3266970035620034
+            },
+            "covered": {
+              "count": 105,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 105,
+              "median": 0.01588041102513671,
+              "p95": 0.10295655187219381,
+              "maximum": 0.11273308983072639,
+              "total": 3.3266970035620034
+            }
+          },
+          "stiffness.laplace.mode_optimization": {
+            "inclusive": {
+              "count": 105,
+              "median": 0.06712106196209788,
+              "p95": 1.2996927913278342,
+              "maximum": 4.079633734654635,
+              "total": 38.64501727046445
+            },
+            "covered": {
+              "count": 105,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 105,
+              "median": 0.06712106196209788,
+              "p95": 1.2996927913278342,
+              "maximum": 4.079633734654635,
+              "total": 38.64501727046445
+            }
+          },
+          "stiffness.laplace.hessian": {
+            "inclusive": {
+              "count": 105,
+              "median": 0.02276686206459999,
+              "p95": 0.8615790192969143,
+              "maximum": 1.0080987797118723,
+              "total": 21.765894880518317
+            },
+            "covered": {
+              "count": 105,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 105,
+              "median": 0.02276686206459999,
+              "p95": 0.8615790192969143,
+              "maximum": 1.0080987797118723,
+              "total": 21.765894880518317
+            }
+          },
+          "stiffness.laplace.mass_factorization": {
+            "inclusive": {
+              "count": 105,
+              "median": 0.00017144391313195229,
+              "p95": 0.0015980023890733717,
+              "maximum": 0.32896212581545115,
+              "total": 0.3789954725652933
+            },
+            "covered": {
+              "count": 105,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 105,
+              "median": 0.00017144391313195229,
+              "p95": 0.0015980023890733717,
+              "maximum": 0.32896212581545115,
+              "total": 0.3789954725652933
+            }
+          },
+          "stiffness.laplace.attempt": {
+            "inclusive": {
+              "count": 105,
+              "median": 0.11208210000768304,
+              "p95": 2.268284436035901,
+              "maximum": 5.135604462120682,
+              "total": 64.41378999734297
+            },
+            "covered": {
+              "count": 105,
+              "median": 0.10833554482087493,
+              "p95": 2.2671081364154815,
+              "maximum": 5.134317746851593,
+              "total": 64.11660462711006
+            },
+            "exclusive": {
+              "count": 105,
+              "median": 0.00138486223295331,
+              "p95": 0.006184389349073171,
+              "maximum": 0.03449338395148516,
+              "total": 0.2971853702329099
+            }
+          },
+          "stiffness.evidence.keep": {
+            "inclusive": {
+              "count": 53,
+              "median": 0.8981605139560997,
+              "p95": 2.9422745211981214,
+              "maximum": 5.137265294790268,
+              "total": 61.6615481316112
+            },
+            "covered": {
+              "count": 53,
+              "median": 0.8963357349857688,
+              "p95": 2.9416405829600967,
+              "maximum": 5.135604462120682,
+              "total": 61.6086853207089
+            },
+            "exclusive": {
+              "count": 53,
+              "median": 0.0004792488180100918,
+              "p95": 0.0021755854599177834,
+              "maximum": 0.003229921218007803,
+              "total": 0.0528628109022975
+            }
+          },
+          "stiffness.bfs_update": {
+            "inclusive": {
+              "count": 53,
+              "median": 0.9433592800050974,
+              "p95": 3.0260876092128437,
+              "maximum": 5.231010258197784,
+              "total": 64.56382691068575
+            },
+            "covered": {
+              "count": 53,
+              "median": 0.941087310668081,
+              "p95": 3.025465415418146,
+              "maximum": 5.2304399674758315,
+              "total": 64.5081662577577
+            },
+            "exclusive": {
+              "count": 53,
+              "median": 0.0005754283629357815,
+              "p95": 0.002919117826968431,
+              "maximum": 0.0032528978772461414,
+              "total": 0.05566065292805433
+            }
+          },
+          "K_factor_and_evidence": {
+            "inclusive": {
+              "count": 53,
+              "median": 0.9518201570026577,
+              "p95": 3.0362295588478427,
+              "maximum": 5.240122907329351,
+              "total": 65.04239460080862
+            },
+            "covered": {
+              "count": 53,
+              "median": 0.9449202930554748,
+              "p95": 3.027679657097904,
+              "maximum": 5.232508638873696,
+              "total": 64.65084920544177
+            },
+            "exclusive": {
+              "count": 53,
+              "median": 0.0073425439186394215,
+              "p95": 0.009431394562125207,
+              "maximum": 0.010172351729124784,
+              "total": 0.3915453953668475
+            }
+          },
+          "K_representative_selection": {
+            "inclusive": {
+              "count": 53,
+              "median": 0.06887952517718077,
+              "p95": 0.17443636739626525,
+              "maximum": 0.20725298393517733,
+              "total": 4.203272335231304
+            },
+            "covered": {
+              "count": 53,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 53,
+              "median": 0.06887952517718077,
+              "p95": 0.17443636739626525,
+              "maximum": 0.20725298393517733,
+              "total": 4.203272335231304
+            }
+          },
+          "stiffness_result_save": {
+            "inclusive": {
+              "count": 53,
+              "median": 0.06723745306953788,
+              "p95": 0.13560659298673272,
+              "maximum": 0.1450870712287724,
+              "total": 3.9970554932951927
+            },
+            "covered": {
+              "count": 53,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 53,
+              "median": 0.06723745306953788,
+              "p95": 0.13560659298673272,
+              "maximum": 0.1450870712287724,
+              "total": 3.9970554932951927
+            }
+          },
+          "stiffness.evidence.reset": {
+            "inclusive": {
+              "count": 52,
+              "median": 0.0469751157797873,
+              "p95": 0.10265009738504878,
+              "maximum": 0.1275228736922145,
+              "total": 2.8466181261464953
+            },
+            "covered": {
+              "count": 52,
+              "median": 0.04563372163102031,
+              "p95": 0.10237775451969347,
+              "maximum": 0.1240552132949233,
+              "total": 2.8051046766340733
+            },
+            "exclusive": {
+              "count": 52,
+              "median": 0.00029993592761456966,
+              "p95": 0.0018672378733754155,
+              "maximum": 0.0034676603972911835,
+              "total": 0.041513449512422085
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "control": {
+        "stages": {
+          "actual_ledger_transport": {
+            "inclusive": {
+              "count": 882,
+              "median": 0.015334104420617223,
+              "p95": 0.019148649345152077,
+              "maximum": 0.0665833349339664,
+              "total": 13.869213875383139
+            },
+            "covered": {
+              "count": 882,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 882,
+              "median": 0.015334104420617223,
+              "p95": 0.019148649345152077,
+              "maximum": 0.0665833349339664,
+              "total": 13.869213875383139
+            }
+          },
+          "capture_K_and_reanchor": {
+            "inclusive": {
+              "count": 882,
+              "median": 0.010928069241344929,
+              "p95": 0.1252995905466375,
+              "maximum": 0.1828766530379653,
+              "total": 16.859333387110382
+            },
+            "covered": {
+              "count": 882,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 882,
+              "median": 0.010928069241344929,
+              "p95": 0.1252995905466375,
+              "maximum": 0.1828766530379653,
+              "total": 16.859333387110382
+            }
+          },
+          "artifact_work_transfer": {
+            "inclusive": {
+              "count": 882,
+              "median": 0.004854252561926842,
+              "p95": 0.008986196876503517,
+              "maximum": 0.19026554329320788,
+              "total": 7.590198930352926
+            },
+            "covered": {
+              "count": 882,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 882,
+              "median": 0.004854252561926842,
+              "p95": 0.008986196876503517,
+              "maximum": 0.19026554329320788,
+              "total": 7.590198930352926
+            }
+          },
+          "task_and_view_gradient": {
+            "inclusive": {
+              "count": 874,
+              "median": 0.061574034858495,
+              "p95": 0.06972004396375268,
+              "maximum": 0.218758640345186,
+              "total": 55.75281753577292
+            },
+            "covered": {
+              "count": 874,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 874,
+              "median": 0.061574034858495,
+              "p95": 0.06972004396375268,
+              "maximum": 0.218758640345186,
+              "total": 55.75281753577292
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "artifacts": {
+        "stages": {
+          "snapshot_and_marker_construction": {
+            "inclusive": {
+              "count": 882,
+              "median": 0.026022215373814106,
+              "p95": 0.04834806395228951,
+              "maximum": 0.19765672367066145,
+              "total": 26.913858662359416
+            },
+            "covered": {
+              "count": 882,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 882,
+              "median": 0.026022215373814106,
+              "p95": 0.04834806395228951,
+              "maximum": 0.19765672367066145,
+              "total": 26.913858662359416
+            }
+          },
+          "snapshot_artifact_serialization": {
+            "inclusive": {
+              "count": 882,
+              "median": 0.08798803389072418,
+              "p95": 0.10591054786927998,
+              "maximum": 0.15238894103094935,
+              "total": 74.17695756070316
+            },
+            "covered": {
+              "count": 882,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 882,
+              "median": 0.08798803389072418,
+              "p95": 0.10591054786927998,
+              "maximum": 0.15238894103094935,
+              "total": 74.17695756070316
+            }
+          },
+          "control_record_json_write": {
+            "inclusive": {
+              "count": 882,
+              "median": 0.036113962065428495,
+              "p95": 0.04337626637425274,
+              "maximum": 0.28992365999147296,
+              "total": 29.84675967786461
+            },
+            "covered": {
+              "count": 882,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 882,
+              "median": 0.036113962065428495,
+              "p95": 0.04337626637425274,
+              "maximum": 0.28992365999147296,
+              "total": 29.84675967786461
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "publication": {
+        "stages": {
+          "scene_publish": {
+            "inclusive": {
+              "count": 4812,
+              "median": 0.0007827517110854387,
+              "p95": 0.035377225582487876,
+              "maximum": 0.17227433621883392,
+              "total": 40.777291231788695
+            },
+            "covered": {
+              "count": 4812,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4812,
+              "median": 0.0007827517110854387,
+              "p95": 0.035377225582487876,
+              "maximum": 0.17227433621883392,
+              "total": 40.777291231788695
+            }
+          },
+          "motion_metadata_publish": {
+            "inclusive": {
+              "count": 4812,
+              "median": 0.0010086544789373875,
+              "p95": 0.002742143557406962,
+              "maximum": 0.3317053020000458,
+              "total": 7.085717596113682
+            },
+            "covered": {
+              "count": 4812,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4812,
+              "median": 0.0010086544789373875,
+              "p95": 0.002742143557406962,
+              "maximum": 0.3317053020000458,
+              "total": 7.085717596113682
+            }
+          },
+          "manifest_json_save": {
+            "inclusive": {
+              "count": 4812,
+              "median": 0.0029040551744401455,
+              "p95": 0.005598761118017137,
+              "maximum": 0.303145888261497,
+              "total": 17.348653605673462
+            },
+            "covered": {
+              "count": 4812,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4812,
+              "median": 0.0029040551744401455,
+              "p95": 0.005598761118017137,
+              "maximum": 0.303145888261497,
+              "total": 17.348653605673462
+            }
+          },
+          "publication_record_save": {
+            "inclusive": {
+              "count": 4812,
+              "median": 0.0001622149720788002,
+              "p95": 0.0017164646182209252,
+              "maximum": 0.03836097102612257,
+              "total": 2.9822181151248515
+            },
+            "covered": {
+              "count": 4812,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4812,
+              "median": 0.0001622149720788002,
+              "p95": 0.0017164646182209252,
+              "maximum": 0.03836097102612257,
+              "total": 2.9822181151248515
+            }
+          },
+          "raw_publish": {
+            "inclusive": {
+              "count": 4811,
+              "median": 0.00025870930403470993,
+              "p95": 0.0010235379450023174,
+              "maximum": 0.2193016391247511,
+              "total": 2.3833437492139637
+            },
+            "covered": {
+              "count": 4811,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4811,
+              "median": 0.00025870930403470993,
+              "p95": 0.0010235379450023174,
+              "maximum": 0.2193016391247511,
+              "total": 2.3833437492139637
+            }
+          },
+          "snapshot_wire_publish": {
+            "inclusive": {
+              "count": 879,
+              "median": 0.00020258314907550812,
+              "p95": 0.0007891252636909471,
+              "maximum": 0.10904461331665516,
+              "total": 0.3590093064121902
+            },
+            "covered": {
+              "count": 879,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 879,
+              "median": 0.00020258314907550812,
+              "p95": 0.0007891252636909471,
+              "maximum": 0.10904461331665516,
+              "total": 0.3590093064121902
+            }
+          },
+          "snapshot_json_publish": {
+            "inclusive": {
+              "count": 879,
+              "median": 0.01946985488757491,
+              "p95": 0.02525528478436172,
+              "maximum": 0.04109059926122427,
+              "total": 16.46060827560723
+            },
+            "covered": {
+              "count": 879,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 879,
+              "median": 0.01946985488757491,
+              "p95": 0.02525528478436172,
+              "maximum": 0.04109059926122427,
+              "total": 16.46060827560723
+            }
+          },
+          "stiffness_json_publish": {
+            "inclusive": {
+              "count": 879,
+              "median": 0.010800041258335114,
+              "p95": 0.014937120443210005,
+              "maximum": 0.08803563611581922,
+              "total": 8.9409303907305
+            },
+            "covered": {
+              "count": 879,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 879,
+              "median": 0.010800041258335114,
+              "p95": 0.014937120443210005,
+              "maximum": 0.08803563611581922,
+              "total": 8.9409303907305
+            }
+          },
+          "preview_publish": {
+            "inclusive": {
+              "count": 1567,
+              "median": 0.0005533439107239246,
+              "p95": 0.0022477031219750618,
+              "maximum": 0.047506304923444986,
+              "total": 1.5714031574316323
+            },
+            "covered": {
+              "count": 1567,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 1567,
+              "median": 0.0005533439107239246,
+              "p95": 0.0022477031219750618,
+              "maximum": 0.047506304923444986,
+              "total": 1.5714031574316323
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      }
+    },
+    "imu_marker": {
+      "coordinator": {
+        "stages": {},
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "inference": {
+        "stages": {
+          "body_event_update": {
+            "inclusive": {
+              "count": 422,
+              "median": 0.046034164959564805,
+              "p95": 0.1856264341622591,
+              "maximum": 0.21018494572490454,
+              "total": 30.164140650536865
+            },
+            "covered": {
+              "count": 422,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 422,
+              "median": 0.046034164959564805,
+              "p95": 0.1856264341622591,
+              "maximum": 0.21018494572490454,
+              "total": 30.164140650536865
+            }
+          },
+          "stiffness_job_archive_and_enqueue": {
+            "inclusive": {
+              "count": 422,
+              "median": 0.015424903947860003,
+              "p95": 0.03475757746491581,
+              "maximum": 0.08937692688778043,
+              "total": 7.325077251996845
+            },
+            "covered": {
+              "count": 422,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 422,
+              "median": 0.015424903947860003,
+              "p95": 0.03475757746491581,
+              "maximum": 0.08937692688778043,
+              "total": 7.325077251996845
+            }
+          },
+          "raw_batch_completion_and_checkpoints": {
+            "inclusive": {
+              "count": 43,
+              "median": 1.388061203993857,
+              "p95": 2.8056467270478604,
+              "maximum": 5.937098048627377,
+              "total": 69.96980367554352
+            },
+            "covered": {
+              "count": 43,
+              "median": 0.874409613199532,
+              "p95": 0.9724552244879305,
+              "maximum": 1.106543022673577,
+              "total": 37.48921790253371
+            },
+            "exclusive": {
+              "count": 43,
+              "median": 0.53084014961496,
+              "p95": 1.8331915025599301,
+              "maximum": 4.8305550259537995,
+              "total": 32.48058577300981
+            }
+          },
+          "batch_completion_handoff": {
+            "inclusive": {
+              "count": 43,
+              "median": 0.001540921162813902,
+              "p95": 0.0037468743044883003,
+              "maximum": 0.005166310351341963,
+              "total": 0.0681925704702735
+            },
+            "covered": {
+              "count": 43,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 43,
+              "median": 0.001540921162813902,
+              "p95": 0.0037468743044883003,
+              "maximum": 0.005166310351341963,
+              "total": 0.0681925704702735
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "stiffness": {
+        "stages": {
+          "archived_job_load": {
+            "inclusive": {
+              "count": 90,
+              "median": 0.03742430731654167,
+              "p95": 0.06100502372719347,
+              "maximum": 0.07866737199947238,
+              "total": 3.6041801371611655
+            },
+            "covered": {
+              "count": 90,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 90,
+              "median": 0.03742430731654167,
+              "p95": 0.06100502372719347,
+              "maximum": 0.07866737199947238,
+              "total": 3.6041801371611655
+            }
+          },
+          "stiffness.endpoint_body_ratio_diagnostic": {
+            "inclusive": {
+              "count": 90,
+              "median": 0.0015250705182552338,
+              "p95": 0.002424625004641711,
+              "maximum": 0.00548684224486351,
+              "total": 0.15072859358042479
+            },
+            "covered": {
+              "count": 90,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 90,
+              "median": 0.0015250705182552338,
+              "p95": 0.002424625004641711,
+              "maximum": 0.00548684224486351,
+              "total": 0.15072859358042479
+            }
+          },
+          "stiffness.laplace.seed_ranking": {
+            "inclusive": {
+              "count": 178,
+              "median": 0.02238646848127246,
+              "p95": 0.11867997921071947,
+              "maximum": 0.14253139588981867,
+              "total": 6.906583975069225
+            },
+            "covered": {
+              "count": 178,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 178,
+              "median": 0.02238646848127246,
+              "p95": 0.11867997921071947,
+              "maximum": 0.14253139588981867,
+              "total": 6.906583975069225
+            }
+          },
+          "stiffness.laplace.mode_optimization": {
+            "inclusive": {
+              "count": 178,
+              "median": 0.07695663953199983,
+              "p95": 2.484528683242388,
+              "maximum": 5.1150155630894005,
+              "total": 106.71137054963037
+            },
+            "covered": {
+              "count": 178,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 178,
+              "median": 0.07695663953199983,
+              "p95": 2.484528683242388,
+              "maximum": 5.1150155630894005,
+              "total": 106.71137054963037
+            }
+          },
+          "stiffness.laplace.hessian": {
+            "inclusive": {
+              "count": 177,
+              "median": 0.019014514051377773,
+              "p95": 0.9213276272639629,
+              "maximum": 1.0582343898713589,
+              "total": 43.660219193436205
+            },
+            "covered": {
+              "count": 177,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 177,
+              "median": 0.019014514051377773,
+              "p95": 0.9213276272639629,
+              "maximum": 1.0582343898713589,
+              "total": 43.660219193436205
+            }
+          },
+          "stiffness.laplace.mass_factorization": {
+            "inclusive": {
+              "count": 177,
+              "median": 0.0001961616799235344,
+              "p95": 0.0016974702477455135,
+              "maximum": 0.006304970942437649,
+              "total": 0.1156526654958725
+            },
+            "covered": {
+              "count": 177,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 177,
+              "median": 0.0001961616799235344,
+              "p95": 0.0016974702477455135,
+              "maximum": 0.006304970942437649,
+              "total": 0.1156526654958725
+            }
+          },
+          "stiffness.laplace.attempt": {
+            "inclusive": {
+              "count": 177,
+              "median": 0.11757135577499866,
+              "p95": 3.3550387443043275,
+              "maximum": 6.008663930930197,
+              "total": 153.3281657770276
+            },
+            "covered": {
+              "count": 177,
+              "median": 0.11642365716397762,
+              "p95": 3.3538123282603904,
+              "maximum": 6.0075420923531055,
+              "total": 152.4106449005194
+            },
+            "exclusive": {
+              "count": 177,
+              "median": 0.0012482008896768093,
+              "p95": 0.006636109389364691,
+              "maximum": 0.24613867746666074,
+              "total": 0.9175208765082061
+            }
+          },
+          "stiffness.evidence.keep": {
+            "inclusive": {
+              "count": 89,
+              "median": 1.4657042217440903,
+              "p95": 3.89236654760316,
+              "maximum": 6.008947668131441,
+              "total": 148.34890814498067
+            },
+            "covered": {
+              "count": 89,
+              "median": 1.465209879912436,
+              "p95": 3.892068972904235,
+              "maximum": 6.008663930930197,
+              "total": 147.91137474449351
+            },
+            "exclusive": {
+              "count": 89,
+              "median": 0.0007997429929673672,
+              "p95": 0.0033151682466268533,
+              "maximum": 0.32936075888574123,
+              "total": 0.4375334004871547
+            }
+          },
+          "stiffness.bfs_update": {
+            "inclusive": {
+              "count": 89,
+              "median": 1.5189099251292646,
+              "p95": 3.987005153018981,
+              "maximum": 6.044886470306665,
+              "total": 153.9940461809747
+            },
+            "covered": {
+              "count": 89,
+              "median": 1.5147617626935244,
+              "p95": 3.9854165555909273,
+              "maximum": 6.044307366013527,
+              "total": 153.87312050908804
+            },
+            "exclusive": {
+              "count": 89,
+              "median": 0.0006534685380756855,
+              "p95": 0.0034060099162161336,
+              "maximum": 0.019759317860007286,
+              "total": 0.12092567188665271
+            }
+          },
+          "K_factor_and_evidence": {
+            "inclusive": {
+              "count": 89,
+              "median": 1.5465161888860166,
+              "p95": 3.9971444983966644,
+              "maximum": 6.055082752369344,
+              "total": 154.9301890390925
+            },
+            "covered": {
+              "count": 89,
+              "median": 1.5203509260900319,
+              "p95": 3.9885132818482814,
+              "maximum": 6.046354003250599,
+              "total": 154.14334451640025
+            },
+            "exclusive": {
+              "count": 89,
+              "median": 0.00817760406062007,
+              "p95": 0.014368777070194476,
+              "maximum": 0.03774885879829526,
+              "total": 0.7868445226922631
+            }
+          },
+          "K_representative_selection": {
+            "inclusive": {
+              "count": 89,
+              "median": 0.08248452609404922,
+              "p95": 0.26617998005822296,
+              "maximum": 0.300180132035166,
+              "total": 9.126695348881185
+            },
+            "covered": {
+              "count": 89,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 89,
+              "median": 0.08248452609404922,
+              "p95": 0.26617998005822296,
+              "maximum": 0.300180132035166,
+              "total": 9.126695348881185
+            }
+          },
+          "stiffness_result_save": {
+            "inclusive": {
+              "count": 89,
+              "median": 0.05494623119011521,
+              "p95": 0.07865403648465871,
+              "maximum": 0.08085671672597528,
+              "total": 4.770843817386776
+            },
+            "covered": {
+              "count": 89,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 89,
+              "median": 0.05494623119011521,
+              "p95": 0.07865403648465871,
+              "maximum": 0.08085671672597528,
+              "total": 4.770843817386776
+            }
+          },
+          "stiffness.evidence.reset": {
+            "inclusive": {
+              "count": 88,
+              "median": 0.05422613560222089,
+              "p95": 0.11770005652215323,
+              "maximum": 0.13492399593815207,
+              "total": 5.52421236410737
+            },
+            "covered": {
+              "count": 88,
+              "median": 0.05310822278261185,
+              "p95": 0.11452693608589466,
+              "maximum": 0.13462947262451053,
+              "total": 5.416791032534093
+            },
+            "exclusive": {
+              "count": 88,
+              "median": 0.00031317747198045254,
+              "p95": 0.003452388965524733,
+              "maximum": 0.011605450883507729,
+              "total": 0.10742133157327771
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": [
+          "K_factor_and_evidence",
+          "stiffness.bfs_update",
+          "stiffness.evidence.keep",
+          "stiffness.laplace.attempt",
+          "stiffness.laplace.mode_optimization"
+        ]
+      },
+      "control": {
+        "stages": {
+          "actual_ledger_transport": {
+            "inclusive": {
+              "count": 797,
+              "median": 0.014937303960323334,
+              "p95": 0.019605753105133766,
+              "maximum": 0.0862242360599339,
+              "total": 12.423989868257195
+            },
+            "covered": {
+              "count": 797,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 797,
+              "median": 0.014937303960323334,
+              "p95": 0.019605753105133766,
+              "maximum": 0.0862242360599339,
+              "total": 12.423989868257195
+            }
+          },
+          "capture_K_and_reanchor": {
+            "inclusive": {
+              "count": 797,
+              "median": 0.013902328908443451,
+              "p95": 0.14475865941494623,
+              "maximum": 0.3346750820055604,
+              "total": 21.06193218519911
+            },
+            "covered": {
+              "count": 797,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 797,
+              "median": 0.013902328908443451,
+              "p95": 0.14475865941494623,
+              "maximum": 0.3346750820055604,
+              "total": 21.06193218519911
+            }
+          },
+          "artifact_work_transfer": {
+            "inclusive": {
+              "count": 797,
+              "median": 0.005375261884182692,
+              "p95": 0.009687296207994219,
+              "maximum": 0.3604451077990234,
+              "total": 8.102465423289686
+            },
+            "covered": {
+              "count": 797,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 797,
+              "median": 0.005375261884182692,
+              "p95": 0.009687296207994219,
+              "maximum": 0.3604451077990234,
+              "total": 8.102465423289686
+            }
+          },
+          "task_and_view_gradient": {
+            "inclusive": {
+              "count": 788,
+              "median": 0.0621488424949348,
+              "p95": 0.07052108312491327,
+              "maximum": 0.3527067988179624,
+              "total": 50.76244602026418
+            },
+            "covered": {
+              "count": 788,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 788,
+              "median": 0.0621488424949348,
+              "p95": 0.07052108312491327,
+              "maximum": 0.3527067988179624,
+              "total": 50.76244602026418
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "artifacts": {
+        "stages": {
+          "snapshot_and_marker_construction": {
+            "inclusive": {
+              "count": 793,
+              "median": 0.025603235233575106,
+              "p95": 0.044616721384227266,
+              "maximum": 0.23993169702589512,
+              "total": 22.731400943361223
+            },
+            "covered": {
+              "count": 793,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 793,
+              "median": 0.025603235233575106,
+              "p95": 0.044616721384227266,
+              "maximum": 0.23993169702589512,
+              "total": 22.731400943361223
+            }
+          },
+          "snapshot_artifact_serialization": {
+            "inclusive": {
+              "count": 792,
+              "median": 0.09948022686876357,
+              "p95": 0.12726260544732207,
+              "maximum": 0.1960331597365439,
+              "total": 76.53871395485476
+            },
+            "covered": {
+              "count": 792,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 792,
+              "median": 0.09948022686876357,
+              "p95": 0.12726260544732207,
+              "maximum": 0.1960331597365439,
+              "total": 76.53871395485476
+            }
+          },
+          "control_record_json_write": {
+            "inclusive": {
+              "count": 792,
+              "median": 0.04302507103420794,
+              "p95": 0.06050390880554911,
+              "maximum": 0.1836686539463699,
+              "total": 32.82929988997057
+            },
+            "covered": {
+              "count": 792,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 792,
+              "median": 0.04302507103420794,
+              "p95": 0.06050390880554911,
+              "maximum": 0.1836686539463699,
+              "total": 32.82929988997057
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      },
+      "publication": {
+        "stages": {
+          "scene_publish": {
+            "inclusive": {
+              "count": 4440,
+              "median": 0.0007846343796700239,
+              "p95": 0.03268731290008873,
+              "maximum": 0.16397672472521663,
+              "total": 34.37539086584002
+            },
+            "covered": {
+              "count": 4440,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4440,
+              "median": 0.0007846343796700239,
+              "p95": 0.03268731290008873,
+              "maximum": 0.16397672472521663,
+              "total": 34.37539086584002
+            }
+          },
+          "motion_metadata_publish": {
+            "inclusive": {
+              "count": 4440,
+              "median": 0.001090420875698328,
+              "p95": 0.0028267856221646072,
+              "maximum": 0.05426480993628502,
+              "total": 6.486201720312238
+            },
+            "covered": {
+              "count": 4440,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4440,
+              "median": 0.001090420875698328,
+              "p95": 0.0028267856221646072,
+              "maximum": 0.05426480993628502,
+              "total": 6.486201720312238
+            }
+          },
+          "manifest_json_save": {
+            "inclusive": {
+              "count": 4440,
+              "median": 0.0030210227705538273,
+              "p95": 0.005510359164327384,
+              "maximum": 0.16791032906621695,
+              "total": 15.784532436169684
+            },
+            "covered": {
+              "count": 4440,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4440,
+              "median": 0.0030210227705538273,
+              "p95": 0.005510359164327384,
+              "maximum": 0.16791032906621695,
+              "total": 15.784532436169684
+            }
+          },
+          "publication_record_save": {
+            "inclusive": {
+              "count": 4440,
+              "median": 0.0001728914212435484,
+              "p95": 0.001745927450247109,
+              "maximum": 0.0943710133433342,
+              "total": 3.070465825032443
+            },
+            "covered": {
+              "count": 4440,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4440,
+              "median": 0.0001728914212435484,
+              "p95": 0.001745927450247109,
+              "maximum": 0.0943710133433342,
+              "total": 3.070465825032443
+            }
+          },
+          "raw_publish": {
+            "inclusive": {
+              "count": 4440,
+              "median": 0.0002699405886232853,
+              "p95": 0.0009402838302776221,
+              "maximum": 0.2330548451282084,
+              "total": 2.407777645625174
+            },
+            "covered": {
+              "count": 4440,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 4440,
+              "median": 0.0002699405886232853,
+              "p95": 0.0009402838302776221,
+              "maximum": 0.2330548451282084,
+              "total": 2.407777645625174
+            }
+          },
+          "snapshot_wire_publish": {
+            "inclusive": {
+              "count": 790,
+              "median": 0.00020752567797899246,
+              "p95": 0.0006404814776033145,
+              "maximum": 0.17241194192320108,
+              "total": 0.4059295607730746
+            },
+            "covered": {
+              "count": 790,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 790,
+              "median": 0.00020752567797899246,
+              "p95": 0.0006404814776033145,
+              "maximum": 0.17241194192320108,
+              "total": 0.4059295607730746
+            }
+          },
+          "snapshot_json_publish": {
+            "inclusive": {
+              "count": 789,
+              "median": 0.02299577184021473,
+              "p95": 0.03110577380284666,
+              "maximum": 0.05332538392394781,
+              "total": 17.47192109702155
+            },
+            "covered": {
+              "count": 789,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 789,
+              "median": 0.02299577184021473,
+              "p95": 0.03110577380284666,
+              "maximum": 0.05332538392394781,
+              "total": 17.47192109702155
+            }
+          },
+          "stiffness_json_publish": {
+            "inclusive": {
+              "count": 789,
+              "median": 0.014264198020100594,
+              "p95": 0.021521155443042516,
+              "maximum": 0.27120902156457305,
+              "total": 10.922144882380962
+            },
+            "covered": {
+              "count": 789,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 789,
+              "median": 0.014264198020100594,
+              "p95": 0.021521155443042516,
+              "maximum": 0.27120902156457305,
+              "total": 10.922144882380962
+            }
+          },
+          "preview_publish": {
+            "inclusive": {
+              "count": 1583,
+              "median": 0.0005625467747449875,
+              "p95": 0.0022692391648888584,
+              "maximum": 0.010347789619117975,
+              "total": 1.5757406074553728
+            },
+            "covered": {
+              "count": 1583,
+              "median": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "total": 0.0
+            },
+            "exclusive": {
+              "count": 1583,
+              "median": 0.0005625467747449875,
+              "p95": 0.0022692391648888584,
+              "maximum": 0.010347789619117975,
+              "total": 1.5757406074553728
+            }
+          }
+        },
+        "pairing_errors": [],
+        "unfinished_stages": []
+      }
+    }
+  },
+  "method": "For each paired stage_finished, interval=[monotonic_s-duration_s,monotonic_s]. Subtract the clipped union of completed direct-child intervals from the reported inclusive duration. Direct-child intervals already include their descendants. Same-process only; stage_finish within the physical-window host-wall boundaries; this is a measured-stage accounting estimate including monitor boundary/recording overhead, not an exact profiler attribution to code lines. Uninstrumented residual work is not identified as DB/JSON/checkpoint-only work."
+}

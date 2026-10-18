@@ -174,7 +174,7 @@ if __name__ == '__main__':
     parser.add_argument('--case', choices=('marker', 'imu_marker'), required=True)
     parser.add_argument('--count', type=int, default=100)
     parser.add_argument('--duration', type=float)
-    parser.add_argument('--update-method', choices=('nonlinear_fixed_prior', 'affine_reference'),
+    parser.add_argument('--update-method', choices=('propagated_moments', 'affine_reference'),
                         help='Explicit inference comparison; omitted uses the frozen production settings.')
     parser.add_argument('--output', type=Path, required=True)
     main(parser.parse_args())

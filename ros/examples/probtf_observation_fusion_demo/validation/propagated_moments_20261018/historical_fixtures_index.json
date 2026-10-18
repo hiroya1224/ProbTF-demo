@@ -1,0 +1,4741 @@
+{
+  "schema": "propagation_operator_original_input_index_v1",
+  "source_run": "/tmp/probtf_nonlinear_fixed_prior_live_20261018",
+  "source_freeze": {
+    "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/source_freeze.json",
+    "sha256": "f270543872782be7ce3cac53a1aacf24c883da403d802b6a7b17405a6d1f4560"
+  },
+  "unchanged_run_proof": {
+    "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/source_check_after_shutdown.json",
+    "sha256": "0ee6ba6f2aec95dfdc0b7f0a2abcbbfe0fc7235d652a9a98e094043a58fec9f1"
+  },
+  "limitations": [
+    "Original priors were formed by the historical nonlinear MAP/GN run. Substituting one propagation operator does not replay the new method from its initial prior.",
+    "I321 is an image observation in the IMU+marker case, not an IMU-only update. Equal-time sensor events keep their original insertion sequence and each effective event remains a separate BFS unit.",
+    "K archive ledger covers transport from that event\u2019s immediate preceding inference state, not necessarily from the preceding effective K job; missing selected images may already have transported the retained prior. Never fill a missing interval with latest K.",
+    "Raw pixels and full original joint arrays remain in immutable SQLite/pickle archives. This index contains paths/hashes and native observation parameters, not plant truth.",
+    "Archive status pending records durable creation metadata. Actual K completion is in stiffness_ready_adoptions.jsonl; do not infer completion from archive filename or source stamp."
+  ],
+  "cases": {
+    "M93": {
+      "label": "normal neighboring image reference",
+      "case": "marker",
+      "job_sequence": 93,
+      "acquisition": {
+        "event_id": "image:00002488",
+        "kind": "image",
+        "sequence": 1984,
+        "stamp": 1792080028.511244,
+        "elapsed_from_sim_epoch_s": 28.51124405860901,
+        "command": [
+          0.06369540227664212,
+          -1.7044957801090497,
+          2.0358898467691664,
+          0.03377171538732971,
+          -0.894208317213496,
+          -0.037269816982042216
+        ],
+        "frame_index": 2488,
+        "payload_sha256": "28614f50aa5268c5b3fab5d05476aee88ab53cca1e62394ca0a087404dd80444",
+        "metadata": {
+          "frame_index": 2488,
+          "image": {
+            "__event_array__": 0,
+            "dtype": "|u1",
+            "shape": [
+              720,
+              960
+            ]
+          },
+          "image_path": "capture_002488.png",
+          "image_sha256": "99ade0a1b5a81da5fa0fa690b77708a06e21dc9b5486537e4cea68eab4818972",
+          "image_stamp": 1792080028.511244,
+          "time": 28.51124408422038
+        },
+        "raw_payload_json_sha256": "50d82bf6175bd5a45d1b5a364c412d141e8e45987fbec402ff497ba6d0fea819",
+        "DB_received_host_wall_s": 1792306830.6673255,
+        "DB_ready_host_wall_s": 1792306830.988604
+      },
+      "archive_reference": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000093_f732baa70cd0edb4.json",
+        "sha256": "3d967ddf76271d4e79cf6d1d27f2c82fc98d7a357f2376901cdb5f836daae22b",
+        "payload_path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000093_f732baa70cd0edb4.pickle",
+        "payload_sha256": "f220b4e77aa9c3c6329c4445e910344b97936f84c44dd3df606b1d245c15dd9c",
+        "payload_actual_sha256": "f220b4e77aa9c3c6329c4445e910344b97936f84c44dd3df606b1d245c15dd9c",
+        "payload_bytes": 1726740,
+        "archived_host_wall_s": 1792306832.1015096,
+        "numeric_candidate_id": "d17c3b3d24acd04b82c5fc0c096b6d54f2c352ccde07b274f2e68a7604a0132c"
+      },
+      "raw_database": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/observations.sqlite3",
+        "read_only_URI": "file:/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/observations.sqlite3?mode=ro",
+        "event_selector": "image:00002488",
+        "image_source": "payload_blobs rows with this event_id; metadata is payload_json; use original event payload, not annotation or reconstructed pixels"
+      },
+      "URDF": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/robot.urdf",
+        "sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2"
+      },
+      "observation_templates": {
+        "frozen_path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/frozen_source/ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "current_run_copy": "No rewrite: use the frozen source path"
+      },
+      "geometry_paths": {
+        "camera_marker_path": [
+          [
+            "camera_optical_frame",
+            true
+          ],
+          [
+            "tool0",
+            true
+          ],
+          [
+            "link_6",
+            true
+          ],
+          [
+            "link_5",
+            true
+          ],
+          [
+            "link_4",
+            true
+          ],
+          [
+            "link_3",
+            true
+          ],
+          [
+            "link_2",
+            true
+          ],
+          [
+            "link_1",
+            true
+          ],
+          [
+            "marker",
+            false
+          ]
+        ],
+        "camera_path": [
+          [
+            "link_1",
+            false
+          ],
+          [
+            "link_2",
+            false
+          ],
+          [
+            "link_3",
+            false
+          ],
+          [
+            "link_4",
+            false
+          ],
+          [
+            "link_5",
+            false
+          ],
+          [
+            "link_6",
+            false
+          ],
+          [
+            "tool0",
+            false
+          ],
+          [
+            "camera_optical_frame",
+            false
+          ]
+        ],
+        "marker_path": [
+          [
+            "marker",
+            false
+          ]
+        ],
+        "hand_path": [
+          [
+            "link_1",
+            false
+          ],
+          [
+            "link_2",
+            false
+          ],
+          [
+            "link_3",
+            false
+          ],
+          [
+            "link_4",
+            false
+          ],
+          [
+            "link_5",
+            false
+          ],
+          [
+            "link_6",
+            false
+          ],
+          [
+            "tool0",
+            false
+          ],
+          [
+            "press_rod",
+            false
+          ],
+          [
+            "rod_tip",
+            false
+          ]
+        ],
+        "link_paths": {
+          "link_1": [
+            [
+              "link_1",
+              false
+            ]
+          ],
+          "link_2": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ]
+          ],
+          "link_3": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ]
+          ],
+          "link_4": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ]
+          ],
+          "link_5": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ]
+          ],
+          "link_6": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ],
+            [
+              "link_6",
+              false
+            ]
+          ],
+          "tool0": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ],
+            [
+              "link_6",
+              false
+            ],
+            [
+              "tool0",
+              false
+            ]
+          ]
+        }
+      },
+      "original_priors": [
+        {
+          "label": "predicted:2488:0",
+          "log_weight": -0.2876820724517809,
+          "weight": 0.75,
+          "source_state_id": "3185bd9d470fb25e2350b3bf10ca64ea2c9d9daeb4e5171427cd8fdb3bd323ea",
+          "source_component_id": "predicted:2488:0",
+          "version": 7465,
+          "stamp": 1792080028.511244,
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ],
+          "joint_dimension": 66,
+          "edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6",
+            "tool0",
+            "press_rod",
+            "rod_tip",
+            "camera_optical_frame",
+            "marker"
+          ],
+          "body_edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6"
+          ],
+          "prior_mean_sha256": "8889eb3cdd3d0ac94711b47ce78b430d8e23a7b31ecc994c56d0c3310c87674a",
+          "prior_covariance_sha256": "9d8d0c30aafc0e95374ddfa5c4e9056598796b70c3e4045ac6ad7a32df6e39e8",
+          "joint_state_covariance_sha256": "9d8d0c30aafc0e95374ddfa5c4e9056598796b70c3e4045ac6ad7a32df6e39e8",
+          "mean_and_covariance_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[0].prior",
+          "reference_state_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[0].reference_state"
+        },
+        {
+          "label": "reset:7465",
+          "log_weight": -1.3862943611198906,
+          "weight": 0.25,
+          "source_state_id": "c8262906a737d1d53d388999fd5ee26a2d4d4e1fb9c6b363cb754c1a71860e00",
+          "source_component_id": "reset:7465",
+          "version": 7465,
+          "stamp": 1792080028.511244,
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ],
+          "joint_dimension": 66,
+          "edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6",
+            "tool0",
+            "press_rod",
+            "rod_tip",
+            "camera_optical_frame",
+            "marker"
+          ],
+          "body_edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6"
+          ],
+          "prior_mean_sha256": "8889eb3cdd3d0ac94711b47ce78b430d8e23a7b31ecc994c56d0c3310c87674a",
+          "prior_covariance_sha256": "9227f870d86b08acf050122fbd7238a2afb585d624eed3d6f3b72962f6e0bb2a",
+          "joint_state_covariance_sha256": "9227f870d86b08acf050122fbd7238a2afb585d624eed3d6f3b72962f6e0bb2a",
+          "mean_and_covariance_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[1].prior",
+          "reference_state_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[1].reference_state"
+        }
+      ],
+      "original_prediction_records": [
+        {
+          "source_label": "internal:7446",
+          "source_state_id": "2f859633622d545fc624bf8d0a9afa18cb786f69c613d10e52a25c357506da37",
+          "source_version": 7446,
+          "source_stamp": 1792080028.4195647,
+          "source_command": [
+            0.06280298762080458,
+            -1.7043274425923804,
+            2.0381377314017315,
+            0.03509285587851203,
+            -0.8941991572508545,
+            -0.0372719476031865
+          ],
+          "transported_label": "predicted:2488:0",
+          "transported_state_id": "3185bd9d470fb25e2350b3bf10ca64ea2c9d9daeb4e5171427cd8fdb3bd323ea",
+          "transported_version": 7465,
+          "transported_stamp": 1792080028.511244,
+          "transported_command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ],
+          "weight": 1.0,
+          "log_weight": 0.0
+        }
+      ],
+      "actual_archive_ledger": {
+        "interval_count": 7,
+        "interval_indices": [
+          2481,
+          2482,
+          2483,
+          2484,
+          2485,
+          2486,
+          2487
+        ],
+        "full_value_sha256": "2e80cf44425c79f4f3d339638b61eec2152c489f71cfcd73d078be9e8acc76f0",
+        "first_start_stamp": 1792080028.4195647,
+        "last_end_stamp": 1792080028.511244,
+        "object_locator": "load_stiffness_job(reference)[\"command_ledger\"]",
+        "source_journal": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/commands.jsonl"
+      },
+      "same_timestamp_events_in_immutable_sequence": [
+        {
+          "event_id": "joint:00002488",
+          "kind": "joint",
+          "sequence": 1982,
+          "stamp": 1792080028.511244,
+          "payload_hash": "ca30e62b7044d44979457f2ae86d8d2659c509f9fa00c0e39d7b52273cc7f109",
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ]
+        },
+        {
+          "event_id": "imu:00002488",
+          "kind": "imu",
+          "sequence": 1983,
+          "stamp": 1792080028.511244,
+          "payload_hash": "20c61045e8f50c29066bf290cb4a20662674e19412561434675d1e7eb8ce0006",
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ]
+        },
+        {
+          "event_id": "image:00002488",
+          "kind": "image",
+          "sequence": 1984,
+          "stamp": 1792080028.511244,
+          "payload_hash": "28614f50aa5268c5b3fab5d05476aee88ab53cca1e62394ca0a087404dd80444",
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ]
+        }
+      ],
+      "neighboring_raw_events": [
+        {
+          "event_id": "joint:00002488",
+          "kind": "joint",
+          "sequence": 1982,
+          "stamp": 1792080028.511244,
+          "payload_hash": "ca30e62b7044d44979457f2ae86d8d2659c509f9fa00c0e39d7b52273cc7f109",
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ]
+        },
+        {
+          "event_id": "imu:00002488",
+          "kind": "imu",
+          "sequence": 1983,
+          "stamp": 1792080028.511244,
+          "payload_hash": "20c61045e8f50c29066bf290cb4a20662674e19412561434675d1e7eb8ce0006",
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ]
+        },
+        {
+          "event_id": "image:00002488",
+          "kind": "image",
+          "sequence": 1984,
+          "stamp": 1792080028.511244,
+          "payload_hash": "28614f50aa5268c5b3fab5d05476aee88ab53cca1e62394ca0a087404dd80444",
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ]
+        },
+        {
+          "event_id": "joint:00002490",
+          "kind": "joint",
+          "sequence": 1985,
+          "stamp": 1792080028.5432925,
+          "payload_hash": "ccbadfcd4b088d437a59d043fb999eb2484fbc16455d54b026623f8b2759e70d",
+          "command": [
+            0.06399977627642725,
+            -1.7045355129718553,
+            2.035123254237034,
+            0.03332409977480621,
+            -0.8941993069885245,
+            -0.037266519041987745
+          ]
+        },
+        {
+          "event_id": "imu:00002490",
+          "kind": "imu",
+          "sequence": 1986,
+          "stamp": 1792080028.5432925,
+          "payload_hash": "27991fa7d67d0e9a42b3f5b287bccf8be37d42cfc53e757557d3c02751a31da2",
+          "command": [
+            0.06399977627642725,
+            -1.7045355129718553,
+            2.035123254237034,
+            0.03332409977480621,
+            -0.8941993069885245,
+            -0.037266519041987745
+          ]
+        }
+      ],
+      "native_central_observation": {
+        "parent_frame_id": "camera",
+        "child_frame_id": "marker",
+        "edge_id": "camera__to__marker",
+        "stamp": 1792080028.511244,
+        "components": [
+          {
+            "component_id": "camera__to__marker:board_adf:5eb31a6eb6232344:0",
+            "parent_frame_id": "camera",
+            "child_frame_id": "marker",
+            "edge_id": "camera__to__marker",
+            "stamp": 1792080028.511244,
+            "weight": 1.0,
+            "log_weight": 0.0,
+            "lineage": [
+              "central_after_24*camera__to__marker_25:mode:0",
+              "central_after_24*camera__to__marker_25:mode:1"
+            ],
+            "translation_mean": [
+              0.1794659254909103,
+              0.06382767321264958,
+              0.6029581357727245
+            ],
+            "translation_covariance": [
+              [
+                3.364019086492672e-08,
+                1.6354484390662525e-08,
+                8.073426340948657e-08
+              ],
+              [
+                1.6354484390662525e-08,
+                1.8628582702487486e-08,
+                5.1949097139889806e-08
+              ],
+              [
+                8.073426340948657e-08,
+                5.1949097139889806e-08,
+                2.533037102117286e-07
+              ]
+            ],
+            "rotation_wxyz": [
+              0.19993913323272966,
+              0.967850953840111,
+              -0.017582520894778835,
+              -0.15159066301034596
+            ],
+            "bingham": [
+              [
+                729137.5190910038,
+                33411.3043166436,
+                441607.4311688453,
+                -30607.58582288932
+              ],
+              [
+                33411.3043166436,
+                865582.0004250656,
+                -122067.85662192942,
+                -3462.914105955047
+              ],
+              [
+                441607.4311688453,
+                -122067.85662192942,
+                -2386443.564924303,
+                181408.312483282
+              ],
+              [
+                -30607.58582288932,
+                -3462.914105955047,
+                181408.312483282,
+                791724.0454082337
+              ]
+            ],
+            "full_product_covariance": [
+              [
+                3.364019086492672e-08,
+                1.6354484390662525e-08,
+                8.073426340948657e-08,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.6354484390662525e-08,
+                1.8628582702487486e-08,
+                5.1949097139889806e-08,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                8.073426340948657e-08,
+                5.1949097139889806e-08,
+                2.533037102117286e-07,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                2.2817430028610803e-05,
+                1.0542751991250432e-06,
+                -7.002697481296244e-08
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0542751991250425e-06,
+                2.6157829362106634e-05,
+                3.7700457607938684e-06
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -7.002697481296234e-08,
+                3.7700457607938684e-06,
+                1.1575247119767364e-06
+              ]
+            ],
+            "pre_product_full_covariance": null,
+            "discarded_position_rotation_cross_covariance": null,
+            "position_orientation_product_approximation": true
+          }
+        ],
+        "component_count": 1,
+        "representation": "single Gaussian x Bingham",
+        "component_id": "camera__to__marker:board_adf:5eb31a6eb6232344:0",
+        "weight": 1.0,
+        "log_weight": 0.0,
+        "lineage": [
+          "central_after_24*camera__to__marker_25:mode:0",
+          "central_after_24*camera__to__marker_25:mode:1"
+        ],
+        "translation_mean": [
+          0.1794659254909103,
+          0.06382767321264958,
+          0.6029581357727245
+        ],
+        "translation_covariance": [
+          [
+            3.364019086492672e-08,
+            1.6354484390662525e-08,
+            8.073426340948657e-08
+          ],
+          [
+            1.6354484390662525e-08,
+            1.8628582702487486e-08,
+            5.1949097139889806e-08
+          ],
+          [
+            8.073426340948657e-08,
+            5.1949097139889806e-08,
+            2.533037102117286e-07
+          ]
+        ],
+        "rotation_wxyz": [
+          0.19993913323272966,
+          0.967850953840111,
+          -0.017582520894778835,
+          -0.15159066301034596
+        ],
+        "bingham": [
+          [
+            729137.5190910038,
+            33411.3043166436,
+            441607.4311688453,
+            -30607.58582288932
+          ],
+          [
+            33411.3043166436,
+            865582.0004250656,
+            -122067.85662192942,
+            -3462.914105955047
+          ],
+          [
+            441607.4311688453,
+            -122067.85662192942,
+            -2386443.564924303,
+            181408.312483282
+          ],
+          [
+            -30607.58582288932,
+            -3462.914105955047,
+            181408.312483282,
+            791724.0454082337
+          ]
+        ],
+        "full_product_covariance": [
+          [
+            3.364019086492672e-08,
+            1.6354484390662525e-08,
+            8.073426340948657e-08,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            1.6354484390662525e-08,
+            1.8628582702487486e-08,
+            5.1949097139889806e-08,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            8.073426340948657e-08,
+            5.1949097139889806e-08,
+            2.533037102117286e-07,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            2.2817430028610803e-05,
+            1.0542751991250432e-06,
+            -7.002697481296244e-08
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0542751991250425e-06,
+            2.6157829362106634e-05,
+            3.7700457607938684e-06
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            -7.002697481296234e-08,
+            3.7700457607938684e-06,
+            1.1575247119767364e-06
+          ]
+        ],
+        "pre_product_full_covariance": null,
+        "discarded_position_rotation_cross_covariance": null,
+        "position_orientation_product_approximation": true
+      },
+      "native_likelihood_recorded_by_old_operator": [
+        {
+          "label": "camera__to__marker:board_adf:5eb31a6eb6232344:0",
+          "sensor": "marker",
+          "sensor_id": "hand_camera",
+          "observation_id": "image:00002488",
+          "path": [
+            [
+              "camera_optical_frame",
+              true
+            ],
+            [
+              "tool0",
+              true
+            ],
+            [
+              "link_6",
+              true
+            ],
+            [
+              "link_5",
+              true
+            ],
+            [
+              "link_4",
+              true
+            ],
+            [
+              "link_3",
+              true
+            ],
+            [
+              "link_2",
+              true
+            ],
+            [
+              "link_1",
+              true
+            ],
+            [
+              "marker",
+              false
+            ]
+          ],
+          "covariance": [
+            [
+              3.364019086492672e-08,
+              1.6354484390662525e-08,
+              8.073426340948657e-08,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.6354484390662525e-08,
+              1.8628582702487486e-08,
+              5.1949097139889806e-08,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              8.073426340948657e-08,
+              5.1949097139889806e-08,
+              2.533037102117286e-07,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              2.2817430028610803e-05,
+              1.0542751991250432e-06,
+              -7.002697481296244e-08
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0542751991250425e-06,
+              2.6157829362106634e-05,
+              3.7700457607938684e-06
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              -7.002697481296234e-08,
+              3.7700457607938684e-06,
+              1.1575247119767364e-06
+            ]
+          ],
+          "log_weight": 0.0,
+          "fixed_native_chart": true,
+          "prior_dependent_chart": false,
+          "point_dependent_chart_volume_applied": false,
+          "translation": [
+            0.1794659254909103,
+            0.06382767321264958,
+            0.6029581357727245
+          ],
+          "rotation": [
+            [
+              0.953422251694137,
+              0.02658329229907603,
+              -0.30046520355113343
+            ],
+            [
+              -0.09465233077477758,
+              -0.9194303959222591,
+              -0.38169186961885954
+            ],
+            [
+              -0.2864034676001396,
+              0.3923532536181907,
+              -0.8740892277804572
+            ]
+          ],
+          "observed_direction": null,
+          "root_direction": null,
+          "basis": null
+        }
+      ],
+      "original_individual_native_components": [
+        {
+          "marker_id": 17,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "weight": 0.9999999514028782,
+              "native_log_mass": -35.84655948880061
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "weight": 4.859712168691021e-08,
+              "native_log_mass": -52.686260972546464
+            }
+          ]
+        },
+        {
+          "marker_id": 18,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_18:mode:0",
+              "weight": 0.9999999999605953,
+              "native_log_mass": -36.01002205276569
+            },
+            {
+              "native_component_id": "camera__to__marker_18:mode:1",
+              "weight": 3.940462534474247e-11,
+              "native_log_mass": -59.967159964704535
+            }
+          ]
+        },
+        {
+          "marker_id": 19,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_19:mode:0",
+              "weight": 0.9999999999999969,
+              "native_log_mass": -36.4332182820669
+            },
+            {
+              "native_component_id": "camera__to__marker_19:mode:1",
+              "weight": 3.1971644290951518e-15,
+              "native_log_mass": -69.80973037591245
+            }
+          ]
+        },
+        {
+          "marker_id": 20,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_20:mode:0",
+              "weight": 0.9999997298640863,
+              "native_log_mass": -35.47907735112232
+            },
+            {
+              "native_component_id": "camera__to__marker_20:mode:1",
+              "weight": 2.701359137150899e-07,
+              "native_log_mass": -50.60341770145973
+            }
+          ]
+        },
+        {
+          "marker_id": 21,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_21:mode:0",
+              "weight": 0.9999996057203486,
+              "native_log_mass": -35.77763596336423
+            },
+            {
+              "native_component_id": "camera__to__marker_21:mode:1",
+              "weight": 3.9427965137772705e-07,
+              "native_log_mass": -50.523840973433806
+            }
+          ]
+        },
+        {
+          "marker_id": 22,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_22:mode:0",
+              "weight": 0.9999999979878702,
+              "native_log_mass": -36.28889310260344
+            },
+            {
+              "native_component_id": "camera__to__marker_22:mode:1",
+              "weight": 2.012129794779875e-09,
+              "native_log_mass": -56.31296517705296
+            }
+          ]
+        },
+        {
+          "marker_id": 23,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_23:mode:0",
+              "weight": 0.7851766536960382,
+              "native_log_mass": -34.89708245488141
+            },
+            {
+              "native_component_id": "camera__to__marker_23:mode:1",
+              "weight": 0.2148233463039618,
+              "native_log_mass": -36.193175138607884
+            }
+          ]
+        },
+        {
+          "marker_id": 24,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_24:mode:0",
+              "weight": 0.6322832385082735,
+              "native_log_mass": -35.403863010569594
+            },
+            {
+              "native_component_id": "camera__to__marker_24:mode:1",
+              "weight": 0.36771676149172644,
+              "native_log_mass": -35.94588749455683
+            }
+          ]
+        },
+        {
+          "marker_id": 25,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_25:mode:0",
+              "weight": 0.9999695014116595,
+              "native_log_mass": -36.239918418308406
+            },
+            {
+              "native_component_id": "camera__to__marker_25:mode:1",
+              "weight": 3.049858834048761e-05,
+              "native_log_mass": -46.637718078595455
+            }
+          ]
+        }
+      ],
+      "board_summary": {
+        "parent_frame_id": "camera",
+        "child_frame_id": "marker",
+        "stamp": 1792080028.511244,
+        "observed_marker_ids": [
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "usable_marker_ids": [
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "fusion_order": [
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "raw_native_mixtures_retained": true,
+        "central_component_count": 1,
+        "final_mixture_fallback_used": false,
+        "deferred_projection_marker_ids": []
+      },
+      "complete_board_record_sha256": "8f1bf5f9f18612cb0f19003f10c1a2b4c7af2e1e59cc150c96466391095d4016",
+      "complete_board_record_object_locator": "load_stiffness_job(reference)[\"result\"].records[\"sensor_estimates\"][0][\"marker_board_fusion\"]",
+      "old_BFS": {
+        "enabled": true,
+        "applied": true,
+        "change_probability": 0.25,
+        "prior_change_odds": 0.3333333333333333,
+        "probability_unit": "per_effective_sensor_event",
+        "reason": "fresh valid observation packet",
+        "log_bayes_factor": -25.5091643409205,
+        "posterior_change_probability": 2.7822069685678823e-12,
+        "log_keep_evidence": 30.545342916209695,
+        "log_reset_evidence": 5.0361785752891945,
+        "monte_carlo_used": false,
+        "physical_truth_received": false,
+        "posterior_keep_log_probability": -2.7822188997067717e-12,
+        "posterior_change_log_probability": -26.607776629591392,
+        "log_observation_evidence": 30.257660843760696,
+        "log_bayes_factor_uses_retained_evidence_parts": true,
+        "log_observation_evidence_parts": [
+          30.257660843760696,
+          -1.6653345408082777e-15
+        ],
+        "observation_ids": [
+          "image:00002488"
+        ],
+        "transition": {
+          "change_probability": 0.25,
+          "change_prior_odds": 0.3333333333333333,
+          "retained_source_state_id": "3185bd9d470fb25e2350b3bf10ca64ea2c9d9daeb4e5171427cd8fdb3bd323ea",
+          "direct_family_state_id": "8067c06a4bf68eb9e8e7cf68e2c09fa552429c30cee088dc28b2726ec052421b",
+          "retained_label": "predicted:2488:0",
+          "reset_label": "reset:7465",
+          "reset_state_id": "c8262906a737d1d53d388999fd5ee26a2d4d4e1fb9c6b363cb754c1a71860e00",
+          "version": 7465,
+          "stamp": 1792080028.511244,
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ],
+          "marker_edge_id": "marker",
+          "marker_marginal_reused": true,
+          "reset_kernel": "independent redraw of the supplied command-dependent body law; retain the environment marginal",
+          "reset_body_environment_cross_covariance": "zero by the specified independent redraw kernel",
+          "retained_body_environment_cross_covariance_preserved": true,
+          "physical_truth_received": false,
+          "sampling_used": false
+        },
+        "prior_source_state_ids": [
+          "3185bd9d470fb25e2350b3bf10ca64ea2c9d9daeb4e5171427cd8fdb3bd323ea",
+          "c8262906a737d1d53d388999fd5ee26a2d4d4e1fb9c6b363cb754c1a71860e00"
+        ],
+        "initial_packet": false,
+        "joint_evidence_log_odds_consistency": {
+          "posterior_log_odds": -26.60777662958861,
+          "evidence_log_odds": -26.60777662958861,
+          "residual": 0.0,
+          "verified": true,
+          "absolute_tolerance": 1e-09,
+          "relative_tolerance": 1e-09,
+          "update_gate": false,
+          "warning": null
+        },
+        "internal_state_id": "5c04da2f73a837718040a914e5b6d046c377cdb12c94895fc9c4d63a3f714d12",
+        "goal_source_state_ids": [
+          "4384568cbc9f063a517bb5bb976b467de2a2e09feab5db995d399ba16c47b929"
+        ]
+      },
+      "old_operator_branch_summary": [
+        {
+          "parent_label": "predicted:2488:0",
+          "label": "predicted:2488:0|image:00002488:camera__to__marker:board_adf:5eb31a6eb6232344:0",
+          "source_prior_state_id": "3185bd9d470fb25e2350b3bf10ca64ea2c9d9daeb4e5171427cd8fdb3bd323ea",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:5eb31a6eb6232344:0"
+          ],
+          "native_log_weights": [
+            0.0
+          ],
+          "posterior_log_weight": -2.7822188997067717e-12,
+          "conditional_log_evidence_parts": [
+            30.545342916209695,
+            -1.1102230246251565e-15
+          ],
+          "final_objective": 1.7856131376824262,
+          "final_gradient_inf": 4.3481737402317755e-07,
+          "stationarity_verified": true,
+          "completed_iterations": 29,
+          "termination_reason": "finite objective score satisfies optimizer tolerance"
+        },
+        {
+          "parent_label": "reset:7465",
+          "label": "reset:7465|image:00002488:camera__to__marker:board_adf:5eb31a6eb6232344:0",
+          "source_prior_state_id": "c8262906a737d1d53d388999fd5ee26a2d4d4e1fb9c6b363cb754c1a71860e00",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:5eb31a6eb6232344:0"
+          ],
+          "native_log_weights": [
+            0.0
+          ],
+          "posterior_log_weight": -26.607776629591392,
+          "conditional_log_evidence_parts": [
+            5.0361785752891945,
+            0.0
+          ],
+          "final_objective": 8.561847328614745,
+          "final_gradient_inf": 4.431917582925493e-08,
+          "stationarity_verified": true,
+          "completed_iterations": 7,
+          "termination_reason": "finite objective score satisfies optimizer tolerance"
+        }
+      ],
+      "old_canonical_state_id": "5c04da2f73a837718040a914e5b6d046c377cdb12c94895fc9c4d63a3f714d12"
+    },
+    "M94": {
+      "label": "prior report: image-derived central pose outlier; no rejection authorized",
+      "case": "marker",
+      "job_sequence": 94,
+      "acquisition": {
+        "event_id": "image:00002549",
+        "kind": "image",
+        "sequence": 2056,
+        "stamp": 1792080029.4237847,
+        "elapsed_from_sim_epoch_s": 29.423784732818604,
+        "command": [
+          0.09304359150804592,
+          -1.7415756999647032,
+          1.9787612916527255,
+          -0.009564110806854794,
+          -0.9070812004288222,
+          -0.03581478531322544
+        ],
+        "frame_index": 2549,
+        "payload_sha256": "1a76a5f164bc031082c1e92dc9f8309c961f50b1fbeac11b637889bbcf3da9ec",
+        "metadata": {
+          "frame_index": 2549,
+          "image": {
+            "__event_array__": 0,
+            "dtype": "|u1",
+            "shape": [
+              720,
+              960
+            ]
+          },
+          "image_path": "capture_002549.png",
+          "image_sha256": "3f635aebc4f191613f02a7fc3fb1ba6638dec2377af0c1e3d19dc58677029f50",
+          "image_stamp": 1792080029.4237847,
+          "time": 29.423784820362926
+        },
+        "raw_payload_json_sha256": "0eb6e11e9c138f0f499574f022e6b0ced6d4878acc646a843c4b8563cb92fc85",
+        "DB_received_host_wall_s": 1792306831.5797656,
+        "DB_ready_host_wall_s": 1792306831.8974438
+      },
+      "archive_reference": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000094_272b46a4682164ee.json",
+        "sha256": "2ef63f1f38e923ccd2911264a849d1c8354d7c9cd2d21fb3cec223582f16050f",
+        "payload_path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000094_272b46a4682164ee.pickle",
+        "payload_sha256": "f6bf4d79aa6286e498d7f0a8bc4fd3a8e771b045d4274102ea3d53417619bb21",
+        "payload_actual_sha256": "f6bf4d79aa6286e498d7f0a8bc4fd3a8e771b045d4274102ea3d53417619bb21",
+        "payload_bytes": 1432465,
+        "archived_host_wall_s": 1792306833.2204595,
+        "numeric_candidate_id": "8ba1f6c26df7f4294e00805bb6b61f82ecd9c610a6c6ba8875eb598416f2d007"
+      },
+      "raw_database": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/observations.sqlite3",
+        "read_only_URI": "file:/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/observations.sqlite3?mode=ro",
+        "event_selector": "image:00002549",
+        "image_source": "payload_blobs rows with this event_id; metadata is payload_json; use original event payload, not annotation or reconstructed pixels"
+      },
+      "URDF": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/robot.urdf",
+        "sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2"
+      },
+      "observation_templates": {
+        "frozen_path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/frozen_source/ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "current_run_copy": "No rewrite: use the frozen source path"
+      },
+      "geometry_paths": {
+        "camera_marker_path": [
+          [
+            "camera_optical_frame",
+            true
+          ],
+          [
+            "tool0",
+            true
+          ],
+          [
+            "link_6",
+            true
+          ],
+          [
+            "link_5",
+            true
+          ],
+          [
+            "link_4",
+            true
+          ],
+          [
+            "link_3",
+            true
+          ],
+          [
+            "link_2",
+            true
+          ],
+          [
+            "link_1",
+            true
+          ],
+          [
+            "marker",
+            false
+          ]
+        ],
+        "camera_path": [
+          [
+            "link_1",
+            false
+          ],
+          [
+            "link_2",
+            false
+          ],
+          [
+            "link_3",
+            false
+          ],
+          [
+            "link_4",
+            false
+          ],
+          [
+            "link_5",
+            false
+          ],
+          [
+            "link_6",
+            false
+          ],
+          [
+            "tool0",
+            false
+          ],
+          [
+            "camera_optical_frame",
+            false
+          ]
+        ],
+        "marker_path": [
+          [
+            "marker",
+            false
+          ]
+        ],
+        "hand_path": [
+          [
+            "link_1",
+            false
+          ],
+          [
+            "link_2",
+            false
+          ],
+          [
+            "link_3",
+            false
+          ],
+          [
+            "link_4",
+            false
+          ],
+          [
+            "link_5",
+            false
+          ],
+          [
+            "link_6",
+            false
+          ],
+          [
+            "tool0",
+            false
+          ],
+          [
+            "press_rod",
+            false
+          ],
+          [
+            "rod_tip",
+            false
+          ]
+        ],
+        "link_paths": {
+          "link_1": [
+            [
+              "link_1",
+              false
+            ]
+          ],
+          "link_2": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ]
+          ],
+          "link_3": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ]
+          ],
+          "link_4": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ]
+          ],
+          "link_5": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ]
+          ],
+          "link_6": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ],
+            [
+              "link_6",
+              false
+            ]
+          ],
+          "tool0": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ],
+            [
+              "link_6",
+              false
+            ],
+            [
+              "tool0",
+              false
+            ]
+          ]
+        }
+      },
+      "original_priors": [
+        {
+          "label": "predicted:2549:0",
+          "log_weight": -0.2876820724517809,
+          "weight": 0.75,
+          "source_state_id": "84f5652089692c8d32abc309ca416b03f090462bf2cc6c7bc7067ac3620d9fe2",
+          "source_component_id": "predicted:2549:0",
+          "version": 7648,
+          "stamp": 1792080029.4237847,
+          "command": [
+            0.09304359150804592,
+            -1.7415756999647032,
+            1.9787612916527255,
+            -0.009564110806854794,
+            -0.9070812004288222,
+            -0.03581478531322544
+          ],
+          "joint_dimension": 66,
+          "edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6",
+            "tool0",
+            "press_rod",
+            "rod_tip",
+            "camera_optical_frame",
+            "marker"
+          ],
+          "body_edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6"
+          ],
+          "prior_mean_sha256": "8889eb3cdd3d0ac94711b47ce78b430d8e23a7b31ecc994c56d0c3310c87674a",
+          "prior_covariance_sha256": "03dbb9c1353f2a2016e1c00e9c70cbfaddabd294c63135d722b046c86ab883c3",
+          "joint_state_covariance_sha256": "03dbb9c1353f2a2016e1c00e9c70cbfaddabd294c63135d722b046c86ab883c3",
+          "mean_and_covariance_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[0].prior",
+          "reference_state_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[0].reference_state"
+        },
+        {
+          "label": "reset:7648",
+          "log_weight": -1.3862943611198906,
+          "weight": 0.25,
+          "source_state_id": "9d7f1565f11593b3f2972d09ea7fcbc5256b86887481c8f2232ac9a2bd631e1c",
+          "source_component_id": "reset:7648",
+          "version": 7648,
+          "stamp": 1792080029.4237847,
+          "command": [
+            0.09304359150804592,
+            -1.7415756999647032,
+            1.9787612916527255,
+            -0.009564110806854794,
+            -0.9070812004288222,
+            -0.03581478531322544
+          ],
+          "joint_dimension": 66,
+          "edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6",
+            "tool0",
+            "press_rod",
+            "rod_tip",
+            "camera_optical_frame",
+            "marker"
+          ],
+          "body_edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6"
+          ],
+          "prior_mean_sha256": "8889eb3cdd3d0ac94711b47ce78b430d8e23a7b31ecc994c56d0c3310c87674a",
+          "prior_covariance_sha256": "6b345db686a1ead78f061cf06f61d9a0ad57765caf3f724a2bda1d27abb86255",
+          "joint_state_covariance_sha256": "6b345db686a1ead78f061cf06f61d9a0ad57765caf3f724a2bda1d27abb86255",
+          "mean_and_covariance_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[1].prior",
+          "reference_state_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[1].reference_state"
+        }
+      ],
+      "original_prediction_records": [
+        {
+          "source_label": "predicted:2544:0",
+          "source_state_id": "3051d94b1cda930b5bff20d39d85d717824722251d73859b60768396f7108e45",
+          "source_version": 7633,
+          "source_stamp": 1792080029.34232,
+          "source_command": [
+            0.09320503609966194,
+            -1.7409934491613261,
+            1.9799267263403726,
+            -0.009395697592449808,
+            -0.90731574246349,
+            -0.036115903420306114
+          ],
+          "transported_label": "predicted:2549:0",
+          "transported_state_id": "84f5652089692c8d32abc309ca416b03f090462bf2cc6c7bc7067ac3620d9fe2",
+          "transported_version": 7648,
+          "transported_stamp": 1792080029.4237847,
+          "transported_command": [
+            0.09304359150804592,
+            -1.7415756999647032,
+            1.9787612916527255,
+            -0.009564110806854794,
+            -0.9070812004288222,
+            -0.03581478531322544
+          ],
+          "weight": 1.0,
+          "log_weight": 0.0
+        }
+      ],
+      "actual_archive_ledger": {
+        "interval_count": 5,
+        "interval_indices": [
+          2544,
+          2545,
+          2546,
+          2547,
+          2548
+        ],
+        "full_value_sha256": "80be460138e16ea8843bb1eed5c235c9456fdab9c641d63da288788ff12f6642",
+        "first_start_stamp": 1792080029.34232,
+        "last_end_stamp": 1792080029.4237847,
+        "object_locator": "load_stiffness_job(reference)[\"command_ledger\"]",
+        "source_journal": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/commands.jsonl"
+      },
+      "same_timestamp_events_in_immutable_sequence": [
+        {
+          "event_id": "image:00002549",
+          "kind": "image",
+          "sequence": 2056,
+          "stamp": 1792080029.4237847,
+          "payload_hash": "1a76a5f164bc031082c1e92dc9f8309c961f50b1fbeac11b637889bbcf3da9ec",
+          "command": [
+            0.09304359150804592,
+            -1.7415756999647032,
+            1.9787612916527255,
+            -0.009564110806854794,
+            -0.9070812004288222,
+            -0.03581478531322544
+          ]
+        }
+      ],
+      "neighboring_raw_events": [
+        {
+          "event_id": "joint:00002547",
+          "kind": "joint",
+          "sequence": 2054,
+          "stamp": 1792080029.4009674,
+          "payload_hash": "ad9c75b9a30b3334f3919c372b94145c335e8d9a3388123ab43bb5e4b2345dbd",
+          "command": [
+            0.09312930340843138,
+            -1.7414579132716221,
+            1.9790335092073958,
+            -0.00957010586056806,
+            -0.9071652280138425,
+            -0.035901176338741916
+          ]
+        },
+        {
+          "event_id": "imu:00002547",
+          "kind": "imu",
+          "sequence": 2055,
+          "stamp": 1792080029.4009674,
+          "payload_hash": "d62b11553cf9f302f304611d5091581cfebd02fbf384e8aa28c497e80290b1d1",
+          "command": [
+            0.09312930340843138,
+            -1.7414579132716221,
+            1.9790335092073958,
+            -0.00957010586056806,
+            -0.9071652280138425,
+            -0.035901176338741916
+          ]
+        },
+        {
+          "event_id": "image:00002549",
+          "kind": "image",
+          "sequence": 2056,
+          "stamp": 1792080029.4237847,
+          "payload_hash": "1a76a5f164bc031082c1e92dc9f8309c961f50b1fbeac11b637889bbcf3da9ec",
+          "command": [
+            0.09304359150804592,
+            -1.7415756999647032,
+            1.9787612916527255,
+            -0.009564110806854794,
+            -0.9070812004288222,
+            -0.03581478531322544
+          ]
+        },
+        {
+          "event_id": "joint:00002550",
+          "kind": "joint",
+          "sequence": 2057,
+          "stamp": 1792080029.441516,
+          "payload_hash": "145cc355a51a0eb2a4265711db85c101bbe6921522287be3bc684b49a51d021e",
+          "command": [
+            0.09296029944943396,
+            -1.7416483136812855,
+            1.9785722467609141,
+            -0.009537500153193393,
+            -0.9070082246076533,
+            -0.03574679614103648
+          ]
+        },
+        {
+          "event_id": "imu:00002550",
+          "kind": "imu",
+          "sequence": 2058,
+          "stamp": 1792080029.441516,
+          "payload_hash": "929a701289e494916a9d5201ae79b1c2a011c0d743d9c198d08df9cd674559e9",
+          "command": [
+            0.09296029944943396,
+            -1.7416483136812855,
+            1.9785722467609141,
+            -0.009537500153193393,
+            -0.9070082246076533,
+            -0.03574679614103648
+          ]
+        }
+      ],
+      "native_central_observation": {
+        "parent_frame_id": "camera",
+        "child_frame_id": "marker",
+        "edge_id": "camera__to__marker",
+        "stamp": 1792080029.4237847,
+        "components": [
+          {
+            "component_id": "camera__to__marker:board_adf:16d6dd1e1a7485af:0",
+            "parent_frame_id": "camera",
+            "child_frame_id": "marker",
+            "edge_id": "camera__to__marker",
+            "stamp": 1792080029.4237847,
+            "weight": 1.0,
+            "log_weight": 0.0,
+            "lineage": [
+              "camera__to__marker_17:mode:0",
+              "camera__to__marker_17:mode:1"
+            ],
+            "translation_mean": [
+              0.26124515349115274,
+              0.15769799374493526,
+              0.6172980379815344
+            ],
+            "translation_covariance": [
+              [
+                1.2418343027617181e-06,
+                5.227778392977998e-08,
+                2.3592457475313512e-06
+              ],
+              [
+                5.227778392977998e-08,
+                3.1811862080162665e-07,
+                6.239124004818968e-07
+              ],
+              [
+                2.3592457475313512e-06,
+                6.239124004818968e-07,
+                1.1975681248146361e-05
+              ]
+            ],
+            "rotation_wxyz": [
+              0.053981869778606625,
+              0.9979519278483723,
+              -0.0298417336720994,
+              0.016952237916137626
+            ],
+            "bingham": [
+              [
+                25084.2988412276,
+                681.976271400984,
+                14251.669325197197,
+                -944.9041413827023
+              ],
+              [
+                681.976271400984,
+                29348.818415609523,
+                -4195.352032168517,
+                323.2665762830627
+              ],
+              [
+                14251.669325197197,
+                -4195.352032168517,
+                -80836.32603308279,
+                7332.582043416872
+              ],
+              [
+                -944.9041413827023,
+                323.2665762830627,
+                7332.582043416872,
+                26403.208776245676
+              ]
+            ],
+            "full_product_covariance": [
+              [
+                1.2418343027617181e-06,
+                5.227778392977998e-08,
+                2.3592457475313512e-06,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                5.227778392977998e-08,
+                3.1811862080162665e-07,
+                6.239124004818968e-07,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                2.3592457475313512e-06,
+                6.239124004818968e-07,
+                1.1975681248146361e-05,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0007658356170513642,
+                -5.256572585957278e-06,
+                0.00011146522786298237
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -5.2565725859572275e-06,
+                0.0007650406272316137,
+                -1.4611634448642065e-05
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.00011146522786298238,
+                -1.461163444864207e-05,
+                3.457882413322895e-05
+              ]
+            ],
+            "pre_product_full_covariance": null,
+            "discarded_position_rotation_cross_covariance": null,
+            "position_orientation_product_approximation": true
+          }
+        ],
+        "component_count": 1,
+        "representation": "single Gaussian x Bingham",
+        "component_id": "camera__to__marker:board_adf:16d6dd1e1a7485af:0",
+        "weight": 1.0,
+        "log_weight": 0.0,
+        "lineage": [
+          "camera__to__marker_17:mode:0",
+          "camera__to__marker_17:mode:1"
+        ],
+        "translation_mean": [
+          0.26124515349115274,
+          0.15769799374493526,
+          0.6172980379815344
+        ],
+        "translation_covariance": [
+          [
+            1.2418343027617181e-06,
+            5.227778392977998e-08,
+            2.3592457475313512e-06
+          ],
+          [
+            5.227778392977998e-08,
+            3.1811862080162665e-07,
+            6.239124004818968e-07
+          ],
+          [
+            2.3592457475313512e-06,
+            6.239124004818968e-07,
+            1.1975681248146361e-05
+          ]
+        ],
+        "rotation_wxyz": [
+          0.053981869778606625,
+          0.9979519278483723,
+          -0.0298417336720994,
+          0.016952237916137626
+        ],
+        "bingham": [
+          [
+            25084.2988412276,
+            681.976271400984,
+            14251.669325197197,
+            -944.9041413827023
+          ],
+          [
+            681.976271400984,
+            29348.818415609523,
+            -4195.352032168517,
+            323.2665762830627
+          ],
+          [
+            14251.669325197197,
+            -4195.352032168517,
+            -80836.32603308279,
+            7332.582043416872
+          ],
+          [
+            -944.9041413827023,
+            323.2665762830627,
+            7332.582043416872,
+            26403.208776245676
+          ]
+        ],
+        "full_product_covariance": [
+          [
+            1.2418343027617181e-06,
+            5.227778392977998e-08,
+            2.3592457475313512e-06,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            5.227778392977998e-08,
+            3.1811862080162665e-07,
+            6.239124004818968e-07,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            2.3592457475313512e-06,
+            6.239124004818968e-07,
+            1.1975681248146361e-05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0007658356170513642,
+            -5.256572585957278e-06,
+            0.00011146522786298237
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            -5.2565725859572275e-06,
+            0.0007650406272316137,
+            -1.4611634448642065e-05
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.00011146522786298238,
+            -1.461163444864207e-05,
+            3.457882413322895e-05
+          ]
+        ],
+        "pre_product_full_covariance": null,
+        "discarded_position_rotation_cross_covariance": null,
+        "position_orientation_product_approximation": true
+      },
+      "native_likelihood_recorded_by_old_operator": [
+        {
+          "label": "camera__to__marker:board_adf:16d6dd1e1a7485af:0",
+          "sensor": "marker",
+          "sensor_id": "hand_camera",
+          "observation_id": "image:00002549",
+          "path": [
+            [
+              "camera_optical_frame",
+              true
+            ],
+            [
+              "tool0",
+              true
+            ],
+            [
+              "link_6",
+              true
+            ],
+            [
+              "link_5",
+              true
+            ],
+            [
+              "link_4",
+              true
+            ],
+            [
+              "link_3",
+              true
+            ],
+            [
+              "link_2",
+              true
+            ],
+            [
+              "link_1",
+              true
+            ],
+            [
+              "marker",
+              false
+            ]
+          ],
+          "covariance": [
+            [
+              1.2418343027617181e-06,
+              5.227778392977998e-08,
+              2.3592457475313512e-06,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              5.227778392977998e-08,
+              3.1811862080162665e-07,
+              6.239124004818968e-07,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.3592457475313512e-06,
+              6.239124004818968e-07,
+              1.1975681248146361e-05,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0007658356170513642,
+              -5.256572585957278e-06,
+              0.00011146522786298237
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              -5.2565725859572275e-06,
+              0.0007650406272316137,
+              -1.4611634448642065e-05
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.00011146522786298238,
+              -1.461163444864207e-05,
+              3.457882413322895e-05
+            ]
+          ],
+          "log_weight": 0.0,
+          "fixed_native_chart": true,
+          "prior_dependent_chart": false,
+          "point_dependent_chart_volume_applied": false,
+          "translation": [
+            0.26124515349115274,
+            0.15769799374493526,
+            0.6172980379815344
+          ],
+          "rotation": [
+            [
+              0.9976441851221566,
+              -0.06139145829610843,
+              0.030613211857397408
+            ],
+            [
+              -0.05773100429752883,
+              -0.9923908573332983,
+              -0.10875439036691954
+            ],
+            [
+              0.03705686218161794,
+              0.10673085369076175,
+              -0.9935971587296807
+            ]
+          ],
+          "observed_direction": null,
+          "root_direction": null,
+          "basis": null
+        }
+      ],
+      "original_individual_native_components": [
+        {
+          "marker_id": 17,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "weight": 0.9999792166169796,
+              "native_log_mass": -41.487462023140424
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "weight": 2.0783383020411514e-05,
+              "native_log_mass": -52.26879802333315
+            }
+          ]
+        }
+      ],
+      "board_summary": {
+        "parent_frame_id": "camera",
+        "child_frame_id": "marker",
+        "stamp": 1792080029.4237847,
+        "observed_marker_ids": [
+          17
+        ],
+        "usable_marker_ids": [
+          17
+        ],
+        "fusion_order": [
+          17
+        ],
+        "raw_native_mixtures_retained": true,
+        "central_component_count": 1,
+        "final_mixture_fallback_used": false,
+        "deferred_projection_marker_ids": []
+      },
+      "complete_board_record_sha256": "0dd44e7bbec8907470c45962bf75c757bb1f9d92482ac3ff66ed69b52d47853c",
+      "complete_board_record_object_locator": "load_stiffness_job(reference)[\"result\"].records[\"sensor_estimates\"][0][\"marker_board_fusion\"]",
+      "old_BFS": {
+        "enabled": true,
+        "applied": true,
+        "change_probability": 0.25,
+        "prior_change_odds": 0.3333333333333333,
+        "probability_unit": "per_effective_sensor_event",
+        "reason": "fresh valid observation packet",
+        "log_bayes_factor": 258.2522874731754,
+        "posterior_change_probability": 1.0,
+        "log_keep_evidence": -394.2769391703793,
+        "log_reset_evidence": -136.02465169720392,
+        "monte_carlo_used": false,
+        "physical_truth_received": false,
+        "posterior_keep_log_probability": -257.1536751845073,
+        "posterior_change_log_probability": 0.0,
+        "log_observation_evidence": -137.41094605832382,
+        "log_bayes_factor_uses_retained_evidence_parts": true,
+        "log_observation_evidence_parts": [
+          -137.41094605832382,
+          -4.218847493575595e-15
+        ],
+        "observation_ids": [
+          "image:00002549"
+        ],
+        "transition": {
+          "change_probability": 0.25,
+          "change_prior_odds": 0.3333333333333333,
+          "retained_source_state_id": "84f5652089692c8d32abc309ca416b03f090462bf2cc6c7bc7067ac3620d9fe2",
+          "direct_family_state_id": "7d218db875155c48e0a7903b9eef6e8b1ba9c2d820e611e862dd67b662d73356",
+          "retained_label": "predicted:2549:0",
+          "reset_label": "reset:7648",
+          "reset_state_id": "9d7f1565f11593b3f2972d09ea7fcbc5256b86887481c8f2232ac9a2bd631e1c",
+          "version": 7648,
+          "stamp": 1792080029.4237847,
+          "command": [
+            0.09304359150804592,
+            -1.7415756999647032,
+            1.9787612916527255,
+            -0.009564110806854794,
+            -0.9070812004288222,
+            -0.03581478531322544
+          ],
+          "marker_edge_id": "marker",
+          "marker_marginal_reused": true,
+          "reset_kernel": "independent redraw of the supplied command-dependent body law; retain the environment marginal",
+          "reset_body_environment_cross_covariance": "zero by the specified independent redraw kernel",
+          "retained_body_environment_cross_covariance_preserved": true,
+          "physical_truth_received": false,
+          "sampling_used": false
+        },
+        "prior_source_state_ids": [
+          "84f5652089692c8d32abc309ca416b03f090462bf2cc6c7bc7067ac3620d9fe2",
+          "9d7f1565f11593b3f2972d09ea7fcbc5256b86887481c8f2232ac9a2bd631e1c"
+        ],
+        "initial_packet": false,
+        "joint_evidence_log_odds_consistency": {
+          "posterior_log_odds": 257.1536751845073,
+          "evidence_log_odds": 257.1536751845073,
+          "residual": 0.0,
+          "verified": true,
+          "absolute_tolerance": 1e-09,
+          "relative_tolerance": 1e-09,
+          "update_gate": false,
+          "warning": null
+        },
+        "internal_state_id": "d4a5940b6ca258dbc07f6d69821cc1e41ef03628d14e1b3bad49346cdf72bc08",
+        "goal_source_state_ids": [
+          "fe328b7611f292fd1447cc6d6ab7015f69f69c6e0fe15e4d3f55e74b01d6a363"
+        ]
+      },
+      "old_operator_branch_summary": [
+        {
+          "parent_label": "predicted:2549:0",
+          "label": "predicted:2549:0|image:00002549:camera__to__marker:board_adf:16d6dd1e1a7485af:0",
+          "source_prior_state_id": "84f5652089692c8d32abc309ca416b03f090462bf2cc6c7bc7067ac3620d9fe2",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:16d6dd1e1a7485af:0"
+          ],
+          "native_log_weights": [
+            0.0
+          ],
+          "posterior_log_weight": -257.1536751845073,
+          "conditional_log_evidence_parts": [
+            -394.2769391703793,
+            1.0658141036401503e-14
+          ],
+          "final_objective": 416.78507376013044,
+          "final_gradient_inf": 5.895136517067301e-06,
+          "stationarity_verified": false,
+          "completed_iterations": 40,
+          "termination_reason": "configured finite iteration budget"
+        },
+        {
+          "parent_label": "reset:7648",
+          "label": "reset:7648|image:00002549:camera__to__marker:board_adf:16d6dd1e1a7485af:0",
+          "source_prior_state_id": "9d7f1565f11593b3f2972d09ea7fcbc5256b86887481c8f2232ac9a2bd631e1c",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:16d6dd1e1a7485af:0"
+          ],
+          "native_log_weights": [
+            0.0
+          ],
+          "posterior_log_weight": 0.0,
+          "conditional_log_evidence_parts": [
+            -136.02465169720392,
+            -7.993605777301127e-15
+          ],
+          "final_objective": 148.36192660298917,
+          "final_gradient_inf": 7.534979684642451e-07,
+          "stationarity_verified": true,
+          "completed_iterations": 10,
+          "termination_reason": "finite objective score satisfies optimizer tolerance"
+        }
+      ],
+      "old_canonical_state_id": "d4a5940b6ca258dbc07f6d69821cc1e41ef03628d14e1b3bad49346cdf72bc08"
+    },
+    "M95": {
+      "label": "large subsequent canonical link update",
+      "case": "marker",
+      "job_sequence": 95,
+      "acquisition": {
+        "event_id": "image:00002602",
+        "kind": "image",
+        "sequence": 2115,
+        "stamp": 1792080030.1818495,
+        "elapsed_from_sim_epoch_s": 30.181849479675293,
+        "command": [
+          0.08837036010466788,
+          -1.7369144289235765,
+          1.9765177975318753,
+          -0.00366818959698626,
+          -0.9000680598771339,
+          -0.032674269096910256
+        ],
+        "frame_index": 2602,
+        "payload_sha256": "1d993fed983e1bca97e94448e3740deafe229c055d9157c8ec83dd4d139c89c7",
+        "metadata": {
+          "frame_index": 2602,
+          "image": {
+            "__event_array__": 0,
+            "dtype": "|u1",
+            "shape": [
+              720,
+              960
+            ]
+          },
+          "image_path": "capture_002602.png",
+          "image_sha256": "27b571e68ea76cc90c0a9b8553a18a6a90b62f3b5baa14998b83ec9d2b132ed6",
+          "image_stamp": 1792080030.1818495,
+          "time": 30.181849549990147
+        },
+        "raw_payload_json_sha256": "a7ea4084358ceac1283797faf64e984a91bea04c197931b9d80a80f71fff3c2b",
+        "DB_received_host_wall_s": 1792306832.3415248,
+        "DB_ready_host_wall_s": 1792306832.7519364
+      },
+      "archive_reference": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000095_272b46a4682164ee.json",
+        "sha256": "f1e7f5efd2d8af249629723f161a68d6f2b5d7abd9ec791a4d2a618a3cf4603a",
+        "payload_path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000095_272b46a4682164ee.pickle",
+        "payload_sha256": "b6d8883bd3f00991a752aabc037fcc586805102190451cadf662c6999ffbf0bd",
+        "payload_actual_sha256": "b6d8883bd3f00991a752aabc037fcc586805102190451cadf662c6999ffbf0bd",
+        "payload_bytes": 1925161,
+        "archived_host_wall_s": 1792306833.6451325,
+        "numeric_candidate_id": "9d51fcc6f081961120bb95caf318f578e7d378f97253e7325f2729143ab22f2f"
+      },
+      "raw_database": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/observations.sqlite3",
+        "read_only_URI": "file:/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/observations.sqlite3?mode=ro",
+        "event_selector": "image:00002602",
+        "image_source": "payload_blobs rows with this event_id; metadata is payload_json; use original event payload, not annotation or reconstructed pixels"
+      },
+      "URDF": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/robot.urdf",
+        "sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2"
+      },
+      "observation_templates": {
+        "frozen_path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/frozen_source/ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "current_run_copy": "No rewrite: use the frozen source path"
+      },
+      "geometry_paths": {
+        "camera_marker_path": [
+          [
+            "camera_optical_frame",
+            true
+          ],
+          [
+            "tool0",
+            true
+          ],
+          [
+            "link_6",
+            true
+          ],
+          [
+            "link_5",
+            true
+          ],
+          [
+            "link_4",
+            true
+          ],
+          [
+            "link_3",
+            true
+          ],
+          [
+            "link_2",
+            true
+          ],
+          [
+            "link_1",
+            true
+          ],
+          [
+            "marker",
+            false
+          ]
+        ],
+        "camera_path": [
+          [
+            "link_1",
+            false
+          ],
+          [
+            "link_2",
+            false
+          ],
+          [
+            "link_3",
+            false
+          ],
+          [
+            "link_4",
+            false
+          ],
+          [
+            "link_5",
+            false
+          ],
+          [
+            "link_6",
+            false
+          ],
+          [
+            "tool0",
+            false
+          ],
+          [
+            "camera_optical_frame",
+            false
+          ]
+        ],
+        "marker_path": [
+          [
+            "marker",
+            false
+          ]
+        ],
+        "hand_path": [
+          [
+            "link_1",
+            false
+          ],
+          [
+            "link_2",
+            false
+          ],
+          [
+            "link_3",
+            false
+          ],
+          [
+            "link_4",
+            false
+          ],
+          [
+            "link_5",
+            false
+          ],
+          [
+            "link_6",
+            false
+          ],
+          [
+            "tool0",
+            false
+          ],
+          [
+            "press_rod",
+            false
+          ],
+          [
+            "rod_tip",
+            false
+          ]
+        ],
+        "link_paths": {
+          "link_1": [
+            [
+              "link_1",
+              false
+            ]
+          ],
+          "link_2": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ]
+          ],
+          "link_3": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ]
+          ],
+          "link_4": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ]
+          ],
+          "link_5": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ]
+          ],
+          "link_6": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ],
+            [
+              "link_6",
+              false
+            ]
+          ],
+          "tool0": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ],
+            [
+              "link_6",
+              false
+            ],
+            [
+              "tool0",
+              false
+            ]
+          ]
+        }
+      },
+      "original_priors": [
+        {
+          "label": "predicted:2602:0",
+          "log_weight": -0.2876820724517809,
+          "weight": 0.75,
+          "source_state_id": "be4f5e24b9c84b617279c9b488d96464dd4051d91dabe055502b4172558a27e6",
+          "source_component_id": "predicted:2602:0",
+          "version": 7807,
+          "stamp": 1792080030.1818495,
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ],
+          "joint_dimension": 66,
+          "edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6",
+            "tool0",
+            "press_rod",
+            "rod_tip",
+            "camera_optical_frame",
+            "marker"
+          ],
+          "body_edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6"
+          ],
+          "prior_mean_sha256": "8889eb3cdd3d0ac94711b47ce78b430d8e23a7b31ecc994c56d0c3310c87674a",
+          "prior_covariance_sha256": "5fc441c416dc9a7aa0eb8d9a425088e1e9a08dd2f75885f4ea6d28c961fea957",
+          "joint_state_covariance_sha256": "5fc441c416dc9a7aa0eb8d9a425088e1e9a08dd2f75885f4ea6d28c961fea957",
+          "mean_and_covariance_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[0].prior",
+          "reference_state_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[0].reference_state"
+        },
+        {
+          "label": "reset:7807",
+          "log_weight": -1.3862943611198906,
+          "weight": 0.25,
+          "source_state_id": "d3960509d764aaf9d0874728e09a0461fb80db84612d10adb010d67f2bb696d8",
+          "source_component_id": "reset:7807",
+          "version": 7807,
+          "stamp": 1792080030.1818495,
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ],
+          "joint_dimension": 66,
+          "edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6",
+            "tool0",
+            "press_rod",
+            "rod_tip",
+            "camera_optical_frame",
+            "marker"
+          ],
+          "body_edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6"
+          ],
+          "prior_mean_sha256": "8889eb3cdd3d0ac94711b47ce78b430d8e23a7b31ecc994c56d0c3310c87674a",
+          "prior_covariance_sha256": "cef655fe06bab7c89968cd70c00870637917bf505e08ea15bae2e4987b842fd8",
+          "joint_state_covariance_sha256": "cef655fe06bab7c89968cd70c00870637917bf505e08ea15bae2e4987b842fd8",
+          "mean_and_covariance_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[1].prior",
+          "reference_state_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[1].reference_state"
+        }
+      ],
+      "original_prediction_records": [
+        {
+          "source_label": "internal:7650",
+          "source_state_id": "d4a5940b6ca258dbc07f6d69821cc1e41ef03628d14e1b3bad49346cdf72bc08",
+          "source_version": 7650,
+          "source_stamp": 1792080029.4237847,
+          "source_command": [
+            0.09304359150804592,
+            -1.7415756999647032,
+            1.9787612916527255,
+            -0.009564110806854794,
+            -0.9070812004288222,
+            -0.03581478531322544
+          ],
+          "transported_label": "predicted:2602:0",
+          "transported_state_id": "be4f5e24b9c84b617279c9b488d96464dd4051d91dabe055502b4172558a27e6",
+          "transported_version": 7807,
+          "transported_stamp": 1792080030.1818495,
+          "transported_command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ],
+          "weight": 1.0,
+          "log_weight": 0.0
+        }
+      ],
+      "actual_archive_ledger": {
+        "interval_count": 53,
+        "interval_indices": [
+          2549,
+          2550,
+          2551,
+          2552,
+          2553,
+          2554,
+          2555,
+          2556,
+          2557,
+          2558,
+          2559,
+          2560,
+          2561,
+          2562,
+          2563,
+          2564,
+          2565,
+          2566,
+          2567,
+          2568,
+          2569,
+          2570,
+          2571,
+          2572,
+          2573,
+          2574,
+          2575,
+          2576,
+          2577,
+          2578,
+          2579,
+          2580,
+          2581,
+          2582,
+          2583,
+          2584,
+          2585,
+          2586,
+          2587,
+          2588,
+          2589,
+          2590,
+          2591,
+          2592,
+          2593,
+          2594,
+          2595,
+          2596,
+          2597,
+          2598,
+          2599,
+          2600,
+          2601
+        ],
+        "full_value_sha256": "88d95a7189f80df5d5bfbcc8fce96d472eb74ef3aae291bd4fcb4f613c866c08",
+        "first_start_stamp": 1792080029.4237847,
+        "last_end_stamp": 1792080030.1818495,
+        "object_locator": "load_stiffness_job(reference)[\"command_ledger\"]",
+        "source_journal": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/commands.jsonl"
+      },
+      "same_timestamp_events_in_immutable_sequence": [
+        {
+          "event_id": "joint:00002602",
+          "kind": "joint",
+          "sequence": 2113,
+          "stamp": 1792080030.1818495,
+          "payload_hash": "72dfd87da76b9cfb459d1377791a43d1bf1cc98a5a78f2bf08a404a5518bc7f8",
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ]
+        },
+        {
+          "event_id": "imu:00002602",
+          "kind": "imu",
+          "sequence": 2114,
+          "stamp": 1792080030.1818495,
+          "payload_hash": "35c5c611a6696ac941cefac3eca7ad6ddf5c26268e9633a53dbb7cb303cf6f44",
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ]
+        },
+        {
+          "event_id": "image:00002602",
+          "kind": "image",
+          "sequence": 2115,
+          "stamp": 1792080030.1818495,
+          "payload_hash": "1d993fed983e1bca97e94448e3740deafe229c055d9157c8ec83dd4d139c89c7",
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ]
+        }
+      ],
+      "neighboring_raw_events": [
+        {
+          "event_id": "joint:00002602",
+          "kind": "joint",
+          "sequence": 2113,
+          "stamp": 1792080030.1818495,
+          "payload_hash": "72dfd87da76b9cfb459d1377791a43d1bf1cc98a5a78f2bf08a404a5518bc7f8",
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ]
+        },
+        {
+          "event_id": "imu:00002602",
+          "kind": "imu",
+          "sequence": 2114,
+          "stamp": 1792080030.1818495,
+          "payload_hash": "35c5c611a6696ac941cefac3eca7ad6ddf5c26268e9633a53dbb7cb303cf6f44",
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ]
+        },
+        {
+          "event_id": "image:00002602",
+          "kind": "image",
+          "sequence": 2115,
+          "stamp": 1792080030.1818495,
+          "payload_hash": "1d993fed983e1bca97e94448e3740deafe229c055d9157c8ec83dd4d139c89c7",
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ]
+        },
+        {
+          "event_id": "joint:00002603",
+          "kind": "joint",
+          "sequence": 2116,
+          "stamp": 1792080030.2058432,
+          "payload_hash": "86d98993d613286b5aecba5539631066979f69da08f2b252cf78893b15e3e85f",
+          "command": [
+            0.08823721993029086,
+            -1.7366661906520917,
+            1.9764405839358026,
+            -0.003450190134319296,
+            -0.8998008310000754,
+            -0.03257647972676914
+          ]
+        },
+        {
+          "event_id": "imu:00002603",
+          "kind": "imu",
+          "sequence": 2117,
+          "stamp": 1792080030.2058432,
+          "payload_hash": "82d692e74dbbaf0fcb59cbbab14cbba88fe008582dc37605ac0334632ad96a80",
+          "command": [
+            0.08823721993029086,
+            -1.7366661906520917,
+            1.9764405839358026,
+            -0.003450190134319296,
+            -0.8998008310000754,
+            -0.03257647972676914
+          ]
+        }
+      ],
+      "native_central_observation": {
+        "parent_frame_id": "camera",
+        "child_frame_id": "marker",
+        "edge_id": "camera__to__marker",
+        "stamp": 1792080030.1818495,
+        "components": [
+          {
+            "component_id": "camera__to__marker:board_adf:b3edb472e01bc452:0",
+            "parent_frame_id": "camera",
+            "child_frame_id": "marker",
+            "edge_id": "camera__to__marker",
+            "stamp": 1792080030.1818495,
+            "weight": 1.0,
+            "log_weight": 0.0,
+            "lineage": [
+              "central_after_20*camera__to__marker_21:mode:0",
+              "central_after_20*camera__to__marker_21:mode:1"
+            ],
+            "translation_mean": [
+              0.23791430503953706,
+              0.17226236165725517,
+              0.5460884879105227
+            ],
+            "translation_covariance": [
+              [
+                2.2539583363095465e-07,
+                1.720772488960542e-07,
+                5.303726809200212e-07
+              ],
+              [
+                1.720772488960542e-07,
+                1.6360211838517205e-07,
+                4.413943823072765e-07
+              ],
+              [
+                5.303726809200212e-07,
+                4.413943823072765e-07,
+                1.364614766858238e-06
+              ]
+            ],
+            "rotation_wxyz": [
+              0.25293982354865935,
+              0.9482913524033009,
+              -0.003794616343457628,
+              -0.1917043492127812
+            ],
+            "bingham": [
+              [
+                149743.95564101657,
+                7178.637361630266,
+                102471.63329654979,
+                -10614.02142355804
+              ],
+              [
+                7178.637361630266,
+                180794.53239282678,
+                -14661.159186851102,
+                -1960.8219929817499
+              ],
+              [
+                102471.63329654979,
+                -14661.159186851102,
+                -488495.1006974165,
+                75975.30483565964
+              ],
+              [
+                -10614.02142355804,
+                -1960.8219929817499,
+                75975.30483565964,
+                157956.61266357318
+              ]
+            ],
+            "full_product_covariance": [
+              [
+                2.2539583363095465e-07,
+                1.720772488960542e-07,
+                5.303726809200212e-07,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.720772488960542e-07,
+                1.6360211838517205e-07,
+                4.413943823072765e-07,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                5.303726809200212e-07,
+                4.413943823072765e-07,
+                1.364614766858238e-06,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0001081766276191635,
+                -1.3269962917924974e-05,
+                -5.9097883105071244e-06
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -1.3269962917924976e-05,
+                0.0001162004765973145,
+                1.704334344915745e-05
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -5.909788310507123e-06,
+                1.704334344915745e-05,
+                5.580984084926467e-06
+              ]
+            ],
+            "pre_product_full_covariance": null,
+            "discarded_position_rotation_cross_covariance": null,
+            "position_orientation_product_approximation": true
+          }
+        ],
+        "component_count": 1,
+        "representation": "single Gaussian x Bingham",
+        "component_id": "camera__to__marker:board_adf:b3edb472e01bc452:0",
+        "weight": 1.0,
+        "log_weight": 0.0,
+        "lineage": [
+          "central_after_20*camera__to__marker_21:mode:0",
+          "central_after_20*camera__to__marker_21:mode:1"
+        ],
+        "translation_mean": [
+          0.23791430503953706,
+          0.17226236165725517,
+          0.5460884879105227
+        ],
+        "translation_covariance": [
+          [
+            2.2539583363095465e-07,
+            1.720772488960542e-07,
+            5.303726809200212e-07
+          ],
+          [
+            1.720772488960542e-07,
+            1.6360211838517205e-07,
+            4.413943823072765e-07
+          ],
+          [
+            5.303726809200212e-07,
+            4.413943823072765e-07,
+            1.364614766858238e-06
+          ]
+        ],
+        "rotation_wxyz": [
+          0.25293982354865935,
+          0.9482913524033009,
+          -0.003794616343457628,
+          -0.1917043492127812
+        ],
+        "bingham": [
+          [
+            149743.95564101657,
+            7178.637361630266,
+            102471.63329654979,
+            -10614.02142355804
+          ],
+          [
+            7178.637361630266,
+            180794.53239282678,
+            -14661.159186851102,
+            -1960.8219929817499
+          ],
+          [
+            102471.63329654979,
+            -14661.159186851102,
+            -488495.1006974165,
+            75975.30483565964
+          ],
+          [
+            -10614.02142355804,
+            -1960.8219929817499,
+            75975.30483565964,
+            157956.61266357318
+          ]
+        ],
+        "full_product_covariance": [
+          [
+            2.2539583363095465e-07,
+            1.720772488960542e-07,
+            5.303726809200212e-07,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            1.720772488960542e-07,
+            1.6360211838517205e-07,
+            4.413943823072765e-07,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            5.303726809200212e-07,
+            4.413943823072765e-07,
+            1.364614766858238e-06,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0001081766276191635,
+            -1.3269962917924974e-05,
+            -5.9097883105071244e-06
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            -1.3269962917924976e-05,
+            0.0001162004765973145,
+            1.704334344915745e-05
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            -5.909788310507123e-06,
+            1.704334344915745e-05,
+            5.580984084926467e-06
+          ]
+        ],
+        "pre_product_full_covariance": null,
+        "discarded_position_rotation_cross_covariance": null,
+        "position_orientation_product_approximation": true
+      },
+      "native_likelihood_recorded_by_old_operator": [
+        {
+          "label": "camera__to__marker:board_adf:b3edb472e01bc452:0",
+          "sensor": "marker",
+          "sensor_id": "hand_camera",
+          "observation_id": "image:00002602",
+          "path": [
+            [
+              "camera_optical_frame",
+              true
+            ],
+            [
+              "tool0",
+              true
+            ],
+            [
+              "link_6",
+              true
+            ],
+            [
+              "link_5",
+              true
+            ],
+            [
+              "link_4",
+              true
+            ],
+            [
+              "link_3",
+              true
+            ],
+            [
+              "link_2",
+              true
+            ],
+            [
+              "link_1",
+              true
+            ],
+            [
+              "marker",
+              false
+            ]
+          ],
+          "covariance": [
+            [
+              2.2539583363095465e-07,
+              1.720772488960542e-07,
+              5.303726809200212e-07,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.720772488960542e-07,
+              1.6360211838517205e-07,
+              4.413943823072765e-07,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              5.303726809200212e-07,
+              4.413943823072765e-07,
+              1.364614766858238e-06,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0001081766276191635,
+              -1.3269962917924974e-05,
+              -5.9097883105071244e-06
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              -1.3269962917924976e-05,
+              0.0001162004765973145,
+              1.704334344915745e-05
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              -5.909788310507123e-06,
+              1.704334344915745e-05,
+              5.580984084926467e-06
+            ]
+          ],
+          "log_weight": 0.0,
+          "fixed_native_chart": true,
+          "prior_dependent_chart": false,
+          "point_dependent_chart_volume_applied": false,
+          "translation": [
+            0.23791430503953706,
+            0.17226236165725517,
+            0.5460884879105227
+          ],
+          "rotation": [
+            [
+              0.9264700867594201,
+              0.08978252479840484,
+              -0.36550277232986467
+            ],
+            [
+              -0.10417613225516129,
+              -0.8720140930999579,
+              -0.47826640578595236
+            ],
+            [
+              -0.3616635339764685,
+              0.48117618361249126,
+              -0.798541776312154
+            ]
+          ],
+          "observed_direction": null,
+          "root_direction": null,
+          "basis": null
+        }
+      ],
+      "original_individual_native_components": [
+        {
+          "marker_id": 17,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "weight": 0.9999999992249142,
+              "native_log_mass": -35.90907117944998
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "weight": 7.750856673004387e-10,
+              "native_log_mass": -56.88711873290684
+            }
+          ]
+        },
+        {
+          "marker_id": 18,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_18:mode:0",
+              "weight": 0.9999999999867546,
+              "native_log_mass": -36.40124982951798
+            },
+            {
+              "native_component_id": "camera__to__marker_18:mode:1",
+              "weight": 1.3245440820536479e-11,
+              "native_log_mass": -61.448617541229375
+            }
+          ]
+        },
+        {
+          "marker_id": 20,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_20:mode:0",
+              "weight": 0.9999157329514504,
+              "native_log_mass": -35.679129393925
+            },
+            {
+              "native_component_id": "camera__to__marker_20:mode:1",
+              "weight": 8.426704854955309e-05,
+              "native_log_mass": -45.060564775857685
+            }
+          ]
+        },
+        {
+          "marker_id": 21,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_21:mode:0",
+              "weight": 0.9999941718267497,
+              "native_log_mass": -36.30345568655491
+            },
+            {
+              "native_component_id": "camera__to__marker_21:mode:1",
+              "weight": 5.828173250385252e-06,
+              "native_log_mass": -48.3562568011926
+            }
+          ]
+        }
+      ],
+      "board_summary": {
+        "parent_frame_id": "camera",
+        "child_frame_id": "marker",
+        "stamp": 1792080030.1818495,
+        "observed_marker_ids": [
+          17,
+          18,
+          20,
+          21
+        ],
+        "usable_marker_ids": [
+          17,
+          18,
+          20,
+          21
+        ],
+        "fusion_order": [
+          17,
+          18,
+          20,
+          21
+        ],
+        "raw_native_mixtures_retained": true,
+        "central_component_count": 1,
+        "final_mixture_fallback_used": false,
+        "deferred_projection_marker_ids": []
+      },
+      "complete_board_record_sha256": "effddb0d411506291b3a33b18aea71a759f2921274bf5e5973268e64df859d31",
+      "complete_board_record_object_locator": "load_stiffness_job(reference)[\"result\"].records[\"sensor_estimates\"][0][\"marker_board_fusion\"]",
+      "old_BFS": {
+        "enabled": true,
+        "applied": true,
+        "change_probability": 0.25,
+        "prior_change_odds": 0.3333333333333333,
+        "probability_unit": "per_effective_sensor_event",
+        "reason": "fresh valid observation packet",
+        "log_bayes_factor": 311.6699063581605,
+        "posterior_change_probability": 1.0,
+        "log_keep_evidence": -306.3771111855501,
+        "log_reset_evidence": 5.292795172610387,
+        "monte_carlo_used": false,
+        "physical_truth_received": false,
+        "posterior_keep_log_probability": -310.5712940694924,
+        "posterior_change_log_probability": 0.0,
+        "log_observation_evidence": 3.9065008114904964,
+        "log_bayes_factor_uses_retained_evidence_parts": true,
+        "log_observation_evidence_parts": [
+          3.9065008114904964,
+          2.220446049250313e-16
+        ],
+        "observation_ids": [
+          "image:00002602"
+        ],
+        "transition": {
+          "change_probability": 0.25,
+          "change_prior_odds": 0.3333333333333333,
+          "retained_source_state_id": "be4f5e24b9c84b617279c9b488d96464dd4051d91dabe055502b4172558a27e6",
+          "direct_family_state_id": "2b2c19ac25fb8b3834449a46da25839b525a41f2d3d3f785cb3c4b03238404ba",
+          "retained_label": "predicted:2602:0",
+          "reset_label": "reset:7807",
+          "reset_state_id": "d3960509d764aaf9d0874728e09a0461fb80db84612d10adb010d67f2bb696d8",
+          "version": 7807,
+          "stamp": 1792080030.1818495,
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ],
+          "marker_edge_id": "marker",
+          "marker_marginal_reused": true,
+          "reset_kernel": "independent redraw of the supplied command-dependent body law; retain the environment marginal",
+          "reset_body_environment_cross_covariance": "zero by the specified independent redraw kernel",
+          "retained_body_environment_cross_covariance_preserved": true,
+          "physical_truth_received": false,
+          "sampling_used": false
+        },
+        "prior_source_state_ids": [
+          "be4f5e24b9c84b617279c9b488d96464dd4051d91dabe055502b4172558a27e6",
+          "d3960509d764aaf9d0874728e09a0461fb80db84612d10adb010d67f2bb696d8"
+        ],
+        "initial_packet": false,
+        "joint_evidence_log_odds_consistency": {
+          "posterior_log_odds": 310.5712940694924,
+          "evidence_log_odds": 310.5712940694924,
+          "residual": 0.0,
+          "verified": true,
+          "absolute_tolerance": 1e-09,
+          "relative_tolerance": 1e-09,
+          "update_gate": false,
+          "warning": null
+        },
+        "internal_state_id": "7bfe367c4bb10cc3596ea6b78aea994418a6f49d329ab04e2c76de40629baf09",
+        "goal_source_state_ids": [
+          "cea8310bd80d40eab337917be44a7152457f1caa4daa2c288d7f07fbe098473f"
+        ]
+      },
+      "old_operator_branch_summary": [
+        {
+          "parent_label": "predicted:2602:0",
+          "label": "predicted:2602:0|image:00002602:camera__to__marker:board_adf:b3edb472e01bc452:0",
+          "source_prior_state_id": "be4f5e24b9c84b617279c9b488d96464dd4051d91dabe055502b4172558a27e6",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:b3edb472e01bc452:0"
+          ],
+          "native_log_weights": [
+            0.0
+          ],
+          "posterior_log_weight": -310.5712940694924,
+          "conditional_log_evidence_parts": [
+            -306.3771111855501,
+            6.217248937900877e-15
+          ],
+          "final_objective": 328.2721010021741,
+          "final_gradient_inf": 8.4408201583841e-06,
+          "stationarity_verified": false,
+          "completed_iterations": 40,
+          "termination_reason": "configured finite iteration budget"
+        },
+        {
+          "parent_label": "reset:7807",
+          "label": "reset:7807|image:00002602:camera__to__marker:board_adf:b3edb472e01bc452:0",
+          "source_prior_state_id": "d3960509d764aaf9d0874728e09a0461fb80db84612d10adb010d67f2bb696d8",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:b3edb472e01bc452:0"
+          ],
+          "native_log_weights": [
+            0.0
+          ],
+          "posterior_log_weight": 0.0,
+          "conditional_log_evidence_parts": [
+            5.292795172610387,
+            0.0
+          ],
+          "final_objective": 8.087255254759235,
+          "final_gradient_inf": 4.871833068692197e-08,
+          "stationarity_verified": true,
+          "completed_iterations": 6,
+          "termination_reason": "finite objective score satisfies optimizer tolerance"
+        }
+      ],
+      "old_canonical_state_id": "7bfe367c4bb10cc3596ea6b78aea994418a6f49d329ab04e2c76de40629baf09"
+    },
+    "I321": {
+      "label": "image update in IMU+marker case; large canonical link update",
+      "case": "imu_marker",
+      "job_sequence": 321,
+      "acquisition": {
+        "event_id": "image:00002595",
+        "kind": "image",
+        "sequence": 2341,
+        "stamp": 1792080036.8521929,
+        "elapsed_from_sim_epoch_s": 36.852192878723145,
+        "command": [
+          0.060592143343792725,
+          -1.465650619463315,
+          1.8451731629913024,
+          0.05146410226002605,
+          -1.0806696252846513,
+          0.023509522785262693
+        ],
+        "frame_index": 2595,
+        "payload_sha256": "d9f11ed8117757e6735495778fdb86591c172e529beb67061dacc29335e082cc",
+        "metadata": {
+          "frame_index": 2595,
+          "image": {
+            "__event_array__": 0,
+            "dtype": "|u1",
+            "shape": [
+              720,
+              960
+            ]
+          },
+          "image_path": "capture_002595.png",
+          "image_sha256": "b88fe8cbec4b78ab223a1a52e2192a1832cb65fe93af5ee19ad35471d37a52a7",
+          "image_stamp": 1792080036.8521929,
+          "time": 36.8521927818656
+        },
+        "raw_payload_json_sha256": "f0aeea1bcd3fdaa466e42ae5e3cd2e7b38e825a64cf398d59c34bd497bc23327",
+        "DB_received_host_wall_s": 1792306839.124112,
+        "DB_ready_host_wall_s": 1792306839.3000581
+      },
+      "archive_reference": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000321_bcda0ace5ea254ef.json",
+        "sha256": "498f4110885404b5bca98cfaa16d491cbbe818e0a85e1bd0cb1faf9bff0efbc5",
+        "payload_path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000321_bcda0ace5ea254ef.pickle",
+        "payload_sha256": "e78059a1eeb93feb59a5616115384fadfc6cc881a8d3d7c6c043cd442d0245bc",
+        "payload_actual_sha256": "e78059a1eeb93feb59a5616115384fadfc6cc881a8d3d7c6c043cd442d0245bc",
+        "payload_bytes": 1635665,
+        "archived_host_wall_s": 1792306840.5313976,
+        "numeric_candidate_id": "328e41dd0600e97f95de8965c3719e3b54684c4d54eefe431d47f17e30ea37e5"
+      },
+      "raw_database": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/observations.sqlite3",
+        "read_only_URI": "file:/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/observations.sqlite3?mode=ro",
+        "event_selector": "image:00002595",
+        "image_source": "payload_blobs rows with this event_id; metadata is payload_json; use original event payload, not annotation or reconstructed pixels"
+      },
+      "URDF": {
+        "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/robot.urdf",
+        "sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2"
+      },
+      "observation_templates": {
+        "frozen_path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/frozen_source/ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml",
+        "current_run_copy": "No rewrite: use the frozen source path"
+      },
+      "geometry_paths": {
+        "camera_marker_path": [
+          [
+            "camera_optical_frame",
+            true
+          ],
+          [
+            "tool0",
+            true
+          ],
+          [
+            "link_6",
+            true
+          ],
+          [
+            "link_5",
+            true
+          ],
+          [
+            "link_4",
+            true
+          ],
+          [
+            "link_3",
+            true
+          ],
+          [
+            "link_2",
+            true
+          ],
+          [
+            "link_1",
+            true
+          ],
+          [
+            "marker",
+            false
+          ]
+        ],
+        "camera_path": [
+          [
+            "link_1",
+            false
+          ],
+          [
+            "link_2",
+            false
+          ],
+          [
+            "link_3",
+            false
+          ],
+          [
+            "link_4",
+            false
+          ],
+          [
+            "link_5",
+            false
+          ],
+          [
+            "link_6",
+            false
+          ],
+          [
+            "tool0",
+            false
+          ],
+          [
+            "camera_optical_frame",
+            false
+          ]
+        ],
+        "marker_path": [
+          [
+            "marker",
+            false
+          ]
+        ],
+        "hand_path": [
+          [
+            "link_1",
+            false
+          ],
+          [
+            "link_2",
+            false
+          ],
+          [
+            "link_3",
+            false
+          ],
+          [
+            "link_4",
+            false
+          ],
+          [
+            "link_5",
+            false
+          ],
+          [
+            "link_6",
+            false
+          ],
+          [
+            "tool0",
+            false
+          ],
+          [
+            "press_rod",
+            false
+          ],
+          [
+            "rod_tip",
+            false
+          ]
+        ],
+        "link_paths": {
+          "link_1": [
+            [
+              "link_1",
+              false
+            ]
+          ],
+          "link_2": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ]
+          ],
+          "link_3": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ]
+          ],
+          "link_4": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ]
+          ],
+          "link_5": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ]
+          ],
+          "link_6": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ],
+            [
+              "link_6",
+              false
+            ]
+          ],
+          "tool0": [
+            [
+              "link_1",
+              false
+            ],
+            [
+              "link_2",
+              false
+            ],
+            [
+              "link_3",
+              false
+            ],
+            [
+              "link_4",
+              false
+            ],
+            [
+              "link_5",
+              false
+            ],
+            [
+              "link_6",
+              false
+            ],
+            [
+              "tool0",
+              false
+            ]
+          ]
+        }
+      },
+      "original_priors": [
+        {
+          "label": "predicted:2595:0",
+          "log_weight": -0.2876820724517809,
+          "weight": 0.75,
+          "source_state_id": "83d5fab98e289904657fa8d5bb6da86d92aca3aa2edd27256212c0caaafea5bf",
+          "source_component_id": "predicted:2595:0",
+          "version": 7786,
+          "stamp": 1792080036.8521929,
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ],
+          "joint_dimension": 66,
+          "edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6",
+            "tool0",
+            "press_rod",
+            "rod_tip",
+            "camera_optical_frame",
+            "marker"
+          ],
+          "body_edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6"
+          ],
+          "prior_mean_sha256": "8889eb3cdd3d0ac94711b47ce78b430d8e23a7b31ecc994c56d0c3310c87674a",
+          "prior_covariance_sha256": "c0cd964977d2e7d15ab296056c258f384b70013035af9390e4d8ea1503b681ec",
+          "joint_state_covariance_sha256": "c0cd964977d2e7d15ab296056c258f384b70013035af9390e4d8ea1503b681ec",
+          "mean_and_covariance_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[0].prior",
+          "reference_state_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[0].reference_state"
+        },
+        {
+          "label": "reset:7786",
+          "log_weight": -1.3862943611198906,
+          "weight": 0.25,
+          "source_state_id": "e050b4abd50c6770d01e9dff0bc302a411639f79f6e045874e926cd8a8c328d2",
+          "source_component_id": "reset:7786",
+          "version": 7786,
+          "stamp": 1792080036.8521929,
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ],
+          "joint_dimension": 66,
+          "edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6",
+            "tool0",
+            "press_rod",
+            "rod_tip",
+            "camera_optical_frame",
+            "marker"
+          ],
+          "body_edge_ids": [
+            "link_1",
+            "link_2",
+            "link_3",
+            "link_4",
+            "link_5",
+            "link_6"
+          ],
+          "prior_mean_sha256": "8889eb3cdd3d0ac94711b47ce78b430d8e23a7b31ecc994c56d0c3310c87674a",
+          "prior_covariance_sha256": "13188d7a21f43f20afda0cc8e6f2e8c207407185f45840a23a78ce825a82362f",
+          "joint_state_covariance_sha256": "13188d7a21f43f20afda0cc8e6f2e8c207407185f45840a23a78ce825a82362f",
+          "mean_and_covariance_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[1].prior",
+          "reference_state_object_locator": "load_stiffness_job(reference)[\"result\"].frozen_body_branches[1].reference_state"
+        }
+      ],
+      "original_prediction_records": [
+        {
+          "source_label": "internal:7788",
+          "source_state_id": "df578512d67c9c35083db86802c24e96cf35985110cf5c7ef8b83948f3f2f636",
+          "source_version": 7788,
+          "source_stamp": 1792080036.8521929,
+          "source_command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ],
+          "transported_label": "predicted:2595:0",
+          "transported_state_id": "83d5fab98e289904657fa8d5bb6da86d92aca3aa2edd27256212c0caaafea5bf",
+          "transported_version": 7786,
+          "transported_stamp": 1792080036.8521929,
+          "transported_command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ],
+          "weight": 1.0,
+          "log_weight": 0.0
+        }
+      ],
+      "actual_archive_ledger": {
+        "interval_count": 0,
+        "interval_indices": [],
+        "full_value_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "first_start_stamp": null,
+        "last_end_stamp": null,
+        "object_locator": "load_stiffness_job(reference)[\"command_ledger\"]",
+        "source_journal": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/commands.jsonl"
+      },
+      "same_timestamp_events_in_immutable_sequence": [
+        {
+          "event_id": "joint:00002595",
+          "kind": "joint",
+          "sequence": 2339,
+          "stamp": 1792080036.8521929,
+          "payload_hash": "a96fbe714f4362605db92e8e19bd813c4ab0aa9214dbea70a80d3532646e1959",
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ]
+        },
+        {
+          "event_id": "imu:00002595",
+          "kind": "imu",
+          "sequence": 2340,
+          "stamp": 1792080036.8521929,
+          "payload_hash": "c1fb44fcff3839b069bed5238ce9a6a9f690030fe7b7b3c70a197de76e7b7d37",
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ]
+        },
+        {
+          "event_id": "image:00002595",
+          "kind": "image",
+          "sequence": 2341,
+          "stamp": 1792080036.8521929,
+          "payload_hash": "d9f11ed8117757e6735495778fdb86591c172e529beb67061dacc29335e082cc",
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ]
+        }
+      ],
+      "neighboring_raw_events": [
+        {
+          "event_id": "joint:00002595",
+          "kind": "joint",
+          "sequence": 2339,
+          "stamp": 1792080036.8521929,
+          "payload_hash": "a96fbe714f4362605db92e8e19bd813c4ab0aa9214dbea70a80d3532646e1959",
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ]
+        },
+        {
+          "event_id": "imu:00002595",
+          "kind": "imu",
+          "sequence": 2340,
+          "stamp": 1792080036.8521929,
+          "payload_hash": "c1fb44fcff3839b069bed5238ce9a6a9f690030fe7b7b3c70a197de76e7b7d37",
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ]
+        },
+        {
+          "event_id": "image:00002595",
+          "kind": "image",
+          "sequence": 2341,
+          "stamp": 1792080036.8521929,
+          "payload_hash": "d9f11ed8117757e6735495778fdb86591c172e529beb67061dacc29335e082cc",
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ]
+        },
+        {
+          "event_id": "joint:00002596",
+          "kind": "joint",
+          "sequence": 2342,
+          "stamp": 1792080036.8862689,
+          "payload_hash": "4a788c215f0b94583777d4280f77d42e6382eca1d20258e7416df415b16253c1",
+          "command": [
+            0.05901223735266761,
+            -1.464559675398627,
+            1.844545152602499,
+            0.05239279578341145,
+            -1.0806965161648727,
+            0.023495242103914956
+          ]
+        },
+        {
+          "event_id": "imu:00002596",
+          "kind": "imu",
+          "sequence": 2343,
+          "stamp": 1792080036.8862689,
+          "payload_hash": "5eb6e32e24221d9eaf756be99c1e8f333d6ff867d1ff0e9c54d38063aa495e11",
+          "command": [
+            0.05901223735266761,
+            -1.464559675398627,
+            1.844545152602499,
+            0.05239279578341145,
+            -1.0806965161648727,
+            0.023495242103914956
+          ]
+        }
+      ],
+      "native_central_observation": {
+        "parent_frame_id": "camera",
+        "child_frame_id": "marker",
+        "edge_id": "camera__to__marker",
+        "stamp": 1792080036.8521929,
+        "components": [
+          {
+            "component_id": "camera__to__marker:board_adf:97d6c8210eb791cd:0",
+            "parent_frame_id": "camera",
+            "child_frame_id": "marker",
+            "edge_id": "camera__to__marker",
+            "stamp": 1792080036.8521929,
+            "weight": 1.0,
+            "log_weight": 0.0,
+            "lineage": [
+              "central_after_24*camera__to__marker_25:mode:0",
+              "central_after_24*camera__to__marker_25:mode:1"
+            ],
+            "translation_mean": [
+              0.15669679526518004,
+              0.07904563509503733,
+              0.5551091972946189
+            ],
+            "translation_covariance": [
+              [
+                2.2731145206797224e-08,
+                1.2748030999048603e-08,
+                5.1196022583643266e-08
+              ],
+              [
+                1.2748030999048603e-08,
+                1.8263445127198153e-08,
+                3.952967840543645e-08
+              ],
+              [
+                5.1196022583643266e-08,
+                3.952967840543645e-08,
+                1.5965564805515485e-07
+              ]
+            ],
+            "rotation_wxyz": [
+              0.2896775810091053,
+              0.9457277238602488,
+              -0.03514560492695866,
+              -0.1430061461516432
+            ],
+            "bingham": [
+              [
+                704157.9171826207,
+                117526.6667720711,
+                480720.2820939997,
+                -50415.1745121247
+              ],
+              [
+                117526.6667720711,
+                1009558.260975191,
+                -223497.00372123774,
+                -3678.169316805375
+              ],
+              [
+                480720.2820939997,
+                -223497.00372123774,
+                -2548032.4090548824,
+                381080.8235719582
+              ],
+              [
+                -50415.1745121247,
+                -3678.169316805375,
+                381080.8235719582,
+                834316.2308970699
+              ]
+            ],
+            "full_product_covariance": [
+              [
+                2.2731145206797224e-08,
+                1.2748030999048603e-08,
+                5.1196022583643266e-08,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.2748030999048603e-08,
+                1.8263445127198153e-08,
+                3.952967840543645e-08,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                5.1196022583643266e-08,
+                3.952967840543645e-08,
+                1.5965564805515485e-07,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                6.522134923351286e-06,
+                -3.19303854107805e-07,
+                8.648936284060189e-10
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -3.193038541078049e-07,
+                1.0691725758520213e-05,
+                1.916766552075506e-06
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                8.648936284060554e-10,
+                1.9167665520755064e-06,
+                8.986727074115033e-07
+              ]
+            ],
+            "pre_product_full_covariance": null,
+            "discarded_position_rotation_cross_covariance": null,
+            "position_orientation_product_approximation": true
+          }
+        ],
+        "component_count": 1,
+        "representation": "single Gaussian x Bingham",
+        "component_id": "camera__to__marker:board_adf:97d6c8210eb791cd:0",
+        "weight": 1.0,
+        "log_weight": 0.0,
+        "lineage": [
+          "central_after_24*camera__to__marker_25:mode:0",
+          "central_after_24*camera__to__marker_25:mode:1"
+        ],
+        "translation_mean": [
+          0.15669679526518004,
+          0.07904563509503733,
+          0.5551091972946189
+        ],
+        "translation_covariance": [
+          [
+            2.2731145206797224e-08,
+            1.2748030999048603e-08,
+            5.1196022583643266e-08
+          ],
+          [
+            1.2748030999048603e-08,
+            1.8263445127198153e-08,
+            3.952967840543645e-08
+          ],
+          [
+            5.1196022583643266e-08,
+            3.952967840543645e-08,
+            1.5965564805515485e-07
+          ]
+        ],
+        "rotation_wxyz": [
+          0.2896775810091053,
+          0.9457277238602488,
+          -0.03514560492695866,
+          -0.1430061461516432
+        ],
+        "bingham": [
+          [
+            704157.9171826207,
+            117526.6667720711,
+            480720.2820939997,
+            -50415.1745121247
+          ],
+          [
+            117526.6667720711,
+            1009558.260975191,
+            -223497.00372123774,
+            -3678.169316805375
+          ],
+          [
+            480720.2820939997,
+            -223497.00372123774,
+            -2548032.4090548824,
+            381080.8235719582
+          ],
+          [
+            -50415.1745121247,
+            -3678.169316805375,
+            381080.8235719582,
+            834316.2308970699
+          ]
+        ],
+        "full_product_covariance": [
+          [
+            2.2731145206797224e-08,
+            1.2748030999048603e-08,
+            5.1196022583643266e-08,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            1.2748030999048603e-08,
+            1.8263445127198153e-08,
+            3.952967840543645e-08,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            5.1196022583643266e-08,
+            3.952967840543645e-08,
+            1.5965564805515485e-07,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            6.522134923351286e-06,
+            -3.19303854107805e-07,
+            8.648936284060189e-10
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            -3.193038541078049e-07,
+            1.0691725758520213e-05,
+            1.916766552075506e-06
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            8.648936284060554e-10,
+            1.9167665520755064e-06,
+            8.986727074115033e-07
+          ]
+        ],
+        "pre_product_full_covariance": null,
+        "discarded_position_rotation_cross_covariance": null,
+        "position_orientation_product_approximation": true
+      },
+      "native_likelihood_recorded_by_old_operator": [
+        {
+          "label": "camera__to__marker:board_adf:97d6c8210eb791cd:0",
+          "sensor": "marker",
+          "sensor_id": "hand_camera",
+          "observation_id": "image:00002595",
+          "path": [
+            [
+              "camera_optical_frame",
+              true
+            ],
+            [
+              "tool0",
+              true
+            ],
+            [
+              "link_6",
+              true
+            ],
+            [
+              "link_5",
+              true
+            ],
+            [
+              "link_4",
+              true
+            ],
+            [
+              "link_3",
+              true
+            ],
+            [
+              "link_2",
+              true
+            ],
+            [
+              "link_1",
+              true
+            ],
+            [
+              "marker",
+              false
+            ]
+          ],
+          "covariance": [
+            [
+              2.2731145206797224e-08,
+              1.2748030999048603e-08,
+              5.1196022583643266e-08,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.2748030999048603e-08,
+              1.8263445127198153e-08,
+              3.952967840543645e-08,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              5.1196022583643266e-08,
+              3.952967840543645e-08,
+              1.5965564805515485e-07,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              6.522134923351286e-06,
+              -3.19303854107805e-07,
+              8.648936284060189e-10
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              -3.193038541078049e-07,
+              1.0691725758520213e-05,
+              1.916766552075506e-06
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              8.648936284060554e-10,
+              1.9167665520755064e-06,
+              8.986727074115033e-07
+            ]
+          ],
+          "log_weight": 0.0,
+          "fixed_native_chart": true,
+          "prior_dependent_chart": false,
+          "point_dependent_chart_volume_applied": false,
+          "translation": [
+            0.15669679526518004,
+            0.07904563509503733,
+            0.5551091972946189
+          ],
+          "rotation": [
+            [
+              0.956628057234346,
+              0.016375003070756816,
+              -0.2908515418327251
+            ],
+            [
+              -0.14932769487581335,
+              -0.8297033710300628,
+              -0.5378601636526225
+            ],
+            [
+              -0.2501279665593529,
+              0.5579643137117126,
+              -0.7912722824471363
+            ]
+          ],
+          "observed_direction": null,
+          "root_direction": null,
+          "basis": null
+        }
+      ],
+      "original_individual_native_components": [
+        {
+          "marker_id": 17,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "weight": 1.0,
+              "native_log_mass": -39.08516274566665
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "weight": 1.6355555250514276e-36,
+              "native_log_mass": -121.4862435761384
+            }
+          ]
+        },
+        {
+          "marker_id": 19,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_19:mode:0",
+              "weight": 1.0,
+              "native_log_mass": -40.46317392978148
+            },
+            {
+              "native_component_id": "camera__to__marker_19:mode:1",
+              "weight": 8.251241114516696e-38,
+              "native_log_mass": -125.85104383640008
+            }
+          ]
+        },
+        {
+          "marker_id": 20,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_20:mode:0",
+              "weight": 0.9999999999894034,
+              "native_log_mass": -45.244348646391884
+            },
+            {
+              "native_component_id": "camera__to__marker_20:mode:1",
+              "weight": 1.0596524432462245e-11,
+              "native_log_mass": -70.51484369868741
+            }
+          ]
+        },
+        {
+          "marker_id": 21,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_21:mode:0",
+              "weight": 0.9988811424225142,
+              "native_log_mass": -57.28811225141644
+            },
+            {
+              "native_component_id": "camera__to__marker_21:mode:1",
+              "weight": 0.0011188575774856288,
+              "native_log_mass": -64.08243990180233
+            }
+          ]
+        },
+        {
+          "marker_id": 22,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_22:mode:0",
+              "weight": 1.0,
+              "native_log_mass": -45.766180757856404
+            },
+            {
+              "native_component_id": "camera__to__marker_22:mode:1",
+              "weight": 7.357486165344301e-18,
+              "native_log_mass": -85.21699411097286
+            }
+          ]
+        },
+        {
+          "marker_id": 23,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_23:mode:0",
+              "weight": 0.9999999905826421,
+              "native_log_mass": -50.06311326915356
+            },
+            {
+              "native_component_id": "camera__to__marker_23:mode:1",
+              "weight": 9.417358003272084e-09,
+              "native_log_mass": -68.54382451417644
+            }
+          ]
+        },
+        {
+          "marker_id": 24,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_24:mode:0",
+              "weight": 1.0,
+              "native_log_mass": -41.29651394333887
+            },
+            {
+              "native_component_id": "camera__to__marker_24:mode:1",
+              "weight": 3.579476399956119e-41,
+              "native_log_mass": -134.42728622337424
+            }
+          ]
+        },
+        {
+          "marker_id": 25,
+          "native_component_count": 2,
+          "components": [
+            {
+              "native_component_id": "camera__to__marker_25:mode:0",
+              "weight": 0.9999999999468085,
+              "native_log_mass": -47.42844546414677
+            },
+            {
+              "native_component_id": "camera__to__marker_25:mode:1",
+              "weight": 5.319143923996126e-11,
+              "native_log_mass": -71.08556911316506
+            }
+          ]
+        }
+      ],
+      "board_summary": {
+        "parent_frame_id": "camera",
+        "child_frame_id": "marker",
+        "stamp": 1792080036.8521929,
+        "observed_marker_ids": [
+          17,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "usable_marker_ids": [
+          17,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "fusion_order": [
+          17,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "raw_native_mixtures_retained": true,
+        "central_component_count": 1,
+        "final_mixture_fallback_used": false,
+        "deferred_projection_marker_ids": []
+      },
+      "complete_board_record_sha256": "663f32719ff753e739742867933406fb66199023081f4d3d445f0cd57747242f",
+      "complete_board_record_object_locator": "load_stiffness_job(reference)[\"result\"].records[\"sensor_estimates\"][0][\"marker_board_fusion\"]",
+      "old_BFS": {
+        "enabled": true,
+        "applied": true,
+        "change_probability": 0.25,
+        "prior_change_odds": 0.3333333333333333,
+        "probability_unit": "per_effective_sensor_event",
+        "reason": "fresh valid observation packet",
+        "log_bayes_factor": 295.2769599946211,
+        "posterior_change_probability": 1.0,
+        "log_keep_evidence": -315.7046477864369,
+        "log_reset_evidence": -20.427687791815803,
+        "monte_carlo_used": false,
+        "physical_truth_received": false,
+        "posterior_keep_log_probability": -294.178347705953,
+        "posterior_change_log_probability": 0.0,
+        "log_observation_evidence": -21.813982152935694,
+        "log_bayes_factor_uses_retained_evidence_parts": true,
+        "log_observation_evidence_parts": [
+          -21.813982152935694,
+          1.1102230246251565e-15
+        ],
+        "observation_ids": [
+          "image:00002595"
+        ],
+        "transition": {
+          "change_probability": 0.25,
+          "change_prior_odds": 0.3333333333333333,
+          "retained_source_state_id": "83d5fab98e289904657fa8d5bb6da86d92aca3aa2edd27256212c0caaafea5bf",
+          "direct_family_state_id": "17a68b809b7786fb5087e9cad38386e51d7245f1642e38eca97966c0f69b3db3",
+          "retained_label": "predicted:2595:0",
+          "reset_label": "reset:7786",
+          "reset_state_id": "e050b4abd50c6770d01e9dff0bc302a411639f79f6e045874e926cd8a8c328d2",
+          "version": 7786,
+          "stamp": 1792080036.8521929,
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ],
+          "marker_edge_id": "marker",
+          "marker_marginal_reused": true,
+          "reset_kernel": "independent redraw of the supplied command-dependent body law; retain the environment marginal",
+          "reset_body_environment_cross_covariance": "zero by the specified independent redraw kernel",
+          "retained_body_environment_cross_covariance_preserved": true,
+          "physical_truth_received": false,
+          "sampling_used": false
+        },
+        "prior_source_state_ids": [
+          "83d5fab98e289904657fa8d5bb6da86d92aca3aa2edd27256212c0caaafea5bf",
+          "e050b4abd50c6770d01e9dff0bc302a411639f79f6e045874e926cd8a8c328d2"
+        ],
+        "initial_packet": false,
+        "joint_evidence_log_odds_consistency": {
+          "posterior_log_odds": 294.178347705953,
+          "evidence_log_odds": 294.178347705953,
+          "residual": 0.0,
+          "verified": true,
+          "absolute_tolerance": 1e-09,
+          "relative_tolerance": 1e-09,
+          "update_gate": false,
+          "warning": null
+        },
+        "internal_state_id": "6818463aeec2d60ccb239d70cd27f2c44c8f4bfc8c3968ea561e8c70aca7ee85",
+        "goal_source_state_ids": [
+          "dacac34395d537b769aa1fbbbf8d84622315ad3915907a6258c8b6fd28650e25"
+        ]
+      },
+      "old_operator_branch_summary": [
+        {
+          "parent_label": "predicted:2595:0",
+          "label": "predicted:2595:0|image:00002595:camera__to__marker:board_adf:97d6c8210eb791cd:0",
+          "source_prior_state_id": "83d5fab98e289904657fa8d5bb6da86d92aca3aa2edd27256212c0caaafea5bf",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:97d6c8210eb791cd:0"
+          ],
+          "native_log_weights": [
+            0.0
+          ],
+          "posterior_log_weight": -294.178347705953,
+          "conditional_log_evidence_parts": [
+            -315.7046477864369,
+            -9.769962616701378e-15
+          ],
+          "final_objective": 346.71262118753936,
+          "final_gradient_inf": 1.132204743625742e-06,
+          "stationarity_verified": false,
+          "completed_iterations": 29,
+          "termination_reason": "line search returned the retained finite best iterate"
+        },
+        {
+          "parent_label": "reset:7786",
+          "label": "reset:7786|image:00002595:camera__to__marker:board_adf:97d6c8210eb791cd:0",
+          "source_prior_state_id": "e050b4abd50c6770d01e9dff0bc302a411639f79f6e045874e926cd8a8c328d2",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:97d6c8210eb791cd:0"
+          ],
+          "native_log_weights": [
+            0.0
+          ],
+          "posterior_log_weight": 0.0,
+          "conditional_log_evidence_parts": [
+            -20.427687791815803,
+            8.881784197001252e-16
+          ],
+          "final_objective": 34.04234583416389,
+          "final_gradient_inf": 5.575997691908974e-07,
+          "stationarity_verified": true,
+          "completed_iterations": 8,
+          "termination_reason": "finite objective score satisfies optimizer tolerance"
+        }
+      ],
+      "old_canonical_state_id": "6818463aeec2d60ccb239d70cd27f2c44c8f4bfc8c3968ea561e8c70aca7ee85"
+    }
+  }
+}

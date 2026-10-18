@@ -98,10 +98,12 @@ class MovingInference:
         self.reference_command = np.asarray(self.law["reference_command"], dtype=float)
         self.templates = tuple(deepcopy(item) for item in observation_templates)
         self.settings = settings
-        self.observation_update_settings = dict(settings.get('nonlinear_observation_update', {}))
+        if 'nonlinear_observation_update' in settings:
+            raise ValueError('Point-MAP/GN observation updates have been withdrawn; configure observation_update.method=propagated_moments.')
+        self.observation_update_settings = dict(settings.get('observation_update', {}))
         self.observation_update_method = self.observation_update_settings.get(
-            'method', 'nonlinear_fixed_prior')
-        if self.observation_update_method not in ('nonlinear_fixed_prior', 'affine_reference'):
+            'method', 'propagated_moments')
+        if self.observation_update_method not in ('propagated_moments', 'affine_reference'):
             raise ValueError('Unknown body observation update method: '+str(self.observation_update_method))
         self.surprise_settings = dict(settings.get('bayes_factor_surprise', {}))
         self.surprise_enabled = bool(self.surprise_settings.get('enabled', False))
@@ -227,16 +229,16 @@ class MovingInference:
     def _run_observation_update(self, *args, **kwargs):
         """Choose the declared inference method, never a failure fallback.
 
-        The nonlinear method conditions the original joint prior directly.
-        Its local posterior views are not lifted through the old affine
-        reference-product update a second time.
+        The propagated-moment method uses the core's corrected mean,
+        covariance and full cross-covariance for one analytic conditioning.
+        Its joint posterior views are not fused a second time.
         """
         if self.observation_update_method == 'affine_reference':
             result = run(*args, **kwargs)
         else:
-            from .nonlinear_model import run as run_nonlinear
-            result = run_nonlinear(*args, **kwargs,
-                solver_options=self.observation_update_settings)
+            from .moment_model import run as run_moments
+            result = run_moments(*args, **kwargs,
+                update_options=self.observation_update_settings)
         result.records['observation_update_method'] = self.observation_update_method
         return result
 
@@ -560,10 +562,10 @@ class MovingInference:
         increment = 0. if not valid else float(evidence['log_evidence'])
         if not np.isfinite(increment):
             raise ValueError('Candidate mass requires finite comparable observation evidence.')
-        nonlinear = result.records.get('observation_update_method') == 'nonlinear_fixed_prior'
-        measure = ('arbitrary initial log-scale zero; fixed-native-chart Gaussian scalar likelihood; '
-            'finite-iterate Gauss-Newton/Laplace evidence in the original Bingham-derived joint proxy support'
-            if nonlinear else
+        propagated = result.records.get('observation_update_method') == 'propagated_moments'
+        measure = ('arbitrary initial log-scale zero; Gaussian innovation evidence from the core Bingham-derived '
+            'propagated corrected mean, full covariance and cross-covariance in fixed native observation charts'
+            if propagated else
             'arbitrary initial log-scale zero; normalized linearized Bingham-derived '
             'sensor Gaussian proxy evidence with declared native image chart-volume correction')
         self.candidate_measure = CandidateMeasureView(tuple(result.stages[-1].components),
@@ -593,8 +595,8 @@ class MovingInference:
         """Keep one recursive internal law and the explicit current goal mixture.
 
         Moment matching occurs after the declared observation update in its
-        original joint prior charts. The nonlinear path directly conditions
-        the joint prior once; the affine reference path uses lifted local
+        original joint prior charts. The propagated-moment path directly
+        conditions the joint prior once; the affine reference path uses lifted local
         posteriors and common-prior correction. The same
         projected body is used by stiffness, control, display and prediction.
         A fresh image constructs task goals by composing its native relative

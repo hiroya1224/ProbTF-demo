@@ -1,0 +1,145 @@
+{
+  "review_kind": "Final read-only integration review after parent-reported180physical-second execution; not an additional runtime or wire audit",
+  "conclusion": "No critical integration/math mismatch found in the current propagated_moments observation-update path.",
+  "source_or_test_edits_performed": false,
+  "extra_tests_or_heavy_computation_performed": false,
+  "parent_reported_full_regression": {
+    "passed": 1138,
+    "independently_rerun_in_this_review": false
+  },
+  "checks": [
+    {
+      "topic": "Production entry and declared comparison",
+      "result": "pass",
+      "evidence": "moving_inference constructor rejects withdrawn nonlinear_observation_update configuration; current observation_update.method defaults to and config selects propagated_moments. Only explicit affine_reference uses historical model.run. No silent failure fallback."
+    },
+    {
+      "topic": "Old point paths isolated",
+      "result": "pass",
+      "evidence": "Repository source references to nonlinear_model/nonlinear_conditioning/finite_modal_path are confined to the withdrawn nonlinear modules and finite_modal itself. Current moment modules do not import or call them. Existing actual-image joint regression forbids old solver/point kernel/local lift."
+    },
+    {
+      "topic": "Actual corrected mean and propagated S/C used",
+      "result": "pass",
+      "evidence": "PreparedMomentObservation.propagate obtains core pose_query/direction_query, linear-transports mean/covariance/full cross/H/within/between. moment_model stacks those very means/crosses, keeps actual per-sensor propagated diagonal S and shared-H-P cross blocks. condition_moments uses residual y-mu, innovation S+R, gain C times support inverse; Joseph covariance uses the same H/P/R."
+    },
+    {
+      "topic": "Native frame and base measure",
+      "result": "pass",
+      "evidence": "Each original native image covariance/Schur cross/logweight remains in its own fixed native modal chart and is prepared once independently of body/KeepReset. Only prior query is transported via phi/Jlog; no candidate-dependent chart-volume is added. Query physical modal rotation stays source.rotation_wxyz, while native chart reference is separately recorded."
+    },
+    {
+      "topic": "IMU and multisensor cross",
+      "result": "pass",
+      "evidence": "IMU basis is observed-fixed, shared by Keep/Reset; mean/S/C all projected by the same basis with existing2D native noise. Diagnostic synchronous product stacks one shared body prior, retains H_i P H_j.T between sensors, and block-diagonalizes only independent measurement noise."
+    },
+    {
+      "topic": "All branches/masses and prior once",
+      "result": "pass",
+      "evidence": "Cartesian native combinations and explicit parent order are retained. Every branch invokes a single analytic conditioning of its original parent, with native logweight and parent logweight each added once using retained evidence parts; finite logweight branches persist if ordinary weight underflows. No update iteration or point optimizer is present."
+    },
+    {
+      "topic": "Temporal source and downstream canonical law",
+      "result": "pass",
+      "evidence": "Outer replay validates original event stamp/sequence/q/hash and actual ledger endpoint, feeds each selected event to the preceding canonical posterior, and records last effective observation clock across missing images. moment result keeps original parent reference objects/Gaussian priors and globally weighted children in FrozenBodyBranch/FusedMixture. Existing internal projection/fresh-goal/K/control/display integration receives that same result; local views are actual posterior core push-forwards and never re-lifted."
+    },
+    {
+      "topic": "BFS/evidence diagnostic continuation",
+      "result": "pass",
+      "evidence": "MovingInference computes BF from retained evidence parts; finite redundant odds mismatch is diagnostic only, while actual nonfinite masses fail. Updated tests explicitly hook propagated_moments and verify actual law unchanged plus next-event continuation."
+    },
+    {
+      "topic": "Benchmark method selection",
+      "result": "pass",
+      "evidence": "Replay benchmark update-method choices are propagated_moments/affine_reference only; omitted uses production config. Reports actual method/options/source hashes and explicitly excludes K/IPC/archive/live contention from body timing. No physical truth fed to inference."
+    },
+    {
+      "topic": "Documentation approximation boundaries",
+      "result": "pass",
+      "evidence": "PROPAGATED_MOMENT_UPDATE.md distinguishes unchanged high-concentration core moments from exact nonlinear/global densities; native modal-point first-order chart transport from a new chart-Hessian mean correction; IMU local antipodal ambiguity; native image Laplace likelihood from withdrawn body GN-Laplace; frozen-affine local_marginal diagnostics from recomposed closure. Publishes archived-prior closure up to105.99mm and does not turn old-source90s tests into current performance."
+    }
+  ],
+  "documentation_nits_not_source_defects": [
+    {
+      "location": "AGENTS.md previous single-observation nonlinear section",
+      "finding": "Top latest section clearly withdraws GN and has precedence, but the older section still says latest approval and implementation is GN in present tense. Marking that lower section as withdrawn history would make the priority easier to read."
+    },
+    {
+      "location": "PROPAGATED_MOMENT_UPDATE.md pseudoinverse evidence formula",
+      "finding": "For singular innovation W, the displayed pseudo-density formula assumes residual belongs to Im(W). Code explicitly calls require_in_support. Actual proper native noise makes W full rank, but adding the support condition would complete the stated general formula."
+    }
+  ],
+  "not_claimed": [
+    "No new live reaching/jump/absolute-pose/throughput conclusion from this static review.",
+    "Frozen affine marginal closure diagnostic does not establish nonlinear recomposition closure.",
+    "This proxy is not exact Bingham posterior conditioning or exact raw-pixel inference.",
+    "No fresh protected-file214hash audit was rerun here; parent separately reports it."
+  ],
+  "reviewed_source_hashes": [
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_conditioning.py",
+      "bytes": 5076,
+      "sha256": "f27039118fdff3c7095076a9aa661c3846642f23978980707a70471b43022907"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_observation.py",
+      "bytes": 9353,
+      "sha256": "a757b56d645222f54065d319a18b036f9726f149f8ce7b6c07b9b01c74758b1c"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_model.py",
+      "bytes": 14378,
+      "sha256": "86a05c6d2ea3ba2e6d3e1a0c0595a8b9e8a09fa025a04a4ba51b6e9f3625460a"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+      "bytes": 48948,
+      "sha256": "fc597c3eb918869d64ca34c5f2ee16011a5af1e8da605393762ee1f1b9cbe3b1"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+      "bytes": 4479,
+      "sha256": "3d0986a5dc81a9d625a5067ad2d4b84cd816950dcbf6479449cf61f6114ce7e2"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/validation/tools/benchmark_sequential_inference.py",
+      "bytes": 10218,
+      "sha256": "f4ec903cca6bf36a6ac0afa13397a4f574e63d8e12eef677439fe062fb446a06"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/tests/test_moment_conditioning.py",
+      "bytes": 5175,
+      "sha256": "dfc108ea078c08e199217812b85563b5acb53236dbfeecbee1b408541ea8eb6c"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/tests/test_moment_model.py",
+      "bytes": 10946,
+      "sha256": "dda0952d484a40bab4abc2700558e273632b0938874d41803c192bd9fd7cd49e"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/tests/test_bayes_factor_inference.py",
+      "bytes": 12898,
+      "sha256": "efb9b86bd2d5d82d2b1a0d50795ff68062bce17c210a64b203090acef3157741"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/tests/test_moving_inference.py",
+      "bytes": 8270,
+      "sha256": "701cea3313d766a6ec727faf4356f6083718794eb88dd6b9dfdf6a422e1b2fd1"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sequential_replay.py",
+      "bytes": 4598,
+      "sha256": "aa8f035ce82dad4eae8f2c2318a10c4c283974870c849f97734b37eab67868f1"
+    }
+  ],
+  "documentation_hashes": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "2f5da67b4808e6c78cc11b0b540f04c5bfcccabc7ee3f9653b682c25bee07c6f"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/PROPAGATED_MOMENT_UPDATE.md",
+      "sha256": "21c21d64d36465e3537913038caed601918a14dddf4b53cf56933ac968dbd42e"
+    }
+  ]
+}

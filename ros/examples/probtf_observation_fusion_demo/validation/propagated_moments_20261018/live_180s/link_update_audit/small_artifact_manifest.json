@@ -1,0 +1,22 @@
+{
+  "summary.json": {
+    "bytes": 48725,
+    "sha256": "d8b6aeaa0e059ccd2747e9b66998652f5082705814ba40718d258a07014c4f3d"
+  },
+  "selected_physical_oracle.json": {
+    "bytes": 16889,
+    "sha256": "42bc4f7b7bd6d6e21bde0e94995545f8007f13cb060288bfd02bdc6223a946f2"
+  },
+  "REPORT.md": {
+    "bytes": 3857,
+    "sha256": "a69817e32e255102109d1e387f92dd6cd02a742ba54d1645963dfe9f66986b2e"
+  },
+  "same_q_link_updates.png": {
+    "bytes": 500687,
+    "sha256": "e1efa04c552ddde96905cc6add2997ba476af40c27062026d720da57e73c3578"
+  },
+  "fixed_proxy_recomposition_closure.png": {
+    "bytes": 124417,
+    "sha256": "8a6843bb725d28883e180a957782bd247da9bf5db01e9a57a3d194fe5e3af26f"
+  }
+}

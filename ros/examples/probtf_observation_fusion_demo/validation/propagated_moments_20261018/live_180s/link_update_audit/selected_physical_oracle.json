@@ -1,0 +1,445 @@
+{
+  "scope": "Maximum same-q posterior corrections and nearby image candidates vs saved physical FK, oracle-only. No raw data are dropped, no covariance is clipped and no physical truth enters the inference operator.",
+  "physical_truth_used_only_for_posthoc_comparison": true,
+  "production_edited": false,
+  "cases": {
+    "marker": {
+      "events": [
+        {
+          "job_sequence": 13,
+          "event_id": "image:00000535",
+          "elapsed_s": 5.345767498016357,
+          "body_ready_adoption": {
+            "batch_id": "97d88008851e048a05bedb18c75870eb21baf6db1d0207dc296c9f00af43a00f",
+            "candidate_id": "abb1ffdd3a90912635c79ae885164c70eefd333656319a5911630d7a03c0980b",
+            "body_source_stamp": 1792080005.3457675,
+            "physical_stamp": 1792080006.772924,
+            "stiffness_job_sequence": 13,
+            "assimilated_event_ids": [
+              "image:00000535"
+            ],
+            "body_update_seconds": 0.16606923658400774,
+            "retained_K_packet_id": "b78a54111a8d041390f4b7331f8a69405f0201a02f77cdfc02a481521e973e0e",
+            "body_waited_for_K_evidence": false
+          },
+          "reset_probability": 1.0,
+          "log_bayes_factor": 379.57863361640864,
+          "prior_modal_relative_oracle_error": {
+            "translation_m": 0.024064438787123138,
+            "angle_rad": 0.01798354318437663
+          },
+          "posterior_modal_relative_oracle_error": {
+            "translation_m": 0.0033740991999928315,
+            "angle_rad": 0.032254383512987865
+          },
+          "map_oracle": {
+            "prior": {
+              "translation_m": 0.304968510654033,
+              "angle_rad": 0.2419671125231285
+            },
+            "posterior": {
+              "translation_m": 0.3158201805214518,
+              "angle_rad": 0.2501534628329388
+            }
+          },
+          "native_images": [
+            {
+              "component_id": "camera__to__marker:board_adf:411a9a436a0e9ca6:0",
+              "log_weight": 0.0,
+              "physical_oracle_in_native": {
+                "translation_error_m": 0.0027326765293227942,
+                "angle_error_rad": 0.03676926469181164,
+                "native_whitened_residual_sq": 251.8624897455642,
+                "native_translation_std_m": [
+                  0.00017122391837518362,
+                  0.00047816168337160985,
+                  0.0013790688970333903
+                ],
+                "native_rotation_std_rad": [
+                  0.00914317813933978,
+                  0.009549927881811424,
+                  0.002570413260204395
+                ]
+              },
+              "prior_modal_in_native": {
+                "translation_error_m": 0.026660985414478297,
+                "angle_error_rad": 0.02626098705642498,
+                "native_whitened_residual_sq": 21446.569595348137,
+                "native_translation_std_m": [
+                  0.00017122391837518362,
+                  0.00047816168337160985,
+                  0.0013790688970333903
+                ],
+                "native_rotation_std_rad": [
+                  0.00914317813933978,
+                  0.009549927881811424,
+                  0.002570413260204395
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_error_m": 0.0021529102581638675,
+                "angle_error_rad": 0.004877384193490093,
+                "native_whitened_residual_sq": 14.416556408533472,
+                "native_translation_std_m": [
+                  0.00017122391837518362,
+                  0.00047816168337160985,
+                  0.0013790688970333903
+                ],
+                "native_rotation_std_rad": [
+                  0.00914317813933978,
+                  0.009549927881811424,
+                  0.002570413260204395
+                ]
+              },
+              "previous_image_job_sequence": 12,
+              "native_change_from_previous": {
+                "translation_m": 0.0486234671681955,
+                "angle_rad": 0.030797821802223724
+              },
+              "physical_change_from_previous": {
+                "translation_m": 0.050869876515685475,
+                "angle_rad": 0.04463665838664684
+              }
+            }
+          ],
+          "board_usable_marker_ids": [
+            17,
+            18,
+            19,
+            20,
+            22
+          ]
+        },
+        {
+          "job_sequence": 31,
+          "event_id": "image:00002538",
+          "elapsed_s": 27.920080423355103,
+          "body_ready_adoption": {
+            "batch_id": "d95e14ab11374a13b2ba5d92a10296ad13bc55493e867ef94c6d8539cd8e68cf",
+            "candidate_id": "48a39ba7cf9619b8d8b004c66b40cf181fd13dd5d89a55492bbb39bccbe1abf9",
+            "body_source_stamp": 1792080027.9200804,
+            "physical_stamp": 1792080031.8858597,
+            "stiffness_job_sequence": 31,
+            "assimilated_event_ids": [
+              "image:00002538"
+            ],
+            "body_update_seconds": 0.3265996379777789,
+            "retained_K_packet_id": "c3a845d3d1476962900c4c7e3b77b0332572b9ea9e77eff616d9cb9a8d6661c9",
+            "body_waited_for_K_evidence": false
+          },
+          "reset_probability": 0.9999999999608422,
+          "log_bayes_factor": 25.062034258461125,
+          "prior_modal_relative_oracle_error": {
+            "translation_m": 0.007937020889253197,
+            "angle_rad": 0.009307250045119227
+          },
+          "posterior_modal_relative_oracle_error": {
+            "translation_m": 0.012713009889447544,
+            "angle_rad": 0.007179763905002298
+          },
+          "map_oracle": {
+            "prior": {
+              "translation_m": 0.3336700757979078,
+              "angle_rad": 0.27261137639366734
+            },
+            "posterior": {
+              "translation_m": 0.3369486089498312,
+              "angle_rad": 0.2753242400897028
+            }
+          },
+          "native_images": [
+            {
+              "component_id": "camera__to__marker:board_adf:f8d83865424cea2f:0",
+              "log_weight": 0.0,
+              "physical_oracle_in_native": {
+                "translation_error_m": 0.0013229042560684249,
+                "angle_error_rad": 0.006753050004818557,
+                "native_whitened_residual_sq": 174.63393912286062,
+                "native_translation_std_m": [
+                  0.0002749432921198595,
+                  0.00021512713598018598,
+                  0.0006783043939130933
+                ],
+                "native_rotation_std_rad": [
+                  0.007069122725700539,
+                  0.007488921120987765,
+                  0.0012260168750695113
+                ]
+              },
+              "prior_modal_in_native": {
+                "translation_error_m": 0.006732172960333291,
+                "angle_error_rad": 0.0070875346738193245,
+                "native_whitened_residual_sq": 4582.2383172244345,
+                "native_translation_std_m": [
+                  0.0002749432921198595,
+                  0.00021512713598018598,
+                  0.0006783043939130933
+                ],
+                "native_rotation_std_rad": [
+                  0.007069122725700539,
+                  0.007488921120987765,
+                  0.0012260168750695113
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_error_m": 0.012272367676954197,
+                "angle_error_rad": 0.0015399932824927145,
+                "native_whitened_residual_sq": 8396.381699735683,
+                "native_translation_std_m": [
+                  0.0002749432921198595,
+                  0.00021512713598018598,
+                  0.0006783043939130933
+                ],
+                "native_rotation_std_rad": [
+                  0.007069122725700539,
+                  0.007488921120987765,
+                  0.0012260168750695113
+                ]
+              },
+              "previous_image_job_sequence": 30,
+              "native_change_from_previous": {
+                "translation_m": 0.01812657178652039,
+                "angle_rad": 0.0372749947680137
+              },
+              "physical_change_from_previous": {
+                "translation_m": 0.017880863229316753,
+                "angle_rad": 0.03821996926115341
+              }
+            }
+          ],
+          "board_usable_marker_ids": [
+            17,
+            18,
+            19,
+            20,
+            21,
+            23,
+            24
+          ]
+        }
+      ]
+    },
+    "imu_marker": {
+      "events": [
+        {
+          "job_sequence": 22,
+          "event_id": "image:00000149",
+          "elapsed_s": 1.346787452697754,
+          "body_ready_adoption": {
+            "batch_id": "a5161dcdc5ad5a33022b42459d2932ff7ae5c136fcc0c67942f4dddef5b7da52",
+            "candidate_id": "93f1ba3196acbaa1c01726782bec44cb51aae0c5eb3d7c4c1bfb77161fb1f95c",
+            "body_source_stamp": 1792080001.3467875,
+            "physical_stamp": 1792080002.6971588,
+            "stiffness_job_sequence": 22,
+            "assimilated_event_ids": [
+              "image:00000149"
+            ],
+            "body_update_seconds": 0.17224104469642043,
+            "retained_K_packet_id": "7cdbe28a5874f4567ec9f90d05dab57028e11fdddced31afeaed76df0a51995a",
+            "body_waited_for_K_evidence": false
+          },
+          "reset_probability": 1.0,
+          "log_bayes_factor": 69.97586494432261,
+          "prior_modal_relative_oracle_error": {
+            "translation_m": 0.0040123313958647135,
+            "angle_rad": 0.011616487795940688
+          },
+          "posterior_modal_relative_oracle_error": {
+            "translation_m": 0.055599955159972556,
+            "angle_rad": 0.0034483373116905216
+          },
+          "map_oracle": {
+            "prior": {
+              "translation_m": 0.0827330900100589,
+              "angle_rad": 0.08210302279103085
+            },
+            "posterior": {
+              "translation_m": 0.08792382151886959,
+              "angle_rad": 0.08269931305143079
+            }
+          },
+          "native_images": [
+            {
+              "component_id": "camera__to__marker:board_adf:4df9debe7f9791c7:0",
+              "log_weight": 0.0,
+              "physical_oracle_in_native": {
+                "translation_error_m": 0.0007306562126319209,
+                "angle_error_rad": 0.006447437315435684,
+                "native_whitened_residual_sq": 40.78712848561231,
+                "native_translation_std_m": [
+                  0.00011270221559048007,
+                  0.0001925088587246257,
+                  0.0008215263566493399
+                ],
+                "native_rotation_std_rad": [
+                  0.0059135353035922,
+                  0.006355175616122659,
+                  0.0014658435373987263
+                ]
+              },
+              "prior_modal_in_native": {
+                "translation_error_m": 0.0046904639870330046,
+                "angle_error_rad": 0.008531885025986792,
+                "native_whitened_residual_sq": 1415.0654433428238,
+                "native_translation_std_m": [
+                  0.00011270221559048007,
+                  0.0001925088587246257,
+                  0.0008215263566493399
+                ],
+                "native_rotation_std_rad": [
+                  0.0059135353035922,
+                  0.006355175616122659,
+                  0.0014658435373987263
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_error_m": 0.05561878324217735,
+                "angle_error_rad": 0.0039018857694804268,
+                "native_whitened_residual_sq": 29518.52374292933,
+                "native_translation_std_m": [
+                  0.00011270221559048007,
+                  0.0001925088587246257,
+                  0.0008215263566493399
+                ],
+                "native_rotation_std_rad": [
+                  0.0059135353035922,
+                  0.006355175616122659,
+                  0.0014658435373987263
+                ]
+              },
+              "previous_image_job_sequence": 14,
+              "native_change_from_previous": {
+                "translation_m": 0.02996761982748982,
+                "angle_rad": 0.024865700713651316
+              },
+              "physical_change_from_previous": {
+                "translation_m": 0.030740339331854365,
+                "angle_rad": 0.026396482657855234
+              }
+            }
+          ],
+          "board_usable_marker_ids": [
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25
+          ]
+        },
+        {
+          "job_sequence": 422,
+          "event_id": "image:00005713",
+          "elapsed_s": 144.0912263393402,
+          "body_ready_adoption": {
+            "batch_id": "065dad272f3101e2529e58fc01b22937a61884e559416d4528d2cbb89d258ed6",
+            "candidate_id": "48d841b1d3b6a31797084933cce36dde7dac325e95f50d49d80b4680dbab53c5",
+            "body_source_stamp": 1792080144.0912263,
+            "physical_stamp": 1792080163.0079634,
+            "stiffness_job_sequence": 422,
+            "assimilated_event_ids": [
+              "image:00005713"
+            ],
+            "body_update_seconds": 0.2007565340027213,
+            "retained_K_packet_id": "3b505cf496e56a52998d4566b508bf04fcc4f2342cd3abf01aee1445ed51749b",
+            "body_waited_for_K_evidence": false
+          },
+          "reset_probability": 1.0,
+          "log_bayes_factor": 8077.955944238602,
+          "prior_modal_relative_oracle_error": {
+            "translation_m": 0.16396379393323154,
+            "angle_rad": 0.013535531129500582
+          },
+          "posterior_modal_relative_oracle_error": {
+            "translation_m": 0.17027265514844644,
+            "angle_rad": 0.006237369532275835
+          },
+          "map_oracle": {
+            "prior": {
+              "translation_m": 0.08164670413964352,
+              "angle_rad": 0.06723270612154171
+            },
+            "posterior": {
+              "translation_m": 0.08347957306648966,
+              "angle_rad": 0.06862118111277163
+            }
+          },
+          "native_images": [
+            {
+              "component_id": "camera__to__marker:board_adf:3d088bc71024fcb6:0",
+              "log_weight": 0.0,
+              "physical_oracle_in_native": {
+                "translation_error_m": 0.00023663820569613358,
+                "angle_error_rad": 0.002677281322614692,
+                "native_whitened_residual_sq": 10.488224797184447,
+                "native_translation_std_m": [
+                  9.316255737916629e-05,
+                  7.035347910542604e-05,
+                  0.0002656112539101328
+                ],
+                "native_rotation_std_rad": [
+                  0.00222326248372592,
+                  0.002479000945858074,
+                  0.00081304034654162
+                ]
+              },
+              "prior_modal_in_native": {
+                "translation_error_m": 0.16386669644760582,
+                "angle_error_rad": 0.01391721888850002,
+                "native_whitened_residual_sq": 791813.4020493878,
+                "native_translation_std_m": [
+                  9.316255737916629e-05,
+                  7.035347910542604e-05,
+                  0.0002656112539101328
+                ],
+                "native_rotation_std_rad": [
+                  0.00222326248372592,
+                  0.002479000945858074,
+                  0.00081304034654162
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_error_m": 0.17018928909156253,
+                "angle_error_rad": 0.0050436010166844455,
+                "native_whitened_residual_sq": 805896.0325707871,
+                "native_translation_std_m": [
+                  9.316255737916629e-05,
+                  7.035347910542604e-05,
+                  0.0002656112539101328
+                ],
+                "native_rotation_std_rad": [
+                  0.00222326248372592,
+                  0.002479000945858074,
+                  0.00081304034654162
+                ]
+              },
+              "previous_image_job_sequence": 414,
+              "native_change_from_previous": {
+                "translation_m": 0.06810604013759436,
+                "angle_rad": 0.06270989457395787
+              },
+              "physical_change_from_previous": {
+                "translation_m": 0.06803428215736969,
+                "angle_rad": 0.06061751833469792
+              }
+            }
+          ],
+          "board_usable_marker_ids": [
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25
+          ]
+        }
+      ]
+    }
+  }
+}

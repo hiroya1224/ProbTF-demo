@@ -1,0 +1,92 @@
+[
+  {
+    "stage": "initial_prior",
+    "case": "marker",
+    "path": "/tmp/probtf_propagated_moments_180s_live_20261018/window_captures/initial_prior_marker.png",
+    "owner_pid": 4010351,
+    "window_id": 77594638,
+    "client_rectangle": {
+      "x": 72,
+      "y": 64,
+      "width": 1840,
+      "height": 1200
+    },
+    "captured_content_rectangle": {
+      "x": 72,
+      "y": 112,
+      "width": 1840,
+      "height": 1152
+    },
+    "omitted_client_toolbar_top_px": 48,
+    "capture_started_wall_s": 1792309713.4564764,
+    "capture_finished_wall_s": 1792309714.5684183,
+    "physical_time_before": 0.0,
+    "physical_time_after": 0.0,
+    "body_observation_stamp_before": 1792080000.0,
+    "displayed_prediction_stamp_before": 1792080000.0,
+    "returncode": 0,
+    "bytes": 498987,
+    "stderr": "",
+    "source": "Direct X11 capture of the unchanged owned RViz content region; no desktop/browser/terminal outside the region; no post-capture crop or resize."
+  },
+  {
+    "stage": "physical_180s",
+    "case": "marker",
+    "path": "/tmp/probtf_propagated_moments_180s_live_20261018/window_captures/physical_180s_marker.png",
+    "owner_pid": 4010351,
+    "window_id": 77594638,
+    "client_rectangle": {
+      "x": 72,
+      "y": 64,
+      "width": 1840,
+      "height": 1200
+    },
+    "captured_content_rectangle": {
+      "x": 72,
+      "y": 112,
+      "width": 1840,
+      "height": 1152
+    },
+    "omitted_client_toolbar_top_px": 48,
+    "capture_started_wall_s": 1792309895.210309,
+    "capture_finished_wall_s": 1792309896.323586,
+    "physical_time_before": 180.0,
+    "physical_time_after": 180.0,
+    "body_observation_stamp_before": 1792080140.951414,
+    "displayed_prediction_stamp_before": 1792080179.6433425,
+    "returncode": 0,
+    "bytes": 446038,
+    "stderr": "",
+    "source": "Direct X11 capture of the unchanged owned RViz content region; no desktop/browser/terminal outside the region; no post-capture crop or resize."
+  },
+  {
+    "stage": "physical_180s",
+    "case": "imu_marker",
+    "path": "/tmp/probtf_propagated_moments_180s_live_20261018/window_captures/physical_180s_imu_marker.png",
+    "owner_pid": 4010408,
+    "window_id": 85983246,
+    "client_rectangle": {
+      "x": 1940,
+      "y": 64,
+      "width": 1840,
+      "height": 1200
+    },
+    "captured_content_rectangle": {
+      "x": 1940,
+      "y": 112,
+      "width": 1840,
+      "height": 1152
+    },
+    "omitted_client_toolbar_top_px": 48,
+    "capture_started_wall_s": 1792309896.346312,
+    "capture_finished_wall_s": 1792309897.4620047,
+    "physical_time_before": 180.0,
+    "physical_time_after": 180.0,
+    "body_observation_stamp_before": 1792080144.1925936,
+    "displayed_prediction_stamp_before": 1792080179.7512476,
+    "returncode": 0,
+    "bytes": 631256,
+    "stderr": "",
+    "source": "Direct X11 capture of the unchanged owned RViz content region; no desktop/browser/terminal outside the region; no post-capture crop or resize."
+  }
+]

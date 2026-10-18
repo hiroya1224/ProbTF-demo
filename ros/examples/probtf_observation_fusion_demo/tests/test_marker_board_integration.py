@@ -17,7 +17,7 @@ from probtf.spherical_law.first_order import (
     MAX_FIRST_ORDER_ROTATION_VARIANCE, bingham_rotation_coordinates,
 )
 from probtf_observation_fusion_demo.body_native import point_query
-from probtf_observation_fusion_demo import model, nonlinear_observation, sensors
+from probtf_observation_fusion_demo import model, moment_observation, sensors
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
 from probtf_observation_fusion_demo.marker_search import marker_observed
 from probtf_observation_fusion_demo.marker_board import fuse_marker_board
@@ -73,20 +73,20 @@ def board_pipeline(board_capture):
 
     def forbidden_affine(*_args, **_kwargs):
         affine_calls.append(True)
-        raise AssertionError('The nonlinear board update must not re-lift an affine sensor posterior.')
+        raise AssertionError('The propagated-moment board update must not re-lift an affine sensor posterior.')
 
     def forbidden(*_args, **_kwargs):
         raise AssertionError('The board observation/goal pipeline must not use Monte Carlo.')
 
     for name in ('default_rng', 'normal', 'random', 'randn', 'multivariate_normal', 'RandomState'):
         patch.setattr(np.random, name, forbidden)
-    patch.setattr(nonlinear_observation, 'prepare_marker_observation', prepare_once)
+    patch.setattr(moment_observation, 'prepare_marker_observation', prepare_once)
     patch.setitem(model.PREPARERS, 'marker', forbidden_affine)
     patch.setitem(model.ADAPTERS, 'marker', forbidden_affine)
     patch.setattr(model, 'lift_sensor_posterior', forbidden_affine)
     try:
         inference = MovingInference(scene.robot_description, templates)
-        assert inference.observation_update_method == 'nonlinear_fixed_prior'
+        assert inference.observation_update_method == 'propagated_moments'
         result = inference.update(inputs, 0)
         yield SimpleNamespace(scene=scene, inputs=inputs, inference=inference, result=result,
             prepared=tuple(prepared_calls), affine_calls=tuple(affine_calls))

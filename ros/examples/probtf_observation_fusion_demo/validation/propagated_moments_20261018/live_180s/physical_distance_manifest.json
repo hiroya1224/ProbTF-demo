@@ -1,0 +1,33 @@
+{
+  "cases": {
+    "marker": {
+      "trajectory_path": "/tmp/probtf_propagated_moments_180s_live_20261018/marker/physical_trajectory.jsonl",
+      "trajectory_sha256": "5ed69b282ca4a5506861619eb5294bf90a6f8dd0976d9c887dfd5e2762c97a34",
+      "outer_tick_count": 7190,
+      "initial_distance_m": 0.36959607396520444,
+      "minimum_outer_tick_distance_m": 0.033713629739422914,
+      "minimum_time_s": 176.8389488379471,
+      "final_distance_m": 0.035097842686073945,
+      "final_time_s": 180.0,
+      "ever_reached_at_saved_outer_ticks": false,
+      "selected_csv_rows": 345
+    },
+    "imu_marker": {
+      "trajectory_path": "/tmp/probtf_propagated_moments_180s_live_20261018/imu_marker/physical_trajectory.jsonl",
+      "trajectory_sha256": "f1b76e5663ee2f7018e2813b52574ef599623a6fd7758742be50605bf5cbcf4e",
+      "outer_tick_count": 6336,
+      "initial_distance_m": 0.36959607396520444,
+      "minimum_outer_tick_distance_m": 0.08058105258002238,
+      "minimum_time_s": 133.05618869513273,
+      "final_distance_m": 0.09696370533713349,
+      "final_time_s": 180.0,
+      "ever_reached_at_saved_outer_ticks": false,
+      "selected_csv_rows": 338
+    }
+  },
+  "selection": "Nearest saved tick to each 0.5 s target, plus first/final/minimum; no interpolation or synthetic observations.",
+  "plot": "All saved physical tick endpoints, not the reduced CSV; physical oracle diagnostics are not inference/control inputs.",
+  "minimum_scope": "Saved outer tick endpoints, not a continuous-time global minimum.",
+  "reach_threshold_m": 0.006,
+  "collision_checking": false
+}

@@ -1,0 +1,1036 @@
+{
+  "scope": "Actual from-initial propagated-moment run: saved joint body before/after at identical original acquisition q/t. All archived events are examined, including post-motion drain; physical movement is not used in the same-q correction metric.",
+  "source_run": "/tmp/probtf_propagated_moments_180s_live_20261018",
+  "runtime_git_HEAD": "7beee54a0a45bfb001ab34d9b1a0bdeea4b798f2",
+  "runtime_source_freeze_sha256": "a8ece66b6707b0ce5ad1025b9373d3f62c5e875d59287f7d900eafe62ce2be96",
+  "analysis_source_sha256": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_model.py": "86a05c6d2ea3ba2e6d3e1a0c0595a8b9e8a09fa025a04a4ba51b6e9f3625460a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_conditioning.py": "f27039118fdff3c7095076a9aa661c3846642f23978980707a70471b43022907",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_observation.py": "a757b56d645222f54065d319a18b036f9726f149f8ce7b6c07b9b01c74758b1c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "a9e4895ed02a8d8ca037933fce3f95eb6b1e485eb0132eb11420313077047c81"
+  },
+  "physical_motion_complete_explicit": true,
+  "cases": {
+    "marker": {
+      "archive_count": 58,
+      "final_archive_count": 58,
+      "all_archives_present_at_start_included": true,
+      "valid_events": 57,
+      "initial_events": 1,
+      "after_initial_events": 56,
+      "branch_count": 114,
+      "archive_manifest_sha256": "4a75d90217f96ab3797758727a651bd711da3742d05d28d4d28b25775b44bf33",
+      "extrema": {
+        "initial_time": {
+          "mode_displacement_m": {
+            "value": 0.23833925813483572,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "3b208ad9a0797f3a2ad6bae6031d496e464972d89ad3ffeb006947cce94ce3fb",
+              "candidate_id": "bc12329b40fd94fe7e1e137dfec33e993de770055a416fb486ea6bce68286bbb",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.2007046,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17263604700565338,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "mean_displacement_m": {
+            "value": 0.23723136176489937,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "3b208ad9a0797f3a2ad6bae6031d496e464972d89ad3ffeb006947cce94ce3fb",
+              "candidate_id": "bc12329b40fd94fe7e1e137dfec33e993de770055a416fb486ea6bce68286bbb",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.2007046,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17263604700565338,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "modal_angle_rad": {
+            "value": 0.3510398905680693,
+            "link": "link_6",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "3b208ad9a0797f3a2ad6bae6031d496e464972d89ad3ffeb006947cce94ce3fb",
+              "candidate_id": "bc12329b40fd94fe7e1e137dfec33e993de770055a416fb486ea6bce68286bbb",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.2007046,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17263604700565338,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          }
+        },
+        "after_initial_time": {
+          "mode_displacement_m": {
+            "value": 0.025882421912085535,
+            "link": "hand",
+            "job_sequence": 13,
+            "event_id": "image:00000535",
+            "elapsed_s": 5.345767498016357,
+            "reset_probability": 1.0,
+            "body_ready_adoption": {
+              "batch_id": "97d88008851e048a05bedb18c75870eb21baf6db1d0207dc296c9f00af43a00f",
+              "candidate_id": "abb1ffdd3a90912635c79ae885164c70eefd333656319a5911630d7a03c0980b",
+              "body_source_stamp": 1792080005.3457675,
+              "physical_stamp": 1792080006.772924,
+              "stiffness_job_sequence": 13,
+              "assimilated_event_ids": [
+                "image:00000535"
+              ],
+              "body_update_seconds": 0.16606923658400774,
+              "retained_K_packet_id": "b78a54111a8d041390f4b7331f8a69405f0201a02f77cdfc02a481521e973e0e",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "mean_displacement_m": {
+            "value": 0.026093130673461737,
+            "link": "hand",
+            "job_sequence": 13,
+            "event_id": "image:00000535",
+            "elapsed_s": 5.345767498016357,
+            "reset_probability": 1.0,
+            "body_ready_adoption": {
+              "batch_id": "97d88008851e048a05bedb18c75870eb21baf6db1d0207dc296c9f00af43a00f",
+              "candidate_id": "abb1ffdd3a90912635c79ae885164c70eefd333656319a5911630d7a03c0980b",
+              "body_source_stamp": 1792080005.3457675,
+              "physical_stamp": 1792080006.772924,
+              "stiffness_job_sequence": 13,
+              "assimilated_event_ids": [
+                "image:00000535"
+              ],
+              "body_update_seconds": 0.16606923658400774,
+              "retained_K_packet_id": "b78a54111a8d041390f4b7331f8a69405f0201a02f77cdfc02a481521e973e0e",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "modal_angle_rad": {
+            "value": 0.12494004457614753,
+            "link": "link_4",
+            "job_sequence": 31,
+            "event_id": "image:00002538",
+            "elapsed_s": 27.920080423355103,
+            "reset_probability": 0.9999999999608422,
+            "body_ready_adoption": {
+              "batch_id": "d95e14ab11374a13b2ba5d92a10296ad13bc55493e867ef94c6d8539cd8e68cf",
+              "candidate_id": "48a39ba7cf9619b8d8b004c66b40cf181fd13dd5d89a55492bbb39bccbe1abf9",
+              "body_source_stamp": 1792080027.9200804,
+              "physical_stamp": 1792080031.8858597,
+              "stiffness_job_sequence": 31,
+              "assimilated_event_ids": [
+                "image:00002538"
+              ],
+              "body_update_seconds": 0.3265996379777789,
+              "retained_K_packet_id": "c3a845d3d1476962900c4c7e3b77b0332572b9ea9e77eff616d9cb9a8d6661c9",
+              "body_waited_for_K_evidence": false
+            }
+          }
+        },
+        "all_valid": {
+          "mode_displacement_m": {
+            "value": 0.23833925813483572,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "3b208ad9a0797f3a2ad6bae6031d496e464972d89ad3ffeb006947cce94ce3fb",
+              "candidate_id": "bc12329b40fd94fe7e1e137dfec33e993de770055a416fb486ea6bce68286bbb",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.2007046,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17263604700565338,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "mean_displacement_m": {
+            "value": 0.23723136176489937,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "3b208ad9a0797f3a2ad6bae6031d496e464972d89ad3ffeb006947cce94ce3fb",
+              "candidate_id": "bc12329b40fd94fe7e1e137dfec33e993de770055a416fb486ea6bce68286bbb",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.2007046,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17263604700565338,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "modal_angle_rad": {
+            "value": 0.3510398905680693,
+            "link": "link_6",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "3b208ad9a0797f3a2ad6bae6031d496e464972d89ad3ffeb006947cce94ce3fb",
+              "candidate_id": "bc12329b40fd94fe7e1e137dfec33e993de770055a416fb486ea6bce68286bbb",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.2007046,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17263604700565338,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          }
+        }
+      },
+      "checks": {
+        "recorded_core_moments_recomputation_max_abs": 0.0,
+        "mean_error_vs_direct_C_S": 1.3433698597964394e-14,
+        "cov_error_vs_direct_C_S": 5.646524914304507e-16,
+        "evidence_error_vs_cholesky": 1.750777300912887e-11,
+        "mean_error_vs_core_gaussian": 5.299649608048185e-13,
+        "cov_error_vs_core_gaussian": 8.606396845189934e-16,
+        "evidence_error_vs_core_gaussian": 4.374669515527785e-10,
+        "S_vs_HPH_max_abs": 5.204170427930421e-18,
+        "C_vs_PH_max_abs": 6.844026213814747e-19,
+        "all_source_exact": true,
+        "all_prior_once": true,
+        "point_MAP_GN_Laplace_count": 0,
+        "core_oracle_error_count": 0,
+        "global_log_weight_recomputation_max_abs": 0.0,
+        "maximum_translation_mean_closure_m": 0.1144086806416031,
+        "maximum_rotation_chart_mean_closure_norm": 0.1308156669703891
+      },
+      "errors": [],
+      "all_event_metrics": "/tmp/probtf_moment_180s_jump_audit_20261018/marker_events.jsonl",
+      "largest_details": "/tmp/probtf_moment_180s_jump_audit_20261018/marker_largest_events.json",
+      "all_final_archived_jobs_included": true,
+      "last_effective_source_elapsed_s": 180.0,
+      "dominant_branch_closure_extrema": {
+        "initial_time": {
+          "translation_mean_closure_m": {
+            "value": 0.0788169410943518,
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "source_elapsed_s": 0.0,
+            "posterior_log_weight": -0.287682072451781,
+            "body_ready_adoption": {
+              "batch_id": "3b208ad9a0797f3a2ad6bae6031d496e464972d89ad3ffeb006947cce94ce3fb",
+              "candidate_id": "bc12329b40fd94fe7e1e137dfec33e993de770055a416fb486ea6bce68286bbb",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.2007046,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17263604700565338,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "rotation_chart_mean_closure_norm": {
+            "value": 0.001702416637212785,
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "source_elapsed_s": 0.0,
+            "posterior_log_weight": -0.287682072451781,
+            "body_ready_adoption": {
+              "batch_id": "3b208ad9a0797f3a2ad6bae6031d496e464972d89ad3ffeb006947cce94ce3fb",
+              "candidate_id": "bc12329b40fd94fe7e1e137dfec33e993de770055a416fb486ea6bce68286bbb",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.2007046,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17263604700565338,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          }
+        },
+        "after_initial_time": {
+          "translation_mean_closure_m": {
+            "value": 0.060614665800018244,
+            "job_sequence": 2,
+            "event_id": "image:00000011",
+            "source_elapsed_s": 0.08408427238464355,
+            "posterior_log_weight": 0.0,
+            "body_ready_adoption": {
+              "batch_id": "582de20dea9a67ea98e28c2556d8e2f9d8daea12b014c3dbd1a06217e0f3795c",
+              "candidate_id": "918a5ddf20218d0479c5751ceacd0dd38afc92de8691bcb98338b97e0010d74a",
+              "body_source_stamp": 1792080000.0840843,
+              "physical_stamp": 1792080000.546231,
+              "stiffness_job_sequence": 2,
+              "assimilated_event_ids": [
+                "image:00000011"
+              ],
+              "body_update_seconds": 0.18113882886245847,
+              "retained_K_packet_id": "4f8d8d828188e9dd9503dfc04c4bc3c3b54e2132c02a2eb348d2a4ca2d768035",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "rotation_chart_mean_closure_norm": {
+            "value": 0.0033098325918601364,
+            "job_sequence": 7,
+            "event_id": "image:00000222",
+            "source_elapsed_s": 2.091403007507324,
+            "posterior_log_weight": 0.0,
+            "body_ready_adoption": {
+              "batch_id": "83f205b31b49beec2b2c731a468f6490630880f54fd81543cb0d2da3ea79ca6d",
+              "candidate_id": "99ab390ee31949ec2d902b19e3a276a1a76f90cda1d62a9e9b0552f2d6e772ab",
+              "body_source_stamp": 1792080002.091403,
+              "physical_stamp": 1792080002.9035997,
+              "stiffness_job_sequence": 7,
+              "assimilated_event_ids": [
+                "image:00000222"
+              ],
+              "body_update_seconds": 0.14575882675126195,
+              "retained_K_packet_id": "6e5559334566bf0f8b6cb67f794a07185e01f710c2375f772ff28b5d09b8cf00",
+              "body_waited_for_K_evidence": false
+            }
+          }
+        },
+        "received_strictly_before_physical_end": {
+          "translation_mean_closure_m": {
+            "value": 0.060614665800018244,
+            "job_sequence": 2,
+            "event_id": "image:00000011",
+            "source_elapsed_s": 0.08408427238464355,
+            "posterior_log_weight": 0.0,
+            "body_ready_adoption": {
+              "batch_id": "582de20dea9a67ea98e28c2556d8e2f9d8daea12b014c3dbd1a06217e0f3795c",
+              "candidate_id": "918a5ddf20218d0479c5751ceacd0dd38afc92de8691bcb98338b97e0010d74a",
+              "body_source_stamp": 1792080000.0840843,
+              "physical_stamp": 1792080000.546231,
+              "stiffness_job_sequence": 2,
+              "assimilated_event_ids": [
+                "image:00000011"
+              ],
+              "body_update_seconds": 0.18113882886245847,
+              "retained_K_packet_id": "4f8d8d828188e9dd9503dfc04c4bc3c3b54e2132c02a2eb348d2a4ca2d768035",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "rotation_chart_mean_closure_norm": {
+            "value": 0.0033098325918601364,
+            "job_sequence": 7,
+            "event_id": "image:00000222",
+            "source_elapsed_s": 2.091403007507324,
+            "posterior_log_weight": 0.0,
+            "body_ready_adoption": {
+              "batch_id": "83f205b31b49beec2b2c731a468f6490630880f54fd81543cb0d2da3ea79ca6d",
+              "candidate_id": "99ab390ee31949ec2d902b19e3a276a1a76f90cda1d62a9e9b0552f2d6e772ab",
+              "body_source_stamp": 1792080002.091403,
+              "physical_stamp": 1792080002.9035997,
+              "stiffness_job_sequence": 7,
+              "assimilated_event_ids": [
+                "image:00000222"
+              ],
+              "body_update_seconds": 0.14575882675126195,
+              "retained_K_packet_id": "6e5559334566bf0f8b6cb67f794a07185e01f710c2375f772ff28b5d09b8cf00",
+              "body_waited_for_K_evidence": false
+            }
+          }
+        }
+      },
+      "K_receipt_neighborhoods": [
+        {
+          "central_job_sequence": 13,
+          "events": [
+            {
+              "job_sequence": 12,
+              "event_id": "image:00000418",
+              "source_elapsed_s": 4.089502573013306,
+              "body_ready_adoption": {
+                "batch_id": "97d88008851e048a05bedb18c75870eb21baf6db1d0207dc296c9f00af43a00f",
+                "candidate_id": "b376b069d67f4ea1ae5ec3a7f7e9104a18ed31f4188fe16c45b138b549ea440d",
+                "body_source_stamp": 1792080004.0895026,
+                "physical_stamp": 1792080006.3067245,
+                "stiffness_job_sequence": 12,
+                "assimilated_event_ids": [
+                  "image:00000418"
+                ],
+                "body_update_seconds": 0.1541002318263054,
+                "retained_K_packet_id": "b78a54111a8d041390f4b7331f8a69405f0201a02f77cdfc02a481521e973e0e",
+                "body_waited_for_K_evidence": false
+              }
+            },
+            {
+              "job_sequence": 13,
+              "event_id": "image:00000535",
+              "source_elapsed_s": 5.345767498016357,
+              "body_ready_adoption": {
+                "batch_id": "97d88008851e048a05bedb18c75870eb21baf6db1d0207dc296c9f00af43a00f",
+                "candidate_id": "abb1ffdd3a90912635c79ae885164c70eefd333656319a5911630d7a03c0980b",
+                "body_source_stamp": 1792080005.3457675,
+                "physical_stamp": 1792080006.772924,
+                "stiffness_job_sequence": 13,
+                "assimilated_event_ids": [
+                  "image:00000535"
+                ],
+                "body_update_seconds": 0.16606923658400774,
+                "retained_K_packet_id": "b78a54111a8d041390f4b7331f8a69405f0201a02f77cdfc02a481521e973e0e",
+                "body_waited_for_K_evidence": false
+              }
+            },
+            {
+              "job_sequence": 14,
+              "event_id": "image:00000536",
+              "source_elapsed_s": 5.462162256240845,
+              "body_ready_adoption": {
+                "batch_id": "0cd35c911ba161f4b1380b93c52058602ca07eb43c8a586d8c982cb552e14632",
+                "candidate_id": "1a404b7fcbc77244cc555200d7bd720472747b90387350d454a077a236a0ed9f",
+                "body_source_stamp": 1792080005.4621623,
+                "physical_stamp": 1792080007.904089,
+                "stiffness_job_sequence": 14,
+                "assimilated_event_ids": [
+                  "image:00000536"
+                ],
+                "body_update_seconds": 0.13374787010252476,
+                "retained_K_packet_id": "5d5812a332e0f2a97d76994011e40af3e32f5ae86d5371c6488e57c330af0237",
+                "body_waited_for_K_evidence": false
+              }
+            }
+          ]
+        },
+        {
+          "central_job_sequence": 31,
+          "events": [
+            {
+              "job_sequence": 30,
+              "event_id": "image:00002226",
+              "source_elapsed_s": 24.50265121459961,
+              "body_ready_adoption": {
+                "batch_id": "d95e14ab11374a13b2ba5d92a10296ad13bc55493e867ef94c6d8539cd8e68cf",
+                "candidate_id": "7cfc030f55ab254600a92fd0266c1f86ca6101aa19bf63acd283da1ffb7a8bfd",
+                "body_source_stamp": 1792080024.5026512,
+                "physical_stamp": 1792080031.060737,
+                "stiffness_job_sequence": 30,
+                "assimilated_event_ids": [
+                  "image:00002226"
+                ],
+                "body_update_seconds": 0.17207768699154258,
+                "retained_K_packet_id": "c3a845d3d1476962900c4c7e3b77b0332572b9ea9e77eff616d9cb9a8d6661c9",
+                "body_waited_for_K_evidence": false
+              }
+            },
+            {
+              "job_sequence": 31,
+              "event_id": "image:00002538",
+              "source_elapsed_s": 27.920080423355103,
+              "body_ready_adoption": {
+                "batch_id": "d95e14ab11374a13b2ba5d92a10296ad13bc55493e867ef94c6d8539cd8e68cf",
+                "candidate_id": "48a39ba7cf9619b8d8b004c66b40cf181fd13dd5d89a55492bbb39bccbe1abf9",
+                "body_source_stamp": 1792080027.9200804,
+                "physical_stamp": 1792080031.8858597,
+                "stiffness_job_sequence": 31,
+                "assimilated_event_ids": [
+                  "image:00002538"
+                ],
+                "body_update_seconds": 0.3265996379777789,
+                "retained_K_packet_id": "c3a845d3d1476962900c4c7e3b77b0332572b9ea9e77eff616d9cb9a8d6661c9",
+                "body_waited_for_K_evidence": false
+              }
+            },
+            {
+              "job_sequence": 32,
+              "event_id": "image:00002548",
+              "source_elapsed_s": 28.003974199295044,
+              "body_ready_adoption": {
+                "batch_id": "f951f7a989dd13175ebaf7a2020687f62853d990e8bea7f78ebe12ed18e57b3a",
+                "candidate_id": "c92831ed6ec7bb719338131cac513a191a10db5ccb135066a5460ce2d4218155",
+                "body_source_stamp": 1792080028.0039742,
+                "physical_stamp": 1792080035.0968912,
+                "stiffness_job_sequence": 32,
+                "assimilated_event_ids": [
+                  "image:00002548"
+                ],
+                "body_update_seconds": 0.1624095062725246,
+                "retained_K_packet_id": "689b9d9a6c56beb709545045c69d92777a5275cd74726c57031042cf77de6c94",
+                "body_waited_for_K_evidence": false
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "imu_marker": {
+      "archive_count": 443,
+      "final_archive_count": 443,
+      "all_archives_present_at_start_included": true,
+      "valid_events": 442,
+      "initial_events": 2,
+      "after_initial_events": 440,
+      "branch_count": 884,
+      "archive_manifest_sha256": "eb4640c21566ebf6219edf84ee2159b06b5de3224014da875074c9dec202340d",
+      "extrema": {
+        "initial_time": {
+          "mode_displacement_m": {
+            "value": 0.23553447095008706,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "da959b6545c5d413c27e54b07bfb786be6f45727a70d3a96ecc417bc4444388e",
+              "candidate_id": "9449434f39abfd0afb22e13eadefb63242fe4008f4bf8f0adbb367760b4b60f8",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.0510867,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "imu:00000000"
+              ],
+              "body_update_seconds": 0.034522881265729666,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "mean_displacement_m": {
+            "value": 0.23433475379815247,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "da959b6545c5d413c27e54b07bfb786be6f45727a70d3a96ecc417bc4444388e",
+              "candidate_id": "9449434f39abfd0afb22e13eadefb63242fe4008f4bf8f0adbb367760b4b60f8",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.0510867,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "imu:00000000"
+              ],
+              "body_update_seconds": 0.034522881265729666,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "modal_angle_rad": {
+            "value": 0.2779102178926572,
+            "link": "link_5",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "da959b6545c5d413c27e54b07bfb786be6f45727a70d3a96ecc417bc4444388e",
+              "candidate_id": "9449434f39abfd0afb22e13eadefb63242fe4008f4bf8f0adbb367760b4b60f8",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.0510867,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "imu:00000000"
+              ],
+              "body_update_seconds": 0.034522881265729666,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          }
+        },
+        "after_initial_time": {
+          "mode_displacement_m": {
+            "value": 0.03536746846307712,
+            "link": "link_6",
+            "job_sequence": 22,
+            "event_id": "image:00000149",
+            "elapsed_s": 1.346787452697754,
+            "reset_probability": 1.0,
+            "body_ready_adoption": {
+              "batch_id": "a5161dcdc5ad5a33022b42459d2932ff7ae5c136fcc0c67942f4dddef5b7da52",
+              "candidate_id": "93f1ba3196acbaa1c01726782bec44cb51aae0c5eb3d7c4c1bfb77161fb1f95c",
+              "body_source_stamp": 1792080001.3467875,
+              "physical_stamp": 1792080002.6971588,
+              "stiffness_job_sequence": 22,
+              "assimilated_event_ids": [
+                "image:00000149"
+              ],
+              "body_update_seconds": 0.17224104469642043,
+              "retained_K_packet_id": "7cdbe28a5874f4567ec9f90d05dab57028e11fdddced31afeaed76df0a51995a",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "mean_displacement_m": {
+            "value": 0.03545840277079098,
+            "link": "link_6",
+            "job_sequence": 22,
+            "event_id": "image:00000149",
+            "elapsed_s": 1.346787452697754,
+            "reset_probability": 1.0,
+            "body_ready_adoption": {
+              "batch_id": "a5161dcdc5ad5a33022b42459d2932ff7ae5c136fcc0c67942f4dddef5b7da52",
+              "candidate_id": "93f1ba3196acbaa1c01726782bec44cb51aae0c5eb3d7c4c1bfb77161fb1f95c",
+              "body_source_stamp": 1792080001.3467875,
+              "physical_stamp": 1792080002.6971588,
+              "stiffness_job_sequence": 22,
+              "assimilated_event_ids": [
+                "image:00000149"
+              ],
+              "body_update_seconds": 0.17224104469642043,
+              "retained_K_packet_id": "7cdbe28a5874f4567ec9f90d05dab57028e11fdddced31afeaed76df0a51995a",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "modal_angle_rad": {
+            "value": 0.13184985066228808,
+            "link": "link_5",
+            "job_sequence": 422,
+            "event_id": "image:00005713",
+            "elapsed_s": 144.0912263393402,
+            "reset_probability": 1.0,
+            "body_ready_adoption": {
+              "batch_id": "065dad272f3101e2529e58fc01b22937a61884e559416d4528d2cbb89d258ed6",
+              "candidate_id": "48d841b1d3b6a31797084933cce36dde7dac325e95f50d49d80b4680dbab53c5",
+              "body_source_stamp": 1792080144.0912263,
+              "physical_stamp": 1792080163.0079634,
+              "stiffness_job_sequence": 422,
+              "assimilated_event_ids": [
+                "image:00005713"
+              ],
+              "body_update_seconds": 0.2007565340027213,
+              "retained_K_packet_id": "3b505cf496e56a52998d4566b508bf04fcc4f2342cd3abf01aee1445ed51749b",
+              "body_waited_for_K_evidence": false
+            }
+          }
+        },
+        "all_valid": {
+          "mode_displacement_m": {
+            "value": 0.23553447095008706,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "da959b6545c5d413c27e54b07bfb786be6f45727a70d3a96ecc417bc4444388e",
+              "candidate_id": "9449434f39abfd0afb22e13eadefb63242fe4008f4bf8f0adbb367760b4b60f8",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.0510867,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "imu:00000000"
+              ],
+              "body_update_seconds": 0.034522881265729666,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "mean_displacement_m": {
+            "value": 0.23433475379815247,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "da959b6545c5d413c27e54b07bfb786be6f45727a70d3a96ecc417bc4444388e",
+              "candidate_id": "9449434f39abfd0afb22e13eadefb63242fe4008f4bf8f0adbb367760b4b60f8",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.0510867,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "imu:00000000"
+              ],
+              "body_update_seconds": 0.034522881265729666,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "modal_angle_rad": {
+            "value": 0.2779102178926572,
+            "link": "link_5",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "body_ready_adoption": {
+              "batch_id": "da959b6545c5d413c27e54b07bfb786be6f45727a70d3a96ecc417bc4444388e",
+              "candidate_id": "9449434f39abfd0afb22e13eadefb63242fe4008f4bf8f0adbb367760b4b60f8",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.0510867,
+              "stiffness_job_sequence": 1,
+              "assimilated_event_ids": [
+                "imu:00000000"
+              ],
+              "body_update_seconds": 0.034522881265729666,
+              "retained_K_packet_id": null,
+              "body_waited_for_K_evidence": false
+            }
+          }
+        }
+      },
+      "checks": {
+        "recorded_core_moments_recomputation_max_abs": 1.1102230246251565e-16,
+        "mean_error_vs_direct_C_S": 5.340172748447003e-14,
+        "cov_error_vs_direct_C_S": 3.048071777617123e-15,
+        "evidence_error_vs_cholesky": 2.874003257602453e-10,
+        "mean_error_vs_core_gaussian": 2.7924607071128094e-12,
+        "cov_error_vs_core_gaussian": 1.5270445498372087e-15,
+        "evidence_error_vs_core_gaussian": 2.901288098655641e-09,
+        "S_vs_HPH_max_abs": 6.938893903907228e-18,
+        "C_vs_PH_max_abs": 6.488272375967941e-19,
+        "all_source_exact": true,
+        "all_prior_once": true,
+        "point_MAP_GN_Laplace_count": 0,
+        "core_oracle_error_count": 0,
+        "global_log_weight_recomputation_max_abs": 0.0,
+        "maximum_translation_mean_closure_m": 0.23097665921152513,
+        "maximum_rotation_chart_mean_closure_norm": 0.3738727923919613
+      },
+      "errors": [],
+      "all_event_metrics": "/tmp/probtf_moment_180s_jump_audit_20261018/imu_marker_events.jsonl",
+      "largest_details": "/tmp/probtf_moment_180s_jump_audit_20261018/imu_marker_largest_events.json",
+      "all_final_archived_jobs_included": true,
+      "last_effective_source_elapsed_s": 180.0,
+      "dominant_branch_closure_extrema": {
+        "initial_time": {
+          "translation_mean_closure_m": {
+            "value": 0.005359301411756135,
+            "job_sequence": 2,
+            "event_id": "image:00000000",
+            "source_elapsed_s": 0.0,
+            "posterior_log_weight": -0.0001994718125905055,
+            "body_ready_adoption": {
+              "batch_id": "da959b6545c5d413c27e54b07bfb786be6f45727a70d3a96ecc417bc4444388e",
+              "candidate_id": "89768aa943bec9c4f22e6f2ec17a1f1be4be3af8561c6a880db86b3db37990c3",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.251169,
+              "stiffness_job_sequence": 2,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17066478542983532,
+              "retained_K_packet_id": "e3c09696295826d7c50590c531f81277396e7dfcd0d546761e6f9eeed6426ba3",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "rotation_chart_mean_closure_norm": {
+            "value": 0.00022092025395097707,
+            "job_sequence": 2,
+            "event_id": "image:00000000",
+            "source_elapsed_s": 0.0,
+            "posterior_log_weight": -0.0001994718125905055,
+            "body_ready_adoption": {
+              "batch_id": "da959b6545c5d413c27e54b07bfb786be6f45727a70d3a96ecc417bc4444388e",
+              "candidate_id": "89768aa943bec9c4f22e6f2ec17a1f1be4be3af8561c6a880db86b3db37990c3",
+              "body_source_stamp": 1792080000.0,
+              "physical_stamp": 1792080000.251169,
+              "stiffness_job_sequence": 2,
+              "assimilated_event_ids": [
+                "image:00000000"
+              ],
+              "body_update_seconds": 0.17066478542983532,
+              "retained_K_packet_id": "e3c09696295826d7c50590c531f81277396e7dfcd0d546761e6f9eeed6426ba3",
+              "body_waited_for_K_evidence": false
+            }
+          }
+        },
+        "after_initial_time": {
+          "translation_mean_closure_m": {
+            "value": 0.18236410458203714,
+            "job_sequence": 442,
+            "event_id": "image:00006335",
+            "source_elapsed_s": 180.0,
+            "posterior_log_weight": 0.0,
+            "body_ready_adoption": {
+              "batch_id": "66c7e3c245596ad9a1d3d4cd9bb4ed14df655eea9be48c2f700ddeda643066ec",
+              "candidate_id": "c12f561a284ab8ad6d7f633eda01266f29c8b8fa4613603f6789f48426223965",
+              "body_source_stamp": 1792080180.0,
+              "physical_stamp": 1792080180.0,
+              "stiffness_job_sequence": 442,
+              "assimilated_event_ids": [
+                "image:00006335"
+              ],
+              "body_update_seconds": 0.16225581197068095,
+              "retained_K_packet_id": "3bab3bbc784a531b61e40140e08938b70c1970eaabf6369fa241b257da374d9a",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "rotation_chart_mean_closure_norm": {
+            "value": 0.005505700908305773,
+            "job_sequence": 82,
+            "event_id": "image:00000994",
+            "source_elapsed_s": 11.839517831802368,
+            "posterior_log_weight": 0.0,
+            "body_ready_adoption": {
+              "batch_id": "a992eda39d61e69fd91e49d2d151c47042b21e7c59eb613596ac2f03f18193b4",
+              "candidate_id": "0a828bcc13fe54d2e1fd582422b5dc62839bd689d5f3c900e0e45450321e959b",
+              "body_source_stamp": 1792080011.8395178,
+              "physical_stamp": 1792080013.6980166,
+              "stiffness_job_sequence": 82,
+              "assimilated_event_ids": [
+                "image:00000994"
+              ],
+              "body_update_seconds": 0.13163087610155344,
+              "retained_K_packet_id": "d9efd6d476924f50ca5bd37e11bb7dec68cd3e32aa3675d9015a6ab262e42600",
+              "body_waited_for_K_evidence": false
+            }
+          }
+        },
+        "received_strictly_before_physical_end": {
+          "translation_mean_closure_m": {
+            "value": 0.16978084609303554,
+            "job_sequence": 422,
+            "event_id": "image:00005713",
+            "source_elapsed_s": 144.0912263393402,
+            "posterior_log_weight": 0.0,
+            "body_ready_adoption": {
+              "batch_id": "065dad272f3101e2529e58fc01b22937a61884e559416d4528d2cbb89d258ed6",
+              "candidate_id": "48d841b1d3b6a31797084933cce36dde7dac325e95f50d49d80b4680dbab53c5",
+              "body_source_stamp": 1792080144.0912263,
+              "physical_stamp": 1792080163.0079634,
+              "stiffness_job_sequence": 422,
+              "assimilated_event_ids": [
+                "image:00005713"
+              ],
+              "body_update_seconds": 0.2007565340027213,
+              "retained_K_packet_id": "3b505cf496e56a52998d4566b508bf04fcc4f2342cd3abf01aee1445ed51749b",
+              "body_waited_for_K_evidence": false
+            }
+          },
+          "rotation_chart_mean_closure_norm": {
+            "value": 0.005505700908305773,
+            "job_sequence": 82,
+            "event_id": "image:00000994",
+            "source_elapsed_s": 11.839517831802368,
+            "posterior_log_weight": 0.0,
+            "body_ready_adoption": {
+              "batch_id": "a992eda39d61e69fd91e49d2d151c47042b21e7c59eb613596ac2f03f18193b4",
+              "candidate_id": "0a828bcc13fe54d2e1fd582422b5dc62839bd689d5f3c900e0e45450321e959b",
+              "body_source_stamp": 1792080011.8395178,
+              "physical_stamp": 1792080013.6980166,
+              "stiffness_job_sequence": 82,
+              "assimilated_event_ids": [
+                "image:00000994"
+              ],
+              "body_update_seconds": 0.13163087610155344,
+              "retained_K_packet_id": "d9efd6d476924f50ca5bd37e11bb7dec68cd3e32aa3675d9015a6ab262e42600",
+              "body_waited_for_K_evidence": false
+            }
+          }
+        }
+      },
+      "K_receipt_neighborhoods": [
+        {
+          "central_job_sequence": 422,
+          "events": [
+            {
+              "job_sequence": 421,
+              "event_id": "imu:00005713",
+              "source_elapsed_s": 144.0912263393402,
+              "body_ready_adoption": {
+                "batch_id": "065dad272f3101e2529e58fc01b22937a61884e559416d4528d2cbb89d258ed6",
+                "candidate_id": "ec6ba5334b1bfa36d679ece9ed2a5893c1bfddc9c8f004b4c07fb95432ce9844",
+                "body_source_stamp": 1792080144.0912263,
+                "physical_stamp": 1792080162.7661374,
+                "stiffness_job_sequence": 421,
+                "assimilated_event_ids": [
+                  "imu:00005713"
+                ],
+                "body_update_seconds": 0.058769067749381065,
+                "retained_K_packet_id": "b841f57a5d2bdd91e3e2f5cd9a8457e3e20b165bf222b47a7e124bc148af47c3",
+                "body_waited_for_K_evidence": false
+              }
+            },
+            {
+              "job_sequence": 422,
+              "event_id": "image:00005713",
+              "source_elapsed_s": 144.0912263393402,
+              "body_ready_adoption": {
+                "batch_id": "065dad272f3101e2529e58fc01b22937a61884e559416d4528d2cbb89d258ed6",
+                "candidate_id": "48d841b1d3b6a31797084933cce36dde7dac325e95f50d49d80b4680dbab53c5",
+                "body_source_stamp": 1792080144.0912263,
+                "physical_stamp": 1792080163.0079634,
+                "stiffness_job_sequence": 422,
+                "assimilated_event_ids": [
+                  "image:00005713"
+                ],
+                "body_update_seconds": 0.2007565340027213,
+                "retained_K_packet_id": "3b505cf496e56a52998d4566b508bf04fcc4f2342cd3abf01aee1445ed51749b",
+                "body_waited_for_K_evidence": false
+              }
+            },
+            {
+              "job_sequence": 423,
+              "event_id": "imu:00005714",
+              "source_elapsed_s": 144.15421509742737,
+              "body_ready_adoption": {
+                "batch_id": "2252913e0e12850e0ac6dc8471c267018f30fbf48e99eabe281da36a34f424f8",
+                "candidate_id": "8fcf5d35b5dc9a9eb4e13ca44945a2b53b7d7f51fe7888546403180fa709c768",
+                "body_source_stamp": 1792080144.154215,
+                "physical_stamp": 1792080180.0,
+                "stiffness_job_sequence": 423,
+                "assimilated_event_ids": [
+                  "imu:00005714"
+                ],
+                "body_update_seconds": 0.04220915772020817,
+                "retained_K_packet_id": "9d86bc2eea489ea907f68cb71d1c9de9fc2a5861212e5c8777d6191a3f5b6c33",
+                "body_waited_for_K_evidence": false
+              }
+            }
+          ]
+        },
+        {
+          "central_job_sequence": 22,
+          "events": [
+            {
+              "job_sequence": 21,
+              "event_id": "imu:00000149",
+              "source_elapsed_s": 1.346787452697754,
+              "body_ready_adoption": {
+                "batch_id": "a5161dcdc5ad5a33022b42459d2932ff7ae5c136fcc0c67942f4dddef5b7da52",
+                "candidate_id": "5f9dde61931dfbe64a955bd6ec734fb572e5a12497234ff72d0329d28e96d675",
+                "body_source_stamp": 1792080001.3467875,
+                "physical_stamp": 1792080002.5575566,
+                "stiffness_job_sequence": 21,
+                "assimilated_event_ids": [
+                  "imu:00000149"
+                ],
+                "body_update_seconds": 0.040936936158686876,
+                "retained_K_packet_id": "f73b319fd5452fd72d7429d6de75a643e69e23b034b75209383873133655b83f",
+                "body_waited_for_K_evidence": false
+              }
+            },
+            {
+              "job_sequence": 22,
+              "event_id": "image:00000149",
+              "source_elapsed_s": 1.346787452697754,
+              "body_ready_adoption": {
+                "batch_id": "a5161dcdc5ad5a33022b42459d2932ff7ae5c136fcc0c67942f4dddef5b7da52",
+                "candidate_id": "93f1ba3196acbaa1c01726782bec44cb51aae0c5eb3d7c4c1bfb77161fb1f95c",
+                "body_source_stamp": 1792080001.3467875,
+                "physical_stamp": 1792080002.6971588,
+                "stiffness_job_sequence": 22,
+                "assimilated_event_ids": [
+                  "image:00000149"
+                ],
+                "body_update_seconds": 0.17224104469642043,
+                "retained_K_packet_id": "7cdbe28a5874f4567ec9f90d05dab57028e11fdddced31afeaed76df0a51995a",
+                "body_waited_for_K_evidence": false
+              }
+            },
+            {
+              "job_sequence": 23,
+              "event_id": "imu:00000150",
+              "source_elapsed_s": 1.367933988571167,
+              "body_ready_adoption": {
+                "batch_id": "fd44cded2d9bde73f36c7725f19a1091d97815c6f2a8b1325bfdb57b12b350be",
+                "candidate_id": "35efcf9eb6c0f69caa64375fa97f0274640f796b27ee1651d78e8adcb79083ed",
+                "body_source_stamp": 1792080001.367934,
+                "physical_stamp": 1792080003.147918,
+                "stiffness_job_sequence": 23,
+                "assimilated_event_ids": [
+                  "imu:00000150"
+                ],
+                "body_update_seconds": 0.03908100025728345,
+                "retained_K_packet_id": "fc7b3a312ab192c110bb068ce4cc003db40e04fba22a4f128fdb29447b5741b1",
+                "body_waited_for_K_evidence": false
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "production_edited": false,
+  "physical_truth_used": false,
+  "point_or_finite_modal_solver_used": false,
+  "analysis_source_unchanged": true,
+  "limitations": [
+    "Each local Gaussian proxy update is analytical, but finite Bingham reexpression and subsequent moment re-query need not close exactly; all measured closure errors are retained.",
+    "All saved events include any post-motion drain; body-ready timing is explicit and wire publication adoption is a separate audit.",
+    "No physical truth, observation rejection, covariance clipping, MAP/GN or repeated prior/observation is introduced."
+  ],
+  "analysis_vs_runtime_sources": {
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_model.py": {
+      "analysis_sha256": "86a05c6d2ea3ba2e6d3e1a0c0595a8b9e8a09fa025a04a4ba51b6e9f3625460a",
+      "runtime_sha256": "86a05c6d2ea3ba2e6d3e1a0c0595a8b9e8a09fa025a04a4ba51b6e9f3625460a",
+      "same": true
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_conditioning.py": {
+      "analysis_sha256": "f27039118fdff3c7095076a9aa661c3846642f23978980707a70471b43022907",
+      "runtime_sha256": "f27039118fdff3c7095076a9aa661c3846642f23978980707a70471b43022907",
+      "same": true
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_observation.py": {
+      "analysis_sha256": "a757b56d645222f54065d319a18b036f9726f149f8ce7b6c07b9b01c74758b1c",
+      "runtime_sha256": "a757b56d645222f54065d319a18b036f9726f149f8ce7b6c07b9b01c74758b1c",
+      "same": true
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": {
+      "analysis_sha256": "a9e4895ed02a8d8ca037933fce3f95eb6b1e485eb0132eb11420313077047c81",
+      "runtime_sha256": "a9e4895ed02a8d8ca037933fce3f95eb6b1e485eb0132eb11420313077047c81",
+      "same": true
+    }
+  },
+  "protected_files": {
+    "count": 214,
+    "unchanged": true,
+    "changed": []
+  },
+  "reaching_physical_end_from_parent": {
+    "marker": {
+      "final_distance_mm": 35.1,
+      "min_distance_mm": 33.71,
+      "min_time_s": 176.84,
+      "reached": false
+    },
+    "imu_marker": {
+      "final_distance_mm": 96.96,
+      "min_distance_mm": 80.58,
+      "min_time_s": 133.06,
+      "reached": false
+    }
+  },
+  "metric_definitions": {
+    "same_q_update": "Absolute link core modal/mean and covariance differences between pre-observation retained joint law and post-observation canonical law at the exact same source q/t.",
+    "frozen_conditional_closure": "Recompose the branch joint posterior and call the unchanged core moment query in the same native chart, then subtract the analytically conditioned observation-space Gaussian mean/covariance. It is not physical error.",
+    "native_mean_fit": "Difference between saved native observation Gaussian mean and the candidate core mean or modal pose; explicitly named in records.",
+    "physical_oracle_error": "Post-hoc saved actual_joints + savedURDF camera FK versus fixed true board; never used by the inference operator.",
+    "body_receipt_clock": "physical_stamp in body_ready_adoptions; endpoint180 is clamped during drain and must not alone prove motion-time adoption."
+  },
+  "selected_findings": [
+    "All998 saved parent/native branches reproduce recorded core moments within1.12e-16, with original source q/t/ID and prior-once flags retained; no point/MAP/GN/body-Laplace path was used.",
+    "Analytical Gaussian conditional agreement does not establish that finite reexpression or physical estimation is correct.",
+    "Large finite-recomposition closure persists: even the highest-mass branch reaches60.61mm marker and169.78mm IMU before the physical endpoint; the180-source IMU drain/boundary update reaches182.36mm.",
+    "At IMU job22 source1.3468s the native image mean is near physical truth (0.731mm), but modal physical relative-pose error worsens4.01\u219255.60mm after the canonical update. Its frozen observation-posterior mean has only0.0463mm native-position residual, while recomposed core mean has55.139mm residual. These are distinct metrics.",
+    "At IMU job422 source144.0912s, native image physical error is0.237mm; recomposed modal error is170.27mm and core-mean native residual169.75mm. This selected failure is not explained by a gross image-position outlier.",
+    "Both180-second physical runs did not reach. No improvement or final correctness is inferred from the regression/oracle matches."
+  ]
+}

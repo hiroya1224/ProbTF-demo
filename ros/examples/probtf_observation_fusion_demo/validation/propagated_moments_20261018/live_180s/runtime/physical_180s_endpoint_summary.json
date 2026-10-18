@@ -1,0 +1,46 @@
+{
+  "cases": {
+    "marker": {
+      "physical_end_capture": {
+        "simulated_elapsed_s": 180.0,
+        "finished": true,
+        "reached": false,
+        "final_physical_error_m": 0.035097842686073945,
+        "actual_motion_hz": 39.92920895975616,
+        "actual_camera_hz": 10.375903714814047,
+        "actual_control_hz": 4.890332842957409,
+        "estimate_stamp": 1792080140.951414,
+        "stiffness_jobs_submitted": 54,
+        "stiffness_jobs_completed": 54,
+        "pending_display_artifact_count": 1,
+        "implementation_unchanged_during_execution": true
+      },
+      "sampled_physical_endpoints": 7190,
+      "minimum_recorded_physical_endpoint_distance_m": 0.033713629739422914,
+      "minimum_time_s": 176.8389488379471,
+      "any_recorded_endpoint_reached": false
+    },
+    "imu_marker": {
+      "physical_end_capture": {
+        "simulated_elapsed_s": 180.0,
+        "finished": true,
+        "reached": false,
+        "final_physical_error_m": 0.09696370533713349,
+        "actual_motion_hz": 35.1772891846899,
+        "actual_camera_hz": 10.0512147082847,
+        "actual_control_hz": 4.415668303477332,
+        "estimate_stamp": 1792080144.0912263,
+        "stiffness_jobs_submitted": 423,
+        "stiffness_jobs_completed": 90,
+        "pending_display_artifact_count": 5,
+        "implementation_unchanged_during_execution": true
+      },
+      "sampled_physical_endpoints": 6336,
+      "minimum_recorded_physical_endpoint_distance_m": 0.08058105258002238,
+      "minimum_time_s": 133.05618869513273,
+      "any_recorded_endpoint_reached": false
+    }
+  },
+  "limitation": "Minimum over saved outer physical tick endpoints; not an asserted continuous-time global minimum.",
+  "source_unchanged": true
+}

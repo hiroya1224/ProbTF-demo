@@ -1,0 +1,34 @@
+{
+  "marker": {
+    "ready": true,
+    "reasons": [],
+    "published_control": [
+      1,
+      "joint:00000000",
+      0,
+      0
+    ],
+    "observation_ids": [],
+    "gradient_status": "waiting_for_goal",
+    "selected_K": null,
+    "candidate_id": "73187c0bb7a860a7ac4fae61ecc220712b29b0618763e55f5edc57cb05c027aa",
+    "no_observed_goal_or_gradient_required": true,
+    "checked_wall_s": 1792309712.7550244
+  },
+  "imu_marker": {
+    "ready": true,
+    "reasons": [],
+    "published_control": [
+      1,
+      "joint:00000000",
+      0,
+      0
+    ],
+    "observation_ids": [],
+    "gradient_status": "waiting_for_goal",
+    "selected_K": null,
+    "candidate_id": "73187c0bb7a860a7ac4fae61ecc220712b29b0618763e55f5edc57cb05c027aa",
+    "no_observed_goal_or_gradient_required": true,
+    "checked_wall_s": 1792309712.7562432
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "method": "propagated_moments",
+  "files": [
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_conditioning.py",
+      "sha256": "f27039118fdff3c7095076a9aa661c3846642f23978980707a70471b43022907",
+      "bytes": 5076
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_observation.py",
+      "sha256": "a757b56d645222f54065d319a18b036f9726f149f8ce7b6c07b9b01c74758b1c",
+      "bytes": 9353
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_model.py",
+      "sha256": "86a05c6d2ea3ba2e6d3e1a0c0595a8b9e8a09fa025a04a4ba51b6e9f3625460a",
+      "bytes": 14378
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/tests/test_moment_conditioning.py",
+      "sha256": "dfc108ea078c08e199217812b85563b5acb53236dbfeecbee1b408541ea8eb6c",
+      "bytes": 5175
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/tests/test_moment_model.py",
+      "sha256": "dda0952d484a40bab4abc2700558e273632b0938874d41803c192bd9fd7cd49e",
+      "bytes": 10946
+    }
+  ],
+  "tests": [
+    {
+      "log": "/tmp/probtf_moment_first_focused_20261018.log",
+      "sha256": "6cf68266ea8c210cce2c424bdf5a6eb77a065b24887a0cab3373a4254d79e71b",
+      "passed": 12,
+      "seconds": 1.38
+    },
+    {
+      "log": "/tmp/probtf_moment_actual_display_focused_20261018.log",
+      "sha256": "991dfe4e6b5dcb81863af6f3d7dd5ae78f40b4c0daaafcf87e1d87c66bd10fb3",
+      "passed": 1,
+      "seconds": 0.68
+    }
+  ],
+  "uses": [
+    "unchanged core Bingham-derived corrected mean and full covariance/cross",
+    "one Joseph-form joint Gaussian conditional per explicit native combination",
+    "normalized Gaussian overlap evidence in fixed native observation chart",
+    "same original prior once; no repeated observation product",
+    "all native modes/log masses and Keep/Reset parents",
+    "one image-only preparation shared across parents",
+    "same frozen body posterior materialization interface and source identity"
+  ],
+  "does_not_use": [
+    "point MAP/GN/Laplace body observation update",
+    "iterated moment/likelihood relinearization",
+    "finite-modal geometry optimizer",
+    "old local posterior re-lift",
+    "new core kernel",
+    "Monte Carlo/covariance floor/jitter/hidden branch pruning"
+  ],
+  "approximation_boundaries": [
+    "Core moments are the unchanged high-concentration first-order proxy, not exact global nonlinear posterior moments.",
+    "Marker native chart transport is local first order at modal offset phi; original O(P) mean is retained but no new chart-Hessian mean correction is added.",
+    "IMU observed-fixed tangent-plane observation is local and has finite antipodal projection ambiguity.",
+    "Image-side native Laplace likelihood approximations remain unchanged; body observation evidence has no Laplace optimization.",
+    "No new full-source live reaching/jump/throughput result is claimed by focused tests.",
+    "Independent archived-prior cases retain up to about106mm positional closure difference between the final re-composed core query and the frozen Gaussian conditional mean; no forced recentering or equality claim."
+  ],
+  "independent_oracle": {
+    "summary": "/tmp/probtf_moment_operator_independent_oracle_20261018/summary.json",
+    "case_count": 4,
+    "maximum_joint_mean_error_vs_core_Gaussian_oracle": 8.92e-13,
+    "maximum_joint_covariance_error_vs_core_Gaussian_oracle": 1.6e-15,
+    "reported_by": "running_gradient_dynamics",
+    "initial_prior_from_new_source_live_claimed": false
+  },
+  "diagnostic_scope_note": "local_marginal_* measures consistency within the same frozen affine Gaussian query, not the re-composed posterior core query. Metadata source retained unchanged during full regression; parent docs disambiguate.",
+  "root_reported_integrated_focused": {
+    "passed": 49,
+    "seconds": 7.15,
+    "log": "/tmp/probtf_moment_integrated_focused_20261018.log",
+    "independently_rerun_here": false
+  }
+}

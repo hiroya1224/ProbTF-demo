@@ -404,3 +404,85 @@ probtf_body_query(int edges, const double *tin, const double *qin,
     return 1;
   }
 }
+
+// Independent extension API: the existing first-order distribution functions
+// above keep their ABI and equations. This evaluates finite modal geometry,
+// not a push-forward mean, covariance, or candidate-law reexpression.
+extern "C" int probtf_body_finite_modal_abi_version() { return 1; }
+
+extern "C" int probtf_body_finite_modal_path(
+    int edges, const double *tin, const double *qin, const double *delta_in,
+    int pathn, const int *indices, const unsigned char *inverse, double *tout,
+    double *qout, double *Jtout, double *Jwout, char *err, size_t errn) {
+  try {
+    if (edges < 0 || pathn < 0)
+      throw std::invalid_argument("Invalid finite modal path dimensions.");
+    const int n = 6 * edges;
+    Eigen::Map<const Row> translations(tin, edges, 3),
+        quaternions(qin, edges, 4);
+    Eigen::Map<const Vec> delta(delta_in, n);
+    finite(translations);
+    finite(quaternions);
+    finite(delta);
+
+    V3 translation = V3::Zero();
+    M3 rotation_total = M3::Identity();
+    Mat Jt = Mat::Zero(3, n), Jw = Mat::Zero(3, n);
+    for (int k = 0; k < pathn; ++k) {
+      const int edge = indices[k];
+      if (edge < 0 || edge >= edges)
+        throw std::invalid_argument(
+            "Finite modal path refers to an absent transform.");
+      const int offset = 6 * edge;
+      const V3 shift = delta.segment<3>(offset + 3);
+      const M3 Jr = rightj(shift);
+      const M3 forward_rotation =
+          rotation(mul(quaternions.row(edge).transpose(), rvq(shift)));
+      const V3 forward_translation =
+          translations.row(edge).transpose() + delta.segment<3>(offset);
+
+      M3 Q = forward_rotation;
+      V3 a = forward_translation;
+      M3 Ja_translation = M3::Identity(), Ja_rotation = M3::Zero();
+      M3 JQ_rotation = Jr;
+      if (inverse[k]) {
+        Q = forward_rotation.transpose();
+        a = -Q * forward_translation;
+        // d(-R^T t) = -R^T dt + [a]_x Jr(delta_r) d(delta_r).
+        // The inverse rotation's right perturbation is -R Jr(delta_r)dδr.
+        Ja_translation = -Q;
+        Ja_rotation = skew(a) * Jr;
+        JQ_rotation = -forward_rotation * Jr;
+      }
+
+      // Exact product rule on T_total * (a,Q), using 3-by-n derivatives:
+      // Jt' = Jt - R_total[a]_x Jw + R_total Ja,
+      // Jw' = Q^T Jw + JQ, with dR = R[Jw dδ]_x.
+      // Repeated appearances share the same offset; no variable is copied.
+      Mat next_Jt = Jt - rotation_total * skew(a) * Jw;
+      next_Jt.block<3, 3>(0, offset) += rotation_total * Ja_translation;
+      next_Jt.block<3, 3>(0, offset + 3) += rotation_total * Ja_rotation;
+      Mat next_Jw = Q.transpose() * Jw;
+      next_Jw.block<3, 3>(0, offset + 3) += JQ_rotation;
+      translation += rotation_total * a;
+      rotation_total = rotation_total * Q;
+      Jt.swap(next_Jt);
+      Jw.swap(next_Jw);
+    }
+    finite(translation);
+    finite(rotation_total);
+    finite(Jt);
+    finite(Jw);
+    const V4 quaternion = rotq(rotation_total);
+    Eigen::Map<V3> translated(tout);
+    Eigen::Map<V4> rotated(qout);
+    translated = translation;
+    rotated = quaternion;
+    Eigen::Map<Row>(Jtout, 3, n) = Jt;
+    Eigen::Map<Row>(Jwout, 3, n) = Jw;
+    return 0;
+  } catch (const std::exception &e) {
+    error(err, errn, e);
+    return 1;
+  }
+}

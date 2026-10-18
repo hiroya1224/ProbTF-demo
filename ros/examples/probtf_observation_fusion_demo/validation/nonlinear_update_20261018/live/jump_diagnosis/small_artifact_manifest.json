@@ -1,0 +1,22 @@
+{
+  "summary_compact.json": {
+    "bytes": 12713,
+    "sha256": "c5156999a66e7cb488c08eb27cc58c703089bbd38a1783f1a8145178d03433c3"
+  },
+  "DIAGNOSIS.md": {
+    "bytes": 5699,
+    "sha256": "7dbb2b96216e92f3a8dae6c71edeb3cfae159a0b11ce762e6f537361efa8aa33"
+  },
+  "neighborhood_physical_oracle_compact.json": {
+    "bytes": 75078,
+    "sha256": "c595153cd214300969e5ab7e40806583d2e3779270464436f2195e89d8eb07ae"
+  },
+  "raw_native_modes_physical_oracle_compact.json": {
+    "bytes": 73953,
+    "sha256": "597d2bde9cc618a3a6f6d8644022b7921517c55fbdeae11ada902901ca6ebc67"
+  },
+  "multistart.json": {
+    "bytes": 28766,
+    "sha256": "dfbac50d02f9e9fe20ff8f9c85f1221d923e2571e64184afffd2d911e66e9824"
+  }
+}

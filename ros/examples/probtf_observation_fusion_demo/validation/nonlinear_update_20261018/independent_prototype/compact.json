@@ -1,0 +1,2157 @@
+{
+  "schema": "fixed_prior_nonlinear_prototype_compact_v1",
+  "production_changed": false,
+  "monte_carlo_used": false,
+  "physical_truth_used_only_in_separate_posthoc_script": true,
+  "all_image_native_modes_retained": true,
+  "coverage": "Three recorded image events, two original body parents each; each of these images has one native central component. Priors were formed by the historical affine pipeline: this is a one-event operator substitution, not a replay of the new method from the initial prior. This does not validate native multi-component cases or IMU-only nonlinear updates.",
+  "source_provenance": {
+    "before": {
+      "wall_time_s": 1792305605.8367038,
+      "body_backend": {
+        "backend": "native",
+        "core_equations_changed": false,
+        "stochastic_sampling": false,
+        "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so",
+        "library_sha256": "26baa1ed012f1de7849f3e09373e7a8b18860cfacded7fa2ea10a5ebe382c0c8"
+      },
+      "marker_backend": {
+        "arithmetic_backend": "native",
+        "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_marker_board_math.so",
+        "library_sha256": "2b1bbd62d46511a89db87a12659eabe9d00dd125fecb658079866938216f8f30",
+        "native_source_sha256": "6df4a3119d0e0f1b5a1baadce3b540cdeecff50b76480986b6a600f4794c676a",
+        "binding_source_sha256": "f2d5dedff1babe36b363bba85b7598a63bc0d68259ace12f1f9eda3d76162d6c",
+        "runtime_compilation": false,
+        "silent_fallback": false
+      },
+      "files_sha256": {
+        "/home/leus/catkin_ws/devel/.private/probtf_core/lib/python3/dist-packages/probtf/__init__.py": "9d9230040259c22df7d9df2e757c33deded2f28bc58fb89bb881a7a53d7f4835",
+        "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so": "26baa1ed012f1de7849f3e09373e7a8b18860cfacded7fa2ea10a5ebe382c0c8",
+        "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_marker_board_math.so": "2b1bbd62d46511a89db87a12659eabe9d00dd125fecb658079866938216f8f30",
+        "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/python3/dist-packages/probtf_observation_fusion_demo/__init__.py": "c589d3c43d704df73c952983828f239eb0380fcaee12cbcfbe94acb510acd374",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/_vendor/__init__.py": "e25fe9863ae85c1b764603904b9284c7da4412fd79c369ed37b94769b6a5f1fe",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/_vendor/bingham_normconst.py": "b550ef8839cfc6ec449f995337b1c72935b4de74aca3fa5a4f6be07c0e7f3ffe",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/bingham.py": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/__init__.py": "6bf9c838f1192bb70e19ac47a57bea7d1b2e79908bf0a81aae059c5c908e8823",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/bingham_orientation.py": "b74005bb8ce97710d0d22b8feb0d8b696e8470d47f27b9244656974efb0872cd",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/composition.py": "33931ad51d53838aec7f5e235566b8de8e1505d901af3dc30252c41b96a25ef1",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/conditional_translation.py": "b0c04745fff60cc1cf2dd7924bc7e65ad1235276314ff36d5099c568f47ec796",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/stamped.py": "ce9b444c478ecc74e9bb8d38139e59422a4e3a9c20623c21032454ec0b5cd599",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/status.py": "147a22602e0f9c9fe12a33d32025657c10e1c93be1e9257e208f3a91ce4a953f",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/transform_component.py": "acf53619b1787c5845e0c7f83921247a7432fcbb7d73ba9b38a4455317366672",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/transform_distribution.py": "0c7e6d1b8b193fececa2ec136bb67e054391ce99874b6fd7dc1b2692370a1444",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/validation.py": "1642b5fd6163227ad66a6fef556113a9b03dcc3014a0f016f4f68f7f99903009",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/__init__.py": "f84040d839a45205426e3864238dcb23a96cb7b9a57a1a434abb730547b85be4",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/lie.py": "fd66b1b79fb10cf2024befe0da31ef5a6234cd94e0b495bd54ad161d1264f415",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/quaternion.py": "69806052578fe3f10450f789f3e22082044b6db12116833e0a6786d0eb381246",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/rotation.py": "464005459e2c82c3b331d7f877af17675872c0c8346080872ea2664770d39f89",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/transform.py": "0bcde5bb0bbea8dbad9912f969480c8d9788f67d8eaadd9ce37b07c0e818124d",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/vectorization.py": "50f89fc7a31e0fbfb7024b3c99ebfa35cbc682837c2e3eed3639b19aa45f6e6e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/__init__.py": "1514063be7fa733d386cae383bb8abd47c974854fe10ef640be9428152d784fa",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/buffer.py": "ceb7f0c1b7b2499bea5387c71481cc91ba10f15e832087c8ee5f6ac5e2fdcde0",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/edge.py": "7c47a5d8bf8104eff43f75cfbaad55aa252d03536d4ff31f11dbc687a62ce918",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/path.py": "39726fa10d61754c7856ec7714712547b052a90f7b73efdee4b9a590dade6698",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/query.py": "fc4e9c9a37d6d08fb3cb74e596380a79dd77a2bc1ea25a3dc9fc2b1a89283005",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/status.py": "40c89b3c00f94ca18afcba60293c9c8490462d3cf12d64802a595cb848f1a4b2",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/topology.py": "f52df3abc4700eeded475471539ba0fa7ecd23ff55dc1cc4f567856b344f944e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/probability/__init__.py": "a7e5d2527a1bd8a0fcfd40035ea38042028a3d0422d8bc0033768742ea769933",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/probability/moments.py": "485e0a9be60c7c9da1bb0ee0ccf980e769c6be8f713e789b304f1a2e1fa018c9",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/probability/sampling.py": "7e38344ca2c4443bc262d87dcfd3bc785e5cfd03dd0c1b9ff1e2ac39b3ac8d7b",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/provenance/__init__.py": "985d86bef96de21c2c0a06589fe62ab4e77c6e18103807fa4bd23d6ac9fb6128",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/provenance/dependency.py": "a963916b6462de7a684b2fd050c5e36bae8cbab23c510e26d36b44e16c8ac389",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/provenance/model.py": "bb0163d45d44fa206e56f2b8cb95c75220bdfbd5d5766475db78f673b387f835",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/sensor_config.py": "77d5238b6b9aaebc5f9da002471b15b4e5117d5df532ce9754b36fd97fd7efbc",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/sensor_mount.py": "2ecdd020f6b3d602c209ff92c11a2e2696121ffdc212dd215fde4d52f2456947",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/__init__.py": "490be413534affcf03da46f46e354c032c4861c7a567e0e191bab99b8c9db5ee",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/adapters.py": "286b2481ea8820818735cbe911dfb3464260d2ed8211b9557719ce0e83b6253e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/first_order.py": "5c37d6379e2cccca369a127d0f9d096166f219de938ce0a48e5a74852754c8fa",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/fusion.py": "debefce01eec2480b0d3c30154feb5e681df9a1156638633318a7d1c6e6d6d89",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/induced_direction.py": "1fc1e7c74ed95c003e9e111fa0222ec64a5d15a1284edc5e555ed6ba35bb067c",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/induced_vector.py": "a48c94778a06146f0aff0c7eb4c7bb919b905ade314f1d66e81d0203fd67c1ad",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/numerical.py": "b10d70229431258ff8efcd65fdfb3284597cae1f1c2db2afe1a4461b257f669e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/protocol.py": "057c8fd50bae6f7aa379d75f70957b25e04ce819817302476d0f7a5a6d797648",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/support.py": "a59ea4122a8034f1ae92fdcdf1466370e04f5c6461b92e6b23bba0b8f5a7c48e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/tangent.py": "82f405ffe27e252db595e6de44a77791f058aa4ff140fd0b38a97e7e1ab5a6a2",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/symbolic_urdf.py": "8702f9cd45ac0e556a53542ada5cdba3ded1f9b0786f1a9982bf817dd3efddb3",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/__init__.py": "493f8f0ff311124758d8b0dcfc7df6d53055f15c8225861b1b3887f925bd0e22",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/backends.py": "2db79bc0c72e9494864256cac55b6ce44afe93dbec70fdbf26ca1df765f46a95",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/benchmark.py": "e5c007c064ee9a3acbc326087c9afcec0116b5edd49d7696f9fc70a27995e4bb",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/model.py": "0def0b084dee38320a6626e094246b0daccb99a698b4dc98348a5ca93141ff0e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/policy.py": "2d221db6f872944aad963d4cd537f5ab9fdccb56cb32c242f0c652bedf8c8c35",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/provenance.py": "8b88a05cd3199d2ff2249baaf2216af6861c81ab4bef0922aee31ec2b4efe468",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/se3.py": "10fd054757d5c9be671c5816ef2b28e535933668d995599a4aed75a352d0a0b3",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml": "06ae21320718ce839e2297abe3a880400aa12681a76de0b6e1ae8ed0ea568a68",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/marker.yaml": "bdc5684e172da1b51ec9b5d03c601e51cbf1022b12c5596e66e0af7cf01aaf3d",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/native/body_law.cpp": "63b52076ce45801ac77582b932242e2c6b3937b0de676e51264d1954c2f6a8a5",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/native/marker_board_math.cpp": "6df4a3119d0e0f1b5a1baadce3b540cdeecff50b76480986b6a600f4794c676a",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_artifacts.py": "44087f3035b99bfd6de30f30863dc8351a0a7ab7e04db34064ccc1ab0926f92d",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py": "1037c9691f32363cf085d81ca06a7cd93b58a3b88ccc38ad529e2984148b7884",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py": "e2ba7f68ca04eec0bbe0e5cc16654a54b9f715e9d1bb607ac40ca07cab2865ad",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "a9e4895ed02a8d8ca037933fce3f95eb6b1e485eb0132eb11420313077047c81",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py": "9bd190400abbdf35e8a7b47e0ae2355608af14c7ef57709a71b51bacb46747f9",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py": "e28cbee3305ffc29f6541fcae7ae05ff9fcc7045574a38fd724107ef4ec5134c",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py": "628477a3c7cfa65c676116db8a0d2c7fa5c1e75002515029a07e80e705f2d4b8",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/immutable_body_cache.py": "c3c37c82cdf45df41a0da96571fec15e1adc890dff03e78e145044794c30ef4a",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/joint_batch_fusion.py": "b561f18bcf0240608a3c9dac70d29dd800ac583a769f6c22790df271d9bab49d",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board_native.py": "f2d5dedff1babe36b363bba85b7598a63bc0d68259ace12f1f9eda3d76162d6c",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py": "6be1f94fcf8695f9328597d62329d123c0dcf8ab1bedecd07b13a7ac427e1bfe",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py": "41290da87f05c1bf317cf7aeb96769cf115ffdad753c2ecd398ac5fdaac9298f",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py": "ac536454ca626fa679dd8b562a66d04eb6dec3a7605b8419b0c15b91ec0e29c7",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "1842aa2a42bf92aecf60503c11547c18883e71a319a4617006605e11bdbd2b54",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py": "28a2c756e20feecb157883bd7b9619af0697820b67cf333302a5db2db0241f34",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensor_event_store.py": "5f1e4c55f370265c4c8e1b65587ad000c860a5235f1fa490485cbade3edfd9d1",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py": "272f37f4031ecc5cb1b3c6a797f5858613bb98630f55322be65ef3a3f577f5d5",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_bayes_factor.py": "69778d4f64d17b376a93b2a592724fa50b34951b32a6de428577b106095b23bc",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py": "0c9589fe460812a4bc4efe13b4a440bdf200c9d1ed2013c9e61e0b61d57d691c",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "82b803da3b4a853d40a84107a0be83b0fd15b8b22d70ee9a697d99f98baf76c9",
+        "/tmp/probtf_cpp_sequential_live_20261018/imu_marker/robot.urdf": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2",
+        "/tmp/probtf_cpp_sequential_live_20261018/marker/robot.urdf": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2",
+        "/tmp/probtf_fixed_prior_nonlinear_prototype_20261018.py": "645b862194d0af7c8f105f566f882db56eb9d1fe5cde2141a1d49d09c8901a5d"
+      }
+    },
+    "finite_candidate_map": "Independent NumPy/SciPy analytic implementation in this /tmp script; new native finite C ABI is not called.",
+    "reexpression": "Original Python probtf.spherical_law.first_order.reexpress_state",
+    "query": "Demo-local native point/pose queries from the currently recorded library; not the historical 90-second library byte identity.",
+    "after": {
+      "wall_time_s": 1792305611.8938315,
+      "body_backend": {
+        "backend": "native",
+        "core_equations_changed": false,
+        "stochastic_sampling": false,
+        "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so",
+        "library_sha256": "26baa1ed012f1de7849f3e09373e7a8b18860cfacded7fa2ea10a5ebe382c0c8"
+      },
+      "marker_backend": {
+        "arithmetic_backend": "native",
+        "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_marker_board_math.so",
+        "library_sha256": "2b1bbd62d46511a89db87a12659eabe9d00dd125fecb658079866938216f8f30",
+        "native_source_sha256": "6df4a3119d0e0f1b5a1baadce3b540cdeecff50b76480986b6a600f4794c676a",
+        "binding_source_sha256": "f2d5dedff1babe36b363bba85b7598a63bc0d68259ace12f1f9eda3d76162d6c",
+        "runtime_compilation": false,
+        "silent_fallback": false
+      },
+      "files_sha256": {
+        "/home/leus/catkin_ws/devel/.private/probtf_core/lib/python3/dist-packages/probtf/__init__.py": "9d9230040259c22df7d9df2e757c33deded2f28bc58fb89bb881a7a53d7f4835",
+        "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so": "26baa1ed012f1de7849f3e09373e7a8b18860cfacded7fa2ea10a5ebe382c0c8",
+        "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_marker_board_math.so": "2b1bbd62d46511a89db87a12659eabe9d00dd125fecb658079866938216f8f30",
+        "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/python3/dist-packages/probtf_observation_fusion_demo/__init__.py": "c589d3c43d704df73c952983828f239eb0380fcaee12cbcfbe94acb510acd374",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/_vendor/__init__.py": "e25fe9863ae85c1b764603904b9284c7da4412fd79c369ed37b94769b6a5f1fe",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/_vendor/bingham_normconst.py": "b550ef8839cfc6ec449f995337b1c72935b4de74aca3fa5a4f6be07c0e7f3ffe",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/bingham.py": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/__init__.py": "6bf9c838f1192bb70e19ac47a57bea7d1b2e79908bf0a81aae059c5c908e8823",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/bingham_orientation.py": "b74005bb8ce97710d0d22b8feb0d8b696e8470d47f27b9244656974efb0872cd",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/composition.py": "33931ad51d53838aec7f5e235566b8de8e1505d901af3dc30252c41b96a25ef1",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/conditional_translation.py": "b0c04745fff60cc1cf2dd7924bc7e65ad1235276314ff36d5099c568f47ec796",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/stamped.py": "ce9b444c478ecc74e9bb8d38139e59422a4e3a9c20623c21032454ec0b5cd599",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/status.py": "147a22602e0f9c9fe12a33d32025657c10e1c93be1e9257e208f3a91ce4a953f",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/transform_component.py": "acf53619b1787c5845e0c7f83921247a7432fcbb7d73ba9b38a4455317366672",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/transform_distribution.py": "0c7e6d1b8b193fececa2ec136bb67e054391ce99874b6fd7dc1b2692370a1444",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/distributions/validation.py": "1642b5fd6163227ad66a6fef556113a9b03dcc3014a0f016f4f68f7f99903009",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/__init__.py": "f84040d839a45205426e3864238dcb23a96cb7b9a57a1a434abb730547b85be4",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/lie.py": "fd66b1b79fb10cf2024befe0da31ef5a6234cd94e0b495bd54ad161d1264f415",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/quaternion.py": "69806052578fe3f10450f789f3e22082044b6db12116833e0a6786d0eb381246",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/rotation.py": "464005459e2c82c3b331d7f877af17675872c0c8346080872ea2664770d39f89",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/transform.py": "0bcde5bb0bbea8dbad9912f969480c8d9788f67d8eaadd9ce37b07c0e818124d",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/geometry/vectorization.py": "50f89fc7a31e0fbfb7024b3c99ebfa35cbc682837c2e3eed3639b19aa45f6e6e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/__init__.py": "1514063be7fa733d386cae383bb8abd47c974854fe10ef640be9428152d784fa",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/buffer.py": "ceb7f0c1b7b2499bea5387c71481cc91ba10f15e832087c8ee5f6ac5e2fdcde0",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/edge.py": "7c47a5d8bf8104eff43f75cfbaad55aa252d03536d4ff31f11dbc687a62ce918",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/path.py": "39726fa10d61754c7856ec7714712547b052a90f7b73efdee4b9a590dade6698",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/query.py": "fc4e9c9a37d6d08fb3cb74e596380a79dd77a2bc1ea25a3dc9fc2b1a89283005",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/status.py": "40c89b3c00f94ca18afcba60293c9c8490462d3cf12d64802a595cb848f1a4b2",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/graph/topology.py": "f52df3abc4700eeded475471539ba0fa7ecd23ff55dc1cc4f567856b344f944e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/probability/__init__.py": "a7e5d2527a1bd8a0fcfd40035ea38042028a3d0422d8bc0033768742ea769933",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/probability/moments.py": "485e0a9be60c7c9da1bb0ee0ccf980e769c6be8f713e789b304f1a2e1fa018c9",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/probability/sampling.py": "7e38344ca2c4443bc262d87dcfd3bc785e5cfd03dd0c1b9ff1e2ac39b3ac8d7b",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/provenance/__init__.py": "985d86bef96de21c2c0a06589fe62ab4e77c6e18103807fa4bd23d6ac9fb6128",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/provenance/dependency.py": "a963916b6462de7a684b2fd050c5e36bae8cbab23c510e26d36b44e16c8ac389",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/provenance/model.py": "bb0163d45d44fa206e56f2b8cb95c75220bdfbd5d5766475db78f673b387f835",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/sensor_config.py": "77d5238b6b9aaebc5f9da002471b15b4e5117d5df532ce9754b36fd97fd7efbc",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/sensor_mount.py": "2ecdd020f6b3d602c209ff92c11a2e2696121ffdc212dd215fde4d52f2456947",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/__init__.py": "490be413534affcf03da46f46e354c032c4861c7a567e0e191bab99b8c9db5ee",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/adapters.py": "286b2481ea8820818735cbe911dfb3464260d2ed8211b9557719ce0e83b6253e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/first_order.py": "5c37d6379e2cccca369a127d0f9d096166f219de938ce0a48e5a74852754c8fa",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/fusion.py": "debefce01eec2480b0d3c30154feb5e681df9a1156638633318a7d1c6e6d6d89",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/induced_direction.py": "1fc1e7c74ed95c003e9e111fa0222ec64a5d15a1284edc5e555ed6ba35bb067c",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/induced_vector.py": "a48c94778a06146f0aff0c7eb4c7bb919b905ade314f1d66e81d0203fd67c1ad",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/numerical.py": "b10d70229431258ff8efcd65fdfb3284597cae1f1c2db2afe1a4461b257f669e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/protocol.py": "057c8fd50bae6f7aa379d75f70957b25e04ce819817302476d0f7a5a6d797648",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/support.py": "a59ea4122a8034f1ae92fdcdf1466370e04f5c6461b92e6b23bba0b8f5a7c48e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/tangent.py": "82f405ffe27e252db595e6de44a77791f058aa4ff140fd0b38a97e7e1ab5a6a2",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/symbolic_urdf.py": "8702f9cd45ac0e556a53542ada5cdba3ded1f9b0786f1a9982bf817dd3efddb3",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/__init__.py": "493f8f0ff311124758d8b0dcfc7df6d53055f15c8225861b1b3887f925bd0e22",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/backends.py": "2db79bc0c72e9494864256cac55b6ce44afe93dbec70fdbf26ca1df765f46a95",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/benchmark.py": "e5c007c064ee9a3acbc326087c9afcec0116b5edd49d7696f9fc70a27995e4bb",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/model.py": "0def0b084dee38320a6626e094246b0daccb99a698b4dc98348a5ca93141ff0e",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/policy.py": "2d221db6f872944aad963d4cd537f5ab9fdccb56cb32c242f0c652bedf8c8c35",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/provenance.py": "8b88a05cd3199d2ff2249baaf2216af6861c81ab4bef0922aee31ec2b4efe468",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/temporal/se3.py": "10fd054757d5c9be671c5816ef2b28e535933668d995599a4aed75a352d0a0b3",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml": "06ae21320718ce839e2297abe3a880400aa12681a76de0b6e1ae8ed0ea568a68",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/marker.yaml": "bdc5684e172da1b51ec9b5d03c601e51cbf1022b12c5596e66e0af7cf01aaf3d",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/native/body_law.cpp": "63b52076ce45801ac77582b932242e2c6b3937b0de676e51264d1954c2f6a8a5",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/native/marker_board_math.cpp": "6df4a3119d0e0f1b5a1baadce3b540cdeecff50b76480986b6a600f4794c676a",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_artifacts.py": "44087f3035b99bfd6de30f30863dc8351a0a7ab7e04db34064ccc1ab0926f92d",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py": "1037c9691f32363cf085d81ca06a7cd93b58a3b88ccc38ad529e2984148b7884",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py": "e2ba7f68ca04eec0bbe0e5cc16654a54b9f715e9d1bb607ac40ca07cab2865ad",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "a9e4895ed02a8d8ca037933fce3f95eb6b1e485eb0132eb11420313077047c81",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py": "9bd190400abbdf35e8a7b47e0ae2355608af14c7ef57709a71b51bacb46747f9",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py": "e28cbee3305ffc29f6541fcae7ae05ff9fcc7045574a38fd724107ef4ec5134c",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py": "628477a3c7cfa65c676116db8a0d2c7fa5c1e75002515029a07e80e705f2d4b8",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/immutable_body_cache.py": "c3c37c82cdf45df41a0da96571fec15e1adc890dff03e78e145044794c30ef4a",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/joint_batch_fusion.py": "b561f18bcf0240608a3c9dac70d29dd800ac583a769f6c22790df271d9bab49d",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py": "0d5bac75edb1ab455c468e7719b92a7ccf6eb723577de09d62532da2430d9937",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board_native.py": "f2d5dedff1babe36b363bba85b7598a63bc0d68259ace12f1f9eda3d76162d6c",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py": "6be1f94fcf8695f9328597d62329d123c0dcf8ab1bedecd07b13a7ac427e1bfe",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py": "41290da87f05c1bf317cf7aeb96769cf115ffdad753c2ecd398ac5fdaac9298f",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py": "ac536454ca626fa679dd8b562a66d04eb6dec3a7605b8419b0c15b91ec0e29c7",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "1842aa2a42bf92aecf60503c11547c18883e71a319a4617006605e11bdbd2b54",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py": "28a2c756e20feecb157883bd7b9619af0697820b67cf333302a5db2db0241f34",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensor_event_store.py": "5f1e4c55f370265c4c8e1b65587ad000c860a5235f1fa490485cbade3edfd9d1",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py": "272f37f4031ecc5cb1b3c6a797f5858613bb98630f55322be65ef3a3f577f5d5",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_bayes_factor.py": "69778d4f64d17b376a93b2a592724fa50b34951b32a6de428577b106095b23bc",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py": "0c9589fe460812a4bc4efe13b4a440bdf200c9d1ed2013c9e61e0b61d57d691c",
+        "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "82b803da3b4a853d40a84107a0be83b0fd15b8b22d70ee9a697d99f98baf76c9",
+        "/tmp/probtf_cpp_sequential_live_20261018/imu_marker/robot.urdf": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2",
+        "/tmp/probtf_cpp_sequential_live_20261018/marker/robot.urdf": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2",
+        "/tmp/probtf_fixed_prior_nonlinear_prototype_20261018.py": "645b862194d0af7c8f105f566f882db56eb9d1fe5cde2141a1d49d09c8901a5d"
+      }
+    },
+    "changed_during_run": [],
+    "stable_during_run": true,
+    "differences_from_original_90s_source": {
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/native/body_law.cpp": {
+        "original_90s_sha256": "4b34fed64d45553aa0ed6b0863b93ac9f351ec007999e65118e40980f8bbd284",
+        "prototype_sha256": "63b52076ce45801ac77582b932242e2c6b3937b0de676e51264d1954c2f6a8a5"
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/immutable_body_cache.py": {
+        "original_90s_sha256": "6a081fc046e9cd3f67fed01ca66941b3938acff366e09af230de95033ac99253",
+        "prototype_sha256": "c3c37c82cdf45df41a0da96571fec15e1adc890dff03e78e145044794c30ef4a"
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": {
+        "original_90s_sha256": "a6e69bdbf77a9c71c4fa9b59ee11e4672c4090959d88904e5f27a84d01b003da",
+        "prototype_sha256": "1842aa2a42bf92aecf60503c11547c18883e71a319a4617006605e11bdbd2b54"
+      }
+    },
+    "original_90s_freeze_manifest_sha256": "308d8713dc044e128edeb04286c8261f4017ab10bd49cd3eb6054368f54947c5",
+    "native_library_comparison_to_original_90s": {
+      "body_law": {
+        "original_90s_sha256": "3879a1845062ab2e3ebfd998eecf941b0b0f1cc292586f5397e90ff95dae6cef",
+        "prototype_sha256": "26baa1ed012f1de7849f3e09373e7a8b18860cfacded7fa2ea10a5ebe382c0c8",
+        "same_bytes": false
+      },
+      "marker_board_math": {
+        "original_90s_sha256": "2b1bbd62d46511a89db87a12659eabe9d00dd125fecb658079866938216f8f30",
+        "prototype_sha256": "2b1bbd62d46511a89db87a12659eabe9d00dd125fecb658079866938216f8f30",
+        "same_bytes": true
+      }
+    },
+    "protected_core_RViz_files_checked": 214,
+    "protected_core_RViz_changed_from_original_90s": [],
+    "all_archives_match_recorded_payload_hashes": true
+  },
+  "full_outputs": {
+    "report.json": {
+      "path": "/tmp/probtf_cpp_sequential_live_20261018/fixed_prior_nonlinear_prototype/report.json",
+      "sha256": "0011f422f8509bf2522c3110c55e8e82ae3b85320835a654d641d41762f3a43a",
+      "bytes": 1624022
+    },
+    "physical_comparison.json": {
+      "path": "/tmp/probtf_cpp_sequential_live_20261018/fixed_prior_nonlinear_prototype/physical_comparison.json",
+      "sha256": "3ae499e5e1496cdcd4535152172a344d362b8d9f5913e6b72297800afca1b624",
+      "bytes": 36622
+    }
+  },
+  "reproducer": {
+    "/tmp/probtf_fixed_prior_nonlinear_prototype_20261018.py": {
+      "sha256": "645b862194d0af7c8f105f566f882db56eb9d1fe5cde2141a1d49d09c8901a5d",
+      "bytes": 21458
+    },
+    "/tmp/probtf_fixed_prior_nonlinear_physical_20261018.py": {
+      "sha256": "713d54bc67c42a645abb1c7d9456df6d1025f077817e7360f65d0b4a20644979",
+      "bytes": 3485
+    }
+  },
+  "cases": {
+    "marker:147": {
+      "event_id": "image:00002954",
+      "stamp": 1792080047.9338343,
+      "command": [
+        0.09583573664865258,
+        -1.6844068343824972,
+        1.7687309812099148,
+        -0.06530746801250566,
+        -0.8304641517493339,
+        -0.0031133929765713086
+      ],
+      "raw_payload_sha256": "3d7105c1a09593f0e74961830c445389cddec5ada0d1789575a9bca8c02fe74a",
+      "K_archive_sha256": "c42df54abb7cba727b4677a5aec700bdbebdd6d2406e6b75ac8821beaf5935b0",
+      "K_archive_actual_sha256": "c42df54abb7cba727b4677a5aec700bdbebdd6d2406e6b75ac8821beaf5935b0",
+      "K_archive_reference_path": "/tmp/probtf_cpp_sequential_live_20261018/marker/stiffness_jobs/00000147_b682d00b6824f51a.json",
+      "K_archive_reference_sha256": "0e78929b30a15ae9740793a12bc6135e53b9b15d0bfe9e4ed871b2f42be16f98",
+      "native_components": 1,
+      "native_central_regeneration_exact": true,
+      "GN_log_observation_evidence": -54.268142842214075,
+      "GN_reset_probability": 1.0,
+      "log_observation_evidence": -54.39279014121353,
+      "nonlinear_reset_probability": 1.0,
+      "frame_index": 2954,
+      "branches": [
+        {
+          "parent_label": "predicted:2954:0",
+          "parent_log_weight": -0.2876820724517809,
+          "native_component": "camera__to__marker:board_adf:cf7475912ff367dd:0",
+          "native_log_weight": 0.0,
+          "source_prior_state_id": "be0266d901fa43603b971ade6a4a40818c241ced269d63214d5fa5e5b55c3f80",
+          "support_rank": 42,
+          "support_reconstruction_max_abs": 5.204170427930421e-18,
+          "fixed_native_chart_log_volume": 0.0,
+          "legacy_parent_chart_log_volume": 0.005681886897247461,
+          "exact_linear_surrogate_oracle": {
+            "mean_max_abs": 2.9073965457371287e-13,
+            "covariance_max_abs": 3.587624988754534e-16,
+            "computed_log_evidence": -626.7878267984117,
+            "original_parent_log_evidence": -626.787826798239,
+            "solver": {
+              "trials": [
+                {
+                  "start": "prior_mode",
+                  "finite": true,
+                  "success": true,
+                  "status": 1,
+                  "reason": "`gtol` termination condition is satisfied.",
+                  "evaluations": 6,
+                  "objective": 654.7858924398708,
+                  "gradient_inf": 8.952838470577262e-13
+                }
+              ],
+              "selected_objective": 654.7858924398708,
+              "selected_score_inf": 8.952838470577262e-13,
+              "hessian_step": null,
+              "hessian_asymmetry_fro": 0.0,
+              "hessian_eigenvalues": [
+                0.9999999999999879,
+                0.9999999999999944,
+                0.9999999999999954,
+                0.999999999999998,
+                0.9999999999999981,
+                0.9999999999999983,
+                0.9999999999999984,
+                0.9999999999999986,
+                0.9999999999999986,
+                0.9999999999999988,
+                0.9999999999999988,
+                0.9999999999999989,
+                0.9999999999999992,
+                0.9999999999999992,
+                0.9999999999999992,
+                0.9999999999999992,
+                0.9999999999999994,
+                0.9999999999999996,
+                0.9999999999999997,
+                0.9999999999999997,
+                0.9999999999999998,
+                0.9999999999999998,
+                0.9999999999999999,
+                1.0,
+                1.0000000000000002,
+                1.0000000000000002,
+                1.0000000000000002,
+                1.0000000000000004,
+                1.0000000000000007,
+                1.000000000000001,
+                1.000000000000001,
+                1.0000000000000013,
+                1.0000000000000024,
+                1.000000000000006,
+                1.0000000000000098,
+                1.0000000000000573,
+                1.1504396898674443,
+                1.2499379664565982,
+                1.5133846881903952,
+                3.886269774117746,
+                126.30021567116349,
+                265.66049871903215
+              ],
+              "hessian_minus_GN_fro": 0.0,
+              "logdet_hessian": 12.555917469856993,
+              "hessian_and_factorization_seconds": 0.00019426969811320305,
+              "wall_seconds": 0.0016944478265941143,
+              "stationarity_verified": true,
+              "no_numerical_quality_gate": true
+            }
+          },
+          "nonlinear_solver": {
+            "trials": [
+              {
+                "start": "same_original_prior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 96,
+                "objective": 441.27208107611597,
+                "gradient_inf": 7.723806920378687e-06
+              },
+              {
+                "start": "original_single_affine_posterior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 64,
+                "objective": 441.2720810763391,
+                "gradient_inf": 2.8480119429019624e-05
+              }
+            ],
+            "selected_objective": 441.27208107611597,
+            "selected_score_inf": 7.723806920378687e-06,
+            "hessian_step": 5e-05,
+            "hessian_asymmetry_fro": 1.237004011379592e-05,
+            "hessian_eigenvalues": [
+              0.2234566681632813,
+              0.651275082934184,
+              0.6816231216507717,
+              0.7850835393241878,
+              0.8636994938836551,
+              0.8724434440312602,
+              0.8988147108975563,
+              0.9029800298896962,
+              0.9349689988592067,
+              0.9587158670865049,
+              0.9867957158641205,
+              0.9964314832201773,
+              0.9983715502710356,
+              0.9998119552079451,
+              0.9999434761993862,
+              0.9999870825716052,
+              0.99999999998796,
+              0.9999999999940818,
+              0.9999999999977834,
+              0.9999999999979928,
+              1.0000000000007923,
+              1.0000000000012241,
+              1.0000000000094968,
+              1.000000000015856,
+              1.0000555393356647,
+              1.0009517335947338,
+              1.0041413333428728,
+              1.0046382732199168,
+              1.007135427202197,
+              1.0096009068599074,
+              1.0120557439319262,
+              1.034220766633766,
+              1.049415032948467,
+              1.0701981005890835,
+              1.1135539287027134,
+              1.1548418037810038,
+              1.2538860680143489,
+              1.9924791192056885,
+              4.910785880140238,
+              14.725180568191831,
+              2393.0725768952575,
+              6178.335678517135
+            ],
+            "hessian_minus_GN_fro": 2.4056681238205666,
+            "logdet_hessian": 18.97293642275744,
+            "hessian_and_factorization_seconds": 0.1726937652565539,
+            "wall_seconds": 0.5197578649967909,
+            "stationarity_verified": false,
+            "no_numerical_quality_gate": true
+          },
+          "finite_GN_from_original_prior_mode": {
+            "records": [
+              {
+                "iteration": 0,
+                "objective": 6629.650906479045,
+                "score_inf": 891.4735451607357,
+                "candidate_mean_norm": 0.0,
+                "tangent_completed_mean_objective": 3119.1012133869735,
+                "tangent_completed_mean_score_inf": 1055.6444188391974,
+                "tangent_completed_mean_shift_norm": 22.423429215478116,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 10,
+                "objective": 557.1753892351417,
+                "score_inf": 315.9880361906579,
+                "candidate_mean_norm": 22.67930412221536,
+                "tangent_completed_mean_objective": 520.2746146284398,
+                "tangent_completed_mean_score_inf": 275.79915139431665,
+                "tangent_completed_mean_shift_norm": 3.5039451651372704,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 20,
+                "objective": 447.33306741373076,
+                "score_inf": 69.01994921484514,
+                "candidate_mean_norm": 23.022146105361454,
+                "tangent_completed_mean_objective": 445.60467526243093,
+                "tangent_completed_mean_score_inf": 58.27288270289717,
+                "tangent_completed_mean_shift_norm": 1.6075051489417032,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 30,
+                "objective": 441.5695133852995,
+                "score_inf": 12.43420195475056,
+                "candidate_mean_norm": 23.08964743300628,
+                "tangent_completed_mean_objective": 441.499495364729,
+                "tangent_completed_mean_score_inf": 10.411722313611584,
+                "tangent_completed_mean_shift_norm": 0.6794473866613976
+              }
+            ],
+            "performed_iterations": 30,
+            "termination": null,
+            "wall_seconds": 0.07338779093697667
+          },
+          "candidate_map_jacobian_checks": {
+            "prior": {
+              "step": 1e-05,
+              "max_abs": 3.602027182113884e-11,
+              "relative_fro": 1.4783674661436182e-08
+            },
+            "old_affine_mean": {
+              "step": 1e-05,
+              "max_abs": 7.076383175177309e-11,
+              "relative_fro": 7.854378706128797e-09
+            },
+            "nonlinear_mode": {
+              "step": 1e-05,
+              "max_abs": 5.919515572161416e-11,
+              "relative_fro": 6.78234153905482e-09
+            }
+          },
+          "old_affine_reexpressed_same_native_chart": {
+            "mode_whitened_residual_sq": 5779.853205822264,
+            "core_query_mean_whitened_residual_sq": 5793.999249999141,
+            "gaussian_expected_log_likelihood": -145.08859981458673
+          },
+          "nonlinear_whitened_mode_residual_sq": 349.2425093770101,
+          "core_reexpressed_query_whitened_mean_residual_sq": 396.85250811840234,
+          "core_reexpressed_query_gaussian_expected_log_likelihood": -105.78995954983196,
+          "log_evidence_without_parent_weight": -416.48252491110713,
+          "global_log_weight": -362.3774168423454,
+          "global_weight": 4.1829964789770175e-158,
+          "GN_global_log_weight": -363.69136278454334,
+          "GN_global_weight": 1.1242115084156524e-158,
+          "local_rotation_mean_norms": {
+            "link_1": 0.2470968131488776,
+            "link_2": 0.30865579897245693,
+            "link_3": 0.1295816172343221,
+            "link_4": 0.23129492748968336,
+            "link_5": 0.25802263072154535,
+            "link_6": 0.2707168934029017,
+            "marker": 0.009736217255360688
+          },
+          "parent_type": "Keep",
+          "GN_covariance_and_evidence": {
+            "log_evidence_without_parent_weight_same_mode": -417.6718235544128,
+            "finite_iterate_linear_score_correction": 1.0712345230206904e-10,
+            "log_evidence_tangent_completed": -417.67182355430566,
+            "normalizer_scope": "Exact Gaussian integral of the one tangent likelihood at the selected finite iterate; not exact nonlinear evidence.",
+            "covariance_relative_fro_difference_from_actualH": 0.6547033982271622,
+            "covariance_max_abs_difference_from_actualH": 0.0010980003840344633,
+            "core_query_mean_whitened_residual_sq": 351.2665809855773,
+            "core_query_gaussian_expected_log_likelihood": -100.56670295280583,
+            "tangent_completed_mean_actual_objective": 441.27208107592486,
+            "tangent_completed_mean_shift_norm": 1.434755153564862e-05,
+            "factorization_and_reexpression_wall_seconds": 0.005437713116407394
+          }
+        },
+        {
+          "parent_label": "reset:8863",
+          "parent_log_weight": -1.3862943611198906,
+          "native_component": "camera__to__marker:board_adf:cf7475912ff367dd:0",
+          "native_log_weight": 0.0,
+          "source_prior_state_id": "2d238ca0570ad3df134bf1077bc5c0489225023ec10db9b9ad19965d0586c76e",
+          "support_rank": 42,
+          "support_reconstruction_max_abs": 2.168404344971009e-19,
+          "fixed_native_chart_log_volume": 0.0,
+          "legacy_parent_chart_log_volume": 0.014573390176290491,
+          "exact_linear_surrogate_oracle": {
+            "mean_max_abs": 8.673617379884035e-15,
+            "covariance_max_abs": 8.921032315645228e-15,
+            "computed_log_evidence": -53.622790426975705,
+            "original_parent_log_evidence": -53.62279042698786,
+            "solver": {
+              "trials": [
+                {
+                  "start": "prior_mode",
+                  "finite": true,
+                  "success": true,
+                  "status": 1,
+                  "reason": "`gtol` termination condition is satisfied.",
+                  "evaluations": 5,
+                  "objective": 66.93983593026124,
+                  "gradient_inf": 8.44373460040515e-11
+                }
+              ],
+              "selected_objective": 66.93983593026124,
+              "selected_score_inf": 8.44373460040515e-11,
+              "hessian_step": null,
+              "hessian_asymmetry_fro": 0.0,
+              "hessian_eigenvalues": [
+                0.9999999998937561,
+                0.999999999987835,
+                0.9999999999893924,
+                0.9999999999924928,
+                0.9999999999954845,
+                0.9999999999975251,
+                0.9999999999992909,
+                0.9999999999994835,
+                0.999999999999681,
+                0.9999999999998551,
+                0.9999999999999145,
+                0.9999999999999531,
+                0.9999999999999931,
+                0.9999999999999961,
+                0.9999999999999977,
+                0.9999999999999992,
+                0.9999999999999996,
+                0.9999999999999999,
+                0.9999999999999999,
+                1.0000000000000002,
+                1.0000000000000004,
+                1.0000000000000009,
+                1.0000000000000013,
+                1.0000000000000018,
+                1.0000000000000029,
+                1.0000000000000042,
+                1.000000000000009,
+                1.0000000000004925,
+                1.000000000000919,
+                1.0000000000012794,
+                1.0000000000018276,
+                1.0000000000028664,
+                1.0000000000040272,
+                1.0000000000054081,
+                1.000000000007084,
+                1.0000000000331202,
+                6.5424244769686615,
+                10.26029705733708,
+                112.26071436376982,
+                3339.0358227360375,
+                178017.3437120547,
+                357707.3737914497
+              ],
+              "hessian_minus_GN_fro": 0.0,
+              "logdet_hessian": 41.91795774620409,
+              "hessian_and_factorization_seconds": 0.00018342304974794388,
+              "wall_seconds": 0.0014015459455549717,
+              "stationarity_verified": true,
+              "no_numerical_quality_gate": true
+            }
+          },
+          "nonlinear_solver": {
+            "trials": [
+              {
+                "start": "same_original_prior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 12,
+                "objective": 66.10821691016892,
+                "gradient_inf": 1.7818386588430712e-07
+              },
+              {
+                "start": "original_single_affine_posterior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 8,
+                "objective": 66.1082169101689,
+                "gradient_inf": 4.2642345032817275e-07
+              }
+            ],
+            "selected_objective": 66.1082169101689,
+            "selected_score_inf": 4.2642345032817275e-07,
+            "hessian_step": 5e-05,
+            "hessian_asymmetry_fro": 4.46536785173676e-05,
+            "hessian_eigenvalues": [
+              0.8882965882576124,
+              0.9460883596424662,
+              0.9653031358940171,
+              0.9793762124876477,
+              0.9926457040862756,
+              0.9964229569173507,
+              0.9978616432707064,
+              0.9985343824693076,
+              0.9990882808690481,
+              0.9992006016666176,
+              0.9993715611243242,
+              0.9996917589853019,
+              0.9999182138877206,
+              0.9999504550536289,
+              0.9999746216616482,
+              0.9999798320622694,
+              0.9999999999584875,
+              0.9999999999949956,
+              0.9999999999990445,
+              0.9999999999993274,
+              0.9999999999998532,
+              0.9999999999999534,
+              1.0000000000001605,
+              1.0000000000006306,
+              1.000880355626235,
+              1.0032088207267025,
+              1.0042185034572104,
+              1.0095298968727162,
+              1.0118737951277474,
+              1.017460915245728,
+              1.0327196984734763,
+              1.0415609583867433,
+              1.0446073997891356,
+              1.0600908659545,
+              1.0791845432641904,
+              1.1451260857098164,
+              6.36993766974673,
+              7.94151702620774,
+              186.44000278501355,
+              3232.3674513437973,
+              180816.60357300774,
+              371197.3155664904
+            ],
+            "hessian_minus_GN_fro": 5.024547217118536,
+            "logdet_hessian": 42.34860649262464,
+            "hessian_and_factorization_seconds": 0.17199942516162992,
+            "wall_seconds": 0.21452366095036268,
+            "stationarity_verified": true,
+            "no_numerical_quality_gate": true
+          },
+          "finite_GN_from_original_prior_mode": {
+            "records": [
+              {
+                "iteration": 0,
+                "objective": 699045.4183911752,
+                "score_inf": 333107.3769436237,
+                "candidate_mean_norm": 0.0,
+                "tangent_completed_mean_objective": 2368.6706227558507,
+                "tangent_completed_mean_score_inf": 10921.769102155002,
+                "tangent_completed_mean_shift_norm": 11.122291440703219,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 10,
+                "objective": 66.1082169101686,
+                "score_inf": 8.896064329633191e-09,
+                "candidate_mean_norm": 10.721743327271767,
+                "tangent_completed_mean_objective": 66.10821691016892,
+                "tangent_completed_mean_score_inf": 1.5407701781100513e-09,
+                "tangent_completed_mean_shift_norm": 9.641321141474952e-09,
+                "accepted_alpha": 0.25,
+                "backtracks": 2
+              },
+              {
+                "iteration": 11,
+                "objective": 66.1082169101685,
+                "score_inf": 6.62366250736568e-09,
+                "candidate_mean_norm": 10.721743327290811,
+                "tangent_completed_mean_objective": 66.10821691016865,
+                "tangent_completed_mean_score_inf": 1.2982539487893519e-09,
+                "tangent_completed_mean_shift_norm": 6.915017290113884e-09
+              }
+            ],
+            "performed_iterations": 11,
+            "termination": {
+              "iteration": 11,
+              "reason": "Finite line-search trials did not satisfy Armijo; no numerical-quality failure or stationary claim is fabricated."
+            },
+            "wall_seconds": 0.0696258288808167
+          },
+          "candidate_map_jacobian_checks": {
+            "prior": {
+              "step": 1e-05,
+              "max_abs": 1.7556527412421197e-11,
+              "relative_fro": 2.968021985866707e-10
+            },
+            "old_affine_mean": {
+              "step": 1e-05,
+              "max_abs": 2.7630467358541466e-11,
+              "relative_fro": 3.5746614541931894e-10
+            },
+            "nonlinear_mode": {
+              "step": 1e-05,
+              "max_abs": 2.7508962122113623e-11,
+              "relative_fro": 3.982401856199054e-10
+            }
+          },
+          "old_affine_reexpressed_same_native_chart": {
+            "mode_whitened_residual_sq": 3613.957727554944,
+            "core_query_mean_whitened_residual_sq": 3896.2980495549764,
+            "gaussian_expected_log_likelihood": -18.58039379136905
+          },
+          "nonlinear_whitened_mode_residual_sq": 17.260653954173197,
+          "core_reexpressed_query_whitened_mean_residual_sq": 22.67625675546443,
+          "core_reexpressed_query_gaussian_expected_log_likelihood": 26.21968694664872,
+          "log_evidence_without_parent_weight": -53.006495780093644,
+          "global_log_weight": 0.0,
+          "global_weight": 1.0,
+          "GN_global_log_weight": 0.0,
+          "GN_global_weight": 1.0,
+          "local_rotation_mean_norms": {
+            "link_1": 0.12826560761788783,
+            "link_2": 0.08390114394961987,
+            "link_3": 0.13762059144920755,
+            "link_4": 0.07384909952753788,
+            "link_5": 0.19164763156044906,
+            "link_6": 0.3158905851176094,
+            "marker": 0.0009610199441051981
+          },
+          "parent_type": "Reset",
+          "GN_covariance_and_evidence": {
+            "log_evidence_without_parent_weight_same_mode": -52.88184848109428,
+            "finite_iterate_linear_score_correction": 9.484886657705822e-14,
+            "log_evidence_tangent_completed": -52.88184848109419,
+            "normalizer_scope": "Exact Gaussian integral of the one tangent likelihood at the selected finite iterate; not exact nonlinear evidence.",
+            "covariance_relative_fro_difference_from_actualH": 0.06739330917320449,
+            "covariance_max_abs_difference_from_actualH": 6.907473943807916e-05,
+            "core_query_mean_whitened_residual_sq": 22.45383643073569,
+            "core_query_gaussian_expected_log_likelihood": 26.286625262882595,
+            "tangent_completed_mean_actual_objective": 66.10821691016898,
+            "tangent_completed_mean_shift_norm": 4.307469852165948e-07,
+            "factorization_and_reexpression_wall_seconds": 0.0053779310546815395
+          }
+        }
+      ],
+      "GN_minus_actualH_log_BF_Reset_over_Keep": 1.3139459421979822,
+      "posthoc_physical_errors": [
+        {
+          "label": "original_Keep_prior",
+          "link6": {
+            "mode_position_error_m": 0.19260325359851913,
+            "mean_position_error_m": 0.19256562181259715,
+            "mode_rotation_error_rad": 0.3306599928883498
+          },
+          "hand": {
+            "mode_position_error_m": 0.32414399287303036,
+            "mean_position_error_m": 0.3242821691443793,
+            "mode_rotation_error_rad": 0.3306599928883498
+          }
+        },
+        {
+          "label": "original_canonical",
+          "link6": {
+            "mode_position_error_m": 0.29328662865192834,
+            "mean_position_error_m": 0.29319766244320167,
+            "mode_rotation_error_rad": 0.309473953570787
+          },
+          "hand": {
+            "mode_position_error_m": 0.3380613872913316,
+            "mean_position_error_m": 0.3382117673838096,
+            "mode_rotation_error_rad": 0.309473953570787
+          }
+        },
+        {
+          "label": "nonlinear_actualH:predicted:2954:0",
+          "link6": {
+            "mode_position_error_m": 0.23623573019296124,
+            "mean_position_error_m": 0.23641460201686773,
+            "mode_rotation_error_rad": 0.29184370942850824
+          },
+          "hand": {
+            "mode_position_error_m": 0.33408205258171453,
+            "mean_position_error_m": 0.33414542548008563,
+            "mode_rotation_error_rad": 0.29184370942850824
+          }
+        },
+        {
+          "label": "nonlinear_GN:predicted:2954:0",
+          "link6": {
+            "mode_position_error_m": 0.2362357431440685,
+            "mean_position_error_m": 0.2362585817164249,
+            "mode_rotation_error_rad": 0.2918436903322539
+          },
+          "hand": {
+            "mode_position_error_m": 0.334082057555281,
+            "mean_position_error_m": 0.33425489630164884,
+            "mode_rotation_error_rad": 0.2918436903322539
+          }
+        },
+        {
+          "label": "nonlinear_actualH:reset:8863",
+          "link6": {
+            "mode_position_error_m": 0.29148225383525084,
+            "mean_position_error_m": 0.2913879018363969,
+            "mode_rotation_error_rad": 0.29725376448121343
+          },
+          "hand": {
+            "mode_position_error_m": 0.3421793482724759,
+            "mean_position_error_m": 0.3420708461148178,
+            "mode_rotation_error_rad": 0.29725376448121343
+          }
+        },
+        {
+          "label": "nonlinear_GN:reset:8863",
+          "link6": {
+            "mode_position_error_m": 0.2914822537539363,
+            "mean_position_error_m": 0.29140552624055144,
+            "mode_rotation_error_rad": 0.29725376504846285
+          },
+          "hand": {
+            "mode_position_error_m": 0.342179348233563,
+            "mean_position_error_m": 0.34216548721841,
+            "mode_rotation_error_rad": 0.29725376504846285
+          }
+        }
+      ],
+      "posthoc_FK_tip_vs_recorded_max_abs": 0.0
+    },
+    "marker:148": {
+      "event_id": "image:00002961",
+      "stamp": 1792080048.1668048,
+      "command": [
+        0.09061456343280425,
+        -1.6741956218270326,
+        1.775647661184067,
+        -0.05983251167405364,
+        -0.8239062238971104,
+        -0.0012303704161333578
+      ],
+      "raw_payload_sha256": "eaa994c9a0da016e69e972ccfb43296735e2172303853f5ff90aa30cfeea1442",
+      "K_archive_sha256": "997c75d076d8e9b71fb8ef9587af626d2a399781c09d8f3570394ec295af99d1",
+      "K_archive_actual_sha256": "997c75d076d8e9b71fb8ef9587af626d2a399781c09d8f3570394ec295af99d1",
+      "K_archive_reference_path": "/tmp/probtf_cpp_sequential_live_20261018/marker/stiffness_jobs/00000148_0d338ad75b4339f7.json",
+      "K_archive_reference_sha256": "a881bf55282476ff9a8909de1e617f4681ad3df657e0ac51e4ef474a2fa6e14f",
+      "native_components": 1,
+      "native_central_regeneration_exact": true,
+      "GN_log_observation_evidence": 9.452043672556837,
+      "GN_reset_probability": 1.0,
+      "log_observation_evidence": 9.470706019937683,
+      "nonlinear_reset_probability": 1.0,
+      "frame_index": 2961,
+      "branches": [
+        {
+          "parent_label": "predicted:2961:0",
+          "parent_log_weight": -0.2876820724517809,
+          "native_component": "camera__to__marker:board_adf:bf914b32f5090325:0",
+          "native_log_weight": 0.0,
+          "source_prior_state_id": "4f0cc16d0263c962687ef9539931b30477c3436c1e17c1706f0e17ee73e8d840",
+          "support_rank": 42,
+          "support_reconstruction_max_abs": 1.734723475976807e-18,
+          "fixed_native_chart_log_volume": 0.0,
+          "legacy_parent_chart_log_volume": 0.006058895281914035,
+          "exact_linear_surrogate_oracle": {
+            "mean_max_abs": 6.765421556309548e-15,
+            "covariance_max_abs": 1.3379054808471125e-16,
+            "computed_log_evidence": -162.9541392865881,
+            "original_parent_log_evidence": -162.95413928659045,
+            "solver": {
+              "trials": [
+                {
+                  "start": "prior_mode",
+                  "finite": true,
+                  "success": true,
+                  "status": 1,
+                  "reason": "`gtol` termination condition is satisfied.",
+                  "evaluations": 6,
+                  "objective": 185.97975979953156,
+                  "gradient_inf": 1.721965734995753e-12
+                }
+              ],
+              "selected_objective": 185.97975979953156,
+              "selected_score_inf": 1.721965734995753e-12,
+              "hessian_step": null,
+              "hessian_asymmetry_fro": 0.0,
+              "hessian_eigenvalues": [
+                0.9999999999999208,
+                0.999999999999968,
+                0.9999999999999767,
+                0.9999999999999918,
+                0.9999999999999971,
+                0.9999999999999976,
+                0.9999999999999981,
+                0.9999999999999984,
+                0.9999999999999984,
+                0.9999999999999989,
+                0.9999999999999991,
+                0.9999999999999991,
+                0.9999999999999992,
+                0.9999999999999994,
+                0.9999999999999994,
+                0.9999999999999996,
+                0.9999999999999998,
+                1.0,
+                1.0,
+                1.0,
+                1.0000000000000002,
+                1.0000000000000002,
+                1.0000000000000002,
+                1.0000000000000004,
+                1.0000000000000004,
+                1.0000000000000007,
+                1.000000000000001,
+                1.0000000000000013,
+                1.0000000000000013,
+                1.000000000000002,
+                1.0000000000000038,
+                1.000000000000006,
+                1.0000000000000122,
+                1.0000000000000286,
+                1.0000000000000695,
+                1.0000000000001341,
+                1.1135286420053474,
+                1.5521060292674398,
+                2.7375124417912136,
+                9.741653315396555,
+                619.7877517307822,
+                1341.833592979975
+              ],
+              "hessian_minus_GN_fro": 0.0,
+              "logdet_hessian": 17.461776549459977,
+              "hessian_and_factorization_seconds": 0.00017635198310017586,
+              "wall_seconds": 0.0015682829543948174,
+              "stationarity_verified": true,
+              "no_numerical_quality_gate": true
+            }
+          },
+          "nonlinear_solver": {
+            "trials": [
+              {
+                "start": "same_original_prior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 45,
+                "objective": 186.93198189372032,
+                "gradient_inf": 9.65347017434226e-06
+              },
+              {
+                "start": "original_single_affine_posterior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 42,
+                "objective": 186.931981893847,
+                "gradient_inf": 1.5307474635406493e-05
+              }
+            ],
+            "selected_objective": 186.93198189372032,
+            "selected_score_inf": 9.65347017434226e-06,
+            "hessian_step": 5e-05,
+            "hessian_asymmetry_fro": 4.623169043522568e-06,
+            "hessian_eigenvalues": [
+              0.35021481430104207,
+              0.7560516225633075,
+              0.805286691010256,
+              0.9591692569068876,
+              0.9929429361765119,
+              0.9951013714859966,
+              0.995539780062113,
+              0.9967433490643254,
+              0.9976659162180879,
+              0.99807911804678,
+              0.9981296376673172,
+              0.9998353403892684,
+              0.9999597194940154,
+              0.9999911115400818,
+              0.9999946653032254,
+              0.9999997349747545,
+              0.9999999999965374,
+              0.99999999999868,
+              0.9999999999991335,
+              1.0000000000012206,
+              1.000000000001626,
+              1.0000000000016904,
+              1.0000000000026517,
+              1.000000000007132,
+              1.0035201110750416,
+              1.0061343344805687,
+              1.009043900017716,
+              1.0324955994524938,
+              1.0478469307931153,
+              1.065610063249692,
+              1.0733957558063405,
+              1.1193672450389396,
+              1.1329691286170975,
+              1.2185264649781788,
+              1.2856243180711526,
+              1.393472520950316,
+              1.7254267381514294,
+              1.8313459564042573,
+              2.5076685494849924,
+              11.779636489707766,
+              260.7161078035824,
+              1481.8809109107451
+            ],
+            "hessian_minus_GN_fro": 2.622952146756053,
+            "logdet_hessian": 17.037590762411472,
+            "hessian_and_factorization_seconds": 0.17523750197142363,
+            "wall_seconds": 0.3657055809162557,
+            "stationarity_verified": false,
+            "no_numerical_quality_gate": true
+          },
+          "finite_GN_from_original_prior_mode": {
+            "records": [
+              {
+                "iteration": 0,
+                "objective": 8894.41473399742,
+                "score_inf": 2248.1250056857093,
+                "candidate_mean_norm": 0.0,
+                "tangent_completed_mean_objective": 1860.7142141718252,
+                "tangent_completed_mean_score_inf": 833.1837455320693,
+                "tangent_completed_mean_shift_norm": 13.96072828564265,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 10,
+                "objective": 186.94531722670197,
+                "score_inf": 0.6193347850844138,
+                "candidate_mean_norm": 13.446173743664277,
+                "tangent_completed_mean_objective": 186.93755903731744,
+                "tangent_completed_mean_score_inf": 0.2724605030939262,
+                "tangent_completed_mean_shift_norm": 0.09485761355183309,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 20,
+                "objective": 186.93199824300882,
+                "score_inf": 0.005352627221733464,
+                "candidate_mean_norm": 13.438479227137881,
+                "tangent_completed_mean_objective": 186.93199466223064,
+                "tangent_completed_mean_score_inf": 0.004734276568898466,
+                "tangent_completed_mean_shift_norm": 0.007234538012533629,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 30,
+                "objective": 186.93198446552313,
+                "score_inf": 0.0019277129661610104,
+                "candidate_mean_norm": 13.438356831609358,
+                "tangent_completed_mean_objective": 186.93198406597503,
+                "tangent_completed_mean_score_inf": 0.001654971432197172,
+                "tangent_completed_mean_shift_norm": 0.0030704005266223556
+              }
+            ],
+            "performed_iterations": 30,
+            "termination": null,
+            "wall_seconds": 0.07393284607678652
+          },
+          "candidate_map_jacobian_checks": {
+            "prior": {
+              "step": 1e-05,
+              "max_abs": 6.198320649060049e-11,
+              "relative_fro": 6.542936015920257e-09
+            },
+            "old_affine_mean": {
+              "step": 1e-05,
+              "max_abs": 6.422330089885398e-11,
+              "relative_fro": 8.74679742879748e-09
+            },
+            "nonlinear_mode": {
+              "step": 1e-05,
+              "max_abs": 4.41774795998523e-11,
+              "relative_fro": 6.952287694151213e-09
+            }
+          },
+          "old_affine_reexpressed_same_native_chart": {
+            "mode_whitened_residual_sq": 3579.6739757701353,
+            "core_query_mean_whitened_residual_sq": 3489.1758854840314,
+            "gaussian_expected_log_likelihood": -71.2471429209761
+          },
+          "nonlinear_whitened_mode_residual_sq": 193.2752750862848,
+          "core_reexpressed_query_whitened_mean_residual_sq": 206.69464114100566,
+          "core_reexpressed_query_gaussian_expected_log_likelihood": -47.12643668987224,
+          "log_evidence_without_parent_weight": -163.6942684872526,
+          "global_log_weight": -173.45265657964208,
+          "global_weight": 4.68239854335483e-76,
+          "GN_global_log_weight": -173.24243324050363,
+          "GN_global_weight": 5.777862629681834e-76,
+          "local_rotation_mean_norms": {
+            "link_1": 0.06666165713015519,
+            "link_2": 0.023195910664951472,
+            "link_3": 0.18540751276285633,
+            "link_4": 0.10467430412931171,
+            "link_5": 0.15904448196720605,
+            "link_6": 0.10624185123255074,
+            "marker": 0.003413175954572126
+          },
+          "parent_type": "Keep",
+          "GN_covariance_and_evidence": {
+            "log_evidence_without_parent_weight_same_mode": -163.50270749561545,
+            "finite_iterate_linear_score_correction": 1.2045231697353655e-10,
+            "log_evidence_tangent_completed": -163.502707495495,
+            "normalizer_scope": "Exact Gaussian integral of the one tangent likelihood at the selected finite iterate; not exact nonlinear evidence.",
+            "covariance_relative_fro_difference_from_actualH": 0.5040952399043988,
+            "covariance_max_abs_difference_from_actualH": 0.0007696622839892542,
+            "core_query_mean_whitened_residual_sq": 196.8469406264443,
+            "core_query_gaussian_expected_log_likelihood": -42.939778583172135,
+            "tangent_completed_mean_actual_objective": 186.9319818936968,
+            "tangent_completed_mean_shift_norm": 1.5258037806574417e-05,
+            "factorization_and_reexpression_wall_seconds": 0.005360323935747147
+          }
+        },
+        {
+          "parent_label": "reset:8884",
+          "parent_log_weight": -1.3862943611198906,
+          "native_component": "camera__to__marker:board_adf:bf914b32f5090325:0",
+          "native_log_weight": 0.0,
+          "source_prior_state_id": "5f1a54f278da13a95689f6b9f302c90b0eaa595256694b3688eb83e0d51c0b72",
+          "support_rank": 42,
+          "support_reconstruction_max_abs": 2.168404344971009e-19,
+          "fixed_native_chart_log_volume": 0.0,
+          "legacy_parent_chart_log_volume": 0.0030058416383806448,
+          "exact_linear_surrogate_oracle": {
+            "mean_max_abs": 1.061650767297806e-15,
+            "covariance_max_abs": 6.372127218240431e-15,
+            "computed_log_evidence": 10.891019853923453,
+            "original_parent_log_evidence": 10.891019853922367,
+            "solver": {
+              "trials": [
+                {
+                  "start": "prior_mode",
+                  "finite": true,
+                  "success": true,
+                  "status": 1,
+                  "reason": "`gtol` termination condition is satisfied.",
+                  "evaluations": 3,
+                  "objective": 2.281012923266899,
+                  "gradient_inf": 2.8493499226733832e-11
+                }
+              ],
+              "selected_objective": 2.281012923266899,
+              "selected_score_inf": 2.8493499226733832e-11,
+              "hessian_step": null,
+              "hessian_asymmetry_fro": 0.0,
+              "hessian_eigenvalues": [
+                0.9999999999725169,
+                0.9999999999911341,
+                0.99999999999323,
+                0.9999999999956587,
+                0.9999999999969679,
+                0.9999999999982752,
+                0.9999999999990437,
+                0.9999999999998471,
+                0.9999999999998994,
+                0.9999999999999303,
+                0.9999999999999694,
+                0.9999999999999953,
+                0.9999999999999981,
+                0.999999999999999,
+                0.999999999999999,
+                0.9999999999999994,
+                0.9999999999999994,
+                0.9999999999999996,
+                1.0,
+                1.0000000000000002,
+                1.0000000000000004,
+                1.0000000000000007,
+                1.000000000000001,
+                1.0000000000000022,
+                1.0000000000000022,
+                1.0000000000000042,
+                1.0000000000000182,
+                1.0000000000001212,
+                1.0000000000002471,
+                1.000000000000486,
+                1.0000000000007558,
+                1.0000000000012144,
+                1.000000000002365,
+                1.000000000004097,
+                1.0000000000069407,
+                1.000000000025349,
+                4.272486711902313,
+                4.624294091540293,
+                26.640672298776476,
+                1719.6196486394206,
+                93263.94475285716,
+                164381.61165540162
+              ],
+              "hessian_minus_GN_fro": 0.0,
+              "logdet_hessian": 37.16895202096624,
+              "hessian_and_factorization_seconds": 0.00018085027113556862,
+              "wall_seconds": 0.0009455513209104538,
+              "stationarity_verified": true,
+              "no_numerical_quality_gate": true
+            }
+          },
+          "nonlinear_solver": {
+            "trials": [
+              {
+                "start": "same_original_prior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 7,
+                "objective": 2.342833806947988,
+                "gradient_inf": 2.4874235782235132e-08
+              },
+              {
+                "start": "original_single_affine_posterior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 6,
+                "objective": 2.342833806947964,
+                "gradient_inf": 1.704527630153052e-09
+              }
+            ],
+            "selected_objective": 2.342833806947964,
+            "selected_score_inf": 1.704527630153052e-09,
+            "hessian_step": 5e-05,
+            "hessian_asymmetry_fro": 2.5833770720941635e-05,
+            "hessian_eigenvalues": [
+              0.9716165941168985,
+              0.9844255233473072,
+              0.9891115480223948,
+              0.9946506680098696,
+              0.9960838874903875,
+              0.9970519935847939,
+              0.9978999508930352,
+              0.9984632277535326,
+              0.9986470418840921,
+              0.9996673978996892,
+              0.9997517147963872,
+              0.9998330595908604,
+              0.9999971988144724,
+              0.9999989264420669,
+              0.9999997117390196,
+              0.9999997632935688,
+              0.9999998120884221,
+              0.9999999999999555,
+              0.9999999999999836,
+              1.0000000000000084,
+              1.0000000000000338,
+              1.0000000000000657,
+              1.0000000000001261,
+              1.0000000000165148,
+              1.0000000000232354,
+              1.0000298047089944,
+              1.000050600464683,
+              1.0000668178363046,
+              1.000081141402827,
+              1.0001307792953482,
+              1.000174626298176,
+              1.0004788778287368,
+              1.0036569336331904,
+              1.0074419145803473,
+              1.0176243642830114,
+              1.026453216789901,
+              3.997075354385921,
+              4.710433908143495,
+              27.278487705440753,
+              1678.5415552816648,
+              92902.4638324811,
+              166823.2445018344
+            ],
+            "hessian_minus_GN_fro": 0.701740968002851,
+            "logdet_hessian": 37.11334919933586,
+            "hessian_and_factorization_seconds": 0.17152188532054424,
+            "wall_seconds": 0.19800170604139566,
+            "stationarity_verified": true,
+            "no_numerical_quality_gate": true
+          },
+          "finite_GN_from_original_prior_mode": {
+            "records": [
+              {
+                "iteration": 0,
+                "objective": 186592.25509625237,
+                "score_inf": 107625.69011981977,
+                "candidate_mean_norm": 0.0,
+                "tangent_completed_mean_objective": 757.8301468080432,
+                "tangent_completed_mean_score_inf": 4938.165455391958,
+                "tangent_completed_mean_shift_norm": 2.204362084580011,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 8,
+                "objective": 2.3428338069479295,
+                "score_inf": 1.8652319688783336e-09,
+                "candidate_mean_norm": 2.156754857971377,
+                "tangent_completed_mean_objective": 2.3428338069479624,
+                "tangent_completed_mean_score_inf": 3.860969322033725e-10,
+                "tangent_completed_mean_shift_norm": 1.6137032477814866e-09
+              }
+            ],
+            "performed_iterations": 8,
+            "termination": {
+              "iteration": 8,
+              "reason": "Finite line-search trials did not satisfy Armijo; no numerical-quality failure or stationary claim is fabricated."
+            },
+            "wall_seconds": 0.1311630615964532
+          },
+          "candidate_map_jacobian_checks": {
+            "prior": {
+              "step": 1e-05,
+              "max_abs": 2.0360216984594004e-11,
+              "relative_fro": 2.9606082061555787e-10
+            },
+            "old_affine_mean": {
+              "step": 1e-05,
+              "max_abs": 3.4424164907509436e-11,
+              "relative_fro": 4.492796626169169e-10
+            },
+            "nonlinear_mode": {
+              "step": 1e-05,
+              "max_abs": 2.6200515715335548e-11,
+              "relative_fro": 4.722650816865023e-10
+            }
+          },
+          "old_affine_reexpressed_same_native_chart": {
+            "mode_whitened_residual_sq": 1553.2372047428578,
+            "core_query_mean_whitened_residual_sq": 1652.8013422363567,
+            "gaussian_expected_log_likelihood": 21.337564346464205
+          },
+          "nonlinear_whitened_mode_residual_sq": 0.03407609647927083,
+          "core_reexpressed_query_whitened_mean_residual_sq": 1.0042020926466002,
+          "core_reexpressed_query_gaussian_expected_log_likelihood": 29.55217745726749,
+          "log_evidence_without_parent_weight": 10.857000381057574,
+          "global_log_weight": 0.0,
+          "global_weight": 1.0,
+          "GN_global_log_weight": 0.0,
+          "GN_global_weight": 1.0,
+          "local_rotation_mean_norms": {
+            "link_1": 0.02029139880510724,
+            "link_2": 0.02669217221870747,
+            "link_3": 0.04370489259287656,
+            "link_4": 0.03386330246205422,
+            "link_5": 0.03162998664382228,
+            "link_6": 0.03585723550810798,
+            "marker": 0.0007142542202958087
+          },
+          "parent_type": "Reset",
+          "GN_covariance_and_evidence": {
+            "log_evidence_without_parent_weight_same_mode": 10.838338033676727,
+            "finite_iterate_linear_score_correction": 1.4805668306371679e-18,
+            "log_evidence_tangent_completed": 10.838338033676727,
+            "normalizer_scope": "Exact Gaussian integral of the one tangent likelihood at the selected finite iterate; not exact nonlinear evidence.",
+            "covariance_relative_fro_difference_from_actualH": 0.01374432362261932,
+            "covariance_max_abs_difference_from_actualH": 1.5695107403533564e-05,
+            "core_query_mean_whitened_residual_sq": 1.3936136513325637,
+            "core_query_gaussian_expected_log_likelihood": 29.45912089465719,
+            "tangent_completed_mean_actual_objective": 2.342833806947958,
+            "tangent_completed_mean_shift_norm": 1.6790558418951993e-09,
+            "factorization_and_reexpression_wall_seconds": 0.005317957606166601
+          }
+        }
+      ],
+      "GN_minus_actualH_log_BF_Reset_over_Keep": -0.2102233391384445,
+      "posthoc_physical_errors": [
+        {
+          "label": "original_Keep_prior",
+          "link6": {
+            "mode_position_error_m": 0.28118568827419427,
+            "mean_position_error_m": 0.28110722848900926,
+            "mode_rotation_error_rad": 0.29563243604476647
+          },
+          "hand": {
+            "mode_position_error_m": 0.31292165540761896,
+            "mean_position_error_m": 0.3130960172417134,
+            "mode_rotation_error_rad": 0.29563243604476647
+          }
+        },
+        {
+          "label": "original_canonical",
+          "link6": {
+            "mode_position_error_m": 0.1790590394660307,
+            "mean_position_error_m": 0.17902397843723702,
+            "mode_rotation_error_rad": 0.3413918608797822
+          },
+          "hand": {
+            "mode_position_error_m": 0.31375308496487736,
+            "mean_position_error_m": 0.3139300487276802,
+            "mode_rotation_error_rad": 0.3413918608797822
+          }
+        },
+        {
+          "label": "nonlinear_actualH:predicted:2961:0",
+          "link6": {
+            "mode_position_error_m": 0.24616234118883445,
+            "mean_position_error_m": 0.2463949946207205,
+            "mode_rotation_error_rad": 0.3050661195944136
+          },
+          "hand": {
+            "mode_position_error_m": 0.3314534788979103,
+            "mean_position_error_m": 0.332239307406666,
+            "mode_rotation_error_rad": 0.3050661195944136
+          }
+        },
+        {
+          "label": "nonlinear_GN:predicted:2961:0",
+          "link6": {
+            "mode_position_error_m": 0.24616235004214362,
+            "mean_position_error_m": 0.24605809079653954,
+            "mode_rotation_error_rad": 0.30506611427277225
+          },
+          "hand": {
+            "mode_position_error_m": 0.33145348406660047,
+            "mean_position_error_m": 0.33144946428633615,
+            "mode_rotation_error_rad": 0.30506611427277225
+          }
+        },
+        {
+          "label": "nonlinear_actualH:reset:8884",
+          "link6": {
+            "mode_position_error_m": 0.1739409152838038,
+            "mean_position_error_m": 0.17387197538803167,
+            "mode_rotation_error_rad": 0.3396737154730734
+          },
+          "hand": {
+            "mode_position_error_m": 0.3089197395903881,
+            "mean_position_error_m": 0.30897090371000036,
+            "mode_rotation_error_rad": 0.3396737154730734
+          }
+        },
+        {
+          "label": "nonlinear_GN:reset:8884",
+          "link6": {
+            "mode_position_error_m": 0.1739409152818149,
+            "mean_position_error_m": 0.17388580105646761,
+            "mode_rotation_error_rad": 0.3396737154763897
+          },
+          "hand": {
+            "mode_position_error_m": 0.30891973958960434,
+            "mean_position_error_m": 0.3090043458076651,
+            "mode_rotation_error_rad": 0.3396737154763897
+          }
+        }
+      ],
+      "posthoc_FK_tip_vs_recorded_max_abs": 0.0
+    },
+    "imu_marker:487": {
+      "event_id": "image:00002698",
+      "stamp": 1792080056.7551444,
+      "command": [
+        -0.2452861473036815,
+        -1.6639355142974352,
+        1.8452691236709864,
+        0.07329874236533739,
+        -0.9442109933138909,
+        -0.04604025510528898
+      ],
+      "raw_payload_sha256": "d2ad36564fff3ca9c2723f8e5f3c5e0267031de78933c21b137f3fbb2124b377",
+      "K_archive_sha256": "543baac5ca58eac359e08dc234b112332f1252aaebdb98b785a58a331a7d354f",
+      "K_archive_actual_sha256": "543baac5ca58eac359e08dc234b112332f1252aaebdb98b785a58a331a7d354f",
+      "K_archive_reference_path": "/tmp/probtf_cpp_sequential_live_20261018/imu_marker/stiffness_jobs/00000487_7c3138879b8cde0c.json",
+      "K_archive_reference_sha256": "56450a136f225648c485bc0a8086cff155336b4b05b52ae4c29d4537262e72a1",
+      "native_components": 1,
+      "native_central_regeneration_exact": true,
+      "GN_log_observation_evidence": -23.2948187007829,
+      "GN_reset_probability": 1.0,
+      "log_observation_evidence": -23.065092614202744,
+      "nonlinear_reset_probability": 1.0,
+      "frame_index": 2698,
+      "branches": [
+        {
+          "parent_label": "predicted:2698:0",
+          "parent_log_weight": -0.2876820724517809,
+          "native_component": "camera__to__marker:board_adf:09219eee63321170:0",
+          "native_log_weight": 0.0,
+          "source_prior_state_id": "4a9b8dcc365e66a3c8d975a8349b66ecc5023232dc284698f3b36deb08edab3d",
+          "support_rank": 42,
+          "support_reconstruction_max_abs": 2.6020852139652106e-18,
+          "fixed_native_chart_log_volume": 0.0,
+          "legacy_parent_chart_log_volume": 0.0037095443403477963,
+          "exact_linear_surrogate_oracle": {
+            "mean_max_abs": 2.279704203189681e-13,
+            "covariance_max_abs": 7.686993402922226e-17,
+            "computed_log_evidence": -331.2222361977547,
+            "original_parent_log_evidence": -331.22223619804316,
+            "solver": {
+              "trials": [
+                {
+                  "start": "prior_mode",
+                  "finite": true,
+                  "success": true,
+                  "status": 1,
+                  "reason": "`gtol` termination condition is satisfied.",
+                  "evaluations": 6,
+                  "objective": 354.4687307876335,
+                  "gradient_inf": 7.744915819785092e-13
+                }
+              ],
+              "selected_objective": 354.4687307876335,
+              "selected_score_inf": 7.744915819785092e-13,
+              "hessian_step": null,
+              "hessian_asymmetry_fro": 0.0,
+              "hessian_eigenvalues": [
+                0.9999999999999898,
+                0.9999999999999953,
+                0.9999999999999971,
+                0.9999999999999981,
+                0.9999999999999987,
+                0.9999999999999987,
+                0.9999999999999987,
+                0.9999999999999989,
+                0.9999999999999989,
+                0.999999999999999,
+                0.9999999999999991,
+                0.9999999999999992,
+                0.9999999999999994,
+                0.9999999999999997,
+                0.9999999999999997,
+                0.9999999999999997,
+                0.9999999999999998,
+                0.9999999999999998,
+                0.9999999999999998,
+                1.0,
+                1.0,
+                1.0000000000000002,
+                1.0000000000000002,
+                1.0000000000000002,
+                1.0000000000000004,
+                1.0000000000000007,
+                1.0000000000000007,
+                1.0000000000000007,
+                1.0000000000000009,
+                1.0000000000000009,
+                1.0000000000000009,
+                1.000000000000001,
+                1.0000000000000016,
+                1.000000000000002,
+                1.0000000000000024,
+                1.000000000000016,
+                1.002267672372586,
+                1.0153662943886301,
+                1.0907863260071429,
+                1.4287315851139162,
+                11.35821656159479,
+                233.74539598782457
+              ],
+              "hessian_minus_GN_fro": 0.0,
+              "logdet_hessian": 8.345374296862275,
+              "hessian_and_factorization_seconds": 0.00017909705638885498,
+              "wall_seconds": 0.0015400098636746407,
+              "stationarity_verified": true,
+              "no_numerical_quality_gate": true
+            }
+          },
+          "nonlinear_solver": {
+            "trials": [
+              {
+                "start": "same_original_prior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 64,
+                "objective": 257.84088857906477,
+                "gradient_inf": 6.93922419792159e-06
+              },
+              {
+                "start": "original_single_affine_posterior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 69,
+                "objective": 257.84088857907767,
+                "gradient_inf": 7.004455210513072e-06
+              }
+            ],
+            "selected_objective": 257.84088857906477,
+            "selected_score_inf": 6.93922419792159e-06,
+            "hessian_step": 5e-05,
+            "hessian_asymmetry_fro": 1.105184633929555e-06,
+            "hessian_eigenvalues": [
+              0.17088461479146627,
+              0.575426121394641,
+              0.6572651262536758,
+              0.7363519937465549,
+              0.8320548409340461,
+              0.8495113056997831,
+              0.9068382101158795,
+              0.9377670226441941,
+              0.9564961071080549,
+              0.9692947477213665,
+              0.9889457407190361,
+              0.9944043841126121,
+              0.9993188270740283,
+              0.9997452921249856,
+              0.9999598643644896,
+              0.9999917353553306,
+              0.99999999999212,
+              0.9999999999932995,
+              0.9999999999978986,
+              0.9999999999993621,
+              1.000000000000083,
+              1.0000000000018512,
+              1.0000000000049691,
+              1.0000000000057496,
+              1.0000044796921363,
+              1.0008724524597945,
+              1.0012861657344816,
+              1.002678654327634,
+              1.0038301711194202,
+              1.0058494052861997,
+              1.0068497096660307,
+              1.0075839973147722,
+              1.0100529360729458,
+              1.0128117477255278,
+              1.0229894939357675,
+              1.0425005010480857,
+              1.0736817044903333,
+              1.3569306177020906,
+              1.7634189633245212,
+              3.8227027727564877,
+              141.17789965558725,
+              336.7228304122675
+            ],
+            "hessian_minus_GN_fro": 2.1350910729873087,
+            "logdet_hessian": 9.52227172002472,
+            "hessian_and_factorization_seconds": 0.1731314449571073,
+            "wall_seconds": 0.4592901640571654,
+            "stationarity_verified": false,
+            "no_numerical_quality_gate": true
+          },
+          "finite_GN_from_original_prior_mode": {
+            "records": [
+              {
+                "iteration": 0,
+                "objective": 7592.4864821225165,
+                "score_inf": 1393.8759150274511,
+                "candidate_mean_norm": 0.0,
+                "tangent_completed_mean_objective": 767.3743397581172,
+                "tangent_completed_mean_score_inf": 207.8865701841712,
+                "tangent_completed_mean_shift_norm": 12.535508920785503,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 10,
+                "objective": 257.96747131766443,
+                "score_inf": 0.2149375904595019,
+                "candidate_mean_norm": 11.721141707947723,
+                "tangent_completed_mean_objective": 257.92698309419006,
+                "tangent_completed_mean_score_inf": 0.35077589947807297,
+                "tangent_completed_mean_shift_norm": 0.28743972949869184,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 20,
+                "objective": 257.8436708759883,
+                "score_inf": 0.02127183031022639,
+                "candidate_mean_norm": 11.754932406945427,
+                "tangent_completed_mean_objective": 257.84279660192544,
+                "tangent_completed_mean_score_inf": 0.017304726302529615,
+                "tangent_completed_mean_shift_norm": 0.03320920122093568,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 30,
+                "objective": 257.84095353715384,
+                "score_inf": 0.002673897333225206,
+                "candidate_mean_norm": 11.754958449365775,
+                "tangent_completed_mean_objective": 257.8409332356122,
+                "tangent_completed_mean_score_inf": 0.0021647603409569306,
+                "tangent_completed_mean_shift_norm": 0.004760092314843292
+              }
+            ],
+            "performed_iterations": 30,
+            "termination": null,
+            "wall_seconds": 0.07174905436113477
+          },
+          "candidate_map_jacobian_checks": {
+            "prior": {
+              "step": 1e-05,
+              "max_abs": 4.749148600760784e-11,
+              "relative_fro": 1.21734186546597e-08
+            },
+            "old_affine_mean": {
+              "step": 1e-05,
+              "max_abs": 4.175941921901946e-11,
+              "relative_fro": 8.904683192488652e-09
+            },
+            "nonlinear_mode": {
+              "step": 1e-05,
+              "max_abs": 5.1942407880835144e-11,
+              "relative_fro": 1.0683887973645785e-08
+            }
+          },
+          "old_affine_reexpressed_same_native_chart": {
+            "mode_whitened_residual_sq": 1380.0506367558244,
+            "core_query_mean_whitened_residual_sq": 1379.9621110055639,
+            "gaussian_expected_log_likelihood": -219.012388716517
+          },
+          "nonlinear_whitened_mode_residual_sq": 377.5062273864965,
+          "core_reexpressed_query_whitened_mean_residual_sq": 392.0992352790253,
+          "core_reexpressed_query_gaussian_expected_log_likelihood": -146.74259383139474,
+          "log_evidence_without_parent_weight": -235.1828427007672,
+          "global_log_weight": -212.40543215901624,
+          "global_weight": 5.6688228696912724e-93,
+          "GN_global_log_weight": -213.60052250380406,
+          "GN_global_weight": 1.7158200758104055e-93,
+          "local_rotation_mean_norms": {
+            "link_1": 0.13260338638978453,
+            "link_2": 0.08956871226201654,
+            "link_3": 0.11773760243632013,
+            "link_4": 0.22830606404846687,
+            "link_5": 0.10265038353545854,
+            "link_6": 0.2805656919991381,
+            "marker": 0.011966216095235134
+          },
+          "parent_type": "Keep",
+          "GN_covariance_and_evidence": {
+            "log_evidence_without_parent_weight_same_mode": -236.60765913222798,
+            "finite_iterate_linear_score_correction": 9.27851260406663e-11,
+            "log_evidence_tangent_completed": -236.60765913213518,
+            "normalizer_scope": "Exact Gaussian integral of the one tangent likelihood at the selected finite iterate; not exact nonlinear evidence.",
+            "covariance_relative_fro_difference_from_actualH": 0.7588807038551801,
+            "covariance_max_abs_difference_from_actualH": 0.0018386413374095625,
+            "core_query_mean_whitened_residual_sq": 376.69229341599737,
+            "core_query_gaussian_expected_log_likelihood": -146.87246728602537,
+            "tangent_completed_mean_actual_objective": 257.8408885788965,
+            "tangent_completed_mean_shift_norm": 1.361313639656816e-05,
+            "factorization_and_reexpression_wall_seconds": 0.005378010682761669
+          }
+        },
+        {
+          "parent_label": "reset:8095",
+          "parent_log_weight": -1.3862943611198906,
+          "native_component": "camera__to__marker:board_adf:09219eee63321170:0",
+          "native_log_weight": 0.0,
+          "source_prior_state_id": "6ef408491c63da70d2a9c39d281296fe591a00701a757c137143017e71b2a213",
+          "support_rank": 42,
+          "support_reconstruction_max_abs": 2.6905583142398245e-19,
+          "fixed_native_chart_log_volume": 0.0,
+          "legacy_parent_chart_log_volume": 0.031092309552645796,
+          "exact_linear_surrogate_oracle": {
+            "mean_max_abs": 5.551115123125783e-15,
+            "covariance_max_abs": 1.5870280350299693e-15,
+            "computed_log_evidence": -27.391207026656684,
+            "original_parent_log_evidence": -27.391207026655472,
+            "solver": {
+              "trials": [
+                {
+                  "start": "prior_mode",
+                  "finite": true,
+                  "success": true,
+                  "status": 1,
+                  "reason": "`gtol` termination condition is satisfied.",
+                  "evaluations": 5,
+                  "objective": 39.433645594574955,
+                  "gradient_inf": 1.2040146657454898e-11
+                }
+              ],
+              "selected_objective": 39.433645594574955,
+              "selected_score_inf": 1.2040146657454898e-11,
+              "hessian_step": null,
+              "hessian_asymmetry_fro": 0.0,
+              "hessian_eigenvalues": [
+                0.999999999993061,
+                0.9999999999971914,
+                0.9999999999978709,
+                0.9999999999984838,
+                0.9999999999988768,
+                0.9999999999994315,
+                0.9999999999997112,
+                0.9999999999998738,
+                0.9999999999999227,
+                0.9999999999999912,
+                0.9999999999999973,
+                0.9999999999999989,
+                0.9999999999999992,
+                0.9999999999999993,
+                0.9999999999999996,
+                0.9999999999999996,
+                0.9999999999999997,
+                1.0,
+                1.0000000000000002,
+                1.0000000000000004,
+                1.0000000000000007,
+                1.0000000000000009,
+                1.000000000000001,
+                1.0000000000000018,
+                1.0000000000000018,
+                1.0000000000000038,
+                1.000000000000005,
+                1.000000000000026,
+                1.0000000000000677,
+                1.0000000000001237,
+                1.000000000000395,
+                1.0000000000009488,
+                1.0000000000013092,
+                1.000000000002294,
+                1.0000000000031788,
+                1.0000000000036735,
+                1.1437087241121262,
+                1.8128841074216615,
+                13.851169393054256,
+                429.5227313959692,
+                24480.199004001897,
+                75178.97570843583
+              ],
+              "hessian_minus_GN_fro": 0.0,
+              "logdet_hessian": 30.753486340783326,
+              "hessian_and_factorization_seconds": 0.00018126005306839943,
+              "wall_seconds": 0.001375305000692606,
+              "stationarity_verified": true,
+              "no_numerical_quality_gate": true
+            }
+          },
+          "nonlinear_solver": {
+            "trials": [
+              {
+                "start": "same_original_prior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 14,
+                "objective": 33.893377294387136,
+                "gradient_inf": 3.983856053935142e-07
+              },
+              {
+                "start": "original_single_affine_posterior_mode",
+                "finite": true,
+                "success": true,
+                "status": 2,
+                "reason": "`ftol` termination condition is satisfied.",
+                "evaluations": 9,
+                "objective": 33.89337729438854,
+                "gradient_inf": 1.3178739557417884e-06
+              }
+            ],
+            "selected_objective": 33.893377294387136,
+            "selected_score_inf": 3.983856053935142e-07,
+            "hessian_step": 5e-05,
+            "hessian_asymmetry_fro": 1.1933241060473541e-05,
+            "hessian_eigenvalues": [
+              0.8186682393362377,
+              0.9105759132451176,
+              0.9524526248828792,
+              0.9589257456099797,
+              0.9724198996743917,
+              0.9822153785431507,
+              0.982346119707882,
+              0.9878542986175688,
+              0.9924971067635234,
+              0.9947793181890083,
+              0.9985794333473406,
+              0.99909868014392,
+              0.9998657948825256,
+              0.9999600043164765,
+              0.9999857576162338,
+              0.99999173920296,
+              0.9999927220803182,
+              0.9999999999946686,
+              0.9999999999990159,
+              0.9999999999995253,
+              0.9999999999997934,
+              1.0000000000000664,
+              1.00000000000011,
+              1.0000000000005869,
+              1.0000000000032665,
+              1.0001597525130475,
+              1.0003094600777007,
+              1.0004887723960119,
+              1.0006216370183123,
+              1.0006500220190166,
+              1.0009520747934177,
+              1.0014216919639662,
+              1.012433958079801,
+              1.0135835863840343,
+              1.046437690187451,
+              1.0561079785158034,
+              1.0999468350573787,
+              1.7136689978430575,
+              10.120242557731608,
+              451.4010281185867,
+              29500.12175463174,
+              89453.84501495438
+            ],
+            "hessian_minus_GN_fro": 3.9765330735766224,
+            "logdet_hessian": 30.409205394011305,
+            "hessian_and_factorization_seconds": 0.17339649610221386,
+            "wall_seconds": 0.22189953597262502,
+            "stationarity_verified": true,
+            "no_numerical_quality_gate": true
+          },
+          "finite_GN_from_original_prior_mode": {
+            "records": [
+              {
+                "iteration": 0,
+                "objective": 1153637.357721922,
+                "score_inf": 188447.17500373753,
+                "candidate_mean_norm": 0.0,
+                "tangent_completed_mean_objective": 9008.370129664438,
+                "tangent_completed_mean_score_inf": 8099.301178845951,
+                "tangent_completed_mean_shift_norm": 7.983869803080177,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 10,
+                "objective": 33.893377294395236,
+                "score_inf": 2.7964536020164132e-06,
+                "candidate_mean_norm": 7.843022355327898,
+                "tangent_completed_mean_objective": 33.89337729438749,
+                "tangent_completed_mean_score_inf": 6.483389149991581e-07,
+                "tangent_completed_mean_shift_norm": 3.3346581247213343e-06,
+                "accepted_alpha": 1.0,
+                "backtracks": 0
+              },
+              {
+                "iteration": 16,
+                "objective": 33.89337729438687,
+                "score_inf": 1.758971990284408e-08,
+                "candidate_mean_norm": 7.843022452387575,
+                "tangent_completed_mean_objective": 33.89337729438712,
+                "tangent_completed_mean_score_inf": 4.054612645632005e-09,
+                "tangent_completed_mean_shift_norm": 2.121109518191134e-08
+              }
+            ],
+            "performed_iterations": 16,
+            "termination": {
+              "iteration": 16,
+              "reason": "Finite line-search trials did not satisfy Armijo; no numerical-quality failure or stationary claim is fabricated."
+            },
+            "wall_seconds": 0.11876121023669839
+          },
+          "candidate_map_jacobian_checks": {
+            "prior": {
+              "step": 1e-05,
+              "max_abs": 1.7568774560161593e-11,
+              "relative_fro": 3.070463042997142e-10
+            },
+            "old_affine_mean": {
+              "step": 1e-05,
+              "max_abs": 4.505181991354412e-11,
+              "relative_fro": 4.24747666238216e-10
+            },
+            "nonlinear_mode": {
+              "step": 1e-05,
+              "max_abs": 2.760066307450071e-11,
+              "relative_fro": 3.912047635629733e-10
+            }
+          },
+          "old_affine_reexpressed_same_native_chart": {
+            "mode_whitened_residual_sq": 16939.744559922234,
+            "core_query_mean_whitened_residual_sq": 16757.1330072766,
+            "gaussian_expected_log_likelihood": -435.38399524918896
+          },
+          "nonlinear_whitened_mode_residual_sq": 6.273753597915346,
+          "core_reexpressed_query_whitened_mean_residual_sq": 6.391105711324707,
+          "core_reexpressed_query_gaussian_expected_log_likelihood": 23.85348585485347,
+          "log_evidence_without_parent_weight": -21.678798253082853,
+          "global_log_weight": 0.0,
+          "global_weight": 1.0,
+          "GN_global_log_weight": 0.0,
+          "GN_global_weight": 1.0,
+          "local_rotation_mean_norms": {
+            "link_1": 0.04530093315678369,
+            "link_2": 0.05141912241617866,
+            "link_3": 0.17528238546484604,
+            "link_4": 0.1290363684421448,
+            "link_5": 0.11439658674729647,
+            "link_6": 0.15826299527521956,
+            "marker": 0.001797528170590155
+          },
+          "parent_type": "Reset",
+          "GN_covariance_and_evidence": {
+            "log_evidence_without_parent_weight_same_mode": -21.90852433966314,
+            "finite_iterate_linear_score_correction": 1.2629025711097792e-13,
+            "log_evidence_tangent_completed": -21.90852433966301,
+            "normalizer_scope": "Exact Gaussian integral of the one tangent likelihood at the selected finite iterate; not exact nonlinear evidence.",
+            "covariance_relative_fro_difference_from_actualH": 0.08933499997908856,
+            "covariance_max_abs_difference_from_actualH": 0.00011783812168818567,
+            "core_query_mean_whitened_residual_sq": 5.975773724060749,
+            "core_query_gaussian_expected_log_likelihood": 23.936731960252786,
+            "tangent_completed_mean_actual_objective": 33.89337729438701,
+            "tangent_completed_mean_shift_norm": 4.803537787771946e-07,
+            "factorization_and_reexpression_wall_seconds": 0.005558832082897425
+          }
+        }
+      ],
+      "GN_minus_actualH_log_BF_Reset_over_Keep": 1.195090344787829,
+      "posthoc_physical_errors": [
+        {
+          "label": "original_Keep_prior",
+          "link6": {
+            "mode_position_error_m": 0.0784521965355868,
+            "mean_position_error_m": 0.0782646373785649,
+            "mode_rotation_error_rad": 0.11150966031168238
+          },
+          "hand": {
+            "mode_position_error_m": 0.09742338673797586,
+            "mean_position_error_m": 0.0973194849525753,
+            "mode_rotation_error_rad": 0.11150966031168238
+          }
+        },
+        {
+          "label": "original_canonical",
+          "link6": {
+            "mode_position_error_m": 0.12401285473945224,
+            "mean_position_error_m": 0.12361564699621386,
+            "mode_rotation_error_rad": 0.05259227693436222
+          },
+          "hand": {
+            "mode_position_error_m": 0.11920017368034848,
+            "mean_position_error_m": 0.1187817966738254,
+            "mode_rotation_error_rad": 0.05259227693436222
+          }
+        },
+        {
+          "label": "nonlinear_actualH:predicted:2698:0",
+          "link6": {
+            "mode_position_error_m": 0.07038403023758161,
+            "mean_position_error_m": 0.06998087616560322,
+            "mode_rotation_error_rad": 0.11589329805742
+          },
+          "hand": {
+            "mode_position_error_m": 0.08943918094183571,
+            "mean_position_error_m": 0.0889457428632674,
+            "mode_rotation_error_rad": 0.11589329805742
+          }
+        },
+        {
+          "label": "nonlinear_GN:predicted:2698:0",
+          "link6": {
+            "mode_position_error_m": 0.07038403238331324,
+            "mean_position_error_m": 0.07021195467304567,
+            "mode_rotation_error_rad": 0.1158933121245842
+          },
+          "hand": {
+            "mode_position_error_m": 0.08943918378928545,
+            "mean_position_error_m": 0.0892919236103195,
+            "mode_rotation_error_rad": 0.1158933121245842
+          }
+        },
+        {
+          "label": "nonlinear_actualH:reset:8095",
+          "link6": {
+            "mode_position_error_m": 0.10880896452228701,
+            "mean_position_error_m": 0.1088092197235835,
+            "mode_rotation_error_rad": 0.09974462277153161
+          },
+          "hand": {
+            "mode_position_error_m": 0.08330536635773708,
+            "mean_position_error_m": 0.0833381666022702,
+            "mode_rotation_error_rad": 0.09974462277153161
+          }
+        },
+        {
+          "label": "nonlinear_GN:reset:8095",
+          "link6": {
+            "mode_position_error_m": 0.10880896515173527,
+            "mean_position_error_m": 0.108844837177944,
+            "mode_rotation_error_rad": 0.09974462840204426
+          },
+          "hand": {
+            "mode_position_error_m": 0.08330536548116181,
+            "mean_position_error_m": 0.08348396668056955,
+            "mode_rotation_error_rad": 0.09974462840204426
+          }
+        }
+      ],
+      "posthoc_FK_tip_vs_recorded_max_abs": 0.0
+    }
+  }
+}

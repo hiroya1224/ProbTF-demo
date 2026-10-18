@@ -1,0 +1,29 @@
+# 非線形観測更新の検証範囲レビュー
+
+新しいgeneric solverとmodelの試験は、最終の非軸antipode回帰2ケースを含めて23ケースです。既存のBFS・MovingInferenceを合わせたfocused試験は39件、4.91秒で通過しました。全1124件／183.04秒というrootの報告は、この最終境界修正より前のsourceです。新しい90秒試行も境界修正前であり、修正後の実走結果として扱えません。
+
+## 確認したこと
+
+- affineの場合は一回のGN更新で既存coreのGaussian条件付けへ戻ります。非零平均・密な全cross・相関した観測noiseを使い、平均／全共分散／正規化定数込みevidenceを比較しました。rank2支持のDirac行列成分を零のまま保ち、rank0では固定一点の正規化尤度だけをevidenceにすることも検査しました。
+- 元priorを一度だけ使い、反復で同じ尤度を累乗しないことを1回対20回のaffine oracleで確認しました。非線形exp残差では、返した点の元の非線形目的関数を独立に再計算し、真の目的関数によるbacktrackと受理値の単調性を確認しました。
+- 反復予算零やline search不採用でも有限proxyを返し、非stationaryであると記録します。初期NaNや必要な観測covarianceのCholesky不能は実失敗です。大きなtrialだけがNaNになる場合は、短縮した有限trialへ進めます。
+- 取得された実画像・IMUを使い、固定native画像chartの有限候補合成とJacobianを決定論的差分で比較しました。候補点の幾何にcoreのO(P)平均補正を加えていません。IMUの角度残差と全共同座標微分も独立に比較しました。
+- 一枚の画像をKeep/Resetの両親で共有し、元priorのobject・全covariance・時刻・指令を保持します。旧local posterior liftを禁止した状態で、直接joint Gaussian枝を返せます。native log weightが−1000で通常weightが零へunderflowしても、その枝と有限log質量を残します。
+- 同期一回の観測積は入力を反転・重複してもrecords、Gaussian、質量、lineageまで同一です。逆にした親順はそのままです。この交換不変性を、移動・BFS・単峰化を挟む時系列更新の交換不変性へ広げてはいません。
+- standaloneとcombinedはnative尤度の元パラメータ／質量／source priorを厳密に共有します。共同事後のcore push-forwardであるlocal viewのevidenceや事後IDまで同じとは要求しません。冗長なevidence診断だけの有限摂動では実lawを変えず次イベントへ進み、NaNでは実失敗になります。
+
+## 発見して修正した境界
+
+従来のantipode回帰は観測方向がz軸の場合だけでした。非軸方向では、厳密な反平行ベクトルでも基底の丸めによりBᵀdが約1.63e−16となり、s==0という入口を通りませんでした。有限な約1.24e16のJacobianを返すことを再現しました。
+
+実走中のsourceは変更せず、停止とhash照合をrootが確認した後、crossがmachine上で厳密に零かつ内積が負である反平行点も真のchart cutとする最小修正を入れました。角度許容帯は追加していません。非軸2ケースの厳密反対方向では例外となり、横ずれ1e−10の有限な近傍は計算を続けます。scalar尤度・GN式・共分散・evidenceは変えていません。
+
+## 有意な不足と解釈の限界
+
+generic試験は有限予算で返せることを確認しますが、予算零に設定した実async sessionがその後の取得もdrainする専用回帰はありません。また、全branch保持のunderflow試験では同じ幾何を複製しており、異なる姿勢の複数native modeが競合する小さな独立oracleは追加余地があります。
+
+新しいmodel試験では取得時刻／指令の同一参照を確認していますが、異なる時刻の遅着・実ledger・同時刻sequence全体の正しさは外側の既存worker試験と実走archiveの監査範囲です。同期積の試験で、その全時系列を検証したとは言えません。
+
+非線形の厳密moment、厳密evidence、actual Hessian Laplace、大域最適解、同じnative成分内に隠れた全事後modeの発見は保証していません。GN-Laplaceの近似差は独立prototypeで別途評価されています。全テスト通過は、90秒の計算率、リンクの跳ねの解消、絶対姿勢の正しさ、物理到達の証明ではありません。
+
+詳細とsource/test hashは `/tmp/probtf_nonlinear_test_scope_review_20261018.json`、最小修正のfocused結果とhashは `/tmp/probtf_nonlinear_exact_antipode_fix_manifest_20261018.json` に保存しました。

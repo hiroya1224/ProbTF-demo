@@ -8,13 +8,12 @@
 
 親ごとに原priorを固定し、その共同局所座標を $z\sim\mathcal N(0,P_0)$ とする。観測空間の近似は
 
-$$m_0=h(0)+b(P_0),\qquad h(z)\simeq m_0+J_0z$$
+$m_0=h(0)+b(P_0),\qquad h(z)\simeq m_0+J_0z$
 
 で固定する。$b(P_0)$ は既存coreが計算する、全crossを含む共分散一次の平均補正である。画像成分の局所Gaussianを $y_k,R_k$ とすると、各成分について
 
-$$S_k=J_0P_0J_0^\top+R_k,$$
-$$\mu_k=P_0J_0^\top S_k^{-1}(y_k-m_0),\qquad
-P_k=P_0-P_0J_0^\top S_k^{-1}J_0P_0$$
+$S_k=J_0P_0J_0^\top+R_k,$
+$\mu_k=P_0J_0^\top S_k^{-1}(y_k-m_0),\qquad P_k=P_0-P_0J_0^\top S_k^{-1}J_0P_0$
 
 を得る。画像の全成分とKeep/Resetの重みは、元のlog evidenceとlog weightで保持している。今回の確認では、原保存queryの平均・共分散・Jacobianは再計算とbitwise一致し、この式による直接条件付けと保存raw joint事後の差は、平均最大 $5.46\times10^{-14}$、全crossを含む共分散最大 $2.30\times10^{-17}$ だった。
 
@@ -24,17 +23,15 @@ P_k=P_0-P_0J_0^\top S_k^{-1}J_0P_0$$
 
 凍結モデルが見込む平均は
 
-$$m_{\rm affine}=h(0)+b(P_0)+J_0\mu.$$
+$m_{\rm affine}=h(0)+b(P_0)+J_0\mu.$
 
 一方、事後の各リンクを有限の $\mu$ だけ動かし、全交差共分散を同じcoreのchartで輸送して再照会すると
 
-$$m_{\rm compose}=h(\mu)+b_\mu(\widetilde P)$$
+$m_{\rm compose}=h(\mu)+b_\mu(\widetilde P)$
 
 となる。位置について、その差を実際に
 
-$$m_{\rm compose}-m_{\rm affine}
-=\underbrace{h(\mu)-h(0)-J_0\mu}_{\text{有限移動のmodal Taylor残差}}
-+\underbrace{b_\mu(\widetilde P)-b(P_0)}_{\text{共分散が変わることによる平均補正の差}}$$
+$m_{\rm compose}-m_{\rm affine} =\underbrace{h(\mu)-h(0)-J_0\mu}_{\text{有限移動のmodal Taylor残差}} +\underbrace{b_\mu(\widetilde P)-b(P_0)}_{\text{共分散が変わることによる平均補正の差}}$
 
 へ分解した。回転は同じ原観測chartでLogとそのJacobianを使って比較した。異なるchartへ同じ数値をそのまま代入した比較ではない。
 

@@ -80,6 +80,10 @@ def main(args):
         raise ValueError('Raw acquisitions require a complete actual command ledger.')
     setup_started = time.perf_counter()
     inference = MovingInference((args.input_run/'robot.urdf').read_text(), templates)
+    if args.update_method is not None:
+        # An explicit comparison choice, never a numerical-failure fallback.
+        inference.observation_update_method = args.update_method
+        inference.observation_update_settings['method'] = args.update_method
     setup_seconds = time.perf_counter()-setup_started
     clear_reexpression_cache()
     previous, previous_index, rows, arrays = None, None, [], {}
@@ -147,6 +151,8 @@ def main(args):
             p95_s=float(np.percentile(durations, 95)) if durations else None)
     summary = dict(schema='sequential_actual_raw_backend_benchmark_v1', case=args.case,
         input_run=str(args.input_run), backend=native, original_raw_preserved=True,
+        observation_update_method=inference.observation_update_method,
+        observation_update_options=inference.observation_update_settings,
         raw_database_read_only=True, acquisition_span_s=selected[-1].stamp-selected[0].stamp,
         selected_sensor_count=sensor_count, completed_event_count=len(rows),
         initialization_s=setup_seconds, per_sensor=per_sensor,
@@ -168,5 +174,7 @@ if __name__ == '__main__':
     parser.add_argument('--case', choices=('marker', 'imu_marker'), required=True)
     parser.add_argument('--count', type=int, default=100)
     parser.add_argument('--duration', type=float)
+    parser.add_argument('--update-method', choices=('nonlinear_fixed_prior', 'affine_reference'),
+                        help='Explicit inference comparison; omitted uses the frozen production settings.')
     parser.add_argument('--output', type=Path, required=True)
     main(parser.parse_args())

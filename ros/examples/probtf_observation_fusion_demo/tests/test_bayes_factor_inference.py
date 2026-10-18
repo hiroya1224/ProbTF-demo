@@ -27,22 +27,29 @@ PACKAGE = Path(__file__).resolve().parents[1]
 
 def test_finite_joint_evidence_odds_roundoff_is_diagnostic_and_does_not_change_the_law(
         sensor_problem, monkeypatch):
-    import probtf_observation_fusion_demo.moving_inference as module
+    from probtf_observation_fusion_demo.joint_batch_fusion import add_log_evidence_parts
     scene, inputs, cases = sensor_problem
     reference = MovingInference(scene.robot_description, cases['imu'], config_path=scene.legacy_inference_config)
     expected = reference.update(inputs, 0)
-    original_run = module.run
+    original_run = MovingInference._run_observation_update
     discrepancy = 1e-4
-    def rounded_evidence(*args, **kwargs):
-        result = original_run(*args, **kwargs)
+    injections = []
+    def rounded_evidence(self, *args, **kwargs):
+        result = original_run(self, *args, **kwargs)
         if result.sensor_posteriors and kwargs.get('joint_evidence'):
+            assert result.records['nonlinear_observation_update']['method'] == 'nonlinear_fixed_prior'
             # Perturb only a redundant evidence diagnostic. All actual
             # posterior components, masses, covariances and IDs are intact.
-            result.records['joint_observation_evidence']['parents'][1]['log_evidence'] += discrepancy
+            evidence = result.records['joint_observation_evidence']['parents'][1]
+            evidence['log_evidence'] += discrepancy
+            evidence['log_evidence_parts'] = list(add_log_evidence_parts(
+                evidence['log_evidence_parts'], (discrepancy,)))
+            injections.append(result)
         return result
-    monkeypatch.setattr(module, 'run', rounded_evidence)
+    monkeypatch.setattr(MovingInference, '_run_observation_update', rounded_evidence)
     inference = MovingInference(scene.robot_description, cases['imu'], config_path=scene.legacy_inference_config)
     actual = inference.update(inputs, 0)
+    assert len(injections) == 1
     diagnostic = actual.records['bayes_factor_surprise']['joint_evidence_log_odds_consistency']
     assert not diagnostic['verified']
     assert not diagnostic['update_gate']
@@ -61,18 +68,23 @@ def test_finite_joint_evidence_odds_roundoff_is_diagnostic_and_does_not_change_t
 
 
 def test_nonfinite_joint_evidence_odds_remains_an_actual_failure(sensor_problem, monkeypatch):
-    import probtf_observation_fusion_demo.moving_inference as module
     scene, inputs, cases = sensor_problem
-    original_run = module.run
-    def invalid_evidence(*args, **kwargs):
-        result = original_run(*args, **kwargs)
+    original_run = MovingInference._run_observation_update
+    injections = []
+    def invalid_evidence(self, *args, **kwargs):
+        result = original_run(self, *args, **kwargs)
         if result.sensor_posteriors and kwargs.get('joint_evidence'):
-            result.records['joint_observation_evidence']['parents'][1]['log_evidence'] = np.nan
+            assert result.records['nonlinear_observation_update']['method'] == 'nonlinear_fixed_prior'
+            evidence = result.records['joint_observation_evidence']['parents'][1]
+            evidence['log_evidence'] = np.nan
+            evidence['log_evidence_parts'] = [np.nan, 0.]
+            injections.append(result)
         return result
-    monkeypatch.setattr(module, 'run', invalid_evidence)
+    monkeypatch.setattr(MovingInference, '_run_observation_update', invalid_evidence)
     inference = MovingInference(scene.robot_description, cases['imu'], config_path=scene.legacy_inference_config)
     with pytest.raises(ValueError, match='must have finite log masses'):
         inference.update(inputs, 0)
+    assert len(injections) == 1
 
 
 @pytest.mark.parametrize('values', [(.0, .0), (.4, 1.2), (8., 9.)])

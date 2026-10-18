@@ -98,6 +98,11 @@ class MovingInference:
         self.reference_command = np.asarray(self.law["reference_command"], dtype=float)
         self.templates = tuple(deepcopy(item) for item in observation_templates)
         self.settings = settings
+        self.observation_update_settings = dict(settings.get('nonlinear_observation_update', {}))
+        self.observation_update_method = self.observation_update_settings.get(
+            'method', 'nonlinear_fixed_prior')
+        if self.observation_update_method not in ('nonlinear_fixed_prior', 'affine_reference'):
+            raise ValueError('Unknown body observation update method: '+str(self.observation_update_method))
         self.surprise_settings = dict(settings.get('bayes_factor_surprise', {}))
         self.surprise_enabled = bool(self.surprise_settings.get('enabled', False))
         self.change_probability = float(self.surprise_settings.get('change_probability', .25))
@@ -218,6 +223,22 @@ class MovingInference:
     def update(self, sensor_inputs, frame_index, *, command_map=None):
         """Run one same-time common update; duplicate ticks return that snapshot."""
         return self._update_common(sensor_inputs, frame_index, command_map=command_map)
+
+    def _run_observation_update(self, *args, **kwargs):
+        """Choose the declared inference method, never a failure fallback.
+
+        The nonlinear method conditions the original joint prior directly.
+        Its local posterior views are not lifted through the old affine
+        reference-product update a second time.
+        """
+        if self.observation_update_method == 'affine_reference':
+            result = run(*args, **kwargs)
+        else:
+            from .nonlinear_model import run as run_nonlinear
+            result = run_nonlinear(*args, **kwargs,
+                solver_options=self.observation_update_settings)
+        result.records['observation_update_method'] = self.observation_update_method
+        return result
 
     def update_sensor_event(self, event, event_index=None, *, command_map=None,
                             probability_unit=None):
@@ -434,14 +455,19 @@ class MovingInference:
             native_priors, transition_record = transition_priors(priors[0],
                 self.prior_at(sensor_inputs.command, sensor_inputs.stamp, frame_index),
                 self.change_probability, marker_id=self.marker.edge_id)
-            result = run(self.common, tuple(observations), sensor_inputs.image,
+            result = self._run_observation_update(self.common, tuple(observations), sensor_inputs.image,
                 prior_components=native_priors, paths=self.paths,
                 joint_evidence=True, shared_observation_frame=True)
             if result.sensor_posteriors:
                 transition = True
                 evidences = result.records['joint_observation_evidence']
                 keep_log, reset_log = (item['log_evidence'] for item in evidences['parents'])
-                log_bf = reset_log-keep_log
+                evidence_parts = [item.get('log_evidence_parts') for item in evidences['parents']]
+                if all(parts is not None for parts in evidence_parts):
+                    from .joint_batch_fusion import log_evidence_parts_difference
+                    log_bf = log_evidence_parts_difference(evidence_parts[1], evidence_parts[0])
+                else:
+                    log_bf = reset_log-keep_log
                 reset_mass = float(logsumexp([component_log_weight(item)
                     for item in result.frozen_body_branches[1].posterior_components]))
                 keep_mass = float(logsumexp([component_log_weight(item)
@@ -460,6 +486,9 @@ class MovingInference:
                     posterior_change_log_probability=reset_mass,
                     log_keep_evidence=keep_log, log_reset_evidence=reset_log,
                     log_observation_evidence=evidences['log_evidence'],
+                    log_bayes_factor_uses_retained_evidence_parts=all(
+                        parts is not None for parts in evidence_parts),
+                    log_observation_evidence_parts=evidences.get('log_evidence_parts'),
                     observation_ids=list(result.records['observation_ids']),
                     transition=transition_record,
                     prior_source_state_ids=[item.state.state_id for item in native_priors],
@@ -476,13 +505,13 @@ class MovingInference:
                 # Missing images are not evidence for a change. Preserve the
                 # ordinary prior bit for bit and retain the detector result.
                 missing = result
-                result = run(self.common, (), sensor_inputs.image,
+                result = self._run_observation_update(self.common, (), sensor_inputs.image,
                     prior_components=priors, paths=self.paths)
                 result = replace(result, local_estimates=missing.local_estimates,
                                  detection_image=missing.detection_image)
                 result.records['sensor_estimates'] = missing.records['sensor_estimates']
         else:
-            result = run(self.common, tuple(observations), sensor_inputs.image,
+            result = self._run_observation_update(self.common, tuple(observations), sensor_inputs.image,
                          prior_components=priors, paths=self.paths,
                          joint_evidence=sensor_event is not None)
         result.records['bayes_factor_surprise'] = surprise
@@ -531,7 +560,11 @@ class MovingInference:
         increment = 0. if not valid else float(evidence['log_evidence'])
         if not np.isfinite(increment):
             raise ValueError('Candidate mass requires finite comparable observation evidence.')
-        measure = ('arbitrary initial log-scale zero; normalized linearized Bingham-derived '
+        nonlinear = result.records.get('observation_update_method') == 'nonlinear_fixed_prior'
+        measure = ('arbitrary initial log-scale zero; fixed-native-chart Gaussian scalar likelihood; '
+            'finite-iterate Gauss-Newton/Laplace evidence in the original Bingham-derived joint proxy support'
+            if nonlinear else
+            'arbitrary initial log-scale zero; normalized linearized Bingham-derived '
             'sensor Gaussian proxy evidence with declared native image chart-volume correction')
         self.candidate_measure = CandidateMeasureView(tuple(result.stages[-1].components),
                                                       previous+increment, measure)
@@ -559,8 +592,10 @@ class MovingInference:
     def _project_internal_update(self, result, predicted_goals):
         """Keep one recursive internal law and the explicit current goal mixture.
 
-        Moment matching occurs only after sensor-specific updates and common-
-        prior-corrected fusion in their single frozen input chart. The same
+        Moment matching occurs after the declared observation update in its
+        original joint prior charts. The nonlinear path directly conditions
+        the joint prior once; the affine reference path uses lifted local
+        posteriors and common-prior correction. The same
         projected body is used by stiffness, control, display and prediction.
         A fresh image constructs task goals by composing its native relative
         marker modes through this captured common camera/body law. The

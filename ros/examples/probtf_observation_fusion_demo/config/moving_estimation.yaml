@@ -5,6 +5,15 @@ body_law_package: probtf_switch_press_demo
 body_law_file: config/independent_transform_laws.yaml
 body_law_source: unchanged directly specified six-link family from the switch-press example; translation Gaussians and full Bingham rotations, transported by its explicit right_joint_action
 temporal_policy: retain a single full joint moment proxy and explicit candidate log mass; process every acquired enabled sensor event in acquisition order; retain the unknown marker marginal and all goal modes; no invented process noise
+nonlinear_observation_update:
+  method: nonlinear_fixed_prior
+  # Every inner iteration uses the same original acquisition-time prior and
+  # native likelihood. These are finite optimizer work limits, not stop gates
+  # for subsequent observations or motion.
+  max_iterations: 40
+  score_tolerance: 0.000001
+  backtrack_steps: 16
+  armijo: 0.0001
 bayes_factor_surprise:
   enabled: true
   change_probability: 0.25

@@ -1,0 +1,94 @@
+{
+  "schema": "nonlinear_final_independent_read_only_review_v1",
+  "checked_wall_time": 1792306858.210434,
+  "head": "53edb7526b1f143f7ffd7c1e4d3c30767b214bb1",
+  "scope": "Final frozen source independent code/math/declared-approximation review. Existing exact affine-limit, Jacobian, immutable record, same-method full K-record tests and independent previous downstream probe are cross-referenced; no production/tests edits and no new physical run.",
+  "critical_findings": [],
+  "checks": [
+    {
+      "topic": "original prior exactly once",
+      "result": "reviewed without implementation inconsistency",
+      "source": "nonlinear_conditioning.py:42-45,60-75; nonlinear_model.py:94-109",
+      "details": "Freeze m,P and covariance-support L once; candidate z=m+L xi; objective .5||xi||\u00b2+.5||C_R^-1 r||\u00b2. Repeated optimizer iterations neither replace the prior nor multiply the observation again."
+    },
+    {
+      "topic": "native marker fixed chart",
+      "result": "reviewed without implementation inconsistency",
+      "source": "nonlinear_observation.py:82-89,140-162; sensors.py:157-183",
+      "details": "Recover original image-Hessian full 6x6 Schur Gaussian. Keep each original native mode/normalized log mass, fixed R_k and covariance. Residual is [t_CM-t_k; Log(R_k.T R_CM)] and derivative [J_t; Jr^-1 residualrot J_right]. No parent-specific observation chart or extra point-dependent chart-volume factor."
+    },
+    {
+      "topic": "IMU fixed S2 angular scalar likelihood",
+      "result": "reviewed without implementation inconsistency",
+      "source": "nonlinear_observation.py:26-56,90-93,119-137",
+      "details": "Observed b and B are fixed. r=(atan2(||B.T d||,b.T d)/||B.T d||) B.T d, covariance sigma\u00b2 I2, derivative chained through finite inverse-path orientation. Small-angle series evaluates the removable limit; heading adds no observation. Exact antipodal direction is a genuine Log-derivative cut, near-antipodal finite candidates are retained."
+    },
+    {
+      "topic": "GN full-cross covariance",
+      "result": "reviewed without implementation inconsistency",
+      "source": "nonlinear_conditioning.py:71-75,121-128",
+      "details": "Whiten with the observation Cholesky lower factor, not its transpose. A=C_R^-1 J L, M=I+A.T A. Return Pplus=L M^-1 L.T including every joint/body/environment cross block and original Dirac support. No diagonalization of the result, jitter or covariance clip."
+    },
+    {
+      "topic": "evidence constants and mixture normalization",
+      "result": "reviewed without implementation inconsistency",
+      "source": "nonlinear_conditioning.py:129-145; nonlinear_model.py:103-121,199-204",
+      "details": "logZhat=-Phi(xihat)-.5logdetR-.5logdetM-.5dlog(2pi). Prior support determinant and (2pi)^(r/2) cancel under whitening. Preserve separate evidence parts before adding native and parent log weights, normalize globally over all declared parent/native combinations. Float underflow does not delete finite-log branches."
+    },
+    {
+      "topic": "finite-work continuation and true failures",
+      "result": "reviewed without implementation inconsistency",
+      "source": "nonlinear_conditioning.py:83-119,133-157",
+      "details": "Keep finite accepted iterate on work budget or line-search exhaustion; record score/stationarity and actual trial errors. No convergence score gate. An actually nonfinite initial/final evaluation, invalid proper observation covariance, or required matrix factorization failure still raises; no synthetic evidence/covariance/old-method replacement."
+    },
+    {
+      "topic": "source/readonly and downstream",
+      "result": "reviewed without implementation inconsistency",
+      "source": "nonlinear_model.py:122-133,135-174,205-211; moving_inference.py:606-629,674-680",
+      "details": "Frozen original joint priors/branch IDs persist separately from reexpressed actual posteriors; sensor views are actual posterior push-forwards and are not re-lifted. Iteration records frozen once. Existing full within/between projection creates the canonical law used by K numerator, control/display, next prior and fresh-goal camera. Original acquisition q/t/ID stay attached."
+    },
+    {
+      "topic": "no implicit old affine fallback",
+      "result": "reviewed without implementation inconsistency",
+      "source": "moving_inference.py:227-241; nonlinear_model.py:55-59,80-89",
+      "details": "Affine reference is an explicit configured comparison method only. identity_run is called with an empty observation list for result scaffold/identity, never as a failure fallback. Nonlinear exceptions are not caught and replaced with affine updates."
+    },
+    {
+      "topic": "synchronous product vs chronological sequence",
+      "result": "reviewed without implementation inconsistency",
+      "source": "nonlinear_model.py:62-74; moving_inference.py:243-302",
+      "details": "Only simultaneous likelihood IDs supplied in one run call are canonicalized; the outside chronological per-event loop is unchanged. Immediate duplicate ID is identity; older consumed IDs need replay."
+    }
+  ],
+  "measurement_and_approximation_limits": [
+    "The finite modal embedding is the Bingham-derived local Gaussian proxy pushed through t=tref+delta_t,q=qref*rvq(delta_r); it is not exact global Bingham nonlinear conditioning.",
+    "Image fixed-chart normalized Gaussian is a declared scalar likelihood proxy, not the raw-pixel likelihood or a globally normalized Haar pose density. IMU fixed S2 Log Gaussian is likewise a scalar angular proxy, not an asserted globally normalized S2 density.",
+    "Posterior covariance is Gauss-Newton, not the exact nonlinear Hessian inverse or exact posterior moment. One finite proxy per explicit prior/native branch does not enumerate all nonlinear posterior modes.",
+    "At a finite nonstationary iterate the reported GN-Laplace value is not the exact integral of the tangent quadratic: no .5 g.T M^-1 g completed-square correction is included. Logs explicitly disclose finite_nonstationary_iterate_used/exact_nonlinear_evidence_claimed=False; do not call it exact evidence or a verified global MAP.",
+    "evaluator_calls counts successfully completed evaluations only. Failed trial calls are represented separately in line_search.actual_trial_error. completed_iterations counts attempted outer iterations, including a final unsuccessful line search.",
+    "No new runtime, throughput, reaching, estimation accuracy or jump-resolution claim is established by this read-only review. New 90-second runs must be assessed on their own source-frozen records."
+  ],
+  "source_sha256": {
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_conditioning.py": "f67205fe01def452e82bef91e335ea9e6c3934ce06317d973822dc7314ef4c80",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_observation.py": "9470f64cc7724f1ea8ed95261e3b557780669b118b727636ffbeabf452891ea2",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_model.py": "d073d8a1d26e28172e2aba27b07a0f786c86843c527379c2569edae8c8c06ea6",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "8eed514c0d14cff48a35225a2fda8e27a0cdbc5a974a078d7ad47b73d90e827a",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/finite_modal.py": "5395a3ff7c77176071db25a4309fd61cc7511ad76d8471886073df20b706d3c3",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py": "272f37f4031ecc5cb1b3c6a797f5858613bb98630f55322be65ef3a3f577f5d5",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py": "628477a3c7cfa65c676116db8a0d2c7fa5c1e75002515029a07e80e705f2d4b8",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py": "0e0872159ef8bd15da10d449483e5cd6668a35385566b81c950f5e36e23cfc5e",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "82b803da3b4a853d40a84107a0be83b0fd15b8b22d70ee9a697d99f98baf76c9",
+    "ros/examples/probtf_observation_fusion_demo/native/body_law.cpp": "63b52076ce45801ac77582b932242e2c6b3937b0de676e51264d1954c2f6a8a5",
+    "ros/examples/probtf_observation_fusion_demo/NONLINEAR_OBSERVATION_UPDATE.md": "d53e679e256780362d3b242ce6c7321b34a4fc784e3cb1a5b6d922db5f63b366"
+  },
+  "protected_baseline": "/tmp/probtf_evidence_stop_source_baseline_20261018.json",
+  "protected_file_count": 214,
+  "protected_unchanged": true,
+  "protected_mismatches": [],
+  "regression_log": "/tmp/probtf_nonlinear_final_full_tests_20261018.log",
+  "regression_log_tail": "1124 passed, 1 warning in 183.04s (0:03:03)",
+  "previous_independent_probe": "/tmp/probtf_nonlinear_downstream_review_20261018/summary.json",
+  "production_edited": false,
+  "tests_edited": false,
+  "physical_run_started": false
+}

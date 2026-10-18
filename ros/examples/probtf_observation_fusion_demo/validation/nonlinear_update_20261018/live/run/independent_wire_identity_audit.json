@@ -1,0 +1,92 @@
+{
+  "schema": "nonlinear_fixed_prior_live_wire_audit_v1",
+  "audited_wall_s": 1792307201.814864,
+  "producer_source_freeze_sha256": "f270543872782be7ce3cac53a1aacf24c883da403d802b6a7b17405a6d1f4560",
+  "producer_source_unchanged_through_shutdown": true,
+  "producer_physical_end_capture_wall_s": 1792306892.6251225,
+  "audit_helper_sha256": "41755d79805b8a13dd6c4c46d617f0b620bf8d1f42aa0755f2d74e85f6d7031a",
+  "cases": {
+    "marker": {
+      "status": "passed",
+      "groups": {
+        "through_physical_end": {
+          "saved_artifacts": 511,
+          "wire_bytes": 108150728,
+          "exact_wire_matches": 511,
+          "complete_numeric_candidate_identity_matches": 511,
+          "adopted_gradient_packet_matches": 511,
+          "display_adopted": 511,
+          "publication_acknowledged": 510
+        },
+        "after_physical_end": {
+          "saved_artifacts": 7,
+          "wire_bytes": 1481608,
+          "exact_wire_matches": 7,
+          "complete_numeric_candidate_identity_matches": 7,
+          "adopted_gradient_packet_matches": 7,
+          "display_adopted": 7,
+          "publication_acknowledged": 7
+        },
+        "artifact_finish_stamp_missing": {
+          "saved_artifacts": 0,
+          "wire_bytes": 0,
+          "exact_wire_matches": 0,
+          "complete_numeric_candidate_identity_matches": 0,
+          "adopted_gradient_packet_matches": 0,
+          "display_adopted": 0,
+          "publication_acknowledged": 0
+        }
+      },
+      "errors": [],
+      "ready_without_completed_artifact": [],
+      "completed_artifact_without_saved_record": [],
+      "saved_artifact_not_display_adopted": [],
+      "limitations": [
+        "No subscriber packet capture or GPU paint-completion record is available. Publication acknowledgement is process-side.",
+        "Point-query sidecars do not independently reconstruct a full joint covariance; complete-law identity is checked from numeric candidate SHA and separately from K-job full state.",
+        "A deferred artifact may correspond to an earlier accepted candidate while a newer control candidate is active. This is reported as lag, not hidden by an identity flag."
+      ]
+    },
+    "imu_marker": {
+      "status": "passed",
+      "groups": {
+        "through_physical_end": {
+          "saved_artifacts": 466,
+          "wire_bytes": 98624144,
+          "exact_wire_matches": 466,
+          "complete_numeric_candidate_identity_matches": 466,
+          "adopted_gradient_packet_matches": 466,
+          "display_adopted": 466,
+          "publication_acknowledged": 466
+        },
+        "after_physical_end": {
+          "saved_artifacts": 19,
+          "wire_bytes": 4021717,
+          "exact_wire_matches": 19,
+          "complete_numeric_candidate_identity_matches": 19,
+          "adopted_gradient_packet_matches": 19,
+          "display_adopted": 19,
+          "publication_acknowledged": 19
+        },
+        "artifact_finish_stamp_missing": {
+          "saved_artifacts": 0,
+          "wire_bytes": 0,
+          "exact_wire_matches": 0,
+          "complete_numeric_candidate_identity_matches": 0,
+          "adopted_gradient_packet_matches": 0,
+          "display_adopted": 0,
+          "publication_acknowledged": 0
+        }
+      },
+      "errors": [],
+      "ready_without_completed_artifact": [],
+      "completed_artifact_without_saved_record": [],
+      "saved_artifact_not_display_adopted": [],
+      "limitations": [
+        "No subscriber packet capture or GPU paint-completion record is available. Publication acknowledgement is process-side.",
+        "Point-query sidecars do not independently reconstruct a full joint covariance; complete-law identity is checked from numeric candidate SHA and separately from K-job full state.",
+        "A deferred artifact may correspond to an earlier accepted candidate while a newer control candidate is active. This is reported as lag, not hidden by an identity flag."
+      ]
+    }
+  }
+}

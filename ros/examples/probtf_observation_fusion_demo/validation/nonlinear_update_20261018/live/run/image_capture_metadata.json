@@ -1,0 +1,92 @@
+[
+  {
+    "stage": "initial_prior_requested",
+    "case": "marker",
+    "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/window_captures/initial_prior_requested_marker.png",
+    "window_id": 77594638,
+    "owner_pid": 3985568,
+    "rectangle": {
+      "x": 72,
+      "y": 64,
+      "width": 1840,
+      "height": 1200
+    },
+    "captured_content_rectangle": {
+      "x": 72,
+      "y": 112,
+      "width": 1840,
+      "height": 1152
+    },
+    "omitted_client_toolbar_top_px": 48,
+    "capture_started_wall_s": 1792306800.9189253,
+    "capture_finished_wall_s": 1792306802.0255244,
+    "physical_time_before": 0.0,
+    "physical_time_after": 0.0,
+    "inferred_body_stamp_before": 1792080000.0,
+    "displayed_prediction_stamp_before": 1792080000.0,
+    "returncode": 0,
+    "bytes": 499114,
+    "stderr": "",
+    "source": "Direct X11 capture of the unchanged RViz content rectangle below its top 48px toolbar; no desktop/browser/terminal outside that rectangle; no post-capture crop or resize."
+  },
+  {
+    "stage": "physical_90s",
+    "case": "marker",
+    "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/window_captures/physical_90s_marker.png",
+    "window_id": 77594638,
+    "owner_pid": 3985568,
+    "rectangle": {
+      "x": 72,
+      "y": 64,
+      "width": 1840,
+      "height": 1200
+    },
+    "captured_content_rectangle": {
+      "x": 72,
+      "y": 112,
+      "width": 1840,
+      "height": 1152
+    },
+    "omitted_client_toolbar_top_px": 48,
+    "capture_started_wall_s": 1792306893.0202754,
+    "capture_finished_wall_s": 1792306894.1283147,
+    "physical_time_before": 90.0,
+    "physical_time_after": 90.0,
+    "inferred_body_stamp_before": 1792080078.764982,
+    "displayed_prediction_stamp_before": 1792080089.285938,
+    "returncode": 0,
+    "bytes": 433069,
+    "stderr": "",
+    "source": "Direct X11 capture of the unchanged RViz content rectangle below its top 48px toolbar; no desktop/browser/terminal outside that rectangle; no post-capture crop or resize."
+  },
+  {
+    "stage": "physical_90s",
+    "case": "imu_marker",
+    "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/window_captures/physical_90s_imu_marker.png",
+    "window_id": 85983246,
+    "owner_pid": 3985626,
+    "rectangle": {
+      "x": 1940,
+      "y": 64,
+      "width": 1840,
+      "height": 1200
+    },
+    "captured_content_rectangle": {
+      "x": 1940,
+      "y": 112,
+      "width": 1840,
+      "height": 1152
+    },
+    "omitted_client_toolbar_top_px": 48,
+    "capture_started_wall_s": 1792306894.1416476,
+    "capture_finished_wall_s": 1792306895.2564542,
+    "physical_time_before": 90.0,
+    "physical_time_after": 90.0,
+    "inferred_body_stamp_before": 1792080083.5417278,
+    "displayed_prediction_stamp_before": 1792080090.0,
+    "returncode": 0,
+    "bytes": 433596,
+    "stderr": "",
+    "source": "Direct X11 capture of the unchanged RViz content rectangle below its top 48px toolbar; no desktop/browser/terminal outside that rectangle; no post-capture crop or resize."
+  }
+]

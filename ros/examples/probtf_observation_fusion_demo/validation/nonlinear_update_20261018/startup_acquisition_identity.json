@@ -1,0 +1,1416 @@
+{
+  "scope": "Eight archived 90-physical-second runs. SQLite readonly; all event metadata and IMU24-byte values checked; image pixels checked by recorded SHA for all frames and first image BLOB independently. No image decoding, no estimator/physics run.",
+  "checked_wall_time": 1792306261.3056183,
+  "runs": [
+    {
+      "directory": "/tmp/probtf_cpp_sequential_live_20261018/marker",
+      "database": "/tmp/probtf_cpp_sequential_live_20261018/marker/observations.sqlite3",
+      "event_count": 5465,
+      "initial_stamp": 1792080000.0,
+      "initial_event_count": 3,
+      "initial_by_kind": {
+        "joint": 1,
+        "imu": 1,
+        "image": 1
+      },
+      "initial_events": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "sequence": 1,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.2100518,
+          "ready_wall_stamp": 1792302791.2100518,
+          "payload_hash": "5749c336ee7827b27f9c946ddc95c3ba0a72ea03bb4169a73e22b44751fb1cc2",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": true,
+          "stiffness_job_sequence": 0
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.2103508,
+          "ready_wall_stamp": 1792302791.2103508,
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": "8703b2ed902ff08f08ef731654613eeabb631ea3e33dd79052ab87e66614483f",
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": false,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.2105536,
+          "ready_wall_stamp": 1792302791.5559697,
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "payload_hash_verified": true,
+          "image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64",
+          "image_sha256_verified": true,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": true,
+          "stiffness_job_sequence": 1
+        }
+      ],
+      "first_positive_event": {
+        "sequence": 4,
+        "event_id": "joint:00000004",
+        "stamp": 1792080000.0283263,
+        "received_wall_stamp": 1792302932.0415652
+      },
+      "initial_to_first_positive_wall_gap_s": 140.8315134048462,
+      "duplicate_same_kind_stamp_groups": [],
+      "duplicate_same_kind_frame_groups": [],
+      "duplicate_payload_hash_group_count": 0,
+      "duplicate_image_pixels_groups": [],
+      "duplicate_imu_measurement_bytes_groups": [],
+      "first_four_acquisition_requests": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.2100518
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.2103508
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.2105536
+        },
+        {
+          "event_id": "joint:00000004",
+          "kind": "joint",
+          "frame_index": 4,
+          "stamp": 1792080000.0283263,
+          "time": 0.02832634001970291,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302932.0415652
+        }
+      ]
+    },
+    {
+      "directory": "/tmp/probtf_cpp_sequential_live_20261018/imu_marker",
+      "database": "/tmp/probtf_cpp_sequential_live_20261018/imu_marker/observations.sqlite3",
+      "event_count": 4873,
+      "initial_stamp": 1792080000.0,
+      "initial_event_count": 3,
+      "initial_by_kind": {
+        "joint": 1,
+        "imu": 1,
+        "image": 1
+      },
+      "initial_events": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "sequence": 1,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.673309,
+          "ready_wall_stamp": 1792302791.673309,
+          "payload_hash": "5749c336ee7827b27f9c946ddc95c3ba0a72ea03bb4169a73e22b44751fb1cc2",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": true,
+          "stiffness_job_sequence": 0
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.673662,
+          "ready_wall_stamp": 1792302791.673662,
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": "8703b2ed902ff08f08ef731654613eeabb631ea3e33dd79052ab87e66614483f",
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": true,
+          "stiffness_job_sequence": 1
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.673901,
+          "ready_wall_stamp": 1792302792.0210605,
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "payload_hash_verified": true,
+          "image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64",
+          "image_sha256_verified": true,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": true,
+          "stiffness_job_sequence": 2
+        }
+      ],
+      "first_positive_event": {
+        "sequence": 4,
+        "event_id": "joint:00000004",
+        "stamp": 1792080000.03189,
+        "received_wall_stamp": 1792302932.0467615
+      },
+      "initial_to_first_positive_wall_gap_s": 140.37345242500305,
+      "duplicate_same_kind_stamp_groups": [],
+      "duplicate_same_kind_frame_groups": [],
+      "duplicate_payload_hash_group_count": 0,
+      "duplicate_image_pixels_groups": [],
+      "duplicate_imu_measurement_bytes_groups": [],
+      "first_four_acquisition_requests": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.673309
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.673662
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302791.673901
+        },
+        {
+          "event_id": "joint:00000004",
+          "kind": "joint",
+          "frame_index": 4,
+          "stamp": 1792080000.03189,
+          "time": 0.031889903359115124,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792302932.0467615
+        }
+      ]
+    },
+    {
+      "directory": "/tmp/probtf_local_model_live_20261018/marker",
+      "database": "/tmp/probtf_local_model_live_20261018/marker/observations.sqlite3",
+      "event_count": 6094,
+      "initial_stamp": 1792080000.0,
+      "initial_event_count": 3,
+      "initial_by_kind": {
+        "joint": 1,
+        "imu": 1,
+        "image": 1
+      },
+      "initial_events": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "sequence": 1,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297380.9550474,
+          "ready_wall_stamp": 1792297380.9550474,
+          "payload_hash": "5749c336ee7827b27f9c946ddc95c3ba0a72ea03bb4169a73e22b44751fb1cc2",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": 0
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297380.9554224,
+          "ready_wall_stamp": 1792297380.9554224,
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": "8703b2ed902ff08f08ef731654613eeabb631ea3e33dd79052ab87e66614483f",
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": 1
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297380.9556034,
+          "ready_wall_stamp": 1792297381.2973514,
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "payload_hash_verified": true,
+          "image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64",
+          "image_sha256_verified": true,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": 1
+        }
+      ],
+      "first_positive_event": {
+        "sequence": 4,
+        "event_id": "joint:00000004",
+        "stamp": 1792080000.0309577,
+        "received_wall_stamp": 1792297479.194527
+      },
+      "initial_to_first_positive_wall_gap_s": 98.23947954177856,
+      "duplicate_same_kind_stamp_groups": [],
+      "duplicate_same_kind_frame_groups": [],
+      "duplicate_payload_hash_group_count": 0,
+      "duplicate_image_pixels_groups": [],
+      "duplicate_imu_measurement_bytes_groups": [],
+      "first_four_acquisition_requests": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297380.9550474
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297380.9554224
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297380.9556034
+        },
+        {
+          "event_id": "joint:00000004",
+          "kind": "joint",
+          "frame_index": 4,
+          "stamp": 1792080000.0309577,
+          "time": 0.03095766995102167,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297479.194527
+        }
+      ]
+    },
+    {
+      "directory": "/tmp/probtf_local_model_live_20261018/imu_marker",
+      "database": "/tmp/probtf_local_model_live_20261018/imu_marker/observations.sqlite3",
+      "event_count": 6188,
+      "initial_stamp": 1792080000.0,
+      "initial_event_count": 3,
+      "initial_by_kind": {
+        "joint": 1,
+        "imu": 1,
+        "image": 1
+      },
+      "initial_events": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "sequence": 1,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297381.928449,
+          "ready_wall_stamp": 1792297381.928449,
+          "payload_hash": "5749c336ee7827b27f9c946ddc95c3ba0a72ea03bb4169a73e22b44751fb1cc2",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": 0
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297381.9288664,
+          "ready_wall_stamp": 1792297381.9288664,
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": "8703b2ed902ff08f08ef731654613eeabb631ea3e33dd79052ab87e66614483f",
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": 1
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297381.9291112,
+          "ready_wall_stamp": 1792297382.2842627,
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "payload_hash_verified": true,
+          "image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64",
+          "image_sha256_verified": true,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": 1
+        }
+      ],
+      "first_positive_event": {
+        "sequence": 4,
+        "event_id": "joint:00000004",
+        "stamp": 1792080000.0265987,
+        "received_wall_stamp": 1792297480.0929012
+      },
+      "initial_to_first_positive_wall_gap_s": 98.16445231437683,
+      "duplicate_same_kind_stamp_groups": [],
+      "duplicate_same_kind_frame_groups": [],
+      "duplicate_payload_hash_group_count": 0,
+      "duplicate_image_pixels_groups": [],
+      "duplicate_imu_measurement_bytes_groups": [],
+      "first_four_acquisition_requests": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297381.928449
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297381.9288664
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297381.9291112
+        },
+        {
+          "event_id": "joint:00000004",
+          "kind": "joint",
+          "frame_index": 4,
+          "stamp": 1792080000.0265987,
+          "time": 0.02659862721338868,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792297480.0929012
+        }
+      ]
+    },
+    {
+      "directory": "/tmp/probtf_runaway_monitor_20261018_1250/marker",
+      "database": "/tmp/probtf_runaway_monitor_20261018_1250/marker/observations.sqlite3",
+      "event_count": 3631,
+      "initial_stamp": 1792080000.0,
+      "initial_event_count": 3,
+      "initial_by_kind": {
+        "joint": 1,
+        "imu": 1,
+        "image": 1
+      },
+      "initial_events": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "sequence": 1,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292906.803304,
+          "ready_wall_stamp": 1792292906.803304,
+          "payload_hash": "5749c336ee7827b27f9c946ddc95c3ba0a72ea03bb4169a73e22b44751fb1cc2",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292906.8036456,
+          "ready_wall_stamp": 1792292906.8036456,
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": "8703b2ed902ff08f08ef731654613eeabb631ea3e33dd79052ab87e66614483f",
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292906.803875,
+          "ready_wall_stamp": 1792292907.1480453,
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "payload_hash_verified": true,
+          "image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64",
+          "image_sha256_verified": true,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        }
+      ],
+      "first_positive_event": {
+        "sequence": 4,
+        "event_id": "joint:00000004",
+        "stamp": 1792080000.0287516,
+        "received_wall_stamp": 1792292933.018645
+      },
+      "initial_to_first_positive_wall_gap_s": 26.215341091156006,
+      "duplicate_same_kind_stamp_groups": [],
+      "duplicate_same_kind_frame_groups": [],
+      "duplicate_payload_hash_group_count": 0,
+      "duplicate_image_pixels_groups": [],
+      "duplicate_imu_measurement_bytes_groups": [],
+      "first_four_acquisition_requests": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292906.803304
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292906.8036456
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292906.803875
+        },
+        {
+          "event_id": "joint:00000004",
+          "kind": "joint",
+          "frame_index": 4,
+          "stamp": 1792080000.0287516,
+          "time": 0.028751725796610117,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292933.018645
+        }
+      ]
+    },
+    {
+      "directory": "/tmp/probtf_runaway_monitor_20261018_1250/imu_marker",
+      "database": "/tmp/probtf_runaway_monitor_20261018_1250/imu_marker/observations.sqlite3",
+      "event_count": 4885,
+      "initial_stamp": 1792080000.0,
+      "initial_event_count": 3,
+      "initial_by_kind": {
+        "joint": 1,
+        "imu": 1,
+        "image": 1
+      },
+      "initial_events": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "sequence": 1,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292909.824042,
+          "ready_wall_stamp": 1792292909.824042,
+          "payload_hash": "5749c336ee7827b27f9c946ddc95c3ba0a72ea03bb4169a73e22b44751fb1cc2",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292909.824391,
+          "ready_wall_stamp": 1792292909.824391,
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": "8703b2ed902ff08f08ef731654613eeabb631ea3e33dd79052ab87e66614483f",
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292909.8245792,
+          "ready_wall_stamp": 1792292910.1731677,
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "payload_hash_verified": true,
+          "image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64",
+          "image_sha256_verified": true,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        }
+      ],
+      "first_positive_event": {
+        "sequence": 4,
+        "event_id": "joint:00000004",
+        "stamp": 1792080000.0324502,
+        "received_wall_stamp": 1792292933.913621
+      },
+      "initial_to_first_positive_wall_gap_s": 24.089578866958618,
+      "duplicate_same_kind_stamp_groups": [],
+      "duplicate_same_kind_frame_groups": [],
+      "duplicate_payload_hash_group_count": 0,
+      "duplicate_image_pixels_groups": [],
+      "duplicate_imu_measurement_bytes_groups": [],
+      "first_four_acquisition_requests": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292909.824042
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292909.824391
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292909.8245792
+        },
+        {
+          "event_id": "joint:00000004",
+          "kind": "joint",
+          "frame_index": 4,
+          "stamp": 1792080000.0324502,
+          "time": 0.0324502601288259,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792292933.913621
+        }
+      ]
+    },
+    {
+      "directory": "/tmp/probtf_repaired_rviz_live_20261018_1150/marker",
+      "database": "/tmp/probtf_repaired_rviz_live_20261018_1150/marker/observations.sqlite3",
+      "event_count": 3642,
+      "initial_stamp": 1792080000.0,
+      "initial_event_count": 3,
+      "initial_by_kind": {
+        "joint": 1,
+        "imu": 1,
+        "image": 1
+      },
+      "initial_events": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "sequence": 1,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291176.3301334,
+          "ready_wall_stamp": 1792291176.3301334,
+          "payload_hash": "5749c336ee7827b27f9c946ddc95c3ba0a72ea03bb4169a73e22b44751fb1cc2",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291176.3304417,
+          "ready_wall_stamp": 1792291176.3304417,
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": "8703b2ed902ff08f08ef731654613eeabb631ea3e33dd79052ab87e66614483f",
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291176.330643,
+          "ready_wall_stamp": 1792291176.6724374,
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "payload_hash_verified": true,
+          "image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64",
+          "image_sha256_verified": true,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        }
+      ],
+      "first_positive_event": {
+        "sequence": 4,
+        "event_id": "joint:00000002",
+        "stamp": 1792080000.0323596,
+        "received_wall_stamp": 1792291247.8605745
+      },
+      "initial_to_first_positive_wall_gap_s": 71.53044104576111,
+      "duplicate_same_kind_stamp_groups": [],
+      "duplicate_same_kind_frame_groups": [],
+      "duplicate_payload_hash_group_count": 0,
+      "duplicate_image_pixels_groups": [],
+      "duplicate_imu_measurement_bytes_groups": [],
+      "first_four_acquisition_requests": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291176.3301334
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291176.3304417
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291176.330643
+        },
+        {
+          "event_id": "joint:00000002",
+          "kind": "joint",
+          "frame_index": 2,
+          "stamp": 1792080000.0323596,
+          "time": 0.03235952090471983,
+          "command": [
+            -0.1499140266333556,
+            -1.8499255408869946,
+            2.349943162336723,
+            -5.444232325112119e-05,
+            -0.9499716360130966,
+            -8.69288821622639e-06
+          ],
+          "received_wall_stamp": 1792291247.8605745
+        }
+      ]
+    },
+    {
+      "directory": "/tmp/probtf_repaired_rviz_live_20261018_1150/imu_marker",
+      "database": "/tmp/probtf_repaired_rviz_live_20261018_1150/imu_marker/observations.sqlite3",
+      "event_count": 5417,
+      "initial_stamp": 1792080000.0,
+      "initial_event_count": 3,
+      "initial_by_kind": {
+        "joint": 1,
+        "imu": 1,
+        "image": 1
+      },
+      "initial_events": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "sequence": 1,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291173.3149388,
+          "ready_wall_stamp": 1792291173.3149388,
+          "payload_hash": "5749c336ee7827b27f9c946ddc95c3ba0a72ea03bb4169a73e22b44751fb1cc2",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": false,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291173.3155003,
+          "ready_wall_stamp": 1792291173.3155003,
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "payload_hash_verified": true,
+          "image_sha256": null,
+          "image_sha256_verified": null,
+          "imu_value_raw_bytes_sha256": "8703b2ed902ff08f08ef731654613eeabb631ea3e33dd79052ab87e66614483f",
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291173.3157218,
+          "ready_wall_stamp": 1792291173.670638,
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "payload_hash_verified": true,
+          "image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64",
+          "image_sha256_verified": true,
+          "imu_value_raw_bytes_sha256": null,
+          "status": "completed",
+          "observation_fused": true,
+          "body_update_applied": null,
+          "stiffness_job_sequence": null
+        }
+      ],
+      "first_positive_event": {
+        "sequence": 4,
+        "event_id": "joint:00000002",
+        "stamp": 1792080000.0365167,
+        "received_wall_stamp": 1792291250.8778403
+      },
+      "initial_to_first_positive_wall_gap_s": 77.5629014968872,
+      "duplicate_same_kind_stamp_groups": [],
+      "duplicate_same_kind_frame_groups": [],
+      "duplicate_payload_hash_group_count": 0,
+      "duplicate_image_pixels_groups": [],
+      "duplicate_imu_measurement_bytes_groups": [],
+      "first_four_acquisition_requests": [
+        {
+          "event_id": "joint:00000000",
+          "kind": "joint",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291173.3149388
+        },
+        {
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291173.3155003
+        },
+        {
+          "event_id": "image:00000000",
+          "kind": "image",
+          "frame_index": 0,
+          "stamp": 1792080000.0,
+          "time": 0.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "received_wall_stamp": 1792291173.3157218
+        },
+        {
+          "event_id": "joint:00000002",
+          "kind": "joint",
+          "frame_index": 2,
+          "stamp": 1792080000.0365167,
+          "time": 0.03651674184948206,
+          "command": [
+            -0.1499038465084899,
+            -1.849955264924265,
+            2.349915609236318,
+            -7.394830806567107e-05,
+            -0.9499692477871494,
+            -1.1079619110013337e-05
+          ],
+          "received_wall_stamp": 1792291250.8778403
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py": "061c6eaebabb7488e1c5c48b78368c80c119b06dfd392ada399fc8980ca22a8e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py": "f744ed9109576cece52739e0c5cbd4b073726538f81e933b77fff9ae8230d37b",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensor_event_store.py": "5f1e4c55f370265c4c8e1b65587ad000c860a5235f1fa490485cbade3edfd9d1",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/vision.py": "f3a1980ed04f53f6ca809feb33edf75b29abcc89a86eb904e8561ac54560b7e2"
+  },
+  "code_semantics": {
+    "acquisition_clock": "physical frame.time vs persistent next_acquisition[kind], not wall clock",
+    "waiting_behavior": "advance does not step or reacquire until self.started is non-None",
+    "initial_acquisition": "constructor steps physical frame0 once and invokes _acquire_due once; advances each next deadline",
+    "event_identity": "kind plus physical frame index; sensor store existing ID+same data returns existing event",
+    "sensor_seed": "IMU SeedSequence(config.seed,round(physical_time*1e6),1701); seeded camera RNG advances once per image render",
+    "seed_recording_limit": "per-event RNG state/seed is not independently serialized in DB; inferred from frozen source, not claimed measured RNG state",
+    "walltime_role": "request_received_wall records archival arrival; it does not define a fresh measurement if physical time/frame is unchanged"
+  },
+  "result": {
+    "t0_exactly_one_per_kind": true,
+    "duplicate_same_kind_stamp_count": 0,
+    "duplicate_same_kind_frame_count": 0,
+    "duplicate_pixel_hash_count": 0,
+    "duplicate_imu_bytes_hash_count": 0,
+    "startup_repeated_independent_observation_found": false
+  },
+  "production_edited": false
+}

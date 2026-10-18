@@ -1,0 +1,246 @@
+{
+  "scope": "Saved sequential body-event prior vs canonical posterior at exactly the same original acquisition stamp/command; physical movement and true physical FK are not used. All archived updates include drain-only late results and are not asserted to have been displayed/adopted during the 90-second motion.",
+  "runtime_source_freeze": {
+    "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/source_freeze.json",
+    "git_HEAD": "53edb7526b1f143f7ffd7c1e4d3c30767b214bb1",
+    "nonlinear_observation_sha256": "9470f64cc7724f1ea8ed95261e3b557780669b118b727636ffbeabf452891ea2",
+    "body_native_library_sha256": "26baa1ed012f1de7849f3e09373e7a8b18860cfacded7fa2ea10a5ebe382c0c8"
+  },
+  "analysis_source_note": "Initial all-event geometry/residual audit imported the later exact-antiparallel-only observation-boundary correction (cbbf72d0...), not the live observation module (9470f64c...). Every saved point residual was exactly reproduced (maximum difference0), and no boundary case occurred. Neighborhood/native-oracle/multistart explicitly import the frozen original live observation module from frozen_source. No live source result is relabeled.",
+  "primary_findings": [
+    "The nonlinear solver point residual and finite recomposed child residual agree within4e-15 for all1276 native parent branches (274marker+1002IMU). Saved point residuals were reproduced exactly. Initial corrections and post-initial jumps are separated; no old affine-only prediction/recomposition discrepancy is found.",
+    "Large post-initial corrections remain: marker175.49mm and0.31171rad, IMU56.55mm and0.23593rad. They are not declared solved.",
+    "Marker job94 has only one visible usable markerID17 and both raw detector modes far from physical oracle (.56084rad dominant,.32106rad alternative). Mid-board ADF does not exist for this image; removing intermediate projection cannot restore a missing nearby native mode.",
+    "Marker job95 reverses the previous outlier-induced correction: observed relative rotation changes0.58956rad while actual relative rotation changes0.02004rad. Both jobs choose Reset. Prior/posterior physical agreement worsens at94 then recovers at95, even though each posterior accurately fits its own saved native image likelihood.",
+    "Eight parent/context pairs with four deterministic optimization starts each found no large reduction in the same Phi; largest improvement5.36e-9. This supports a prior/observation/reset conflict explanation over a large local optimizer error in these tested starts; it is not a global-mode proof.",
+    "Physical oracle values are post-hoc only and never enter inference/control. Native Gaussian residuals being far outside their stated covariance is a diagnosis, not permission to reject observations, clip variance or change likelihoods."
+  ],
+  "production_edited": false,
+  "physical_truth_used": false,
+  "monte_carlo_used": false,
+  "limits": [
+    "All saved body updates are covered, including drain-only processing; displayed/adopted during physical motion must be cross-joined separately.",
+    "No physical truth or reaching success is inferred from a posterior correction.",
+    "Native fixed-chart scalar likelihood is used; core O(P) distribution mean is reported separately from the finite modal point likelihood.",
+    "GN/Laplace approximations and original body BFS/reset map assumptions remain as disclosed."
+  ],
+  "cases": {
+    "marker": {
+      "archived_job_count": 138,
+      "final_archive_job_count": 138,
+      "all_archived_jobs_included": true,
+      "valid_observation_jobs": 137,
+      "initial_observation_jobs": 1,
+      "after_initial_jobs": 136,
+      "extrema": {
+        "initial_time": {
+          "mode_displacement_m": {
+            "value": 0.23547318722385016,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000001_cfc42702d47938f3.pickle"
+          },
+          "mean_displacement_m": {
+            "value": 0.23444362754938625,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000001_cfc42702d47938f3.pickle"
+          },
+          "modal_angle_rad": {
+            "value": 0.34647517866054306,
+            "link": "link_6",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000001_cfc42702d47938f3.pickle"
+          }
+        },
+        "after_initial_time": {
+          "mode_displacement_m": {
+            "value": 0.175488514085992,
+            "link": "link_6",
+            "job_sequence": 95,
+            "event_id": "image:00002602",
+            "elapsed_s": 30.181849479675293,
+            "reset_probability": 1.0,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000095_272b46a4682164ee.pickle"
+          },
+          "mean_displacement_m": {
+            "value": 0.17545012849489888,
+            "link": "link_6",
+            "job_sequence": 95,
+            "event_id": "image:00002602",
+            "elapsed_s": 30.181849479675293,
+            "reset_probability": 1.0,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000095_272b46a4682164ee.pickle"
+          },
+          "modal_angle_rad": {
+            "value": 0.3117058518157434,
+            "link": "link_3",
+            "job_sequence": 95,
+            "event_id": "image:00002602",
+            "elapsed_s": 30.181849479675293,
+            "reset_probability": 1.0,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000095_272b46a4682164ee.pickle"
+          }
+        },
+        "all_valid": {
+          "mode_displacement_m": {
+            "value": 0.23547318722385016,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000001_cfc42702d47938f3.pickle"
+          },
+          "mean_displacement_m": {
+            "value": 0.23444362754938625,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000001_cfc42702d47938f3.pickle"
+          },
+          "modal_angle_rad": {
+            "value": 0.34647517866054306,
+            "link": "link_6",
+            "job_sequence": 1,
+            "event_id": "image:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/marker/stiffness_jobs/00000001_cfc42702d47938f3.pickle"
+          }
+        }
+      },
+      "all_branch_count": 274,
+      "stationarity_verified_branches": 198,
+      "finite_nonstationary_branches": 76,
+      "maximum_point_vs_recomposed_residual_abs": 3.2751579226442118e-15,
+      "maximum_point_vs_recorded_residual_abs": 0.0,
+      "maximum_recorded_residual_exactly_reproduced": true,
+      "objective_increase_branch_count": 0,
+      "after_initial_mode_over_100mm_count": 5,
+      "after_initial_mode_over_1m_count": 0,
+      "archive_manifest_sha256": "a8b74709e143496607f2d92d233098b67a3c7e67bfe024e5c0ac94dbc7a02e8c",
+      "errors": []
+    },
+    "imu_marker": {
+      "archived_job_count": 502,
+      "final_archive_job_count": 502,
+      "all_archived_jobs_included": true,
+      "valid_observation_jobs": 501,
+      "initial_observation_jobs": 2,
+      "after_initial_jobs": 499,
+      "extrema": {
+        "initial_time": {
+          "mode_displacement_m": {
+            "value": 0.23087018931876732,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000001_bf4c865ae6485542.pickle"
+          },
+          "mean_displacement_m": {
+            "value": 0.22987417203736743,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000001_bf4c865ae6485542.pickle"
+          },
+          "modal_angle_rad": {
+            "value": 0.2722629484369946,
+            "link": "link_5",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000001_bf4c865ae6485542.pickle"
+          }
+        },
+        "after_initial_time": {
+          "mode_displacement_m": {
+            "value": 0.05655052135913171,
+            "link": "link_3",
+            "job_sequence": 321,
+            "event_id": "image:00002595",
+            "elapsed_s": 36.852192878723145,
+            "reset_probability": 1.0,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000321_bcda0ace5ea254ef.pickle"
+          },
+          "mean_displacement_m": {
+            "value": 0.05657468980837336,
+            "link": "link_3",
+            "job_sequence": 321,
+            "event_id": "image:00002595",
+            "elapsed_s": 36.852192878723145,
+            "reset_probability": 1.0,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000321_bcda0ace5ea254ef.pickle"
+          },
+          "modal_angle_rad": {
+            "value": 0.23592638599510585,
+            "link": "link_5",
+            "job_sequence": 260,
+            "event_id": "image:00002164",
+            "elapsed_s": 28.0286283493042,
+            "reset_probability": 1.0,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000260_c0ffc6820554e1c8.pickle"
+          }
+        },
+        "all_valid": {
+          "mode_displacement_m": {
+            "value": 0.23087018931876732,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000001_bf4c865ae6485542.pickle"
+          },
+          "mean_displacement_m": {
+            "value": 0.22987417203736743,
+            "link": "hand",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000001_bf4c865ae6485542.pickle"
+          },
+          "modal_angle_rad": {
+            "value": 0.2722629484369946,
+            "link": "link_5",
+            "job_sequence": 1,
+            "event_id": "imu:00000000",
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "archive": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_marker/stiffness_jobs/00000001_bf4c865ae6485542.pickle"
+          }
+        }
+      },
+      "all_branch_count": 1002,
+      "stationarity_verified_branches": 955,
+      "finite_nonstationary_branches": 47,
+      "maximum_point_vs_recomposed_residual_abs": 3.9118014383277e-15,
+      "maximum_point_vs_recorded_residual_abs": 1.1102230246251565e-16,
+      "maximum_recorded_residual_exactly_reproduced": false,
+      "objective_increase_branch_count": 0,
+      "after_initial_mode_over_100mm_count": 0,
+      "after_initial_mode_over_1m_count": 0,
+      "archive_manifest_sha256": "785381a3a6bf90ab00f992172ae51477c2109257b70d51d9309dfbbadb032eb2",
+      "errors": []
+    }
+  },
+  "case_source_note": "All acquired-source archived updates, including post-motion drain. Maxima are estimation corrections at same t/q, not physical movements. Separately selected max events have body-ready logs during motion; wire publication chronology belongs to independent wire audit."
+}

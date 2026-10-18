@@ -294,11 +294,16 @@ def test_valid_sensor_cases_use_same_frozen_ratio_and_are_sensor_order_invariant
     original = inference.update(scene.sensor_inputs(frame), 0)
     native_priors = tuple(WeightedState(branch.label, branch.weight,
         branch.reference_state, branch.log_weight) for branch in original.frozen_body_branches)
-    swapped = run(inference.common, tuple(reversed(inference.last_observations)), frame.image,
+    # Exchange synchronous observations within the same declared update;
+    # comparing nonlinear inference with the legacy affine runner would
+    # compare different likelihood approximations rather than sensor order.
+    swapped = inference._run_observation_update(inference.common,
+                  tuple(reversed(inference.last_observations)), frame.image,
                   prior_components=native_priors, paths=inference.paths,
                   joint_evidence=True, shared_observation_frame=True)
     swapped.records['bayes_factor_surprise'] = dict(original.records['bayes_factor_surprise'])
     swapped = inference._project_internal_update(swapped, ())
+    assert fingerprint(swapped) == fingerprint(original)
     alternative = StiffnessIdentifier(scene.urdf, inference.body_ids, settings).update(swapped)
     assert alternative == records['imu_marker']
     # Source mismatches cannot be disguised by a new numerical fit.

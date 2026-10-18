@@ -1,0 +1,1982 @@
+{
+  "scope": "Post-hoc physical truth is an oracle for diagnosis only. Inference source records and old frozen nonlinear observation function remain unchanged. Original image-Hessian/central fixed likelihoods come from saved native_likelihoods, not a new detector run.",
+  "physical_truth_fed_to_inference": false,
+  "source": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/frozen_source/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_observation.py",
+  "source_sha256": "9470f64cc7724f1ea8ed95261e3b557780669b118b727636ffbeabf452891ea2",
+  "cases": {
+    "marker": {
+      "centers": [
+        95
+      ],
+      "events": [
+        {
+          "job_sequence": 92,
+          "event_id": "image:00002481",
+          "event_kind": "image",
+          "elapsed_s": 28.419564723968506,
+          "stamp": 1792080028.4195647,
+          "command": [
+            0.06280298762080458,
+            -1.7043274425923804,
+            2.0381377314017315,
+            0.03509285587851203,
+            -0.8941991572508545,
+            -0.0372719476031865
+          ],
+          "acquisition_payload_hash": "6fa1e735643420d4b493603aa98f22a0b76a204c202a6cae6b90650dc9d23b89",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.011909424256304585,
+            "rotation_error_rad": 0.015566219001881218
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.001657227884321661,
+            "rotation_error_rad": 0.00808558668512321
+          },
+          "recorded_increment": [
+            0.006850891325055904,
+            -0.0016300973550573694,
+            -0.012212357395040119,
+            -0.009587007247145209,
+            -0.0012126762077062647,
+            -0.00026522930565718583
+          ],
+          "prediction_start_stamp": 1792080027.8051558,
+          "recorded_interval_count": 47,
+          "captured_K_epochs": [
+            {
+              "density_id": "f7a94ca9328f96dd52e9b211ad12acff853c7c6450d0775b40b5bc0186f47d1c",
+              "selected_K": [
+                105.35021736124533,
+                181.41351170763622,
+                202.38558009876218,
+                106.92409695445967,
+                106.54496583735698,
+                105.50733996824204
+              ],
+              "start_stamp": 1792080027.8051558,
+              "end_stamp": 1792080027.8970723
+            },
+            {
+              "density_id": "f8cce16c1620b1dfc58eb2ef9438c2604fc4c5f845a5bc42aa22cc51096c7bcd",
+              "selected_K": [
+                105.18738424740526,
+                208.58459154638436,
+                178.83487756955003,
+                103.4300041643215,
+                76.15670517462242,
+                100.63963458208147
+              ],
+              "start_stamp": 1792080027.8970723,
+              "end_stamp": 1792080028.4195647
+            }
+          ],
+          "reset_probability": 0.9798483045486791,
+          "reset_log_probability": -0.02035751057578368,
+          "log_bayes_factor": 4.982721630716705,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.16699186634778732,
+              "rotation_error_rad": 0.10862288685469733
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.16831261852438129,
+              "rotation_error_rad": 0.10977972940982987
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:d0a8efd8c176ca2b:0",
+              "log_weight": 0.0,
+              "truth_in_native": {
+                "translation_residual_m": 0.0015453236141550288,
+                "angle_residual_rad": 0.007848447667321902,
+                "native_whitened_residual_sq": 355.5909233640771,
+                "translation_std_m": [
+                  0.00018222163008953796,
+                  0.0001344011203489235,
+                  0.0004999115396131663
+                ],
+                "rotation_std_rad": [
+                  0.004593228792418184,
+                  0.00500460751805126,
+                  0.0010936362578375654
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.011361821922555356,
+                "angle_residual_rad": 0.008386738268976974,
+                "native_whitened_residual_sq": 14019.61427324488,
+                "translation_std_m": [
+                  0.00018222163008953796,
+                  0.0001344011203489235,
+                  0.0004999115396131663
+                ],
+                "rotation_std_rad": [
+                  0.004593228792418184,
+                  0.00500460751805126,
+                  0.0010936362578375654
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 0.0002009476607332791,
+                "angle_residual_rad": 0.0006335471424379753,
+                "native_whitened_residual_sq": 5.252066095003752,
+                "translation_std_m": [
+                  0.00018222163008953796,
+                  0.0001344011203489235,
+                  0.0004999115396131663
+                ],
+                "rotation_std_rad": [
+                  0.004593228792418184,
+                  0.00500460751805126,
+                  0.0010936362578375654
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 93,
+          "event_id": "image:00002488",
+          "event_kind": "image",
+          "elapsed_s": 28.51124405860901,
+          "stamp": 1792080028.511244,
+          "command": [
+            0.06369540227664212,
+            -1.7044957801090497,
+            2.0358898467691664,
+            0.03377171538732971,
+            -0.894208317213496,
+            -0.037269816982042216
+          ],
+          "acquisition_payload_hash": "28614f50aa5268c5b3fab5d05476aee88ab53cca1e62394ca0a087404dd80444",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.0016658577812588347,
+            "rotation_error_rad": 0.008337827161309033
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.0014493438782505513,
+            "rotation_error_rad": 0.005257791698424187
+          },
+          "recorded_increment": [
+            0.0008924146558375451,
+            -7.951853210785842e-05,
+            -0.0021301754831002384,
+            -0.0013510398336655238,
+            -4.481484010387948e-05,
+            -1.6438018002329358e-07
+          ],
+          "prediction_start_stamp": 1792080028.4195647,
+          "recorded_interval_count": 7,
+          "captured_K_epochs": [
+            {
+              "density_id": "f8cce16c1620b1dfc58eb2ef9438c2604fc4c5f845a5bc42aa22cc51096c7bcd",
+              "selected_K": [
+                105.18738424740526,
+                208.58459154638436,
+                178.83487756955003,
+                103.4300041643215,
+                76.15670517462242,
+                100.63963458208147
+              ],
+              "start_stamp": 1792080028.4195647,
+              "end_stamp": 1792080028.511244
+            }
+          ],
+          "reset_probability": 2.7822069685678823e-12,
+          "reset_log_probability": -26.607776629591392,
+          "log_bayes_factor": -25.5091643409205,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.16831261852438129,
+              "rotation_error_rad": 0.10977972940982987
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.1682276412215166,
+              "rotation_error_rad": 0.10979508678979437
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:5eb31a6eb6232344:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.0034648192431313064,
+                "rotation_error_rad": 0.008544613118707932
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.0033745169190449826,
+                "rotation_error_rad": 0.003011390884357682
+              },
+              "previous_image_job_sequence": 92,
+              "truth_in_native": {
+                "translation_residual_m": 0.0014524752790765344,
+                "angle_residual_rad": 0.0071205092047353265,
+                "native_whitened_residual_sq": 313.89549279279885,
+                "translation_std_m": [
+                  0.00018341262460617785,
+                  0.00013648656601470888,
+                  0.0005032928672370875
+                ],
+                "rotation_std_rad": [
+                  0.004776759364737856,
+                  0.0051144725399699465,
+                  0.00107588322413575
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.0005385174553629615,
+                "angle_residual_rad": 0.011518916766176963,
+                "native_whitened_residual_sq": 41.80760975392448,
+                "translation_std_m": [
+                  0.00018341262460617785,
+                  0.00013648656601470888,
+                  0.0005032928672370875
+                ],
+                "rotation_std_rad": [
+                  0.004776759364737856,
+                  0.0051144725399699465,
+                  0.00107588322413575
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 8.528179253461467e-06,
+                "angle_residual_rad": 0.006165806614920411,
+                "native_whitened_residual_sq": 1.719995370652569,
+                "translation_std_m": [
+                  0.00018341262460617785,
+                  0.00013648656601470888,
+                  0.0005032928672370875
+                ],
+                "rotation_std_rad": [
+                  0.004776759364737856,
+                  0.0051144725399699465,
+                  0.00107588322413575
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 94,
+          "event_id": "image:00002549",
+          "event_kind": "image",
+          "elapsed_s": 29.423784732818604,
+          "stamp": 1792080029.4237847,
+          "command": [
+            0.09304359150804592,
+            -1.7415756999647032,
+            1.9787612916527255,
+            -0.009564110806854794,
+            -0.9070812004288222,
+            -0.03581478531322544
+          ],
+          "acquisition_payload_hash": "1a76a5f164bc031082c1e92dc9f8309c961f50b1fbeac11b637889bbcf3da9ec",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.031837454331873696,
+            "rotation_error_rad": 0.030131376333297415
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.06723973509163038,
+            "rotation_error_rad": 0.21299121376976168
+          },
+          "recorded_increment": [
+            -0.00016144459161601676,
+            -0.0006129138344415086,
+            -0.0010926488650544464,
+            -0.0001717419284682619,
+            0.00020268790763833255,
+            0.0003005825592923353
+          ],
+          "prediction_start_stamp": 1792080029.34232,
+          "recorded_interval_count": 5,
+          "captured_K_epochs": [
+            {
+              "density_id": "f8cce16c1620b1dfc58eb2ef9438c2604fc4c5f845a5bc42aa22cc51096c7bcd",
+              "selected_K": [
+                105.18738424740526,
+                208.58459154638436,
+                178.83487756955003,
+                103.4300041643215,
+                76.15670517462242,
+                100.63963458208147
+              ],
+              "start_stamp": 1792080029.34232,
+              "end_stamp": 1792080029.4237847
+            }
+          ],
+          "reset_probability": 1.0,
+          "reset_log_probability": 0.0,
+          "log_bayes_factor": 258.2522874731754,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.1682276412215166,
+              "rotation_error_rad": 0.10979508678979437
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.1687369960266204,
+              "rotation_error_rad": 0.1110102444434857
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:16d6dd1e1a7485af:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.1253200383199268,
+                "rotation_error_rad": 0.45158753487920134
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.11762819753306802,
+                "rotation_error_rad": 0.10539362098562403
+              },
+              "previous_image_job_sequence": 93,
+              "truth_in_native": {
+                "translation_residual_m": 0.06913310547189132,
+                "angle_residual_rad": 0.5608322891335566,
+                "native_whitened_residual_sq": 937.29774484927,
+                "translation_std_m": [
+                  0.001114376194452178,
+                  0.0005640200535456401,
+                  0.0034605897254870246
+                ],
+                "rotation_std_rad": [
+                  0.0276737351481755,
+                  0.027659367802457337,
+                  0.0058803761897712765
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.07746259177476882,
+                "angle_residual_rad": 0.575886393503362,
+                "native_whitened_residual_sq": 3500.7047485040766,
+                "translation_std_m": [
+                  0.001114376194452178,
+                  0.0005640200535456401,
+                  0.0034605897254870246
+                ],
+                "rotation_std_rad": [
+                  0.0276737351481755,
+                  0.027659367802457337,
+                  0.0058803761897712765
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 0.001897703956697737,
+                "angle_residual_rad": 0.3525208320276461,
+                "native_whitened_residual_sq": 162.21768451284288,
+                "translation_std_m": [
+                  0.001114376194452178,
+                  0.0005640200535456401,
+                  0.0034605897254870246
+                ],
+                "rotation_std_rad": [
+                  0.0276737351481755,
+                  0.027659367802457337,
+                  0.0058803761897712765
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 95,
+          "event_id": "image:00002602",
+          "event_kind": "image",
+          "elapsed_s": 30.181849479675293,
+          "stamp": 1792080030.1818495,
+          "command": [
+            0.08837036010466788,
+            -1.7369144289235765,
+            1.9765177975318753,
+            -0.00366818959698626,
+            -0.9000680598771339,
+            -0.032674269096910256
+          ],
+          "acquisition_payload_hash": "1d993fed983e1bca97e94448e3740deafe229c055d9157c8ec83dd4d139c89c7",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.07934309708607505,
+            "rotation_error_rad": 0.2340223461956501
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.0014004219059601582,
+            "rotation_error_rad": 0.018218407298802846
+          },
+          "recorded_increment": [
+            -0.004673231403378039,
+            0.0054467166302556436,
+            -0.0023026465568101173,
+            0.0060540886976829,
+            0.007232780987507348,
+            0.0031569893362259904
+          ],
+          "prediction_start_stamp": 1792080029.4237847,
+          "recorded_interval_count": 53,
+          "captured_K_epochs": [
+            {
+              "density_id": "f8cce16c1620b1dfc58eb2ef9438c2604fc4c5f845a5bc42aa22cc51096c7bcd",
+              "selected_K": [
+                105.18738424740526,
+                208.58459154638436,
+                178.83487756955003,
+                103.4300041643215,
+                76.15670517462242,
+                100.63963458208147
+              ],
+              "start_stamp": 1792080029.4237847,
+              "end_stamp": 1792080030.141038
+            },
+            {
+              "density_id": "af516282290b56a706c33c90f7f6ad919d73f13cf5a269aeba2614c633dd1b0e",
+              "selected_K": [
+                105.1421901793175,
+                173.45286570374662,
+                368.6710021114297,
+                102.16156694125024,
+                94.3026125165564,
+                99.07298955801315
+              ],
+              "start_stamp": 1792080030.141038,
+              "end_stamp": 1792080030.1818495
+            }
+          ],
+          "reset_probability": 1.0,
+          "reset_log_probability": 0.0,
+          "log_bayes_factor": 311.6699063581605,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.1687369960266204,
+              "rotation_error_rad": 0.1110102444434857
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.16997966391760874,
+              "rotation_error_rad": 0.11208802073730173
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:b3edb472e01bc452:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.07633642199811042,
+                "rotation_error_rad": 0.589555276400803
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.023343054515656457,
+                "rotation_error_rad": 0.02004061918471915
+              },
+              "previous_image_job_sequence": 94,
+              "truth_in_native": {
+                "translation_residual_m": 0.00153375040692467,
+                "angle_residual_rad": 0.019971925441865986,
+                "native_whitened_residual_sq": 15.753495118503078,
+                "translation_std_m": [
+                  0.0004747587109584769,
+                  0.0004044775869997892,
+                  0.0011681672683559654
+                ],
+                "rotation_std_rad": [
+                  0.010400799374046376,
+                  0.010779632488972641,
+                  0.0023624106512049226
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.07837348759752447,
+                "angle_residual_rad": 0.2535649173976806,
+                "native_whitened_residual_sq": 135428.4667600075,
+                "translation_std_m": [
+                  0.0004747587109584769,
+                  0.0004044775869997892,
+                  0.0011681672683559654
+                ],
+                "rotation_std_rad": [
+                  0.010400799374046376,
+                  0.010779632488972641,
+                  0.0023624106512049226
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 0.00013880997927000427,
+                "angle_residual_rad": 0.0023003160781198064,
+                "native_whitened_residual_sq": 0.055154472771088314,
+                "translation_std_m": [
+                  0.0004747587109584769,
+                  0.0004044775869997892,
+                  0.0011681672683559654
+                ],
+                "rotation_std_rad": [
+                  0.010400799374046376,
+                  0.010779632488972641,
+                  0.0023624106512049226
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 96,
+          "event_id": "image:00002609",
+          "event_kind": "image",
+          "elapsed_s": 30.770796060562134,
+          "stamp": 1792080030.770796,
+          "command": [
+            0.08429527467801914,
+            -1.7309269596298613,
+            1.9725894748081274,
+            0.001902668370910885,
+            -0.8940867740089334,
+            -0.030398009471804013
+          ],
+          "acquisition_payload_hash": "5bec0c577b5a2f02c6798ea0464acf63b3ddffe3c855a1c350ba0970ede38261",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.0015963085632617496,
+            "rotation_error_rad": 0.017602526326109105
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.0017499703229835303,
+            "rotation_error_rad": 0.014587539156044741
+          },
+          "recorded_increment": [
+            -0.004075085426648736,
+            0.00724708552100739,
+            -0.003959561084515784,
+            0.0057226057615198,
+            0.006155749020534396,
+            0.002291329885855703
+          ],
+          "prediction_start_stamp": 1792080030.1818495,
+          "recorded_interval_count": 7,
+          "captured_K_epochs": [
+            {
+              "density_id": "af516282290b56a706c33c90f7f6ad919d73f13cf5a269aeba2614c633dd1b0e",
+              "selected_K": [
+                105.1421901793175,
+                173.45286570374662,
+                368.6710021114297,
+                102.16156694125024,
+                94.3026125165564,
+                99.07298955801315
+              ],
+              "start_stamp": 1792080030.1818495,
+              "end_stamp": 1792080030.770796
+            }
+          ],
+          "reset_probability": 1.7930866075736466e-10,
+          "reset_log_probability": -22.44191243331969,
+          "log_bayes_factor": -21.34330014447227,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.16997966391760874,
+              "rotation_error_rad": 0.11208802073730173
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.17021991642973042,
+              "rotation_error_rad": 0.1124051261278552
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:3bb8a7fc57c0a51c:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.012065228291451426,
+                "rotation_error_rad": 0.020786683808259404
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.0125380838280127,
+                "rotation_error_rad": 0.012689333651611737
+              },
+              "previous_image_job_sequence": 95,
+              "truth_in_native": {
+                "translation_residual_m": 0.002096238083119907,
+                "angle_residual_rad": 0.011243127934732937,
+                "native_whitened_residual_sq": 58.38130856506653,
+                "translation_std_m": [
+                  0.0003940249188575787,
+                  0.00032591078657900695,
+                  0.0009957589658369567
+                ],
+                "rotation_std_rad": [
+                  0.007552673652996105,
+                  0.008319971742020827,
+                  0.0018317659368739458
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.0022525654542434425,
+                "angle_residual_rad": 0.0074138962485445275,
+                "native_whitened_residual_sq": 266.7016947814494,
+                "translation_std_m": [
+                  0.0003940249188575787,
+                  0.00032591078657900695,
+                  0.0009957589658369567
+                ],
+                "rotation_std_rad": [
+                  0.007552673652996105,
+                  0.008319971742020827,
+                  0.0018317659368739458
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 0.00038094528541618005,
+                "angle_residual_rad": 0.003476698497357129,
+                "native_whitened_residual_sq": 0.33756037911574593,
+                "translation_std_m": [
+                  0.0003940249188575787,
+                  0.00032591078657900695,
+                  0.0009957589658369567
+                ],
+                "rotation_std_rad": [
+                  0.007552673652996105,
+                  0.008319971742020827,
+                  0.0018317659368739458
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 97,
+          "event_id": "image:00002654",
+          "event_kind": "image",
+          "elapsed_s": 31.501399993896484,
+          "stamp": 1792080031.5014,
+          "command": [
+            0.08010265810966473,
+            -1.725622133287205,
+            1.9664332919444008,
+            0.00644570373486261,
+            -0.8884800321815585,
+            -0.028048598657981
+          ],
+          "acquisition_payload_hash": "909b6284ee289d35e37fcf0f6e4a034264680d7f16042ce467617acd62b1682a",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.0036944627129663534,
+            "rotation_error_rad": 0.016658802693020742
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.001354470121399049,
+            "rotation_error_rad": 0.015619908381543816
+          },
+          "recorded_increment": [
+            -0.004192616568354415,
+            0.0065417313109013,
+            -0.0061375409089312605,
+            0.004667098829743313,
+            0.005718034044832954,
+            0.0023614377517069372
+          ],
+          "prediction_start_stamp": 1792080030.770796,
+          "recorded_interval_count": 45,
+          "captured_K_epochs": [
+            {
+              "density_id": "af516282290b56a706c33c90f7f6ad919d73f13cf5a269aeba2614c633dd1b0e",
+              "selected_K": [
+                105.1421901793175,
+                173.45286570374662,
+                368.6710021114297,
+                102.16156694125024,
+                94.3026125165564,
+                99.07298955801315
+              ],
+              "start_stamp": 1792080030.770796,
+              "end_stamp": 1792080031.5014
+            }
+          ],
+          "reset_probability": 2.0078127006460105e-10,
+          "reset_log_probability": -22.328805009032216,
+          "log_bayes_factor": -21.230192720163323,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.17021991642973042,
+              "rotation_error_rad": 0.1124051261278552
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.16972410200284896,
+              "rotation_error_rad": 0.11178902828725255
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:40e17e0f1a234675:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.013336641321142987,
+                "rotation_error_rad": 0.008426346407862193
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.012612480358037893,
+                "rotation_error_rad": 0.012426331446789346
+              },
+              "previous_image_job_sequence": 96,
+              "truth_in_native": {
+                "translation_residual_m": 0.0009280430568491108,
+                "angle_residual_rad": 0.016361132928383596,
+                "native_whitened_residual_sq": 18.697268688368094,
+                "translation_std_m": [
+                  0.0003802961449719295,
+                  0.0003121641206162029,
+                  0.0010003219935123282
+                ],
+                "rotation_std_rad": [
+                  0.007415791498565066,
+                  0.008110633766925618,
+                  0.0018674251846020062
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.0031288409908127963,
+                "angle_residual_rad": 0.002010396531318129,
+                "native_whitened_residual_sq": 580.297069318934,
+                "translation_std_m": [
+                  0.0003802961449719295,
+                  0.0003121641206162029,
+                  0.0010003219935123282
+                ],
+                "rotation_std_rad": [
+                  0.007415791498565066,
+                  0.008110633766925618,
+                  0.0018674251846020062
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 0.00046059568294939214,
+                "angle_residual_rad": 0.0019429727768999826,
+                "native_whitened_residual_sq": 0.5842327362053521,
+                "translation_std_m": [
+                  0.0003802961449719295,
+                  0.0003121641206162029,
+                  0.0010003219935123282
+                ],
+                "rotation_std_rad": [
+                  0.007415791498565066,
+                  0.008110633766925618,
+                  0.0018674251846020062
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 98,
+          "event_id": "image:00002658",
+          "event_kind": "image",
+          "elapsed_s": 31.591347694396973,
+          "stamp": 1792080031.5913477,
+          "command": [
+            0.079069021668944,
+            -1.7247521363436165,
+            1.9667953398023228,
+            0.00712667491124122,
+            -0.8880488923123936,
+            -0.027836343372147028
+          ],
+          "acquisition_payload_hash": "3b698d2014b2d10e82d18fa2d4baded9dda20be8ecae1184e8b9ce1577ca5a4f",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.0017842051732710595,
+            "rotation_error_rad": 0.01464184545975078
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.001448207061288436,
+            "rotation_error_rad": 0.015356074827847734
+          },
+          "recorded_increment": [
+            -0.0010336364407207282,
+            0.001005829886215892,
+            0.00033933278672027,
+            0.0006985943314368401,
+            0.00046354675870730055,
+            0.00021431127610236841
+          ],
+          "prediction_start_stamp": 1792080031.5014,
+          "recorded_interval_count": 4,
+          "captured_K_epochs": [
+            {
+              "density_id": "af516282290b56a706c33c90f7f6ad919d73f13cf5a269aeba2614c633dd1b0e",
+              "selected_K": [
+                105.1421901793175,
+                173.45286570374662,
+                368.6710021114297,
+                102.16156694125024,
+                94.3026125165564,
+                99.07298955801315
+              ],
+              "start_stamp": 1792080031.5014,
+              "end_stamp": 1792080031.5913477
+            }
+          ],
+          "reset_probability": 2.5130776564755334e-11,
+          "reset_log_probability": -24.40692786295017,
+          "log_bayes_factor": -23.30831557425693,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.16972410200284896,
+              "rotation_error_rad": 0.11178902828725255
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.17043372389113712,
+              "rotation_error_rad": 0.11226706076182302
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:b184a3a652412070:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.0014411808095583347,
+                "rotation_error_rad": 0.002007819080091557
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.0015899997557948904,
+                "rotation_error_rad": 0.0014732445554137
+              },
+              "previous_image_job_sequence": 97,
+              "truth_in_native": {
+                "translation_residual_m": 0.001081754554635882,
+                "angle_residual_rad": 0.016340618157388673,
+                "native_whitened_residual_sq": 27.979836148062226,
+                "translation_std_m": [
+                  0.00038089574905179224,
+                  0.00031210183811236327,
+                  0.001006114094947012
+                ],
+                "rotation_std_rad": [
+                  0.007406624567799601,
+                  0.008172786155722556,
+                  0.0018714975758035665
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.0015366635359295262,
+                "angle_residual_rad": 0.0019861941257109574,
+                "native_whitened_residual_sq": 136.16011745315046,
+                "translation_std_m": [
+                  0.00038089574905179224,
+                  0.00031210183811236327,
+                  0.001006114094947012
+                ],
+                "rotation_std_rad": [
+                  0.007406624567799601,
+                  0.008172786155722556,
+                  0.0018714975758035665
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 0.00042187162039333137,
+                "angle_residual_rad": 0.001527519659536275,
+                "native_whitened_residual_sq": 0.5255500703438385,
+                "translation_std_m": [
+                  0.00038089574905179224,
+                  0.00031210183811236327,
+                  0.001006114094947012
+                ],
+                "rotation_std_rad": [
+                  0.007406624567799601,
+                  0.008172786155722556,
+                  0.0018714975758035665
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "imu_marker": {
+      "centers": [
+        260,
+        321
+      ],
+      "events": [
+        {
+          "job_sequence": 257,
+          "event_id": "imu:00002160",
+          "event_kind": "imu",
+          "elapsed_s": 27.486371994018555,
+          "stamp": 1792080027.486372,
+          "command": [
+            -0.09562494388220738,
+            -1.6850354014228734,
+            2.016722184755958,
+            -0.018665517435556757,
+            -0.9478821426694151,
+            0.007745057754534572
+          ],
+          "acquisition_payload_hash": "efc612e28fdf0824f0dfce379443615359025e4f1382e4f323f9f4c0dda99429",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.01026334918358524,
+            "rotation_error_rad": 0.012667163773254608
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.010373106063927722,
+            "rotation_error_rad": 0.012688861721288618
+          },
+          "recorded_increment": [
+            0.01001338673846705,
+            0.004906965779657879,
+            -0.005421101134860606,
+            -0.0030939843137417315,
+            -0.0010607998829704757,
+            0.000468347800842513
+          ],
+          "prediction_start_stamp": 1792080027.3002744,
+          "recorded_interval_count": 15,
+          "captured_K_epochs": [
+            {
+              "density_id": "43966313c2c00f0a680e6c7cd763a7f881a0c5ad6936bd6e19ee8f15a40c76b3",
+              "selected_K": [
+                104.35468525732927,
+                67.35322833099619,
+                436.89871361408535,
+                110.55177233234144,
+                23.54155386983503,
+                92.7329759678966
+              ],
+              "start_stamp": 1792080027.3002744,
+              "end_stamp": 1792080027.486372
+            }
+          ],
+          "reset_probability": 4.296687761305333e-10,
+          "reset_log_probability": -21.568006492133758,
+          "log_bayes_factor": -20.46939420303598,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.0667040868286997,
+              "rotation_error_rad": 0.05069770863864372
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.06670430787137897,
+              "rotation_error_rad": 0.05076066747166227
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 258,
+          "event_id": "imu:00002162",
+          "event_kind": "imu",
+          "elapsed_s": 27.51057457923889,
+          "stamp": 1792080027.5105746,
+          "command": [
+            -0.09436153127485938,
+            -1.6847409895367407,
+            2.0160482688160197,
+            -0.01905023547983867,
+            -0.9480170977443995,
+            0.0078021095200860174
+          ],
+          "acquisition_payload_hash": "23b6610717f9cf00e94c2bb7a7aed01a2bb4913d48fb1d6a160a7069611df89a",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.0103319663372234,
+            "rotation_error_rad": 0.012785157265696644
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.010340860244866827,
+            "rotation_error_rad": 0.012736133030671132
+          },
+          "recorded_increment": [
+            0.0012634126073479968,
+            0.0005740367716093875,
+            -0.0006707273591088914,
+            -0.00039159273774462544,
+            -0.00013700710339492606,
+            5.672462592064449e-05
+          ],
+          "prediction_start_stamp": 1792080027.486372,
+          "recorded_interval_count": 2,
+          "captured_K_epochs": [
+            {
+              "density_id": "43966313c2c00f0a680e6c7cd763a7f881a0c5ad6936bd6e19ee8f15a40c76b3",
+              "selected_K": [
+                104.35468525732927,
+                67.35322833099619,
+                436.89871361408535,
+                110.55177233234144,
+                23.54155386983503,
+                92.7329759678966
+              ],
+              "start_stamp": 1792080027.486372,
+              "end_stamp": 1792080027.5105746
+            }
+          ],
+          "reset_probability": 4.1603744628870126e-10,
+          "reset_log_probability": -21.600245844601332,
+          "log_bayes_factor": -20.501633555517184,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.06670430787137897,
+              "rotation_error_rad": 0.05076066747166227
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.06664703015758493,
+              "rotation_error_rad": 0.050647221596596854
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 259,
+          "event_id": "imu:00002164",
+          "event_kind": "imu",
+          "elapsed_s": 28.0286283493042,
+          "stamp": 1792080028.0286283,
+          "command": [
+            -0.06963312905849256,
+            -1.6787643010441426,
+            2.0035812746512396,
+            -0.026278415853210862,
+            -0.9498399111697502,
+            0.008800553938560557
+          ],
+          "acquisition_payload_hash": "904d73e8cfc55e489de906b24a5065429868886ca2344d82eddbe28c707ff74e",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.012245967643675254,
+            "rotation_error_rad": 0.014193390194789459
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.0121315072297242,
+            "rotation_error_rad": 0.014139893038954575
+          },
+          "recorded_increment": [
+            0.024728402216366824,
+            0.011308730321431648,
+            -0.012429969042036415,
+            -0.007357926002680273,
+            -0.0018552133109928093,
+            0.0009921835801448755
+          ],
+          "prediction_start_stamp": 1792080027.5105746,
+          "recorded_interval_count": 2,
+          "captured_K_epochs": [
+            {
+              "density_id": "43966313c2c00f0a680e6c7cd763a7f881a0c5ad6936bd6e19ee8f15a40c76b3",
+              "selected_K": [
+                104.35468525732927,
+                67.35322833099619,
+                436.89871361408535,
+                110.55177233234144,
+                23.54155386983503,
+                92.7329759678966
+              ],
+              "start_stamp": 1792080027.5105746,
+              "end_stamp": 1792080028.0286283
+            }
+          ],
+          "reset_probability": 4.0041394961686254e-10,
+          "reset_log_probability": -21.6385222298914,
+          "log_bayes_factor": -20.539909940822877,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.06664703015758493,
+              "rotation_error_rad": 0.050647221596596854
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.06655505544680788,
+              "rotation_error_rad": 0.050461323901861366
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 260,
+          "event_id": "image:00002164",
+          "event_kind": "image",
+          "elapsed_s": 28.0286283493042,
+          "stamp": 1792080028.0286283,
+          "command": [
+            -0.06963312905849256,
+            -1.6787643010441426,
+            2.0035812746512396,
+            -0.026278415853210862,
+            -0.9498399111697502,
+            0.008800553938560557
+          ],
+          "acquisition_payload_hash": "9bf9ce47a2b8c3965b7249e343c54274a36445461ae3547d764deb867f2bc86e",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.0121315072297242,
+            "rotation_error_rad": 0.014139893038954575
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.004653712999063664,
+            "rotation_error_rad": 0.01721485454259898
+          },
+          "recorded_increment": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "prediction_start_stamp": 1792080028.0286283,
+          "recorded_interval_count": 0,
+          "captured_K_epochs": [],
+          "reset_probability": 1.0,
+          "reset_log_probability": 0.0,
+          "log_bayes_factor": 60.37291090043334,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.06655505544680788,
+              "rotation_error_rad": 0.050461323901861366
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.06582151509955646,
+              "rotation_error_rad": 0.04994053588652907
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:80896459f5226eac:0",
+              "log_weight": 0.0,
+              "truth_in_native": {
+                "translation_residual_m": 0.004714186650637419,
+                "angle_residual_rad": 0.015602142582686355,
+                "native_whitened_residual_sq": 1181.9518821324605,
+                "translation_std_m": [
+                  0.00011928025915671219,
+                  0.00018852737703477243,
+                  0.0005755228513032485
+                ],
+                "rotation_std_rad": [
+                  0.00543871952278564,
+                  0.005311487555778459,
+                  0.0012167341734565583
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.015265982008389191,
+                "angle_residual_rad": 0.02712663086450058,
+                "native_whitened_residual_sq": 20727.76476424345,
+                "translation_std_m": [
+                  0.00011928025915671219,
+                  0.00018852737703477243,
+                  0.0005755228513032485
+                ],
+                "rotation_std_rad": [
+                  0.00543871952278564,
+                  0.005311487555778459,
+                  0.0012167341734565583
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 8.103255190759347e-05,
+                "angle_residual_rad": 0.0023737582596268913,
+                "native_whitened_residual_sq": 0.2086221601009639,
+                "translation_std_m": [
+                  0.00011928025915671219,
+                  0.00018852737703477243,
+                  0.0005755228513032485
+                ],
+                "rotation_std_rad": [
+                  0.00543871952278564,
+                  0.005311487555778459,
+                  0.0012167341734565583
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 261,
+          "event_id": "imu:00002165",
+          "event_kind": "imu",
+          "elapsed_s": 28.067063331604004,
+          "stamp": 1792080028.0670633,
+          "command": [
+            -0.06787183818224928,
+            -1.6783164799004546,
+            2.00271474741189,
+            -0.026783181820235622,
+            -0.9499432228915917,
+            0.008868364251420666
+          ],
+          "acquisition_payload_hash": "0aefeb2060a5f85892d367372627927712744017d74e1c06d873e2ba4dbe6f73",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.0047948813052935075,
+            "rotation_error_rad": 0.017422015364843745
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.004992193725708406,
+            "rotation_error_rad": 0.014461284975989985
+          },
+          "recorded_increment": [
+            0.001761290876243285,
+            0.0008278865939477242,
+            -0.0008652922085814474,
+            -0.0005138594561494396,
+            -0.00010532830811915694,
+            6.737011153403263e-05
+          ],
+          "prediction_start_stamp": 1792080028.0286283,
+          "recorded_interval_count": 1,
+          "captured_K_epochs": [
+            {
+              "density_id": "43966313c2c00f0a680e6c7cd763a7f881a0c5ad6936bd6e19ee8f15a40c76b3",
+              "selected_K": [
+                104.35468525732927,
+                67.35322833099619,
+                436.89871361408535,
+                110.55177233234144,
+                23.54155386983503,
+                92.7329759678966
+              ],
+              "start_stamp": 1792080028.0286283,
+              "end_stamp": 1792080028.0670633
+            }
+          ],
+          "reset_probability": 2.616522822772688e-09,
+          "reset_log_probability": -19.76141956752001,
+          "log_bayes_factor": -18.662807276235377,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.06582151509955646,
+              "rotation_error_rad": 0.04994053588652907
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.06631554214975038,
+              "rotation_error_rad": 0.050407307793834406
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 262,
+          "event_id": "imu:00002166",
+          "event_kind": "imu",
+          "elapsed_s": 28.11409068107605,
+          "stamp": 1792080028.1140907,
+          "command": [
+            -0.06572322387553187,
+            -1.677766266027283,
+            2.001658907685775,
+            -0.027398162289962467,
+            -0.9500673892334127,
+            0.008950889387601127
+          ],
+          "acquisition_payload_hash": "ad4063f65fed6c3ee1c519ee56ae9eae085a2e37184fb4f74193c1d00a14a3c5",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.005169163727710001,
+            "rotation_error_rad": 0.014674622360979786
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.005093473391143429,
+            "rotation_error_rad": 0.014759045846302577
+          },
+          "recorded_increment": [
+            0.0021486143067174085,
+            0.001014586034754128,
+            -0.0010545218306869941,
+            -0.0006260640229193877,
+            -0.00012660335485858987,
+            8.19886746820566e-05
+          ],
+          "prediction_start_stamp": 1792080028.0670633,
+          "recorded_interval_count": 1,
+          "captured_K_epochs": [
+            {
+              "density_id": "43966313c2c00f0a680e6c7cd763a7f881a0c5ad6936bd6e19ee8f15a40c76b3",
+              "selected_K": [
+                104.35468525732927,
+                67.35322833099619,
+                436.89871361408535,
+                110.55177233234144,
+                23.54155386983503,
+                92.7329759678966
+              ],
+              "start_stamp": 1792080028.0670633,
+              "end_stamp": 1792080028.1140907
+            }
+          ],
+          "reset_probability": 3.927356361506155e-10,
+          "reset_log_probability": -21.657884411961632,
+          "log_bayes_factor": -20.559272122900786,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.06631554214975038,
+              "rotation_error_rad": 0.050407307793834406
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.0662737862398587,
+              "rotation_error_rad": 0.05037328001034385
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 263,
+          "event_id": "image:00002166",
+          "event_kind": "image",
+          "elapsed_s": 28.11409068107605,
+          "stamp": 1792080028.1140907,
+          "command": [
+            -0.06572322387553187,
+            -1.677766266027283,
+            2.001658907685775,
+            -0.027398162289962467,
+            -0.9500673892334127,
+            0.008950889387601127
+          ],
+          "acquisition_payload_hash": "fb517eaa5d33a497ebb159b32c4653625f74920c809e0ed75952bcfb6dbba2d9",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.005093473391143429,
+            "rotation_error_rad": 0.014759045846302577
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.004337335633102644,
+            "rotation_error_rad": 0.010307733995038398
+          },
+          "recorded_increment": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "prediction_start_stamp": 1792080028.1140907,
+          "recorded_interval_count": 0,
+          "captured_K_epochs": [],
+          "reset_probability": 1.7991080571901252e-17,
+          "reset_log_probability": -38.556655562592404,
+          "log_bayes_factor": -37.45804327392429,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.0662737862398587,
+              "rotation_error_rad": 0.05037328001034385
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.06558287477892862,
+              "rotation_error_rad": 0.050090650506296054
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:04eba41539c0e6c2:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.006191369604933031,
+                "rotation_error_rad": 0.01635545750044705
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.005790784040105619,
+                "rotation_error_rad": 0.005011264928831994
+              },
+              "previous_image_job_sequence": 260,
+              "truth_in_native": {
+                "translation_residual_m": 0.0039008205392431225,
+                "angle_residual_rad": 0.005907530899915681,
+                "native_whitened_residual_sq": 1165.9033505420718,
+                "translation_std_m": [
+                  0.0001223959904814555,
+                  0.00019017773351865338,
+                  0.0005720051350616549
+                ],
+                "rotation_std_rad": [
+                  0.005498857398457649,
+                  0.005451489677911293,
+                  0.0011891739975379418
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.0015021044993549287,
+                "angle_residual_rad": 0.01129251266414857,
+                "native_whitened_residual_sq": 53.3139692282016,
+                "translation_std_m": [
+                  0.0001223959904814555,
+                  0.00019017773351865338,
+                  0.0005720051350616549
+                ],
+                "rotation_std_rad": [
+                  0.005498857398457649,
+                  0.005451489677911293,
+                  0.0011891739975379418
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 0.0006847274020642093,
+                "angle_residual_rad": 0.006263272287798755,
+                "native_whitened_residual_sq": 2.6185450374340307,
+                "translation_std_m": [
+                  0.0001223959904814555,
+                  0.00019017773351865338,
+                  0.0005720051350616549
+                ],
+                "rotation_std_rad": [
+                  0.005498857398457649,
+                  0.005451489677911293,
+                  0.0011891739975379418
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 318,
+          "event_id": "imu:00002583",
+          "event_kind": "imu",
+          "elapsed_s": 36.56759691238403,
+          "stamp": 1792080036.567597,
+          "command": [
+            0.07579803627154076,
+            -1.476889302144274,
+            1.85197171271324,
+            0.042040742641191335,
+            -1.078654035417643,
+            0.023608806315740492
+          ],
+          "acquisition_payload_hash": "ed6706c8d873a279365725e41e7ec790c3fa6fa3644eb5386bec0cb547ef685b",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.011004266873036782,
+            "rotation_error_rad": 0.013510272366820713
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.010973108699624092,
+            "rotation_error_rad": 0.013555125295115421
+          },
+          "recorded_increment": [
+            -0.0069519486171984585,
+            0.0066014296349177215,
+            -0.0038205608184411766,
+            0.004221849586953555,
+            -0.001478677730161193,
+            1.7943749195312858e-05
+          ],
+          "prediction_start_stamp": 1792080036.4380593,
+          "recorded_interval_count": 10,
+          "captured_K_epochs": [
+            {
+              "density_id": "2720e74bdab99901d7451641ca4a39f1a3432b979409269f8a4337d69f70fa89",
+              "selected_K": [
+                105.1064967790113,
+                117.98784861300645,
+                93.57527822931146,
+                104.68249267629892,
+                95.18937825421565,
+                104.65546244526102
+              ],
+              "start_stamp": 1792080036.4380593,
+              "end_stamp": 1792080036.567597
+            }
+          ],
+          "reset_probability": 8.939906262997298e-12,
+          "reset_log_probability": -25.44049601192144,
+          "log_bayes_factor": -24.34188372324439,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.07562513022993336,
+              "rotation_error_rad": 0.05509847933291794
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.07559942499324163,
+              "rotation_error_rad": 0.055105265577323634
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 319,
+          "event_id": "imu:00002590",
+          "event_kind": "imu",
+          "elapsed_s": 36.71320962905884,
+          "stamp": 1792080036.7132096,
+          "command": [
+            0.06764180066220546,
+            -1.4707807985238577,
+            1.8481737277562469,
+            0.04716955878955104,
+            -1.0800880952149619,
+            0.02356692610596527
+          ],
+          "acquisition_payload_hash": "0d4ecef5add1eb060e362aee918d0d3f5b4112c6db679aeea1ecaa7ab9f6ee5a",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.012370822526261049,
+            "rotation_error_rad": 0.014104813649427951
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.012396756028823213,
+            "rotation_error_rad": 0.014083286592691464
+          },
+          "recorded_increment": [
+            -0.008156235609335302,
+            0.007635897835574612,
+            -0.0043179761274037,
+            0.0052372855526129775,
+            -0.0014172020836438204,
+            -3.7054567629292434e-05
+          ],
+          "prediction_start_stamp": 1792080036.567597,
+          "recorded_interval_count": 7,
+          "captured_K_epochs": [
+            {
+              "density_id": "2720e74bdab99901d7451641ca4a39f1a3432b979409269f8a4337d69f70fa89",
+              "selected_K": [
+                105.1064967790113,
+                117.98784861300645,
+                93.57527822931146,
+                104.68249267629892,
+                95.18937825421565,
+                104.65546244526102
+              ],
+              "start_stamp": 1792080036.567597,
+              "end_stamp": 1792080036.7132096
+            }
+          ],
+          "reset_probability": 8.757222543573685e-12,
+          "reset_log_probability": -25.46114232249067,
+          "log_bayes_factor": -24.362530033813805,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.07559942499324163,
+              "rotation_error_rad": 0.055105265577323634
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.07567116600435335,
+              "rotation_error_rad": 0.05516585452481682
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 320,
+          "event_id": "imu:00002595",
+          "event_kind": "imu",
+          "elapsed_s": 36.852192878723145,
+          "stamp": 1792080036.8521929,
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ],
+          "acquisition_payload_hash": "c1fb44fcff3839b069bed5238ce9a6a9f690030fe7b7b3c70a197de76e7b7d37",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.012469248903922042,
+            "rotation_error_rad": 0.015348916684427396
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.012439946765229208,
+            "rotation_error_rad": 0.015349593112470318
+          },
+          "recorded_increment": [
+            -0.0070496573184127345,
+            0.006365299369094135,
+            -0.003445474187331765,
+            0.004384827580011137,
+            -0.0005590711196319376,
+            -5.3177558989685875e-05
+          ],
+          "prediction_start_stamp": 1792080036.7132096,
+          "recorded_interval_count": 5,
+          "captured_K_epochs": [
+            {
+              "density_id": "2a2519e80119f3654cd6e1df34b8b931830cd3451a9f2f261340fdd08bf032c4",
+              "selected_K": [
+                105.04551868600333,
+                120.39839342475605,
+                94.3570469646527,
+                104.58813678712342,
+                94.20097281672882,
+                104.55264763292571
+              ],
+              "start_stamp": 1792080036.7132096,
+              "end_stamp": 1792080036.8521929
+            }
+          ],
+          "reset_probability": 1.0687430035643284e-11,
+          "reset_log_probability": -25.261952828059655,
+          "log_bayes_factor": -24.163340539380858,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.07567116600435335,
+              "rotation_error_rad": 0.05516585452481682
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.075687623130322,
+              "rotation_error_rad": 0.055206728409552874
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 321,
+          "event_id": "image:00002595",
+          "event_kind": "image",
+          "elapsed_s": 36.852192878723145,
+          "stamp": 1792080036.8521929,
+          "command": [
+            0.060592143343792725,
+            -1.465650619463315,
+            1.8451731629913024,
+            0.05146410226002605,
+            -1.0806696252846513,
+            0.023509522785262693
+          ],
+          "acquisition_payload_hash": "d9f11ed8117757e6735495778fdb86591c172e529beb67061dacc29335e082cc",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.012439946765229208,
+            "rotation_error_rad": 0.015349593112470318
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.004698724836432285,
+            "rotation_error_rad": 0.06983720089936239
+          },
+          "recorded_increment": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "prediction_start_stamp": 1792080036.8521929,
+          "recorded_interval_count": 0,
+          "captured_K_epochs": [],
+          "reset_probability": 1.0,
+          "reset_log_probability": 0.0,
+          "log_bayes_factor": 295.2769599946211,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.075687623130322,
+              "rotation_error_rad": 0.055206728409552874
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.07475682064948168,
+              "rotation_error_rad": 0.05464913820418086
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:97d6c8210eb791cd:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.12675284485545815,
+                "rotation_error_rad": 0.15781105259363765
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.11901915027007552,
+                "rotation_error_rad": 0.12358905408913272
+              },
+              "previous_image_job_sequence": 263,
+              "truth_in_native": {
+                "translation_residual_m": 0.004687969883179806,
+                "angle_residual_rad": 0.07126991301036699,
+                "native_whitened_residual_sq": 4206.992005023795,
+                "translation_std_m": [
+                  0.0001507685153034188,
+                  0.0001351423143474987,
+                  0.00039956932822121725
+                ],
+                "rotation_std_rad": [
+                  0.0025538470830007197,
+                  0.0032698204474435923,
+                  0.000947983495326529
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.01574747386079763,
+                "angle_residual_rad": 0.08515880842151861,
+                "native_whitened_residual_sq": 39268.05481777909,
+                "translation_std_m": [
+                  0.0001507685153034188,
+                  0.0001351423143474987,
+                  0.00039956932822121725
+                ],
+                "rotation_std_rad": [
+                  0.0025538470830007197,
+                  0.0032698204474435923,
+                  0.000947983495326529
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 2.8424641856665326e-05,
+                "angle_residual_rad": 0.0015149202001595336,
+                "native_whitened_residual_sq": 0.3583955990803471,
+                "translation_std_m": [
+                  0.0001507685153034188,
+                  0.0001351423143474987,
+                  0.00039956932822121725
+                ],
+                "rotation_std_rad": [
+                  0.0025538470830007197,
+                  0.0032698204474435923,
+                  0.000947983495326529
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 322,
+          "event_id": "imu:00002596",
+          "event_kind": "imu",
+          "elapsed_s": 36.886268854141235,
+          "stamp": 1792080036.8862689,
+          "command": [
+            0.05901223735266761,
+            -1.464559675398627,
+            1.844545152602499,
+            0.05239279578341145,
+            -1.0806965161648727,
+            0.023495242103914956
+          ],
+          "acquisition_payload_hash": "5eb6e32e24221d9eaf756be99c1e8f333d6ff867d1ff0e9c54d38063aa495e11",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.00509428950711842,
+            "rotation_error_rad": 0.069693073775251
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.0051779793383883235,
+            "rotation_error_rad": 0.06899916053119023
+          },
+          "recorded_increment": [
+            -0.001579905991125112,
+            0.0013524618064302274,
+            -0.0007231206557238856,
+            0.0009480766787144657,
+            -2.1052776455032784e-05,
+            -1.3346803527564816e-05
+          ],
+          "prediction_start_stamp": 1792080036.8521929,
+          "recorded_interval_count": 1,
+          "captured_K_epochs": [
+            {
+              "density_id": "2a2519e80119f3654cd6e1df34b8b931830cd3451a9f2f261340fdd08bf032c4",
+              "selected_K": [
+                105.04551868600333,
+                120.39839342475605,
+                94.3570469646527,
+                104.58813678712342,
+                94.20097281672882,
+                104.55264763292571
+              ],
+              "start_stamp": 1792080036.8521929,
+              "end_stamp": 1792080036.8862689
+            }
+          ],
+          "reset_probability": 9.149647581313005e-12,
+          "reset_log_probability": -25.417305753086364,
+          "log_bayes_factor": -24.318693464409105,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.07475682064948168,
+              "rotation_error_rad": 0.05464913820418086
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.07451884363705576,
+              "rotation_error_rad": 0.05463400236730255
+            }
+          },
+          "native_components": []
+        },
+        {
+          "job_sequence": 323,
+          "event_id": "image:00002598",
+          "event_kind": "image",
+          "elapsed_s": 36.91767406463623,
+          "stamp": 1792080036.917674,
+          "command": [
+            0.05763038010819274,
+            -1.4636256007981194,
+            1.8440107126022274,
+            0.0531906969951923,
+            -1.0806853699831882,
+            0.02348257685771429
+          ],
+          "acquisition_payload_hash": "c7dd33559df7e6aecd0856e64bcd9c1559b7ade9ac591b486c207142d2fc2dcd",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.005626432173793021,
+            "rotation_error_rad": 0.0688872127690151
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.004985513874852641,
+            "rotation_error_rad": 0.07290190461640852
+          },
+          "recorded_increment": [
+            -0.0013818572444748711,
+            0.0011576767933123566,
+            -0.0006160078404300329,
+            0.0008145051802978739,
+            1.651953624848268e-05,
+            -1.185506827420385e-05
+          ],
+          "prediction_start_stamp": 1792080036.8862689,
+          "recorded_interval_count": 2,
+          "captured_K_epochs": [
+            {
+              "density_id": "2a2519e80119f3654cd6e1df34b8b931830cd3451a9f2f261340fdd08bf032c4",
+              "selected_K": [
+                105.04551868600333,
+                120.39839342475605,
+                94.3570469646527,
+                104.58813678712342,
+                94.20097281672882,
+                104.55264763292571
+              ],
+              "start_stamp": 1792080036.8862689,
+              "end_stamp": 1792080036.917674
+            }
+          ],
+          "reset_probability": 2.56553993295816e-18,
+          "reset_log_probability": -40.504362717243524,
+          "log_bayes_factor": -39.405750428575416,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.07451884363705576,
+              "rotation_error_rad": 0.05463400236730255
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.07467596143922776,
+              "rotation_error_rad": 0.0548415429116144
+            }
+          },
+          "native_components": [
+            {
+              "component_id": "camera__to__marker:board_adf:08b26da38e4329f5:0",
+              "log_weight": 0.0,
+              "native_change_from_previous": {
+                "translation_error_m": 0.005695486423748517,
+                "rotation_error_rad": 0.01991954409963701
+              },
+              "physical_relative_change_from_previous": {
+                "translation_error_m": 0.0058298486299319325,
+                "rotation_error_rad": 0.005161275300769947
+              },
+              "previous_image_job_sequence": 321,
+              "truth_in_native": {
+                "translation_residual_m": 0.0051835126529432415,
+                "angle_residual_rad": 0.08063568820564686,
+                "native_whitened_residual_sq": 3213.5256496126713,
+                "translation_std_m": [
+                  0.00016976088700261182,
+                  0.00017060424796001952,
+                  0.000475626743070361
+                ],
+                "rotation_std_rad": [
+                  0.0032142037361734253,
+                  0.004325644312545156,
+                  0.0011956052419864057
+                ]
+              },
+              "prior_in_native": {
+                "translation_residual_m": 0.0013195878630117715,
+                "angle_residual_rad": 0.025483148989609086,
+                "native_whitened_residual_sq": 186.44512706226874,
+                "translation_std_m": [
+                  0.00016976088700261182,
+                  0.00017060424796001952,
+                  0.000475626743070361
+                ],
+                "rotation_std_rad": [
+                  0.0032142037361734253,
+                  0.004325644312545156,
+                  0.0011956052419864057
+                ]
+              },
+              "canonical_modal_in_native": {
+                "translation_residual_m": 0.0005234498110037094,
+                "angle_residual_rad": 0.016448182758180233,
+                "native_whitened_residual_sq": 19.481792606851176,
+                "translation_std_m": [
+                  0.00016976088700261182,
+                  0.00017060424796001952,
+                  0.000475626743070361
+                ],
+                "rotation_std_rad": [
+                  0.0032142037361734253,
+                  0.004325644312545156,
+                  0.0011956052419864057
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "job_sequence": 324,
+          "event_id": "imu:00002609",
+          "event_kind": "imu",
+          "elapsed_s": 37.0780713558197,
+          "stamp": 1792080037.0780714,
+          "command": [
+            0.050694349045694274,
+            -1.4596247640006326,
+            1.841623336328024,
+            0.056724566418989,
+            -1.0803783431864298,
+            0.023392457792471347
+          ],
+          "acquisition_payload_hash": "b6c53b16293e9ffa49db8e3723f59f52a08018422f60bb6560e1004e63130c28",
+          "physical_oracle_command_exact": true,
+          "prior_relative_to_true": {
+            "translation_error_m": 0.007079258173971204,
+            "rotation_error_rad": 0.07328684137209385
+          },
+          "posterior_relative_to_true": {
+            "translation_error_m": 0.007034979239119409,
+            "rotation_error_rad": 0.07308288333605001
+          },
+          "recorded_increment": [
+            -0.006936031062498467,
+            0.004969894949374387,
+            -0.0027241495307817054,
+            0.0036072679308760333,
+            0.0003316704949838378,
+            -8.65519637943922e-05
+          ],
+          "prediction_start_stamp": 1792080036.917674,
+          "recorded_interval_count": 11,
+          "captured_K_epochs": [
+            {
+              "density_id": "2a2519e80119f3654cd6e1df34b8b931830cd3451a9f2f261340fdd08bf032c4",
+              "selected_K": [
+                105.04551868600333,
+                120.39839342475605,
+                94.3570469646527,
+                104.58813678712342,
+                94.20097281672882,
+                104.55264763292571
+              ],
+              "start_stamp": 1792080036.917674,
+              "end_stamp": 1792080037.0780714
+            }
+          ],
+          "reset_probability": 2.0154623789351187e-11,
+          "reset_log_probability": -24.627587385405562,
+          "log_bayes_factor": -23.528975096717296,
+          "map": {
+            "prior_physical_oracle_error": {
+              "translation_error_m": 0.07467596143922776,
+              "rotation_error_rad": 0.0548415429116144
+            },
+            "canonical_physical_oracle_error": {
+              "translation_error_m": 0.07455137868748465,
+              "rotation_error_rad": 0.05486978790308294
+            }
+          },
+          "native_components": []
+        }
+      ]
+    }
+  }
+}

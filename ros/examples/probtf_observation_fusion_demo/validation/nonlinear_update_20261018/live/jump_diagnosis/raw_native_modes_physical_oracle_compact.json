@@ -1,0 +1,1360 @@
+{
+  "scope": "No detector rerun: compare all original saved raw detector modes and same-law center push-forwards to a post-hoc physical oracle. No candidate was rejected or reweighted in production. Oracle likelihood mode is a diagnosis, not a selected inference branch or global proof of full-product consistency.",
+  "physical_truth_used_only_for_posthoc_comparison": true,
+  "production_edited": false,
+  "observations_dropped": false,
+  "covariance_clipped": false,
+  "events": {
+    "marker:93": {
+      "event_id": "image:00002488",
+      "elapsed_s": 28.51124405860901,
+      "usable_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "raw_native_component_count": 18,
+      "full_product_combination_count": 512,
+      "mid_fusion_exists": true,
+      "central_component_count": 1,
+      "central_reduction_policy": "single proxy only within the unchanged core concentration domain; otherwise preserve every narrow final branch as a mixture",
+      "physical_oracle_only": true,
+      "raw_modes": [
+        {
+          "marker_id": 17,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.014019864185274638,
+          "smallest_center_angle_error_rad": 0.023947514990287747,
+          "native_highest_weight_mode": "camera__to__marker_17:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_17:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": 1.4787864130528916,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.84655948880061,
+              "normalized_native_log_weight": -4.8597122770388523e-08,
+              "float_weight": 0.9999999514028782,
+              "physical_oracle_raw_marker_translation_error_m": 0.011344865521835522,
+              "physical_oracle_raw_marker_angle_error_rad": 0.02394751499028599,
+              "physical_oracle_raw_native_whitened_residual_sq": 57.41525682815274,
+              "physical_oracle_center_translation_error_m": 0.014019864185274638,
+              "physical_oracle_center_angle_error_rad": 0.023947514990287747,
+              "physical_oracle_center_whitened_residual_sq": 57.099481464620816,
+              "center_native_log_likelihood_at_physical_oracle": 1.4787864130528916
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -52.686260972546464,
+              "normalized_native_log_weight": -16.83970153234298,
+              "float_weight": 4.859712168691021e-08,
+              "physical_oracle_raw_marker_translation_error_m": 0.014743926913347678,
+              "physical_oracle_raw_marker_angle_error_rad": 0.8581864064065012,
+              "physical_oracle_raw_native_whitened_residual_sq": 3091.7578256633365,
+              "physical_oracle_center_translation_error_m": 0.11051176132070112,
+              "physical_oracle_center_angle_error_rad": 0.8581864064065006,
+              "physical_oracle_center_whitened_residual_sq": 32332.15437384673,
+              "center_native_log_likelihood_at_physical_oracle": -16153.02082701005
+            }
+          ]
+        },
+        {
+          "marker_id": 18,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.00757778728191327,
+          "smallest_center_angle_error_rad": 0.01983582640880492,
+          "native_highest_weight_mode": "camera__to__marker_18:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_18:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -3.670105161446151,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_18:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.01002205276569,
+              "normalized_native_log_weight": -3.9406700125255156e-11,
+              "float_weight": 0.9999999999605953,
+              "physical_oracle_raw_marker_translation_error_m": 0.007216292324861409,
+              "physical_oracle_raw_marker_angle_error_rad": 0.019835826408805827,
+              "physical_oracle_raw_native_whitened_residual_sq": 67.35307174967969,
+              "physical_oracle_center_translation_error_m": 0.00757778728191327,
+              "physical_oracle_center_angle_error_rad": 0.01983582640880492,
+              "physical_oracle_center_whitened_residual_sq": 68.08951161082992,
+              "center_native_log_likelihood_at_physical_oracle": -3.670105161446151
+            },
+            {
+              "native_component_id": "camera__to__marker_18:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -59.967159964704535,
+              "normalized_native_log_weight": -23.95713791197825,
+              "float_weight": 3.940462534474247e-11,
+              "physical_oracle_raw_marker_translation_error_m": 0.01121035647762086,
+              "physical_oracle_raw_marker_angle_error_rad": 0.8193403588745192,
+              "physical_oracle_raw_native_whitened_residual_sq": 2856.4722041665887,
+              "physical_oracle_center_translation_error_m": 0.08284255656839026,
+              "physical_oracle_center_angle_error_rad": 0.8193403588745153,
+              "physical_oracle_center_whitened_residual_sq": 19055.718656282894,
+              "center_native_log_likelihood_at_physical_oracle": -9521.611079293381
+            }
+          ]
+        },
+        {
+          "marker_id": 19,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.004041741347970878,
+          "smallest_center_angle_error_rad": 0.01935399259918581,
+          "native_highest_weight_mode": "camera__to__marker_19:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_19:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -9.094494498413411,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_19:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.4332182820669,
+              "normalized_native_log_weight": 0.0,
+              "float_weight": 0.9999999999999969,
+              "physical_oracle_raw_marker_translation_error_m": 0.005587215234870276,
+              "physical_oracle_raw_marker_angle_error_rad": 0.019353992599186062,
+              "physical_oracle_raw_native_whitened_residual_sq": 79.11509129912575,
+              "physical_oracle_center_translation_error_m": 0.004041741347970878,
+              "physical_oracle_center_angle_error_rad": 0.01935399259918581,
+              "physical_oracle_center_whitened_residual_sq": 80.01223453595439,
+              "center_native_log_likelihood_at_physical_oracle": -9.094494498413411
+            },
+            {
+              "native_component_id": "camera__to__marker_19:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -69.80973037591245,
+              "normalized_native_log_weight": -33.37651209384555,
+              "float_weight": 3.1971644290951518e-15,
+              "physical_oracle_raw_marker_translation_error_m": 0.008625674861864418,
+              "physical_oracle_raw_marker_angle_error_rad": 0.8736702927174351,
+              "physical_oracle_raw_native_whitened_residual_sq": 4133.304670288279,
+              "physical_oracle_center_translation_error_m": 0.10430988072076189,
+              "physical_oracle_center_angle_error_rad": 0.8736702927174317,
+              "physical_oracle_center_whitened_residual_sq": 42990.065522670666,
+              "center_native_log_likelihood_at_physical_oracle": -21497.608960987545
+            }
+          ]
+        },
+        {
+          "marker_id": 20,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.010542427099513875,
+          "smallest_center_angle_error_rad": 0.025884252721827018,
+          "native_highest_weight_mode": "camera__to__marker_20:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_20:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -7.230612195449041,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_20:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.47907735112232,
+              "normalized_native_log_weight": -2.701359491652511e-07,
+              "float_weight": 0.9999997298640863,
+              "physical_oracle_raw_marker_translation_error_m": 0.008868061791662198,
+              "physical_oracle_raw_marker_angle_error_rad": 0.025884252721826533,
+              "physical_oracle_raw_native_whitened_residual_sq": 74.04681721165883,
+              "physical_oracle_center_translation_error_m": 0.010542427099513875,
+              "physical_oracle_center_angle_error_rad": 0.025884252721827018,
+              "physical_oracle_center_whitened_residual_sq": 74.17973381141599,
+              "center_native_log_likelihood_at_physical_oracle": -7.230612195449041
+            },
+            {
+              "native_component_id": "camera__to__marker_20:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -50.60341770145973,
+              "normalized_native_log_weight": -15.124340620473362,
+              "float_weight": 2.701359137150899e-07,
+              "physical_oracle_raw_marker_translation_error_m": 0.013801786549671489,
+              "physical_oracle_raw_marker_angle_error_rad": 0.5920970930609356,
+              "physical_oracle_raw_native_whitened_residual_sq": 890.7407352383592,
+              "physical_oracle_center_translation_error_m": 0.03858676708554782,
+              "physical_oracle_center_angle_error_rad": 0.5920970930609389,
+              "physical_oracle_center_whitened_residual_sq": 1486.5197279673032,
+              "center_native_log_likelihood_at_physical_oracle": -728.9174947363252
+            }
+          ]
+        },
+        {
+          "marker_id": 21,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.0049017227594391095,
+          "smallest_center_angle_error_rad": 0.02626937869028265,
+          "native_highest_weight_mode": "camera__to__marker_21:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_21:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -1.0452551395789544,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_21:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.77763596336423,
+              "normalized_native_log_weight": -3.942797306422108e-07,
+              "float_weight": 0.9999996057203486,
+              "physical_oracle_raw_marker_translation_error_m": 0.0049017227594391095,
+              "physical_oracle_raw_marker_angle_error_rad": 0.026269378690286813,
+              "physical_oracle_raw_native_whitened_residual_sq": 62.48188750778989,
+              "physical_oracle_center_translation_error_m": 0.0049017227594391095,
+              "physical_oracle_center_angle_error_rad": 0.02626937869028265,
+              "physical_oracle_center_whitened_residual_sq": 62.48188750778941,
+              "center_native_log_likelihood_at_physical_oracle": -1.0452551395789544
+            },
+            {
+              "native_component_id": "camera__to__marker_21:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -50.523840973433806,
+              "normalized_native_log_weight": -14.746205404349304,
+              "float_weight": 3.9427965137772705e-07,
+              "physical_oracle_raw_marker_translation_error_m": 0.008635713987585449,
+              "physical_oracle_raw_marker_angle_error_rad": 0.5495156447346614,
+              "physical_oracle_raw_native_whitened_residual_sq": 759.3915907795024,
+              "physical_oracle_center_translation_error_m": 0.008635713987585449,
+              "physical_oracle_center_angle_error_rad": 0.5495156447346642,
+              "physical_oracle_center_whitened_residual_sq": 759.3915907795106,
+              "center_native_log_likelihood_at_physical_oracle": -364.578834560318
+            }
+          ]
+        },
+        {
+          "marker_id": 22,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.0031335194200892242,
+          "smallest_center_angle_error_rad": 0.03208654486933341,
+          "native_highest_weight_mode": "camera__to__marker_22:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_22:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -4.787918112736312,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_22:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.28889310260344,
+              "normalized_native_log_weight": -2.012129129980167e-09,
+              "float_weight": 0.9999999979878702,
+              "physical_oracle_raw_marker_translation_error_m": 0.0057504065601442465,
+              "physical_oracle_raw_marker_angle_error_rad": 0.0320865448693215,
+              "physical_oracle_raw_native_whitened_residual_sq": 69.27670495994825,
+              "physical_oracle_center_translation_error_m": 0.0031335194200892242,
+              "physical_oracle_center_angle_error_rad": 0.03208654486933341,
+              "physical_oracle_center_whitened_residual_sq": 71.0609817247661,
+              "center_native_log_likelihood_at_physical_oracle": -4.787918112736312
+            },
+            {
+              "native_component_id": "camera__to__marker_22:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -56.31296517705296,
+              "normalized_native_log_weight": -20.02407207646165,
+              "float_weight": 2.012129794779875e-09,
+              "physical_oracle_raw_marker_translation_error_m": 0.00861743632303904,
+              "physical_oracle_raw_marker_angle_error_rad": 0.6121323074916346,
+              "physical_oracle_raw_native_whitened_residual_sq": 1212.6979253820286,
+              "physical_oracle_center_translation_error_m": 0.032688550748448966,
+              "physical_oracle_center_angle_error_rad": 0.6121323074916405,
+              "physical_oracle_center_whitened_residual_sq": 2435.440654515229,
+              "center_native_log_likelihood_at_physical_oracle": -1207.2151575510425
+            }
+          ]
+        },
+        {
+          "marker_id": 23,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.009425765922402064,
+          "smallest_center_angle_error_rad": 0.05002150881401611,
+          "native_highest_weight_mode": "camera__to__marker_23:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_23:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": 5.287270885773866,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_23:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -34.89708245488141,
+              "normalized_native_log_weight": -0.24184654996119548,
+              "float_weight": 0.7851766536960382,
+              "physical_oracle_raw_marker_translation_error_m": 0.007651026063800256,
+              "physical_oracle_raw_marker_angle_error_rad": 0.050021508814008984,
+              "physical_oracle_raw_native_whitened_residual_sq": 49.57253110395048,
+              "physical_oracle_center_translation_error_m": 0.009425765922402064,
+              "physical_oracle_center_angle_error_rad": 0.05002150881401611,
+              "physical_oracle_center_whitened_residual_sq": 47.62678906186905,
+              "center_native_log_likelihood_at_physical_oracle": 5.287270885614376
+            },
+            {
+              "native_component_id": "camera__to__marker_23:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -36.193175138607884,
+              "normalized_native_log_weight": -1.5379392336876734,
+              "float_weight": 0.2148233463039618,
+              "physical_oracle_raw_marker_translation_error_m": 0.012761009875862612,
+              "physical_oracle_raw_marker_angle_error_rad": 0.2274848755741256,
+              "physical_oracle_raw_native_whitened_residual_sq": 79.35551930454885,
+              "physical_oracle_center_translation_error_m": 0.013783551925803187,
+              "physical_oracle_center_angle_error_rad": 0.22748487557421485,
+              "physical_oracle_center_whitened_residual_sq": 86.56431102810859,
+              "center_native_log_likelihood_at_physical_oracle": -17.271766369977684
+            }
+          ]
+        },
+        {
+          "marker_id": 24,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.004128211060574025,
+          "smallest_center_angle_error_rad": 0.02935530256504272,
+          "native_highest_weight_mode": "camera__to__marker_24:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_24:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -1.5205616277758545,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_24:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.403863010569594,
+              "normalized_native_log_weight": -0.45841782303332934,
+              "float_weight": 0.6322832385082735,
+              "physical_oracle_raw_marker_translation_error_m": 0.004700516269958241,
+              "physical_oracle_raw_marker_angle_error_rad": 0.029355302565042988,
+              "physical_oracle_raw_native_whitened_residual_sq": 64.90786367183438,
+              "physical_oracle_center_translation_error_m": 0.004128211060574025,
+              "physical_oracle_center_angle_error_rad": 0.02935530256504272,
+              "physical_oracle_center_whitened_residual_sq": 61.0863714488964,
+              "center_native_log_likelihood_at_physical_oracle": -1.5205616277758551
+            },
+            {
+              "native_component_id": "camera__to__marker_24:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -35.94588749455683,
+              "normalized_native_log_weight": -1.0004423070205632,
+              "float_weight": 0.36771676149172644,
+              "physical_oracle_raw_marker_translation_error_m": 0.007845749580419028,
+              "physical_oracle_raw_marker_angle_error_rad": 0.15362309221755263,
+              "physical_oracle_raw_native_whitened_residual_sq": 76.34780803719353,
+              "physical_oracle_center_translation_error_m": 0.006280968388794193,
+              "physical_oracle_center_angle_error_rad": 0.1536230922175785,
+              "physical_oracle_center_whitened_residual_sq": 126.96300730061151,
+              "center_native_log_likelihood_at_physical_oracle": -36.39910998238782
+            }
+          ]
+        },
+        {
+          "marker_id": 25,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.0016403964444042633,
+          "smallest_center_angle_error_rad": 0.034983107992194215,
+          "native_highest_weight_mode": "camera__to__marker_25:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_25:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -3.79272921421812,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_25:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.239918418308406,
+              "normalized_native_log_weight": -3.049905343033288e-05,
+              "float_weight": 0.9999695014116595,
+              "physical_oracle_raw_marker_translation_error_m": 0.0034284326806586184,
+              "physical_oracle_raw_marker_angle_error_rad": 0.034983107992242586,
+              "physical_oracle_raw_native_whitened_residual_sq": 71.69371684371325,
+              "physical_oracle_center_translation_error_m": 0.0016403964444042633,
+              "physical_oracle_center_angle_error_rad": 0.034983107992194215,
+              "physical_oracle_center_whitened_residual_sq": 68.93572658421772,
+              "center_native_log_likelihood_at_physical_oracle": -3.79272921421812
+            },
+            {
+              "native_component_id": "camera__to__marker_25:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -46.637718078595455,
+              "normalized_native_log_weight": -10.39783015934048,
+              "float_weight": 3.049858834048761e-05,
+              "physical_oracle_raw_marker_translation_error_m": 0.007324391521424052,
+              "physical_oracle_raw_marker_angle_error_rad": 0.35499961190305523,
+              "physical_oracle_raw_native_whitened_residual_sq": 243.81401837788044,
+              "physical_oracle_center_translation_error_m": 0.0061583570725919036,
+              "physical_oracle_center_angle_error_rad": 0.3549996119030818,
+              "physical_oracle_center_whitened_residual_sq": 235.90125968016193,
+              "center_native_log_likelihood_at_physical_oracle": -98.37566080158686
+            }
+          ]
+        }
+      ]
+    },
+    "marker:94": {
+      "event_id": "image:00002549",
+      "elapsed_s": 29.423784732818604,
+      "usable_marker_ids": [
+        17
+      ],
+      "detected_marker_ids": [
+        17
+      ],
+      "raw_native_component_count": 2,
+      "full_product_combination_count": 2,
+      "mid_fusion_exists": false,
+      "central_component_count": 1,
+      "central_reduction_policy": "single proxy only within the unchanged core concentration domain; otherwise preserve every narrow final branch as a mixture",
+      "physical_oracle_only": true,
+      "raw_modes": [
+        {
+          "marker_id": 17,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.01789452922375343,
+          "smallest_center_angle_error_rad": 0.32106229109464396,
+          "native_highest_weight_mode": "camera__to__marker_17:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_17:mode:1",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -258.3099182358068,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -41.487462023140424,
+              "normalized_native_log_weight": -2.0783598998264097e-05,
+              "float_weight": 0.9999792166169796,
+              "physical_oracle_raw_marker_translation_error_m": 0.005196819704804393,
+              "physical_oracle_raw_marker_angle_error_rad": 0.5608411916505835,
+              "physical_oracle_raw_native_whitened_residual_sq": 1474.1934286770343,
+              "physical_oracle_center_translation_error_m": 0.06913419647400504,
+              "physical_oracle_center_angle_error_rad": 0.5608411916505829,
+              "physical_oracle_center_whitened_residual_sq": 5930.047794541839,
+              "center_native_log_likelihood_at_physical_oracle": -2935.0910955100844
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -52.26879802333315,
+              "normalized_native_log_weight": -10.781356783791722,
+              "float_weight": 2.0783383020411514e-05,
+              "physical_oracle_raw_marker_translation_error_m": 0.006230487907513525,
+              "physical_oracle_raw_marker_angle_error_rad": 0.3210622910946527,
+              "physical_oracle_raw_native_whitened_residual_sq": 907.8993493068285,
+              "physical_oracle_center_translation_error_m": 0.01789452922375343,
+              "physical_oracle_center_angle_error_rad": 0.32106229109464396,
+              "physical_oracle_center_whitened_residual_sq": 554.2381199837059,
+              "center_native_log_likelihood_at_physical_oracle": -258.3099182358068
+            }
+          ]
+        }
+      ]
+    },
+    "marker:95": {
+      "event_id": "image:00002602",
+      "elapsed_s": 30.181849479675293,
+      "usable_marker_ids": [
+        17,
+        18,
+        20,
+        21
+      ],
+      "detected_marker_ids": [
+        17,
+        18,
+        20,
+        21
+      ],
+      "raw_native_component_count": 8,
+      "full_product_combination_count": 16,
+      "mid_fusion_exists": true,
+      "central_component_count": 1,
+      "central_reduction_policy": "single proxy only within the unchanged core concentration domain; otherwise preserve every narrow final branch as a mixture",
+      "physical_oracle_only": true,
+      "raw_modes": [
+        {
+          "marker_id": 17,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.007954041869041391,
+          "smallest_center_angle_error_rad": 0.019845927750010043,
+          "native_highest_weight_mode": "camera__to__marker_17:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_17:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": 26.36535437070554,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.90907117944998,
+              "normalized_native_log_weight": -7.750884378765477e-10,
+              "float_weight": 0.9999999992249142,
+              "physical_oracle_raw_marker_translation_error_m": 0.007191976464031176,
+              "physical_oracle_raw_marker_angle_error_rad": 0.019845927750011896,
+              "physical_oracle_raw_native_whitened_residual_sq": 8.349932211997102,
+              "physical_oracle_center_translation_error_m": 0.007954041869041391,
+              "physical_oracle_center_angle_error_rad": 0.019845927750010043,
+              "physical_oracle_center_whitened_residual_sq": 7.777149412177579,
+              "center_native_log_likelihood_at_physical_oracle": 26.36535437070554
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -56.88711873290684,
+              "normalized_native_log_weight": -20.97804755423195,
+              "float_weight": 7.750856673004387e-10,
+              "physical_oracle_raw_marker_translation_error_m": 0.012511104815231051,
+              "physical_oracle_raw_marker_angle_error_rad": 0.6611102272909476,
+              "physical_oracle_raw_native_whitened_residual_sq": 1356.8330712285579,
+              "physical_oracle_center_translation_error_m": 0.08697202746363263,
+              "physical_oracle_center_angle_error_rad": 0.6611102272909487,
+              "physical_oracle_center_whitened_residual_sq": 15106.307679606041,
+              "center_native_log_likelihood_at_physical_oracle": -7544.200468275922
+            }
+          ]
+        },
+        {
+          "marker_id": 18,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.0032528843712224175,
+          "smallest_center_angle_error_rad": 0.010249248884834824,
+          "native_highest_weight_mode": "camera__to__marker_18:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_18:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": 25.390006400232426,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_18:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.40124982951798,
+              "normalized_native_log_weight": -1.3244516594568267e-11,
+              "float_weight": 0.9999999999867546,
+              "physical_oracle_raw_marker_translation_error_m": 0.0038620725561942953,
+              "physical_oracle_raw_marker_angle_error_rad": 0.010249248884840226,
+              "physical_oracle_raw_native_whitened_residual_sq": 10.93786723736466,
+              "physical_oracle_center_translation_error_m": 0.0032528843712224175,
+              "physical_oracle_center_angle_error_rad": 0.010249248884834824,
+              "physical_oracle_center_whitened_residual_sq": 10.750281532026543,
+              "center_native_log_likelihood_at_physical_oracle": 25.390006400232426
+            },
+            {
+              "native_component_id": "camera__to__marker_18:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -61.448617541229375,
+              "normalized_native_log_weight": -25.04736771172464,
+              "float_weight": 1.3245440820536479e-11,
+              "physical_oracle_raw_marker_translation_error_m": 0.007971173615529518,
+              "physical_oracle_raw_marker_angle_error_rad": 0.6568784741800524,
+              "physical_oracle_raw_native_whitened_residual_sq": 1466.8646862287358,
+              "physical_oracle_center_translation_error_m": 0.06568386085442823,
+              "physical_oracle_center_angle_error_rad": 0.6568784741800501,
+              "physical_oracle_center_whitened_residual_sq": 10477.921565298373,
+              "center_native_log_likelihood_at_physical_oracle": -5233.49643118647
+            }
+          ]
+        },
+        {
+          "marker_id": 20,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.0053799792394774735,
+          "smallest_center_angle_error_rad": 0.005752522091600431,
+          "native_highest_weight_mode": "camera__to__marker_20:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_20:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": 23.229300650942335,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_20:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.679129393925,
+              "normalized_native_log_weight": -8.427059921700675e-05,
+              "float_weight": 0.9999157329514504,
+              "physical_oracle_raw_marker_translation_error_m": 0.005146772633950724,
+              "physical_oracle_raw_marker_angle_error_rad": 0.005752522091599347,
+              "physical_oracle_raw_native_whitened_residual_sq": 14.767174589204192,
+              "physical_oracle_center_translation_error_m": 0.0053799792394774735,
+              "physical_oracle_center_angle_error_rad": 0.005752522091600431,
+              "physical_oracle_center_whitened_residual_sq": 13.850789284606957,
+              "center_native_log_likelihood_at_physical_oracle": 23.229300650942335
+            },
+            {
+              "native_component_id": "camera__to__marker_20:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -45.060564775857685,
+              "normalized_native_log_weight": -9.3815196525319,
+              "float_weight": 8.426704854955309e-05,
+              "physical_oracle_raw_marker_translation_error_m": 0.011427740782202196,
+              "physical_oracle_raw_marker_angle_error_rad": 0.3697671678667153,
+              "physical_oracle_raw_native_whitened_residual_sq": 197.39116499732265,
+              "physical_oracle_center_translation_error_m": 0.0278041993864039,
+              "physical_oracle_center_angle_error_rad": 0.3697671678667504,
+              "physical_oracle_center_whitened_residual_sq": 504.34101616096393,
+              "center_native_log_likelihood_at_physical_oracle": -232.39122945600275
+            }
+          ]
+        },
+        {
+          "marker_id": 21,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.002957840003953796,
+          "smallest_center_angle_error_rad": 0.028429450886059894,
+          "native_highest_weight_mode": "camera__to__marker_21:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_21:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": 20.96058048490971,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_21:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.30345568655491,
+              "normalized_native_log_weight": -5.828190232648467e-06,
+              "float_weight": 0.9999941718267497,
+              "physical_oracle_raw_marker_translation_error_m": 0.002957840003953796,
+              "physical_oracle_raw_marker_angle_error_rad": 0.028429450886068672,
+              "physical_oracle_raw_native_whitened_residual_sq": 19.3718659897333,
+              "physical_oracle_center_translation_error_m": 0.002957840003953796,
+              "physical_oracle_center_angle_error_rad": 0.028429450886059894,
+              "physical_oracle_center_whitened_residual_sq": 19.371865989731354,
+              "center_native_log_likelihood_at_physical_oracle": 20.96058048490971
+            },
+            {
+              "native_component_id": "camera__to__marker_21:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -48.3562568011926,
+              "normalized_native_log_weight": -12.052806942827921,
+              "float_weight": 5.828173250385252e-06,
+              "physical_oracle_raw_marker_translation_error_m": 0.007530394339343559,
+              "physical_oracle_raw_marker_angle_error_rad": 0.3586217565663694,
+              "physical_oracle_raw_native_whitened_residual_sq": 195.78712917394452,
+              "physical_oracle_center_translation_error_m": 0.007530394339343559,
+              "physical_oracle_center_angle_error_rad": 0.3586217565663489,
+              "physical_oracle_center_whitened_residual_sq": 195.78712917392542,
+              "center_native_log_likelihood_at_physical_oracle": -80.0555097905418
+            }
+          ]
+        }
+      ]
+    },
+    "imu_marker:260": {
+      "event_id": "image:00002164",
+      "elapsed_s": 28.0286283493042,
+      "usable_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "raw_native_component_count": 18,
+      "full_product_combination_count": 512,
+      "mid_fusion_exists": true,
+      "central_component_count": 1,
+      "central_reduction_policy": "single proxy only within the unchanged core concentration domain; otherwise preserve every narrow final branch as a mixture",
+      "physical_oracle_only": true,
+      "raw_modes": [
+        {
+          "marker_id": 17,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.00967792358390275,
+          "smallest_center_angle_error_rad": 0.0157142554152441,
+          "native_highest_weight_mode": "camera__to__marker_17:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_17:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -68.77998034673234,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.61659129283294,
+              "normalized_native_log_weight": -7.827566150808707e-09,
+              "float_weight": 0.9999999921724326,
+              "physical_oracle_raw_marker_translation_error_m": 0.008890228343246112,
+              "physical_oracle_raw_marker_angle_error_rad": 0.01571425541524451,
+              "physical_oracle_raw_native_whitened_residual_sq": 196.10932445048178,
+              "physical_oracle_center_translation_error_m": 0.00967792358390275,
+              "physical_oracle_center_angle_error_rad": 0.0157142554152441,
+              "physical_oracle_center_whitened_residual_sq": 197.51639517712664,
+              "center_native_log_likelihood_at_physical_oracle": -68.77998034673234
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -54.282205327351946,
+              "normalized_native_log_weight": -18.66561404234657,
+              "float_weight": 7.82756747632638e-09,
+              "physical_oracle_raw_marker_translation_error_m": 0.01155718947422595,
+              "physical_oracle_raw_marker_angle_error_rad": 0.9174561361584815,
+              "physical_oracle_raw_native_whitened_residual_sq": 3932.9940199348134,
+              "physical_oracle_center_translation_error_m": 0.12145410371193169,
+              "physical_oracle_center_angle_error_rad": 0.9174561361584801,
+              "physical_oracle_center_whitened_residual_sq": 45837.69861354067,
+              "center_native_log_likelihood_at_physical_oracle": -22907.630311566943
+            }
+          ]
+        },
+        {
+          "marker_id": 18,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.006052066403709184,
+          "smallest_center_angle_error_rad": 0.022346795941955946,
+          "native_highest_weight_mode": "camera__to__marker_18:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_18:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -53.285580611164534,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_18:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.87202463543242,
+              "normalized_native_log_weight": -6.188827228470473e-12,
+              "float_weight": 0.9999999999938087,
+              "physical_oracle_raw_marker_translation_error_m": 0.007236713094457116,
+              "physical_oracle_raw_marker_angle_error_rad": 0.0223467959419575,
+              "physical_oracle_raw_native_whitened_residual_sq": 165.30176885553738,
+              "physical_oracle_center_translation_error_m": 0.006052066403709184,
+              "physical_oracle_center_angle_error_rad": 0.022346795941955946,
+              "physical_oracle_center_whitened_residual_sq": 166.65720548858198,
+              "center_native_log_likelihood_at_physical_oracle": -53.285580611164534
+            },
+            {
+              "native_component_id": "camera__to__marker_18:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -61.6799218742306,
+              "normalized_native_log_weight": -25.807897238804372,
+              "float_weight": 6.191168723065661e-12,
+              "physical_oracle_raw_marker_translation_error_m": 0.012049362672368698,
+              "physical_oracle_raw_marker_angle_error_rad": 0.8103856834872218,
+              "physical_oracle_raw_native_whitened_residual_sq": 2707.585821831999,
+              "physical_oracle_center_translation_error_m": 0.07979332231522115,
+              "physical_oracle_center_angle_error_rad": 0.8103856834872238,
+              "physical_oracle_center_whitened_residual_sq": 15692.613673216712,
+              "center_native_log_likelihood_at_physical_oracle": -7842.272834854421
+            }
+          ]
+        },
+        {
+          "marker_id": 19,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.026394197508450852,
+          "smallest_center_angle_error_rad": 0.06130848708807969,
+          "native_highest_weight_mode": "camera__to__marker_19:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_19:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -79.21855003081032,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_19:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -37.167821878511134,
+              "normalized_native_log_weight": -7.94742049947672e-11,
+              "float_weight": 0.9999999999205267,
+              "physical_oracle_raw_marker_translation_error_m": 0.019965288587395734,
+              "physical_oracle_raw_marker_angle_error_rad": 0.06130848708807853,
+              "physical_oracle_raw_native_whitened_residual_sq": 219.69883236149172,
+              "physical_oracle_center_translation_error_m": 0.026394197508450852,
+              "physical_oracle_center_angle_error_rad": 0.06130848708807969,
+              "physical_oracle_center_whitened_residual_sq": 217.90048959928154,
+              "center_native_log_likelihood_at_physical_oracle": -79.21855003081032
+            },
+            {
+              "native_component_id": "camera__to__marker_19:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -60.423422129081814,
+              "normalized_native_log_weight": -23.255600250650154,
+              "float_weight": 7.947328005893061e-11,
+              "physical_oracle_raw_marker_translation_error_m": 0.027255407621715445,
+              "physical_oracle_raw_marker_angle_error_rad": 0.672105754100909,
+              "physical_oracle_raw_native_whitened_residual_sq": 1401.0399883232224,
+              "physical_oracle_center_translation_error_m": 0.08796249017065177,
+              "physical_oracle_center_angle_error_rad": 0.6721057541009083,
+              "physical_oracle_center_whitened_residual_sq": 8827.180412336747,
+              "center_native_log_likelihood_at_physical_oracle": -4407.593431172809
+            }
+          ]
+        },
+        {
+          "marker_id": 20,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.007538466103126351,
+          "smallest_center_angle_error_rad": 0.00702550428101814,
+          "native_highest_weight_mode": "camera__to__marker_20:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_20:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -53.42356074053261,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_20:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.84034226055756,
+              "normalized_native_log_weight": -1.9893309399776626e-07,
+              "float_weight": 0.9999998010669247,
+              "physical_oracle_raw_marker_translation_error_m": 0.007571937017161923,
+              "physical_oracle_raw_marker_angle_error_rad": 0.0070255042810181455,
+              "physical_oracle_raw_native_whitened_residual_sq": 164.48395664964366,
+              "physical_oracle_center_translation_error_m": 0.007538466103126351,
+              "physical_oracle_center_angle_error_rad": 0.00702550428101814,
+              "physical_oracle_center_whitened_residual_sq": 166.95522393438193,
+              "center_native_log_likelihood_at_physical_oracle": -53.42356074053261
+            },
+            {
+              "native_component_id": "camera__to__marker_20:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -52.27063943496331,
+              "normalized_native_log_weight": -15.430297373338838,
+              "float_weight": 1.9893307539378141e-07,
+              "physical_oracle_raw_marker_translation_error_m": 0.010688016279156845,
+              "physical_oracle_raw_marker_angle_error_rad": 0.7203088311636643,
+              "physical_oracle_raw_native_whitened_residual_sq": 1860.249752823622,
+              "physical_oracle_center_translation_error_m": 0.056775254435519,
+              "physical_oracle_center_angle_error_rad": 0.720308831163658,
+              "physical_oracle_center_whitened_residual_sq": 6028.493126845408,
+              "center_native_log_likelihood_at_physical_oracle": -2999.7968171575967
+            }
+          ]
+        },
+        {
+          "marker_id": 21,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.010578826208993681,
+          "smallest_center_angle_error_rad": 0.02217916309071006,
+          "native_highest_weight_mode": "camera__to__marker_21:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_21:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -57.69319206819265,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_21:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.709538890083145,
+              "normalized_native_log_weight": -5.797487798986367e-05,
+              "float_weight": 0.9999420268025212,
+              "physical_oracle_raw_marker_translation_error_m": 0.010578826208993681,
+              "physical_oracle_raw_marker_angle_error_rad": 0.022179163090708352,
+              "physical_oracle_raw_native_whitened_residual_sq": 174.72287549858223,
+              "physical_oracle_center_translation_error_m": 0.010578826208993681,
+              "physical_oracle_center_angle_error_rad": 0.02217916309071006,
+              "physical_oracle_center_whitened_residual_sq": 174.72287549858237,
+              "center_native_log_likelihood_at_physical_oracle": -57.69319206819265
+            },
+            {
+              "native_component_id": "camera__to__marker_21:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -45.46501068186509,
+              "normalized_native_log_weight": -9.755529766659933,
+              "float_weight": 5.797319747875719e-05,
+              "physical_oracle_raw_marker_translation_error_m": 0.014616831625198863,
+              "physical_oracle_raw_marker_angle_error_rad": 0.5191420945564569,
+              "physical_oracle_raw_native_whitened_residual_sq": 712.7578381028561,
+              "physical_oracle_center_translation_error_m": 0.014616831625198863,
+              "physical_oracle_center_angle_error_rad": 0.5191420945564575,
+              "physical_oracle_center_whitened_residual_sq": 712.7578381028563,
+              "center_native_log_likelihood_at_physical_oracle": -336.87332226762993
+            }
+          ]
+        },
+        {
+          "marker_id": 22,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.011643389180009796,
+          "smallest_center_angle_error_rad": 0.02989395673011498,
+          "native_highest_weight_mode": "camera__to__marker_22:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_22:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -79.94889729106944,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_22:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.453134889202616,
+              "normalized_native_log_weight": -0.022506896290259704,
+              "float_weight": 0.9777444943602511,
+              "physical_oracle_raw_marker_translation_error_m": 0.010088938721210562,
+              "physical_oracle_raw_marker_angle_error_rad": 0.02989395673009537,
+              "physical_oracle_raw_native_whitened_residual_sq": 224.18055376059525,
+              "physical_oracle_center_translation_error_m": 0.011643389180009796,
+              "physical_oracle_center_angle_error_rad": 0.02989395673011498,
+              "physical_oracle_center_whitened_residual_sq": 219.303554257679,
+              "center_native_log_likelihood_at_physical_oracle": -79.94889729106944
+            },
+            {
+              "native_component_id": "camera__to__marker_22:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -40.23579384940849,
+              "normalized_native_log_weight": -3.8051658564961315,
+              "float_weight": 0.022255505639748777,
+              "physical_oracle_raw_marker_translation_error_m": 0.011293225924415016,
+              "physical_oracle_raw_marker_angle_error_rad": 0.49417845139494637,
+              "physical_oracle_raw_native_whitened_residual_sq": 726.7291700661107,
+              "physical_oracle_center_translation_error_m": 0.012673701071717992,
+              "physical_oracle_center_angle_error_rad": 0.4941784513949468,
+              "physical_oracle_center_whitened_residual_sq": 720.5726877815682,
+              "center_native_log_likelihood_at_physical_oracle": -334.50707934552884
+            }
+          ]
+        },
+        {
+          "marker_id": 23,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.004411734565868165,
+          "smallest_center_angle_error_rad": 0.023828279178458568,
+          "native_highest_weight_mode": "camera__to__marker_23:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_23:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -68.60536484415324,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_23:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.7923287410412,
+              "normalized_native_log_weight": -3.615198025386235e-07,
+              "float_weight": 0.9999996384802655,
+              "physical_oracle_raw_marker_translation_error_m": 0.006876061527638466,
+              "physical_oracle_raw_marker_angle_error_rad": 0.023828279178456053,
+              "physical_oracle_raw_native_whitened_residual_sq": 197.77824860101097,
+              "physical_oracle_center_translation_error_m": 0.004411734565868165,
+              "physical_oracle_center_angle_error_rad": 0.023828279178458568,
+              "physical_oracle_center_whitened_residual_sq": 197.73029382269476,
+              "center_native_log_likelihood_at_physical_oracle": -68.60536484415324
+            },
+            {
+              "native_component_id": "camera__to__marker_23:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -50.62527758558982,
+              "normalized_native_log_weight": -14.83294920606842,
+              "float_weight": 3.6151973456306437e-07,
+              "physical_oracle_raw_marker_translation_error_m": 0.010883377918422279,
+              "physical_oracle_raw_marker_angle_error_rad": 0.5605912053423738,
+              "physical_oracle_raw_native_whitened_residual_sq": 953.3234665807291,
+              "physical_oracle_center_translation_error_m": 0.03753266712874006,
+              "physical_oracle_center_angle_error_rad": 0.5605912053423742,
+              "physical_oracle_center_whitened_residual_sq": 1360.3021913026528,
+              "center_native_log_likelihood_at_physical_oracle": -665.081580895352
+            }
+          ]
+        },
+        {
+          "marker_id": 24,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.004267395803497199,
+          "smallest_center_angle_error_rad": 0.08544927553935508,
+          "native_highest_weight_mode": "camera__to__marker_24:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_24:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -85.62645002855375,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_24:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -35.52536745040155,
+              "normalized_native_log_weight": -0.10289980983317548,
+              "float_weight": 0.9022173622614428,
+              "physical_oracle_raw_marker_translation_error_m": 0.0082984867293068,
+              "physical_oracle_raw_marker_angle_error_rad": 0.08544927553932587,
+              "physical_oracle_raw_native_whitened_residual_sq": 243.15755292489374,
+              "physical_oracle_center_translation_error_m": 0.004267395803497199,
+              "physical_oracle_center_angle_error_rad": 0.08544927553935508,
+              "physical_oracle_center_whitened_residual_sq": 229.94769415802907,
+              "center_native_log_likelihood_at_physical_oracle": -85.62645002855375
+            },
+            {
+              "native_component_id": "camera__to__marker_24:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -37.747475886505356,
+              "normalized_native_log_weight": -2.325008245936978,
+              "float_weight": 0.09778263773855718,
+              "physical_oracle_raw_marker_translation_error_m": 0.013262171567868766,
+              "physical_oracle_raw_marker_angle_error_rad": 0.1709193978897795,
+              "physical_oracle_raw_native_whitened_residual_sq": 256.180191747929,
+              "physical_oracle_center_translation_error_m": 0.006175674236473834,
+              "physical_oracle_center_angle_error_rad": 0.17091939788984575,
+              "physical_oracle_center_whitened_residual_sq": 352.60954796414615,
+              "center_native_log_likelihood_at_physical_oracle": -150.81182672474804
+            }
+          ]
+        },
+        {
+          "marker_id": 25,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.007749849876496269,
+          "smallest_center_angle_error_rad": 0.17585408695830948,
+          "native_highest_weight_mode": "camera__to__marker_25:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_25:mode:1",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -77.93526232600848,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_25:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -36.12434197371255,
+              "normalized_native_log_weight": -0.14699639498768846,
+              "float_weight": 0.8632970896073459,
+              "physical_oracle_raw_marker_translation_error_m": 0.006885713537450427,
+              "physical_oracle_raw_marker_angle_error_rad": 0.17585408695830707,
+              "physical_oracle_raw_native_whitened_residual_sq": 231.4892092195489,
+              "physical_oracle_center_translation_error_m": 0.014810934932094642,
+              "physical_oracle_center_angle_error_rad": 0.17585408695830948,
+              "physical_oracle_center_whitened_residual_sq": 559.8770627810217,
+              "center_native_log_likelihood_at_physical_oracle": -250.31260109387435
+            },
+            {
+              "native_component_id": "camera__to__marker_25:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -37.9672908238405,
+              "normalized_native_log_weight": -1.989945245115635,
+              "float_weight": 0.13670291039265414,
+              "physical_oracle_raw_marker_translation_error_m": 0.009027603969971416,
+              "physical_oracle_raw_marker_angle_error_rad": 0.2108786097163445,
+              "physical_oracle_raw_native_whitened_residual_sq": 235.78633467962666,
+              "physical_oracle_center_translation_error_m": 0.007749849876496269,
+              "physical_oracle_center_angle_error_rad": 0.2108786097163434,
+              "physical_oracle_center_whitened_residual_sq": 210.50812287666855,
+              "center_native_log_likelihood_at_physical_oracle": -77.93526232600848
+            }
+          ]
+        }
+      ]
+    },
+    "imu_marker:321": {
+      "event_id": "image:00002595",
+      "elapsed_s": 36.852192878723145,
+      "usable_marker_ids": [
+        17,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "detected_marker_ids": [
+        17,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "raw_native_component_count": 16,
+      "full_product_combination_count": 256,
+      "mid_fusion_exists": true,
+      "central_component_count": 1,
+      "central_reduction_policy": "single proxy only within the unchanged core concentration domain; otherwise preserve every narrow final branch as a mixture",
+      "physical_oracle_only": true,
+      "raw_modes": [
+        {
+          "marker_id": 17,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.02756629680799092,
+          "smallest_center_angle_error_rad": 0.11073810081756169,
+          "native_highest_weight_mode": "camera__to__marker_17:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_17:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -245.28292322706943,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_17:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -39.08516274566665,
+              "normalized_native_log_weight": 0.0,
+              "float_weight": 1.0,
+              "physical_oracle_raw_marker_translation_error_m": 0.019998792548749034,
+              "physical_oracle_raw_marker_angle_error_rad": 0.11073810081756226,
+              "physical_oracle_raw_native_whitened_residual_sq": 547.1610637102144,
+              "physical_oracle_center_translation_error_m": 0.02756629680799092,
+              "physical_oracle_center_angle_error_rad": 0.11073810081756169,
+              "physical_oracle_center_whitened_residual_sq": 553.4362096000955,
+              "center_native_log_likelihood_at_physical_oracle": -245.28292322706943
+            },
+            {
+              "native_component_id": "camera__to__marker_17:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -121.4862435761384,
+              "normalized_native_log_weight": -82.40108083047176,
+              "float_weight": 1.6355555250514276e-36,
+              "physical_oracle_raw_marker_translation_error_m": 0.013901494202766273,
+              "physical_oracle_raw_marker_angle_error_rad": 1.1208270102514064,
+              "physical_oracle_raw_native_whitened_residual_sq": 11379.557661044642,
+              "physical_oracle_center_translation_error_m": 0.10660634493101386,
+              "physical_oracle_center_angle_error_rad": 1.1208270102514062,
+              "physical_oracle_center_whitened_residual_sq": 119887.48097879495,
+              "center_native_log_likelihood_at_physical_oracle": -59994.861005822444
+            }
+          ]
+        },
+        {
+          "marker_id": 19,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.01302158847064962,
+          "smallest_center_angle_error_rad": 0.0524018060744757,
+          "native_highest_weight_mode": "camera__to__marker_19:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_19:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -623.2429079298508,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_19:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -40.46317392978148,
+              "normalized_native_log_weight": 0.0,
+              "float_weight": 1.0,
+              "physical_oracle_raw_marker_translation_error_m": 0.00820408110112978,
+              "physical_oracle_raw_marker_angle_error_rad": 0.05240180607447585,
+              "physical_oracle_raw_native_whitened_residual_sq": 1339.460736172275,
+              "physical_oracle_center_translation_error_m": 0.01302158847064962,
+              "physical_oracle_center_angle_error_rad": 0.0524018060744757,
+              "physical_oracle_center_whitened_residual_sq": 1310.153828888122,
+              "center_native_log_likelihood_at_physical_oracle": -623.2429079298508
+            },
+            {
+              "native_component_id": "camera__to__marker_19:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -125.85104383640008,
+              "normalized_native_log_weight": -85.38786990661859,
+              "float_weight": 8.251241114516696e-38,
+              "physical_oracle_raw_marker_translation_error_m": 0.006692921500369198,
+              "physical_oracle_raw_marker_angle_error_rad": 1.0650034171812308,
+              "physical_oracle_raw_native_whitened_residual_sq": 11095.813573679972,
+              "physical_oracle_center_translation_error_m": 0.11418634786230926,
+              "physical_oracle_center_angle_error_rad": 1.0650034171812306,
+              "physical_oracle_center_whitened_residual_sq": 106631.67316135138,
+              "center_native_log_likelihood_at_physical_oracle": -53369.50512994668
+            }
+          ]
+        },
+        {
+          "marker_id": 20,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.009698021391360629,
+          "smallest_center_angle_error_rad": 0.19587980708050814,
+          "native_highest_weight_mode": "camera__to__marker_20:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_20:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -336.6633575605343,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_20:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -45.244348646391884,
+              "normalized_native_log_weight": -1.0594192190183094e-11,
+              "float_weight": 0.9999999999894034,
+              "physical_oracle_raw_marker_translation_error_m": 0.02741542200883751,
+              "physical_oracle_raw_marker_angle_error_rad": 0.19587980708050748,
+              "physical_oracle_raw_native_whitened_residual_sq": 621.4624057586964,
+              "physical_oracle_center_translation_error_m": 0.01795368696773871,
+              "physical_oracle_center_angle_error_rad": 0.19587980708050814,
+              "physical_oracle_center_whitened_residual_sq": 736.9052393270953,
+              "center_native_log_likelihood_at_physical_oracle": -336.6633575605343
+            },
+            {
+              "native_component_id": "camera__to__marker_20:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -70.51484369868741,
+              "normalized_native_log_weight": -25.270495052306124,
+              "float_weight": 1.0596524432462245e-11,
+              "physical_oracle_raw_marker_translation_error_m": 0.026107076626165678,
+              "physical_oracle_raw_marker_angle_error_rad": 0.8991016373409182,
+              "physical_oracle_raw_native_whitened_residual_sq": 6323.122224147276,
+              "physical_oracle_center_translation_error_m": 0.009698021391360629,
+              "physical_oracle_center_angle_error_rad": 0.8991016373409172,
+              "physical_oracle_center_whitened_residual_sq": 9786.721973891787,
+              "center_native_log_likelihood_at_physical_oracle": -4886.896933127632
+            }
+          ]
+        },
+        {
+          "marker_id": 21,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.02021767174080477,
+          "smallest_center_angle_error_rad": 0.1696437002737032,
+          "native_highest_weight_mode": "camera__to__marker_21:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_21:mode:1",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -300.64781378504415,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_21:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -57.28811225141644,
+              "normalized_native_log_weight": -0.0011194839658941191,
+              "float_weight": 0.9988811424225142,
+              "physical_oracle_raw_marker_translation_error_m": 0.02161792327278483,
+              "physical_oracle_raw_marker_angle_error_rad": 0.9017401755075563,
+              "physical_oracle_raw_native_whitened_residual_sq": 7792.317079896706,
+              "physical_oracle_center_translation_error_m": 0.02161792327278483,
+              "physical_oracle_center_angle_error_rad": 0.9017401755075566,
+              "physical_oracle_center_whitened_residual_sq": 7792.317079896719,
+              "center_native_log_likelihood_at_physical_oracle": -3864.036302314031
+            },
+            {
+              "native_component_id": "camera__to__marker_21:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -64.08243990180233,
+              "normalized_native_log_weight": -6.795447134351782,
+              "float_weight": 0.0011188575774856288,
+              "physical_oracle_raw_marker_translation_error_m": 0.02021767174080477,
+              "physical_oracle_raw_marker_angle_error_rad": 0.16964370027370354,
+              "physical_oracle_raw_native_whitened_residual_sq": 651.8880342758472,
+              "physical_oracle_center_translation_error_m": 0.02021767174080477,
+              "physical_oracle_center_angle_error_rad": 0.1696437002737032,
+              "physical_oracle_center_whitened_residual_sq": 651.8880342758436,
+              "center_native_log_likelihood_at_physical_oracle": -300.64781378504415
+            }
+          ]
+        },
+        {
+          "marker_id": 22,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.010980541675619918,
+          "smallest_center_angle_error_rad": 0.10766968093373437,
+          "native_highest_weight_mode": "camera__to__marker_22:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_22:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -387.2719677233032,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_22:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -45.766180757856404,
+              "normalized_native_log_weight": 0.0,
+              "float_weight": 1.0,
+              "physical_oracle_raw_marker_translation_error_m": 0.013755757632853442,
+              "physical_oracle_raw_marker_angle_error_rad": 0.1076696809337346,
+              "physical_oracle_raw_native_whitened_residual_sq": 864.7733020304426,
+              "physical_oracle_center_translation_error_m": 0.011495650558943107,
+              "physical_oracle_center_angle_error_rad": 0.10766968093373437,
+              "physical_oracle_center_whitened_residual_sq": 839.0564047368615,
+              "center_native_log_likelihood_at_physical_oracle": -387.2719677233032
+            },
+            {
+              "native_component_id": "camera__to__marker_22:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -85.21699411097286,
+              "normalized_native_log_weight": -39.45081335311646,
+              "float_weight": 7.357486165344301e-18,
+              "physical_oracle_raw_marker_translation_error_m": 0.013115339799872096,
+              "physical_oracle_raw_marker_angle_error_rad": 0.865110290249762,
+              "physical_oracle_raw_native_whitened_residual_sq": 6521.268846516819,
+              "physical_oracle_center_translation_error_m": 0.010980541675619918,
+              "physical_oracle_center_angle_error_rad": 0.8651102902497598,
+              "physical_oracle_center_whitened_residual_sq": 10122.208162304978,
+              "center_native_log_likelihood_at_physical_oracle": -5068.335909876271
+            }
+          ]
+        },
+        {
+          "marker_id": 23,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.014430658722421353,
+          "smallest_center_angle_error_rad": 0.17607219371052,
+          "native_highest_weight_mode": "camera__to__marker_23:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_23:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -357.8727002550801,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_23:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -50.06311326915356,
+              "normalized_native_log_weight": -9.417355784080428e-09,
+              "float_weight": 0.9999999905826421,
+              "physical_oracle_raw_marker_translation_error_m": 0.009877041209285072,
+              "physical_oracle_raw_marker_angle_error_rad": 0.1760721937105256,
+              "physical_oracle_raw_native_whitened_residual_sq": 486.6027754522893,
+              "physical_oracle_center_translation_error_m": 0.014430658722421353,
+              "physical_oracle_center_angle_error_rad": 0.17607219371052,
+              "physical_oracle_center_whitened_residual_sq": 778.7084870058701,
+              "center_native_log_likelihood_at_physical_oracle": -357.8727002550801
+            },
+            {
+              "native_component_id": "camera__to__marker_23:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -68.54382451417644,
+              "normalized_native_log_weight": -18.48071125444023,
+              "float_weight": 9.417358003272084e-09,
+              "physical_oracle_raw_marker_translation_error_m": 0.008539753246204337,
+              "physical_oracle_raw_marker_angle_error_rad": 0.5676889727567919,
+              "physical_oracle_raw_native_whitened_residual_sq": 1592.7175606355656,
+              "physical_oracle_center_translation_error_m": 0.03963725360889102,
+              "physical_oracle_center_angle_error_rad": 0.5676889727567913,
+              "physical_oracle_center_whitened_residual_sq": 3003.272090081961,
+              "center_native_log_likelihood_at_physical_oracle": -1488.7594495296498
+            }
+          ]
+        },
+        {
+          "marker_id": 24,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.012314797734637097,
+          "smallest_center_angle_error_rad": 0.20379849267737452,
+          "native_highest_weight_mode": "camera__to__marker_24:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_24:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -624.5049337620857,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_24:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -41.29651394333887,
+              "normalized_native_log_weight": 0.0,
+              "float_weight": 1.0,
+              "physical_oracle_raw_marker_translation_error_m": 0.026605306373527246,
+              "physical_oracle_raw_marker_angle_error_rad": 0.20379849267737635,
+              "physical_oracle_raw_native_whitened_residual_sq": 1234.7777684717657,
+              "physical_oracle_center_translation_error_m": 0.012314797734637097,
+              "physical_oracle_center_angle_error_rad": 0.20379849267737452,
+              "physical_oracle_center_whitened_residual_sq": 1313.861109347135,
+              "center_native_log_likelihood_at_physical_oracle": -624.5049337620857
+            },
+            {
+              "native_component_id": "camera__to__marker_24:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -134.42728622337424,
+              "normalized_native_log_weight": -93.13077228003536,
+              "float_weight": 3.579476399956119e-41,
+              "physical_oracle_raw_marker_translation_error_m": 0.020180997125618803,
+              "physical_oracle_raw_marker_angle_error_rad": 0.5637117917840515,
+              "physical_oracle_raw_native_whitened_residual_sq": 2335.163394321979,
+              "physical_oracle_center_translation_error_m": 0.06974027647695578,
+              "physical_oracle_center_angle_error_rad": 0.5637117917840513,
+              "physical_oracle_center_whitened_residual_sq": 8303.497670069457,
+              "center_native_log_likelihood_at_physical_oracle": -4212.835656528239
+            }
+          ]
+        },
+        {
+          "marker_id": 25,
+          "component_count": 2,
+          "smallest_center_translation_error_m": 0.00670532097131379,
+          "smallest_center_angle_error_rad": 0.17549643759712097,
+          "native_highest_weight_mode": "camera__to__marker_25:mode:0",
+          "largest_oracle_likelihood_mode": "camera__to__marker_25:mode:0",
+          "center_proxy_mixture_log_likelihood_at_physical_oracle": -408.80879490078036,
+          "all_native_modes": [
+            {
+              "native_component_id": "camera__to__marker_25:mode:0",
+              "native_seed_index": 0,
+              "native_log_mass": -47.42844546414677,
+              "normalized_native_log_weight": -5.31912291990011e-11,
+              "float_weight": 0.9999999999468085,
+              "physical_oracle_raw_marker_translation_error_m": 0.02225103405679276,
+              "physical_oracle_raw_marker_angle_error_rad": 0.17549643759712336,
+              "physical_oracle_raw_native_whitened_residual_sq": 1228.585552355344,
+              "physical_oracle_center_translation_error_m": 0.00670532097131379,
+              "physical_oracle_center_angle_error_rad": 0.17549643759712097,
+              "physical_oracle_center_whitened_residual_sq": 883.092225111824,
+              "center_native_log_likelihood_at_physical_oracle": -408.80879490078036
+            },
+            {
+              "native_component_id": "camera__to__marker_25:mode:1",
+              "native_seed_index": 1,
+              "native_log_mass": -71.08556911316506,
+              "normalized_native_log_weight": -23.657123649071487,
+              "float_weight": 5.319143923996126e-11,
+              "physical_oracle_raw_marker_translation_error_m": 0.022755677885842866,
+              "physical_oracle_raw_marker_angle_error_rad": 0.6441567652008092,
+              "physical_oracle_raw_native_whitened_residual_sq": 3436.0024193495665,
+              "physical_oracle_center_translation_error_m": 0.053197823422875275,
+              "physical_oracle_center_angle_error_rad": 0.6441567652008071,
+              "physical_oracle_center_whitened_residual_sq": 6871.9231358107045,
+              "center_native_log_likelihood_at_physical_oracle": -3426.876720504191
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

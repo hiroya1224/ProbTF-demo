@@ -1,0 +1,7 @@
+{
+  "method": "nonlinear_fixed_prior",
+  "max_iterations": 40,
+  "score_tolerance": 1e-06,
+  "backtrack_steps": 16,
+  "armijo": 0.0001
+}

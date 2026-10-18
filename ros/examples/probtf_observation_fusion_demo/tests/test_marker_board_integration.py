@@ -17,7 +17,7 @@ from probtf.spherical_law.first_order import (
     MAX_FIRST_ORDER_ROTATION_VARIANCE, bingham_rotation_coordinates,
 )
 from probtf_observation_fusion_demo.body_native import point_query
-from probtf_observation_fusion_demo import model, sensors
+from probtf_observation_fusion_demo import model, nonlinear_observation, sensors
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
 from probtf_observation_fusion_demo.marker_search import marker_observed
 from probtf_observation_fusion_demo.marker_board import fuse_marker_board
@@ -63,30 +63,33 @@ def board_capture(tmp_path_factory):
 def board_pipeline(board_capture):
     scene, inputs, templates = board_capture
     patch = pytest.MonkeyPatch()
-    prepared_calls, adopted_prepared = [], []
-    prepare, adapter = sensors.prepare_marker_observation, sensors.marker_estimate
+    prepared_calls, affine_calls = [], []
+    prepare = sensors.prepare_marker_observation
 
     def prepare_once(common, image, stamp):
         prepared = prepare(common, image, stamp)
         prepared_calls.append(prepared)
         return prepared
 
-    def use_same_prepared(state, observation, paths, common, image, *, prepared=None):
-        adopted_prepared.append(prepared)
-        return adapter(state, observation, paths, common, image, prepared=prepared)
+    def forbidden_affine(*_args, **_kwargs):
+        affine_calls.append(True)
+        raise AssertionError('The nonlinear board update must not re-lift an affine sensor posterior.')
 
     def forbidden(*_args, **_kwargs):
         raise AssertionError('The board observation/goal pipeline must not use Monte Carlo.')
 
     for name in ('default_rng', 'normal', 'random', 'randn', 'multivariate_normal', 'RandomState'):
         patch.setattr(np.random, name, forbidden)
-    patch.setitem(model.PREPARERS, 'marker', prepare_once)
-    patch.setitem(model.ADAPTERS, 'marker', use_same_prepared)
+    patch.setattr(nonlinear_observation, 'prepare_marker_observation', prepare_once)
+    patch.setitem(model.PREPARERS, 'marker', forbidden_affine)
+    patch.setitem(model.ADAPTERS, 'marker', forbidden_affine)
+    patch.setattr(model, 'lift_sensor_posterior', forbidden_affine)
     try:
         inference = MovingInference(scene.robot_description, templates)
+        assert inference.observation_update_method == 'nonlinear_fixed_prior'
         result = inference.update(inputs, 0)
         yield SimpleNamespace(scene=scene, inputs=inputs, inference=inference, result=result,
-            prepared=tuple(prepared_calls), adopted_prepared=tuple(adopted_prepared))
+            prepared=tuple(prepared_calls), affine_calls=tuple(affine_calls))
     finally:
         patch.undo()
 
@@ -141,8 +144,11 @@ def test_real_partial_board_uses_visible_noncentral_ids_and_preserves_every_raw_
 def test_keep_reset_share_one_prepared_central_observation_and_one_image_update(board_pipeline):
     pipeline = board_pipeline
     result, prepared = pipeline.result, pipeline.prepared[0]
-    assert len(pipeline.adopted_prepared) == 2
-    assert all(item is prepared for item in pipeline.adopted_prepared)
+    assert len(pipeline.prepared) == 1
+    assert pipeline.affine_calls == ()
+    assert result.records['local_gaussian_lift_applied'] is False
+    assert result.records['frozen_local_posteriors'] == []
+    assert result.records['lift_total_covariance'] == []
     assert len(result.frozen_body_branches) == 2
     estimates = [item for item in result.local_estimates if item.posterior is not None]
     assert len(estimates) == 2
@@ -151,6 +157,9 @@ def test_keep_reset_share_one_prepared_central_observation_and_one_image_update(
         assert estimate.board_fusion is prepared.board_fusion
         assert estimate.diagnostics['marker_board_fusion'] is prepared.board_fusion
         assert len(estimate.posterior.components) == 1
+        assert len(estimate.posterior.component_queries) == 1
+        assert [query.state_id for query in estimate.posterior.component_queries] == (
+            estimate.diagnostics['joint_posterior_source_state_ids'])
     assert len({item.posterior.observation_id for item in estimates}) == 1
     surprise = result.records['bayes_factor_surprise']
     assert surprise['applied'] is True

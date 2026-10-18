@@ -113,7 +113,10 @@ def common_chart_gaussian(source_ref, distribution, target_ref):
             @ quat_to_rotmat(source.rotation_wxyz)
             @ Rotation.from_rotvec(source_mean.copy()).as_matrix())
         vector = Rotation.from_matrix(relative).as_rotvec()
-        if abs(np.linalg.norm(vector)-math.pi) <= 1e-8:
+        # Only the actual principal-chart cut has no unique branch. A
+        # finite near-pi coordinate still has an invertible right Jacobian;
+        # an arbitrary angular margin must not stop later observations.
+        if np.linalg.norm(vector) == math.pi:
             raise ValueError('Common-chart transport reaches the principal rotation cut.')
         mean[rotation] = vector
         chart[rotation, rotation] = np.linalg.solve(

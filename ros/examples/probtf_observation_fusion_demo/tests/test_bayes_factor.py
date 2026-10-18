@@ -46,6 +46,22 @@ def _state(*, variance=.002, angle=0., component_id='retained', version=7):
     return replace(independent, covariance=covariance)
 
 
+@pytest.mark.parametrize('distance_from_cut', [1e-9, 1e-12])
+def test_finite_near_cut_chart_transport_is_not_rejected_by_angular_margin(distance_from_cut):
+    axis = np.array([1., -.4, .2])
+    source = _state(angle=(math.pi-distance_from_cut)/np.linalg.norm(axis),
+                    component_id='near_cut_source')
+    target = _state(component_id='target')
+    distribution = Gaussian(source.mean, source.covariance)
+    moved = common_chart_gaussian(source, distribution, target)
+    assert np.all(np.isfinite(moved.mean))
+    assert np.all(np.isfinite(moved.covariance))
+    assert np.linalg.norm(moved.mean[3:6]) == pytest.approx(
+        math.pi-distance_from_cut, rel=0., abs=2e-15)
+    assert covariance_support(moved.covariance).rank == covariance_support(source.covariance).rank
+    np.testing.assert_array_equal(source.mean, 0.)
+
+
 def _raw_result(*, keep_mass=.2):
     retained = _state()
     direct = _state(variance=.008, angle=.08, component_id='direct')

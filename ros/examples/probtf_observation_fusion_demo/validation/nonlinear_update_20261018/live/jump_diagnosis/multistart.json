@@ -1,0 +1,593 @@
+{
+  "scope": "Offline deterministic multi-start optimization of each exact same declared parent/native nonlinear Phi. It does not change original priors, observations, covariance, native log masses, saved runtime posterior or evidence. BFGS max120/gtol1e-8 is an independent optimizer diagnostic, not production GN40. No claim of certified global minimum.",
+  "original_runtime_source": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/frozen_source/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_observation.py",
+  "source_sha256": "9470f64cc7724f1ea8ed95261e3b557780669b118b727636ffbeabf452891ea2",
+  "production_edited": false,
+  "saved_runtime_modified": false,
+  "cases": {
+    "marker:94": {
+      "event_id": "image:00002549",
+      "elapsed_s": 29.423784732818604,
+      "parents": [
+        {
+          "parent_label": "predicted:2549:0",
+          "source_prior_state_id": "84f5652089692c8d32abc309ca416b03f090462bf2cc6c7bc7067ac3620d9fe2",
+          "prior_covariance_sha256": "03dbb9c1353f2a2016e1c00e9c70cbfaddabd294c63135d722b046c86ab883c3",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:16d6dd1e1a7485af:0"
+          ],
+          "runtime_objective": 416.78507376013044,
+          "runtime_score": 5.895136517067301e-06,
+          "runtime_stationary": false,
+          "runtime_conditional_log_evidence": -394.2769391703793,
+          "offline": [
+            {
+              "start": "saved_final",
+              "initial_objective": 416.78507376013044,
+              "final_objective": 416.7850737600513,
+              "gradient_inf": 5.00519794943699e-07,
+              "GN_log_evidence_at_offline_iterate": -394.27693931143256,
+              "whitened_residual_sq": 688.2184303249244,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 6,
+              "evaluate_calls": 53,
+              "wall_seconds": 0.01619983371347189,
+              "whitened_displacement_from_saved": 2.0924502834060632e-05
+            },
+            {
+              "start": "original_prior_zero",
+              "initial_objective": 1750.3523742520435,
+              "final_objective": 416.7850737600486,
+              "gradient_inf": 5.586951434821685e-07,
+              "GN_log_evidence_at_offline_iterate": -394.276939259664,
+              "whitened_residual_sq": 688.2184359365904,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 36,
+              "evaluate_calls": 110,
+              "wall_seconds": 0.031886611599475145,
+              "whitened_displacement_from_saved": 2.0731872694684887e-05
+            },
+            {
+              "start": "other_parent_fitted_physical_pose",
+              "initial_objective": 40149.76246344402,
+              "final_objective": 419.9206619407721,
+              "gradient_inf": 1.3724807956805307e-09,
+              "GN_log_evidence_at_offline_iterate": -397.2230543522305,
+              "whitened_residual_sq": 635.4101475550993,
+              "optimizer_success": true,
+              "optimizer_message": "Optimization terminated successfully.",
+              "optimizer_iterations": 81,
+              "evaluate_calls": 123,
+              "wall_seconds": 0.03757390379905701,
+              "whitened_displacement_from_saved": 22.041192894140124
+            },
+            {
+              "start": "half_other_parent_fitted_physical_pose",
+              "initial_objective": 11039.206701496822,
+              "final_objective": 419.9206619407729,
+              "gradient_inf": 1.2143921219731624e-06,
+              "GN_log_evidence_at_offline_iterate": -397.2230543502344,
+              "whitened_residual_sq": 635.4101454428245,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 67,
+              "evaluate_calls": 137,
+              "wall_seconds": 0.04070313693955541,
+              "whitened_displacement_from_saved": 22.041193130368267
+            }
+          ]
+        },
+        {
+          "parent_label": "reset:7648",
+          "source_prior_state_id": "9d7f1565f11593b3f2972d09ea7fcbc5256b86887481c8f2232ac9a2bd631e1c",
+          "prior_covariance_sha256": "6b345db686a1ead78f061cf06f61d9a0ad57765caf3f724a2bda1d27abb86255",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:16d6dd1e1a7485af:0"
+          ],
+          "runtime_objective": 148.36192660298917,
+          "runtime_score": 7.534979684642451e-07,
+          "runtime_stationary": true,
+          "runtime_conditional_log_evidence": -136.02465169720392,
+          "offline": [
+            {
+              "start": "saved_final",
+              "initial_objective": 148.36192660298917,
+              "final_objective": 148.36192660298906,
+              "gradient_inf": 1.8999465082325528e-06,
+              "GN_log_evidence_at_offline_iterate": -136.02465169748794,
+              "whitened_residual_sq": 162.2176844067173,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 3,
+              "evaluate_calls": 35,
+              "wall_seconds": 0.00991922989487648,
+              "whitened_displacement_from_saved": 2.7336743991692294e-08
+            },
+            {
+              "start": "original_prior_zero",
+              "initial_objective": 243801.2176413422,
+              "final_objective": 148.43445491589324,
+              "gradient_inf": 1.6638820043855467,
+              "GN_log_evidence_at_offline_iterate": -136.09621908609225,
+              "whitened_residual_sq": 163.13838670974954,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 138,
+              "wall_seconds": 0.04352916311472654,
+              "whitened_displacement_from_saved": 0.37587438740484874
+            },
+            {
+              "start": "other_parent_fitted_physical_pose",
+              "initial_objective": 409.9623767299803,
+              "final_objective": 148.36192660298818,
+              "gradient_inf": 1.0014989823226017e-05,
+              "GN_log_evidence_at_offline_iterate": -136.02465170057417,
+              "whitened_residual_sq": 162.21768492621564,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 88,
+              "evaluate_calls": 149,
+              "wall_seconds": 0.04498680727556348,
+              "whitened_displacement_from_saved": 1.5221680232534513e-06
+            },
+            {
+              "start": "half_other_parent_fitted_physical_pose",
+              "initial_objective": 68805.60407326366,
+              "final_objective": 149.076078196092,
+              "gradient_inf": 3.3321794577646036,
+              "GN_log_evidence_at_offline_iterate": -136.73583348400916,
+              "whitened_residual_sq": 164.361701967714,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 140,
+              "wall_seconds": 0.044233486987650394,
+              "whitened_displacement_from_saved": 1.206191787628425
+            }
+          ]
+        }
+      ]
+    },
+    "marker:95": {
+      "event_id": "image:00002602",
+      "elapsed_s": 30.181849479675293,
+      "parents": [
+        {
+          "parent_label": "predicted:2602:0",
+          "source_prior_state_id": "be4f5e24b9c84b617279c9b488d96464dd4051d91dabe055502b4172558a27e6",
+          "prior_covariance_sha256": "5fc441c416dc9a7aa0eb8d9a425088e1e9a08dd2f75885f4ea6d28c961fea957",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:b3edb472e01bc452:0"
+          ],
+          "runtime_objective": 328.2721010021741,
+          "runtime_score": 8.4408201583841e-06,
+          "runtime_stationary": false,
+          "runtime_conditional_log_evidence": -306.3771111855501,
+          "offline": [
+            {
+              "start": "saved_final",
+              "initial_objective": 328.2721010021741,
+              "final_objective": 328.27210100212056,
+              "gradient_inf": 9.651652312925307e-07,
+              "GN_log_evidence_at_offline_iterate": -306.3771117071545,
+              "whitened_residual_sq": 125.81586356413591,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 10,
+              "evaluate_calls": 55,
+              "wall_seconds": 0.01566644525155425,
+              "whitened_displacement_from_saved": 1.27929852709419e-05
+            },
+            {
+              "start": "original_prior_zero",
+              "initial_objective": 67714.23338000289,
+              "final_objective": 348.82206421912514,
+              "gradient_inf": 2.0299943638316735,
+              "GN_log_evidence_at_offline_iterate": -326.22956146788204,
+              "whitened_residual_sq": 192.09800472337548,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 142,
+              "wall_seconds": 0.0448095821775496,
+              "whitened_displacement_from_saved": 14.789831345305023
+            },
+            {
+              "start": "other_parent_fitted_physical_pose",
+              "initial_objective": 9572.673607408868,
+              "final_objective": 348.62876292345936,
+              "gradient_inf": 12.822337844672907,
+              "GN_log_evidence_at_offline_iterate": -326.72148366538653,
+              "whitened_residual_sq": 138.55943641627883,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 147,
+              "wall_seconds": 0.04554459499195218,
+              "whitened_displacement_from_saved": 6.602215202560505
+            },
+            {
+              "start": "half_other_parent_fitted_physical_pose",
+              "initial_objective": 8804.645725513794,
+              "final_objective": 335.5408852250265,
+              "gradient_inf": 24.221276811366295,
+              "GN_log_evidence_at_offline_iterate": -313.4452572431102,
+              "whitened_residual_sq": 145.90906501745363,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 139,
+              "wall_seconds": 0.04369677184149623,
+              "whitened_displacement_from_saved": 5.705103257458979
+            }
+          ]
+        },
+        {
+          "parent_label": "reset:7807",
+          "source_prior_state_id": "d3960509d764aaf9d0874728e09a0461fb80db84612d10adb010d67f2bb696d8",
+          "prior_covariance_sha256": "cef655fe06bab7c89968cd70c00870637917bf505e08ea15bae2e4987b842fd8",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:b3edb472e01bc452:0"
+          ],
+          "runtime_objective": 8.087255254759235,
+          "runtime_score": 4.871833068692197e-08,
+          "runtime_stationary": true,
+          "runtime_conditional_log_evidence": 5.292795172610387,
+          "offline": [
+            {
+              "start": "saved_final",
+              "initial_objective": 8.087255254759235,
+              "final_objective": 8.087255254759208,
+              "gradient_inf": 2.9456197614408097e-07,
+              "GN_log_evidence_at_offline_iterate": 5.292795172563264,
+              "whitened_residual_sq": 0.055154473336545475,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 4,
+              "evaluate_calls": 53,
+              "wall_seconds": 0.014734786003828049,
+              "whitened_displacement_from_saved": 6.133283822471673e-09
+            },
+            {
+              "start": "original_prior_zero",
+              "initial_objective": 3508343.1719072745,
+              "final_objective": 296.6449577272986,
+              "gradient_inf": 926.4543591122934,
+              "GN_log_evidence_at_offline_iterate": -283.2164646903583,
+              "whitened_residual_sq": 28.29383510378827,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 156,
+              "wall_seconds": 0.04767442727461457,
+              "whitened_displacement_from_saved": 23.62330777703278
+            },
+            {
+              "start": "other_parent_fitted_physical_pose",
+              "initial_objective": 180.3159924215388,
+              "final_objective": 9.562356708975672,
+              "gradient_inf": 26.840712641287116,
+              "GN_log_evidence_at_offline_iterate": 3.818778216922209,
+              "whitened_residual_sq": 0.08184294409878196,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 142,
+              "wall_seconds": 0.04381594667211175,
+              "whitened_displacement_from_saved": 1.6921869178879503
+            },
+            {
+              "start": "half_other_parent_fitted_physical_pose",
+              "initial_objective": 780651.6191785771,
+              "final_objective": 67.98029910407259,
+              "gradient_inf": 35.79024379584679,
+              "GN_log_evidence_at_offline_iterate": -54.611242239406344,
+              "whitened_residual_sq": 3.820775264168722,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 152,
+              "wall_seconds": 0.04627405758947134,
+              "whitened_displacement_from_saved": 10.801063182135936
+            }
+          ]
+        }
+      ]
+    },
+    "imu_marker:260": {
+      "event_id": "image:00002164",
+      "elapsed_s": 28.0286283493042,
+      "parents": [
+        {
+          "parent_label": "predicted:2164:0",
+          "source_prior_state_id": "a2ccedb3611fb7033403f27d1f69f26fc9cba7e1dea582a4316c437829066016",
+          "prior_covariance_sha256": "d811a8cf489a96ce18815a19211c116f382364b7c3580b30b07549c6da5db169",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:80896459f5226eac:0"
+          ],
+          "runtime_objective": 99.86819586731112,
+          "runtime_score": 0.00010761278270265962,
+          "runtime_stationary": false,
+          "runtime_conditional_log_evidence": -68.99703668552577,
+          "offline": [
+            {
+              "start": "saved_final",
+              "initial_objective": 99.86819586731112,
+              "final_objective": 99.86819586196164,
+              "gradient_inf": 1.3404865208954675e-05,
+              "GN_log_evidence_at_offline_iterate": -68.9970392209461,
+              "whitened_residual_sq": 24.24325900879185,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 5,
+              "evaluate_calls": 50,
+              "wall_seconds": 0.014449052978307009,
+              "whitened_displacement_from_saved": 7.62700875362754e-05
+            },
+            {
+              "start": "original_prior_zero",
+              "initial_objective": 10363.882382122025,
+              "final_objective": 99.8681958619612,
+              "gradient_inf": 1.1933903500960241e-06,
+              "GN_log_evidence_at_offline_iterate": -68.99703921220731,
+              "whitened_residual_sq": 24.243259948325477,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 75,
+              "evaluate_calls": 118,
+              "wall_seconds": 0.03596081491559744,
+              "whitened_displacement_from_saved": 7.606715948429989e-05
+            },
+            {
+              "start": "other_parent_fitted_physical_pose",
+              "initial_objective": 8856.881439392735,
+              "final_objective": 99.86819586195824,
+              "gradient_inf": 1.5545744489475766e-06,
+              "GN_log_evidence_at_offline_iterate": -68.99703921451494,
+              "whitened_residual_sq": 24.243259437738885,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 91,
+              "evaluate_calls": 166,
+              "wall_seconds": 0.04892578208819032,
+              "whitened_displacement_from_saved": 7.60391591646529e-05
+            },
+            {
+              "start": "half_other_parent_fitted_physical_pose",
+              "initial_objective": 4706.255582160511,
+              "final_objective": 99.86819586195877,
+              "gradient_inf": 3.942676982005011e-06,
+              "GN_log_evidence_at_offline_iterate": -68.99703921475164,
+              "whitened_residual_sq": 24.243259259883974,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 62,
+              "evaluate_calls": 104,
+              "wall_seconds": 0.031041367910802364,
+              "whitened_displacement_from_saved": 7.600836401854912e-05
+            }
+          ]
+        },
+        {
+          "parent_label": "reset:6493",
+          "source_prior_state_id": "a2084e3a3f4db1c355e8ccaae2bb99e91b01603625f5d13f1fc47943ca42a2d0",
+          "prior_covariance_sha256": "dea2b9bad79e8b928d456459c9547f66a53de9ea4fde80dc18515b2c6431b602",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:80896459f5226eac:0"
+          ],
+          "runtime_objective": 22.29109604094317,
+          "runtime_score": 2.534644507612427e-07,
+          "runtime_stationary": true,
+          "runtime_conditional_log_evidence": -8.624125785092431,
+          "offline": [
+            {
+              "start": "saved_final",
+              "initial_objective": 22.29109604094317,
+              "final_objective": 22.291096040942968,
+              "gradient_inf": 4.249118804033891e-07,
+              "GN_log_evidence_at_offline_iterate": -8.624125785066543,
+              "whitened_residual_sq": 0.20862216009819268,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 1,
+              "evaluate_calls": 72,
+              "wall_seconds": 0.019458540715277195,
+              "whitened_displacement_from_saved": 3.487063816638911e-12
+            },
+            {
+              "start": "original_prior_zero",
+              "initial_objective": 16764551.397930983,
+              "final_objective": 3862.6845958746035,
+              "gradient_inf": 1278.8103203758608,
+              "GN_log_evidence_at_offline_iterate": -3848.931138080527,
+              "whitened_residual_sq": 1125.2074597945712,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 152,
+              "wall_seconds": 0.046867762226611376,
+              "whitened_displacement_from_saved": 81.4412528748974
+            },
+            {
+              "start": "other_parent_fitted_physical_pose",
+              "initial_objective": 85.28826465735571,
+              "final_objective": 22.302719695865957,
+              "gradient_inf": 4.973570024227077,
+              "GN_log_evidence_at_offline_iterate": -8.635966293573183,
+              "whitened_residual_sq": 0.241612359629798,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 140,
+              "wall_seconds": 0.04345072992146015,
+              "whitened_displacement_from_saved": 0.146056128501544
+            },
+            {
+              "start": "half_other_parent_fitted_physical_pose",
+              "initial_objective": 4338127.554242821,
+              "final_objective": 358.5908973389859,
+              "gradient_inf": 443.8027931502875,
+              "GN_log_evidence_at_offline_iterate": -344.96840683847745,
+              "whitened_residual_sq": 169.54839933623097,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 148,
+              "wall_seconds": 0.04582642298191786,
+              "whitened_displacement_from_saved": 22.92781261336954
+            }
+          ]
+        }
+      ]
+    },
+    "imu_marker:321": {
+      "event_id": "image:00002595",
+      "elapsed_s": 36.852192878723145,
+      "parents": [
+        {
+          "parent_label": "predicted:2595:0",
+          "source_prior_state_id": "83d5fab98e289904657fa8d5bb6da86d92aca3aa2edd27256212c0caaafea5bf",
+          "prior_covariance_sha256": "c0cd964977d2e7d15ab296056c258f384b70013035af9390e4d8ea1503b681ec",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:97d6c8210eb791cd:0"
+          ],
+          "runtime_objective": 346.71262118753936,
+          "runtime_score": 1.132204743625742e-06,
+          "runtime_stationary": false,
+          "runtime_conditional_log_evidence": -315.7046477864369,
+          "offline": [
+            {
+              "start": "saved_final",
+              "initial_objective": 346.71262118753936,
+              "final_objective": 346.71262118753936,
+              "gradient_inf": 1.132204743625742e-06,
+              "GN_log_evidence_at_offline_iterate": -315.7046477864369,
+              "whitened_residual_sq": 372.93138679383316,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 0,
+              "evaluate_calls": 42,
+              "wall_seconds": 0.011716455221176147,
+              "whitened_displacement_from_saved": 0.0
+            },
+            {
+              "start": "original_prior_zero",
+              "initial_objective": 19634.02740888926,
+              "final_objective": 346.71262118754703,
+              "gradient_inf": 3.7101446697107576e-06,
+              "GN_log_evidence_at_offline_iterate": -315.7046477857726,
+              "whitened_residual_sq": 372.9313878257528,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 71,
+              "evaluate_calls": 166,
+              "wall_seconds": 0.04831636417657137,
+              "whitened_displacement_from_saved": 5.174454927824077e-07
+            },
+            {
+              "start": "other_parent_fitted_physical_pose",
+              "initial_objective": 84762.20030172753,
+              "final_objective": 346.8610904294012,
+              "gradient_inf": 7.294077450397779,
+              "GN_log_evidence_at_offline_iterate": -315.84522811531826,
+              "whitened_residual_sq": 374.37385548203684,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 138,
+              "wall_seconds": 0.04418160719797015,
+              "whitened_displacement_from_saved": 0.5109818664526009
+            },
+            {
+              "start": "half_other_parent_fitted_physical_pose",
+              "initial_objective": 26894.708340093188,
+              "final_objective": 346.7126211875517,
+              "gradient_inf": 1.3468130092286756e-06,
+              "GN_log_evidence_at_offline_iterate": -315.7046477740958,
+              "whitened_residual_sq": 372.93138586695943,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 73,
+              "evaluate_calls": 123,
+              "wall_seconds": 0.0369584858417511,
+              "whitened_displacement_from_saved": 5.239238524864193e-07
+            }
+          ]
+        },
+        {
+          "parent_label": "reset:7786",
+          "source_prior_state_id": "e050b4abd50c6770d01e9dff0bc302a411639f79f6e045874e926cd8a8c328d2",
+          "prior_covariance_sha256": "13188d7a21f43f20afda0cc8e6f2e8c207407185f45840a23a78ce825a82362f",
+          "native_component_labels": [
+            "camera__to__marker:board_adf:97d6c8210eb791cd:0"
+          ],
+          "runtime_objective": 34.04234583416389,
+          "runtime_score": 5.575997691908974e-07,
+          "runtime_stationary": true,
+          "runtime_conditional_log_evidence": -20.427687791815803,
+          "offline": [
+            {
+              "start": "saved_final",
+              "initial_objective": 34.04234583416389,
+              "final_objective": 34.04234583416384,
+              "gradient_inf": 6.584599311354467e-07,
+              "GN_log_evidence_at_offline_iterate": -20.427687791909477,
+              "whitened_residual_sq": 0.35839559907418667,
+              "optimizer_success": false,
+              "optimizer_message": "Desired error not necessarily achieved due to precision loss.",
+              "optimizer_iterations": 1,
+              "evaluate_calls": 49,
+              "wall_seconds": 0.01354816323146224,
+              "whitened_displacement_from_saved": 5.946073977695664e-12
+            },
+            {
+              "start": "original_prior_zero",
+              "initial_objective": 17531447.127140686,
+              "final_objective": 1836.9829048136203,
+              "gradient_inf": 1329.9103507122413,
+              "GN_log_evidence_at_offline_iterate": -1823.192964896797,
+              "whitened_residual_sq": 181.498902675027,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 153,
+              "wall_seconds": 0.04707642598077655,
+              "whitened_displacement_from_saved": 58.69149107737559
+            },
+            {
+              "start": "other_parent_fitted_physical_pose",
+              "initial_objective": 301.2791718222567,
+              "final_objective": 34.13989879382646,
+              "gradient_inf": 2.5662923953408203,
+              "GN_log_evidence_at_offline_iterate": -20.526570934544182,
+              "whitened_residual_sq": 0.4438965197410197,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 142,
+              "wall_seconds": 0.04404472326859832,
+              "whitened_displacement_from_saved": 0.4360511088889352
+            },
+            {
+              "start": "half_other_parent_fitted_physical_pose",
+              "initial_objective": 4523368.247191866,
+              "final_objective": 749.1599667432515,
+              "gradient_inf": 714.861896561332,
+              "GN_log_evidence_at_offline_iterate": -735.530801328775,
+              "whitened_residual_sq": 33.80779484833617,
+              "optimizer_success": false,
+              "optimizer_message": "Maximum number of iterations has been exceeded.",
+              "optimizer_iterations": 120,
+              "evaluate_calls": 150,
+              "wall_seconds": 0.046335233841091394,
+              "whitened_displacement_from_saved": 37.38949935436045
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

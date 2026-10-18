@@ -1,0 +1,26 @@
+{
+  "scope": "exact IMU antiparallel chart-domain boundary; original90s run predates repair",
+  "changed_files": [
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_observation.py",
+      "sha256": "cbbf72d094e1bca39431b0ee55e9a09e3c4068dfe9aa93981d84bf0fa6d26409",
+      "bytes": 8570
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/tests/test_nonlinear_model.py",
+      "sha256": "5a5a868703eefcdee17dc3ddb6323a40fb0f60b4644ef6244660c0a1a7bae7ca",
+      "bytes": 12511
+    }
+  ],
+  "focused": {
+    "passed": 39,
+    "seconds": 4.91,
+    "log": "/tmp/probtf_nonlinear_exact_antipode_focused_20261018.log",
+    "log_sha256": "29867f15e9192adac690d490e729cf956387696076456886d52a5587faaba42b"
+  },
+  "production_source_frozen": true,
+  "angle_threshold_added": false,
+  "candidate_scalar_likelihood_changed": false,
+  "GN_covariance_evidence_changed": false,
+  "original_live_success_not_claimed": true
+}

@@ -1,0 +1,105 @@
+{
+  "total_selected_bytes": 1729262,
+  "files": {
+    "source_freeze.json": {
+      "bytes": 97310,
+      "sha256": "f270543872782be7ce3cac53a1aacf24c883da403d802b6a7b17405a6d1f4560"
+    },
+    "stage_exclusive.json": {
+      "bytes": 51026,
+      "sha256": "2d374340f15cbabb76abe8de4b93313b26d4737cf24cd1a0399bb90ee53271a5"
+    },
+    "runtime_timeline.csv": {
+      "bytes": 9920,
+      "sha256": "d85ada67feb3486bf03c877fcbd0c63891088630adcba3efe9d40ceea4d0cf86"
+    },
+    "source_check_after_shutdown.json": {
+      "bytes": 40561,
+      "sha256": "0ee6ba6f2aec95dfdc0b7f0a2abcbbfe0fc7235d652a9a98e094043a58fec9f1"
+    },
+    "independent_raw_chronology.json": {
+      "bytes": 17600,
+      "sha256": "e8017d9591623111de4ce8755230d875f708e3d0094a34bdffe1caeec3868a3d"
+    },
+    "nonlinear_observation_options.json": {
+      "bytes": 137,
+      "sha256": "2197a3dd0961f5757fa614b0b305213c9b6a87ad4313cb4aad01884c0e0b85a1"
+    },
+    "summary.json": {
+      "bytes": 62609,
+      "sha256": "1814c507614aacf9569dc3f355e1e98b95b2e569d97fe41ec9611f36aec8a565"
+    },
+    "source_check_before_motion.json": {
+      "bytes": 40563,
+      "sha256": "50cff51bb95b22107f9b9e78ab53223b8b76d52494aad23b6d2f9066b8e68072"
+    },
+    "independent_wire_identity_audit.json": {
+      "bytes": 3954,
+      "sha256": "0ffb6fdcb7848bad7da59fc394c21648c8a8eee914c99a3311e75dec72b846be"
+    },
+    "initial_prior_numeric_audit.json": {
+      "bytes": 3823,
+      "sha256": "85d3d1daedfa70d38f2d54e124c5155bb0477f2f5ff113bff78942bba3b34f21"
+    },
+    "image_capture_metadata.json": {
+      "bytes": 3018,
+      "sha256": "956fed1374ef59888b035e4a15832d36e3d30b37945f087b5d299b41607a7d5a"
+    },
+    "runtime_stages.csv": {
+      "bytes": 9719,
+      "sha256": "1c30ed4db04241ed03c22aed63b3e1bfa3a413ff5732a318a8eb5290c466d00e"
+    },
+    "runtime_stage_exclusive.csv": {
+      "bytes": 10349,
+      "sha256": "aeb336f223dfa7d1bc00c608e3960b3d6d83004797037cb65e501940fbd7eb3e"
+    },
+    "initial_prior_requested_marker.png": {
+      "bytes": 499114,
+      "sha256": "3d58a1766f0515c6e176d7108a5a40483e51cfe80a85cab443c1442783c41ef4"
+    },
+    "imu_cut_parallel_replay_summary.json": {
+      "bytes": 2692,
+      "sha256": "618018b6d075f5000f5a4f78bd942a65930338718e0b76fe36e8095f31051335"
+    },
+    "initial_prior_readiness.json": {
+      "bytes": 836,
+      "sha256": "99c60e6b70610dea19831cdbdff5ca3e0e1cb713946bd4ff59e89a136be67721"
+    },
+    "retained_viewers.json": {
+      "bytes": 699,
+      "sha256": "76daf09c0bf6dc3d5187aec3a3703b6fc90fc5aa636e7039b8f28ed2fd260c06"
+    },
+    "physical_90s_imu_marker.png": {
+      "bytes": 433596,
+      "sha256": "7ab8a2e12267cc50022c0f2f1aca34bbad75e5f4659b00246fa251066702ebab"
+    },
+    "README.md": {
+      "bytes": 8667,
+      "sha256": "67507d666b22b54d240960bdf817ca2d47c9014e1f8d6879fd374e4963e5eaf0"
+    },
+    "physical_90s_marker.png": {
+      "bytes": 433069,
+      "sha256": "e5103a2f89fa00c1f482d84416d870779d93971fdb26580a539295c741ee127c"
+    }
+  },
+  "formatting_normalization": {
+    "runtime_stage_exclusive.csv": {
+      "original_sha256": "e00e7b41ebbc577e69b6dadce3ae4b2d9de9505f555bcfc9a7d34e99346d7f8c",
+      "normalized_sha256": "aeb336f223dfa7d1bc00c608e3960b3d6d83004797037cb65e501940fbd7eb3e",
+      "parsed_csv_rows_bitwise_text_equal": true,
+      "change": "CRLF to LF only in the selected Git copy; original runtime files unchanged"
+    },
+    "runtime_stages.csv": {
+      "original_sha256": "91aebb30e8f244413037f7e906d5590c19a0e00c54b1bc904fda68653f15acf5",
+      "normalized_sha256": "1c30ed4db04241ed03c22aed63b3e1bfa3a413ff5732a318a8eb5290c466d00e",
+      "parsed_csv_rows_bitwise_text_equal": true,
+      "change": "CRLF to LF only in the selected Git copy; original runtime files unchanged"
+    },
+    "runtime_timeline.csv": {
+      "original_sha256": "9bac7251ebe04381d030d909dec6f7e42cd3a60d776cf346a217bf8438443f98",
+      "normalized_sha256": "d85ada67feb3486bf03c877fcbd0c63891088630adcba3efe9d40ceea4d0cf86",
+      "parsed_csv_rows_bitwise_text_equal": true,
+      "change": "CRLF to LF only in the selected Git copy; original runtime files unchanged"
+    }
+  }
+}

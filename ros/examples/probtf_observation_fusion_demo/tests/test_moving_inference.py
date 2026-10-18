@@ -41,14 +41,26 @@ def test_moving_cases_share_exact_prior_and_core_paths(moving_inputs):
         assert result.records["moving_input_family"]["physical_truth_received"] is False
     assert results["no_sensors"].stages[-1].components[0].state is common
     assert [results[name].records["valid_observation_count"] for name in cases] == [0, 1, 1, 2]
-    # The same actual local camera/IMU distributions feed standalone and fusion.
+    # The same fixed raw camera/IMU likelihood feeds standalone and joint
+    # conditioning. The local diagnostic views are push-forwards of the
+    # resulting JOINT posterior, so their evidence and posterior IDs differ.
     for sensor in ('imu', 'marker'):
         standalone = [item.diagnostics for item in results[sensor].local_estimates
                       if item.diagnostics['sensor'] == sensor]
         combined = [item.diagnostics for item in results['imu_marker'].local_estimates
                     if item.diagnostics['sensor'] == sensor]
         assert len(standalone) == len(combined) == 2  # common keep/reset hypotheses
-        assert standalone == combined
+        assert [item['source_prior_state_id'] for item in standalone] == [
+            item['source_prior_state_id'] for item in combined]
+        standalone_native = [item for item in results[sensor].records[
+            'nonlinear_observation_update']['native_likelihoods'] if item['sensor'] == sensor]
+        combined_native = [item for item in results['imu_marker'].records[
+            'nonlinear_observation_update']['native_likelihoods'] if item['sensor'] == sensor]
+        assert standalone_native == combined_native
+        assert all(item['log_evidence_scope'] == 'joint raw observation product for this fixed prior parent'
+                   for item in standalone+combined)
+        assert not np.array_equal(results[sensor].frozen_body_branches[0].posterior_components[0].distribution.covariance,
+                                  results['imu_marker'].frozen_body_branches[0].posterior_components[0].distribution.covariance)
 
 
 def test_command_family_uses_known_geometry_and_retains_posterior_cross_blocks(moving_inputs):

@@ -1,0 +1,113 @@
+{
+  "schema": "nonlinear_initial_unobserved_rigid_prior_audit_v1",
+  "cases": {
+    "marker": {
+      "observation_ids": [],
+      "stamp": 1792080000.0,
+      "command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "archive_payload_sha256": "1827e72ffc6df6465bc3c14047e1f86058e5faca732a208b563615f609a84e30",
+      "candidate_id": "494b6e81dfc922773115c7446d33cf5e663a68b21e6e11a356fe6e3f64b7f883",
+      "full_law_identity_matches": true,
+      "rigid_FK_errors": {
+        "link_1": {
+          "mode_position_max_abs": 0.0,
+          "mode_rotation_matrix_max_abs": 2.220446049250313e-16
+        },
+        "link_2": {
+          "mode_position_max_abs": 5.551115123125783e-17,
+          "mode_rotation_matrix_max_abs": 3.3306690738754696e-16
+        },
+        "link_3": {
+          "mode_position_max_abs": 1.1102230246251565e-16,
+          "mode_rotation_matrix_max_abs": 2.220446049250313e-16
+        },
+        "link_4": {
+          "mode_position_max_abs": 1.1102230246251565e-16,
+          "mode_rotation_matrix_max_abs": 3.3306690738754696e-16
+        },
+        "link_5": {
+          "mode_position_max_abs": 1.1102230246251565e-16,
+          "mode_rotation_matrix_max_abs": 5.551115123125783e-16
+        },
+        "link_6": {
+          "mode_position_max_abs": 1.1102230246251565e-16,
+          "mode_rotation_matrix_max_abs": 6.106226635438361e-16
+        },
+        "tool0": {
+          "mode_position_max_abs": 2.220446049250313e-16,
+          "mode_rotation_matrix_max_abs": 6.106226635438361e-16
+        },
+        "hand": {
+          "mode_position_max_abs": 3.3306690738754696e-16,
+          "mode_rotation_matrix_max_abs": 7.216449660063518e-16
+        },
+        "camera": {
+          "mode_position_max_abs": 2.220446049250313e-16,
+          "mode_rotation_matrix_max_abs": 5.551115123125783e-16
+        }
+      },
+      "no_plant_K_or_true_joints_used": true
+    },
+    "imu_marker": {
+      "observation_ids": [],
+      "stamp": 1792080000.0,
+      "command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "archive_payload_sha256": "5db733315cbafb1fe12fda6203607929ea4cd7bebb7275a40eb2950252cf8848",
+      "candidate_id": "494b6e81dfc922773115c7446d33cf5e663a68b21e6e11a356fe6e3f64b7f883",
+      "full_law_identity_matches": true,
+      "rigid_FK_errors": {
+        "link_1": {
+          "mode_position_max_abs": 0.0,
+          "mode_rotation_matrix_max_abs": 2.220446049250313e-16
+        },
+        "link_2": {
+          "mode_position_max_abs": 5.551115123125783e-17,
+          "mode_rotation_matrix_max_abs": 3.3306690738754696e-16
+        },
+        "link_3": {
+          "mode_position_max_abs": 1.1102230246251565e-16,
+          "mode_rotation_matrix_max_abs": 2.220446049250313e-16
+        },
+        "link_4": {
+          "mode_position_max_abs": 1.1102230246251565e-16,
+          "mode_rotation_matrix_max_abs": 3.3306690738754696e-16
+        },
+        "link_5": {
+          "mode_position_max_abs": 1.1102230246251565e-16,
+          "mode_rotation_matrix_max_abs": 5.551115123125783e-16
+        },
+        "link_6": {
+          "mode_position_max_abs": 1.1102230246251565e-16,
+          "mode_rotation_matrix_max_abs": 6.106226635438361e-16
+        },
+        "tool0": {
+          "mode_position_max_abs": 2.220446049250313e-16,
+          "mode_rotation_matrix_max_abs": 6.106226635438361e-16
+        },
+        "hand": {
+          "mode_position_max_abs": 3.3306690738754696e-16,
+          "mode_rotation_matrix_max_abs": 7.216449660063518e-16
+        },
+        "camera": {
+          "mode_position_max_abs": 2.220446049250313e-16,
+          "mode_rotation_matrix_max_abs": 5.551115123125783e-16
+        }
+      },
+      "no_plant_K_or_true_joints_used": true
+    }
+  }
+}

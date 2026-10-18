@@ -1,0 +1,1092 @@
+{
+  "schema": "finite_modal_geometry_API_microbenchmark_v1",
+  "scope": "Single-process deterministic frozen11-edge/66-coordinate fixture. Full Python API timing includes input marshaling, C call, output dataclass/readonly copies. It excludes state/support construction, imports, native library setup, GC cleanup, sensor fusion, nonlinear optimization, K evidence, IPC and RViz.",
+  "fixture": {
+    "state_id": "8f46939b351d7ee784d14286bc06da9f54b7eb29fbae94712fef37cab9d90936",
+    "source_stamp": 1792080000.0,
+    "source_command": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "source_version": 1,
+    "edge_ids": [
+      "link_1",
+      "link_2",
+      "link_3",
+      "link_4",
+      "link_5",
+      "link_6",
+      "tool0",
+      "press_rod",
+      "rod_tip",
+      "camera_optical_frame",
+      "marker"
+    ],
+    "dimension": 66,
+    "covariance_rank": 42,
+    "full_cross_fixture": 0.00010540925533894597,
+    "derivation": "Configured initial body family and known URDF attachments with one declared rotational cross block; fixed edges keep zero support rows. Eleven-edge chain/inverse are algebra stress paths, not asserted physical kinematic paths.",
+    "robot_urdf_sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2",
+    "deltas": {
+      "zero": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "finite_on_prior_support": [
+        0.0001446461727859848,
+        0.0003919632245594458,
+        0.0002789110953039751,
+        0.0235756529620678,
+        -0.01257993186130917,
+        0.025266158147571344,
+        -9.057060870955328e-05,
+        -0.00037678211276328047,
+        -0.0003165818799621865,
+        0.01721098749513865,
+        -0.009862762236815955,
+        0.01551918873671451,
+        3.468227328400053e-05,
+        0.0003540597044183753,
+        0.00034791627614048,
+        -0.01954176692691016,
+        0.006647909011069672,
+        0.02672552806267521,
+        2.1900228077140386e-05,
+        -0.00032425078868224575,
+        -0.0003722871256863009,
+        0.023766815147885898,
+        -0.0028882612280945433,
+        -0.026887883550863943,
+        -7.804439622441495e-05,
+        0.0002879519912060247,
+        0.00038920664588028986,
+        0.02030404578721095,
+        -0.0317106432021571,
+        -0.010555754890420467,
+        0.00013262650525062546,
+        -0.0002458898326679986,
+        -0.000398336192410726,
+        0.016225420135381273,
+        -0.01806475925340912,
+        0.035598023079060806,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -0.0014691325611145987,
+        0.02610490287626345,
+        0.029678210998132656,
+        -0.023231854681388324,
+        -0.027692454297055878,
+        0.005965508796401073
+      ]
+    }
+  },
+  "source_state_unchanged": true,
+  "native": {
+    "backend": "native",
+    "core_equations_changed": false,
+    "stochastic_sampling": false,
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so",
+    "library_sha256": "26baa1ed012f1de7849f3e09373e7a8b18860cfacded7fa2ea10a5ebe382c0c8"
+  },
+  "stochastic_sampling": false,
+  "GC_disabled": false,
+  "production_source_edited": false,
+  "source_sha256": {
+    "native/body_law.cpp": "63b52076ce45801ac77582b932242e2c6b3937b0de676e51264d1954c2f6a8a5",
+    "src/probtf_observation_fusion_demo/finite_modal.py": "5395a3ff7c77176071db25a4309fd61cc7511ad76d8471886073df20b706d3c3"
+  },
+  "script_sha256": "81354014872d34d73698729fbedd867c9896d6cc8d44c3bb8c4f36c907aecb75",
+  "environment": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+  },
+  "limitation": "Isolated geometry+Jacobian comparison only; other agents may be active. Ratios do not describe total estimation throughput, closed-loop speed, reaching or accuracy.",
+  "results": [
+    {
+      "delta_label": "zero",
+      "path_label": "eleven_edge_forward",
+      "path_length": 11,
+      "path": [
+        [
+          "link_1",
+          false
+        ],
+        [
+          "link_2",
+          false
+        ],
+        [
+          "link_3",
+          false
+        ],
+        [
+          "link_4",
+          false
+        ],
+        [
+          "link_5",
+          false
+        ],
+        [
+          "link_6",
+          false
+        ],
+        [
+          "tool0",
+          false
+        ],
+        [
+          "press_rod",
+          false
+        ],
+        [
+          "rod_tip",
+          false
+        ],
+        [
+          "camera_optical_frame",
+          false
+        ],
+        [
+          "marker",
+          false
+        ]
+      ],
+      "errors": {
+        "translation_max_abs": 0.0,
+        "rotation_matrix_max_abs": 1.1102230246251565e-16,
+        "J_t_max_abs": 4.440892098500626e-16,
+        "J_right_rot_max_abs": 4.440892098500626e-16
+      },
+      "native": {
+        "iterations_per_batch": 200,
+        "batches": 5,
+        "median_wall_s_per_call": 7.753781974315644e-05,
+        "minimum_wall_s_per_call": 7.742007495835424e-05,
+        "median_cpu_s_per_call": 7.751153499999996e-05,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 7.88098364137113e-05,
+            "cpu_s_per_call": 7.878259500000012e-05
+          },
+          {
+            "wall_s_per_call": 7.742007495835424e-05,
+            "cpu_s_per_call": 7.739971999999984e-05
+          },
+          {
+            "wall_s_per_call": 7.750456454232335e-05,
+            "cpu_s_per_call": 7.748494999999994e-05
+          },
+          {
+            "wall_s_per_call": 7.753781974315644e-05,
+            "cpu_s_per_call": 7.751153499999996e-05
+          },
+          {
+            "wall_s_per_call": 7.76732200756669e-05,
+            "cpu_s_per_call": 7.7651745e-05
+          }
+        ]
+      },
+      "python_reference": {
+        "iterations_per_batch": 40,
+        "batches": 5,
+        "median_wall_s_per_call": 0.0011444677016697823,
+        "minimum_wall_s_per_call": 0.0011367067112587393,
+        "median_cpu_s_per_call": 0.001144041100000001,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.001168224704451859,
+            "cpu_s_per_call": 0.0011677546750000004
+          },
+          {
+            "wall_s_per_call": 0.0011463381233625114,
+            "cpu_s_per_call": 0.0011457616249999996
+          },
+          {
+            "wall_s_per_call": 0.001140229927841574,
+            "cpu_s_per_call": 0.001139755199999999
+          },
+          {
+            "wall_s_per_call": 0.0011367067112587393,
+            "cpu_s_per_call": 0.001136287675
+          },
+          {
+            "wall_s_per_call": 0.0011444677016697823,
+            "cpu_s_per_call": 0.001144041100000001
+          }
+        ]
+      },
+      "isolated_API_wall_ratio": 14.760122292074044
+    },
+    {
+      "delta_label": "zero",
+      "path_label": "eleven_edge_inverse",
+      "path_length": 11,
+      "path": [
+        [
+          "marker",
+          true
+        ],
+        [
+          "camera_optical_frame",
+          true
+        ],
+        [
+          "rod_tip",
+          true
+        ],
+        [
+          "press_rod",
+          true
+        ],
+        [
+          "tool0",
+          true
+        ],
+        [
+          "link_6",
+          true
+        ],
+        [
+          "link_5",
+          true
+        ],
+        [
+          "link_4",
+          true
+        ],
+        [
+          "link_3",
+          true
+        ],
+        [
+          "link_2",
+          true
+        ],
+        [
+          "link_1",
+          true
+        ]
+      ],
+      "errors": {
+        "translation_max_abs": 8.326672684688674e-17,
+        "rotation_matrix_max_abs": 1.1102230246251565e-16,
+        "J_t_max_abs": 4.440892098500626e-16,
+        "J_right_rot_max_abs": 6.661338147750939e-16
+      },
+      "native": {
+        "iterations_per_batch": 200,
+        "batches": 5,
+        "median_wall_s_per_call": 7.708396064117551e-05,
+        "minimum_wall_s_per_call": 7.659275317564607e-05,
+        "median_cpu_s_per_call": 7.706106499999977e-05,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 7.728757336735725e-05,
+            "cpu_s_per_call": 7.724118000000001e-05
+          },
+          {
+            "wall_s_per_call": 7.708396064117551e-05,
+            "cpu_s_per_call": 7.706106499999977e-05
+          },
+          {
+            "wall_s_per_call": 7.659275317564607e-05,
+            "cpu_s_per_call": 7.657033000000036e-05
+          },
+          {
+            "wall_s_per_call": 7.718917448073625e-05,
+            "cpu_s_per_call": 7.715084499999969e-05
+          },
+          {
+            "wall_s_per_call": 7.690053433179856e-05,
+            "cpu_s_per_call": 7.687909000000049e-05
+          }
+        ]
+      },
+      "python_reference": {
+        "iterations_per_batch": 40,
+        "batches": 5,
+        "median_wall_s_per_call": 0.0022161498782224953,
+        "minimum_wall_s_per_call": 0.002201112371403724,
+        "median_cpu_s_per_call": 0.0022152676500000025,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.002221120020840317,
+            "cpu_s_per_call": 0.002220342850000001
+          },
+          {
+            "wall_s_per_call": 0.0022585855214856563,
+            "cpu_s_per_call": 0.0022577146249999984
+          },
+          {
+            "wall_s_per_call": 0.002209846873302013,
+            "cpu_s_per_call": 0.002208956775000001
+          },
+          {
+            "wall_s_per_call": 0.0022161498782224953,
+            "cpu_s_per_call": 0.0022152676500000025
+          },
+          {
+            "wall_s_per_call": 0.002201112371403724,
+            "cpu_s_per_call": 0.0022002494500000026
+          }
+        ]
+      },
+      "isolated_API_wall_ratio": 28.74981850684391
+    },
+    {
+      "delta_label": "zero",
+      "path_label": "actual_camera_relative_marker",
+      "path_length": 9,
+      "path": [
+        [
+          "camera_optical_frame",
+          true
+        ],
+        [
+          "tool0",
+          true
+        ],
+        [
+          "link_6",
+          true
+        ],
+        [
+          "link_5",
+          true
+        ],
+        [
+          "link_4",
+          true
+        ],
+        [
+          "link_3",
+          true
+        ],
+        [
+          "link_2",
+          true
+        ],
+        [
+          "link_1",
+          true
+        ],
+        [
+          "marker",
+          false
+        ]
+      ],
+      "errors": {
+        "translation_max_abs": 5.551115123125783e-17,
+        "rotation_matrix_max_abs": 5.551115123125783e-17,
+        "J_t_max_abs": 1.1102230246251565e-16,
+        "J_right_rot_max_abs": 8.881784197001252e-16
+      },
+      "native": {
+        "iterations_per_batch": 200,
+        "batches": 5,
+        "median_wall_s_per_call": 7.2827881667763e-05,
+        "minimum_wall_s_per_call": 7.243276806548238e-05,
+        "median_cpu_s_per_call": 7.279721500000002e-05,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 7.35260103829205e-05,
+            "cpu_s_per_call": 7.350272000000046e-05
+          },
+          {
+            "wall_s_per_call": 7.2827881667763e-05,
+            "cpu_s_per_call": 7.279070499999984e-05
+          },
+          {
+            "wall_s_per_call": 7.281595841050147e-05,
+            "cpu_s_per_call": 7.279721500000002e-05
+          },
+          {
+            "wall_s_per_call": 7.565179606899619e-05,
+            "cpu_s_per_call": 7.562330499999992e-05
+          },
+          {
+            "wall_s_per_call": 7.243276806548238e-05,
+            "cpu_s_per_call": 7.239811500000082e-05
+          }
+        ]
+      },
+      "python_reference": {
+        "iterations_per_batch": 40,
+        "batches": 5,
+        "median_wall_s_per_call": 0.0017344108549878002,
+        "minimum_wall_s_per_call": 0.0017334470991045236,
+        "median_cpu_s_per_call": 0.0017337290250000025,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.0017383208964020015,
+            "cpu_s_per_call": 0.0017376854749999947
+          },
+          {
+            "wall_s_per_call": 0.0017351464717648923,
+            "cpu_s_per_call": 0.0017345107000000027
+          },
+          {
+            "wall_s_per_call": 0.0017334470991045236,
+            "cpu_s_per_call": 0.0017328216499999994
+          },
+          {
+            "wall_s_per_call": 0.00173374330624938,
+            "cpu_s_per_call": 0.0017330970750000009
+          },
+          {
+            "wall_s_per_call": 0.0017344108549878002,
+            "cpu_s_per_call": 0.0017337290250000025
+          }
+        ]
+      },
+      "isolated_API_wall_ratio": 23.815203947577277
+    },
+    {
+      "delta_label": "zero",
+      "path_label": "actual_hand",
+      "path_length": 9,
+      "path": [
+        [
+          "link_1",
+          false
+        ],
+        [
+          "link_2",
+          false
+        ],
+        [
+          "link_3",
+          false
+        ],
+        [
+          "link_4",
+          false
+        ],
+        [
+          "link_5",
+          false
+        ],
+        [
+          "link_6",
+          false
+        ],
+        [
+          "tool0",
+          false
+        ],
+        [
+          "press_rod",
+          false
+        ],
+        [
+          "rod_tip",
+          false
+        ]
+      ],
+      "errors": {
+        "translation_max_abs": 0.0,
+        "rotation_matrix_max_abs": 0.0,
+        "J_t_max_abs": 0.0,
+        "J_right_rot_max_abs": 0.0
+      },
+      "native": {
+        "iterations_per_batch": 200,
+        "batches": 5,
+        "median_wall_s_per_call": 7.242800900712609e-05,
+        "minimum_wall_s_per_call": 7.239711470901966e-05,
+        "median_cpu_s_per_call": 7.240252500000044e-05,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 7.267820416018367e-05,
+            "cpu_s_per_call": 7.265475000000077e-05
+          },
+          {
+            "wall_s_per_call": 7.242800900712609e-05,
+            "cpu_s_per_call": 7.240252500000044e-05
+          },
+          {
+            "wall_s_per_call": 7.294401992112398e-05,
+            "cpu_s_per_call": 7.290802999999957e-05
+          },
+          {
+            "wall_s_per_call": 7.240798557177186e-05,
+            "cpu_s_per_call": 7.238714499999909e-05
+          },
+          {
+            "wall_s_per_call": 7.239711470901966e-05,
+            "cpu_s_per_call": 7.236180499999966e-05
+          }
+        ]
+      },
+      "python_reference": {
+        "iterations_per_batch": 40,
+        "batches": 5,
+        "median_wall_s_per_call": 0.0009742121794261039,
+        "minimum_wall_s_per_call": 0.0009583674254827201,
+        "median_cpu_s_per_call": 0.0009737237999999981,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.0009661261457949877,
+            "cpu_s_per_call": 0.0009656626999999974
+          },
+          {
+            "wall_s_per_call": 0.0009751105564646423,
+            "cpu_s_per_call": 0.0009747310750000016
+          },
+          {
+            "wall_s_per_call": 0.0009742121794261039,
+            "cpu_s_per_call": 0.0009737237999999981
+          },
+          {
+            "wall_s_per_call": 0.0009583674254827201,
+            "cpu_s_per_call": 0.0009577255749999957
+          },
+          {
+            "wall_s_per_call": 0.0009961495990864933,
+            "cpu_s_per_call": 0.0009958072250000004
+          }
+        ]
+      },
+      "isolated_API_wall_ratio": 13.450765702122952
+    },
+    {
+      "delta_label": "finite_on_prior_support",
+      "path_label": "eleven_edge_forward",
+      "path_length": 11,
+      "path": [
+        [
+          "link_1",
+          false
+        ],
+        [
+          "link_2",
+          false
+        ],
+        [
+          "link_3",
+          false
+        ],
+        [
+          "link_4",
+          false
+        ],
+        [
+          "link_5",
+          false
+        ],
+        [
+          "link_6",
+          false
+        ],
+        [
+          "tool0",
+          false
+        ],
+        [
+          "press_rod",
+          false
+        ],
+        [
+          "rod_tip",
+          false
+        ],
+        [
+          "camera_optical_frame",
+          false
+        ],
+        [
+          "marker",
+          false
+        ]
+      ],
+      "errors": {
+        "translation_max_abs": 2.220446049250313e-16,
+        "rotation_matrix_max_abs": 1.1102230246251565e-16,
+        "J_t_max_abs": 8.68749516769185e-15,
+        "J_right_rot_max_abs": 3.858025010572419e-15
+      },
+      "native": {
+        "iterations_per_batch": 200,
+        "batches": 5,
+        "median_wall_s_per_call": 7.668654434382916e-05,
+        "minimum_wall_s_per_call": 7.627506973221898e-05,
+        "median_cpu_s_per_call": 7.666747500000071e-05,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 7.788921007886529e-05,
+            "cpu_s_per_call": 7.78615150000006e-05
+          },
+          {
+            "wall_s_per_call": 7.668654434382916e-05,
+            "cpu_s_per_call": 7.666747500000071e-05
+          },
+          {
+            "wall_s_per_call": 7.665680954232812e-05,
+            "cpu_s_per_call": 7.663472499999991e-05
+          },
+          {
+            "wall_s_per_call": 7.627506973221898e-05,
+            "cpu_s_per_call": 7.6255704999999e-05
+          },
+          {
+            "wall_s_per_call": 7.818376878276467e-05,
+            "cpu_s_per_call": 7.815715000000001e-05
+          }
+        ]
+      },
+      "python_reference": {
+        "iterations_per_batch": 40,
+        "batches": 5,
+        "median_wall_s_per_call": 0.001127967203501612,
+        "minimum_wall_s_per_call": 0.0011186661082319914,
+        "median_cpu_s_per_call": 0.001127535074999997,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.0011186661082319914,
+            "cpu_s_per_call": 0.0011183290749999907
+          },
+          {
+            "wall_s_per_call": 0.001127967203501612,
+            "cpu_s_per_call": 0.001127535074999997
+          },
+          {
+            "wall_s_per_call": 0.0011274724500253796,
+            "cpu_s_per_call": 0.0011270293249999951
+          },
+          {
+            "wall_s_per_call": 0.001136075530666858,
+            "cpu_s_per_call": 0.0011344226749999907
+          },
+          {
+            "wall_s_per_call": 0.0011629763757809997,
+            "cpu_s_per_call": 0.0011621116749999994
+          }
+        ]
+      },
+      "isolated_API_wall_ratio": 14.708802087160127
+    },
+    {
+      "delta_label": "finite_on_prior_support",
+      "path_label": "eleven_edge_inverse",
+      "path_length": 11,
+      "path": [
+        [
+          "marker",
+          true
+        ],
+        [
+          "camera_optical_frame",
+          true
+        ],
+        [
+          "rod_tip",
+          true
+        ],
+        [
+          "press_rod",
+          true
+        ],
+        [
+          "tool0",
+          true
+        ],
+        [
+          "link_6",
+          true
+        ],
+        [
+          "link_5",
+          true
+        ],
+        [
+          "link_4",
+          true
+        ],
+        [
+          "link_3",
+          true
+        ],
+        [
+          "link_2",
+          true
+        ],
+        [
+          "link_1",
+          true
+        ]
+      ],
+      "errors": {
+        "translation_max_abs": 4.440892098500626e-16,
+        "rotation_matrix_max_abs": 3.885780586188048e-16,
+        "J_t_max_abs": 5.523359547510154e-15,
+        "J_right_rot_max_abs": 3.12944115066216e-15
+      },
+      "native": {
+        "iterations_per_batch": 200,
+        "batches": 5,
+        "median_wall_s_per_call": 7.833950454369187e-05,
+        "minimum_wall_s_per_call": 7.823609979823231e-05,
+        "median_cpu_s_per_call": 7.824303000000033e-05,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 8.053330006077886e-05,
+            "cpu_s_per_call": 8.048264000000138e-05
+          },
+          {
+            "wall_s_per_call": 7.823609979823231e-05,
+            "cpu_s_per_call": 7.819490499999971e-05
+          },
+          {
+            "wall_s_per_call": 7.833950454369187e-05,
+            "cpu_s_per_call": 7.824303000000033e-05
+          },
+          {
+            "wall_s_per_call": 8.03884258493781e-05,
+            "cpu_s_per_call": 8.036546500000075e-05
+          },
+          {
+            "wall_s_per_call": 7.828046567738056e-05,
+            "cpu_s_per_call": 7.824187499999802e-05
+          }
+        ]
+      },
+      "python_reference": {
+        "iterations_per_batch": 40,
+        "batches": 5,
+        "median_wall_s_per_call": 0.0021985805011354386,
+        "minimum_wall_s_per_call": 0.0021886456524953246,
+        "median_cpu_s_per_call": 0.002197798949999996,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.0021985805011354386,
+            "cpu_s_per_call": 0.002197798949999996
+          },
+          {
+            "wall_s_per_call": 0.0021886456524953246,
+            "cpu_s_per_call": 0.0021878744000000004
+          },
+          {
+            "wall_s_per_call": 0.002193393255583942,
+            "cpu_s_per_call": 0.0021925005499999982
+          },
+          {
+            "wall_s_per_call": 0.0022148579242639243,
+            "cpu_s_per_call": 0.002214035300000006
+          },
+          {
+            "wall_s_per_call": 0.002238883881364018,
+            "cpu_s_per_call": 0.002238005774999996
+          }
+        ]
+      },
+      "isolated_API_wall_ratio": 28.06477413843275
+    },
+    {
+      "delta_label": "finite_on_prior_support",
+      "path_label": "actual_camera_relative_marker",
+      "path_length": 9,
+      "path": [
+        [
+          "camera_optical_frame",
+          true
+        ],
+        [
+          "tool0",
+          true
+        ],
+        [
+          "link_6",
+          true
+        ],
+        [
+          "link_5",
+          true
+        ],
+        [
+          "link_4",
+          true
+        ],
+        [
+          "link_3",
+          true
+        ],
+        [
+          "link_2",
+          true
+        ],
+        [
+          "link_1",
+          true
+        ],
+        [
+          "marker",
+          false
+        ]
+      ],
+      "errors": {
+        "translation_max_abs": 4.440892098500626e-16,
+        "rotation_matrix_max_abs": 2.220446049250313e-16,
+        "J_t_max_abs": 4.6074255521944e-15,
+        "J_right_rot_max_abs": 3.157196726277789e-15
+      },
+      "native": {
+        "iterations_per_batch": 200,
+        "batches": 5,
+        "median_wall_s_per_call": 7.46566103771329e-05,
+        "minimum_wall_s_per_call": 7.290370063856244e-05,
+        "median_cpu_s_per_call": 7.463337499999945e-05,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.00010668744565919042,
+            "cpu_s_per_call": 0.00010666667999999824
+          },
+          {
+            "wall_s_per_call": 7.52482214011252e-05,
+            "cpu_s_per_call": 7.522530499999958e-05
+          },
+          {
+            "wall_s_per_call": 7.429725490510464e-05,
+            "cpu_s_per_call": 7.42778349999984e-05
+          },
+          {
+            "wall_s_per_call": 7.46566103771329e-05,
+            "cpu_s_per_call": 7.463337499999945e-05
+          },
+          {
+            "wall_s_per_call": 7.290370063856244e-05,
+            "cpu_s_per_call": 7.288129499999796e-05
+          }
+        ]
+      },
+      "python_reference": {
+        "iterations_per_batch": 40,
+        "batches": 5,
+        "median_wall_s_per_call": 0.0017294404562562705,
+        "minimum_wall_s_per_call": 0.0017180423252284526,
+        "median_cpu_s_per_call": 0.0017287663499999995,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.0017180423252284526,
+            "cpu_s_per_call": 0.001717397799999998
+          },
+          {
+            "wall_s_per_call": 0.0017294404562562705,
+            "cpu_s_per_call": 0.0017287663499999995
+          },
+          {
+            "wall_s_per_call": 0.0017227826407179236,
+            "cpu_s_per_call": 0.0017220977999999997
+          },
+          {
+            "wall_s_per_call": 0.0017569340066984295,
+            "cpu_s_per_call": 0.00175623855
+          },
+          {
+            "wall_s_per_call": 0.001733693026471883,
+            "cpu_s_per_call": 0.001733005674999999
+          }
+        ]
+      },
+      "isolated_API_wall_ratio": 23.1652689228708
+    },
+    {
+      "delta_label": "finite_on_prior_support",
+      "path_label": "actual_hand",
+      "path_length": 9,
+      "path": [
+        [
+          "link_1",
+          false
+        ],
+        [
+          "link_2",
+          false
+        ],
+        [
+          "link_3",
+          false
+        ],
+        [
+          "link_4",
+          false
+        ],
+        [
+          "link_5",
+          false
+        ],
+        [
+          "link_6",
+          false
+        ],
+        [
+          "tool0",
+          false
+        ],
+        [
+          "press_rod",
+          false
+        ],
+        [
+          "rod_tip",
+          false
+        ]
+      ],
+      "errors": {
+        "translation_max_abs": 0.0,
+        "rotation_matrix_max_abs": 1.3877787807814457e-17,
+        "J_t_max_abs": 4.093947403305265e-15,
+        "J_right_rot_max_abs": 3.1433189384699745e-15
+      },
+      "native": {
+        "iterations_per_batch": 200,
+        "batches": 5,
+        "median_wall_s_per_call": 7.271836511790752e-05,
+        "minimum_wall_s_per_call": 7.258155616000294e-05,
+        "median_cpu_s_per_call": 7.269831999999977e-05,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 7.42794363759458e-05,
+            "cpu_s_per_call": 7.425700500000021e-05
+          },
+          {
+            "wall_s_per_call": 7.258155616000294e-05,
+            "cpu_s_per_call": 7.256261500000028e-05
+          },
+          {
+            "wall_s_per_call": 7.258722092956304e-05,
+            "cpu_s_per_call": 7.256776500000006e-05
+          },
+          {
+            "wall_s_per_call": 7.288181921467186e-05,
+            "cpu_s_per_call": 7.278510000000127e-05
+          },
+          {
+            "wall_s_per_call": 7.271836511790752e-05,
+            "cpu_s_per_call": 7.269831999999977e-05
+          }
+        ]
+      },
+      "python_reference": {
+        "iterations_per_batch": 40,
+        "batches": 5,
+        "median_wall_s_per_call": 0.0009367680293507874,
+        "minimum_wall_s_per_call": 0.000929738930426538,
+        "median_cpu_s_per_call": 0.0009363445000000082,
+        "batches_observed": [
+          {
+            "wall_s_per_call": 0.0009393968735821545,
+            "cpu_s_per_call": 0.0009390583499999994
+          },
+          {
+            "wall_s_per_call": 0.0009380405419506133,
+            "cpu_s_per_call": 0.0009377290750000045
+          },
+          {
+            "wall_s_per_call": 0.0009367680293507874,
+            "cpu_s_per_call": 0.0009363445000000082
+          },
+          {
+            "wall_s_per_call": 0.000929738930426538,
+            "cpu_s_per_call": 0.0009290623500000095
+          },
+          {
+            "wall_s_per_call": 0.0009327648789621889,
+            "cpu_s_per_call": 0.0009323572749999953
+          }
+        ]
+      },
+      "isolated_API_wall_ratio": 12.882138203078222
+    }
+  ]
+}

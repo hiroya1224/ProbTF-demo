@@ -1,0 +1,46 @@
+{
+  "schema": "old_run_all_IMU_GN_trials_release_cut_check_v1",
+  "old_observation_source": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/frozen_source/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_observation.py",
+  "old_observation_source_sha256": "9470f64cc7724f1ea8ed95261e3b557780669b118b727636ffbeabf452891ea2",
+  "new_observation_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_observation.py",
+  "new_observation_source_sha256": "cbbf72d094e1bca39431b0ee55e9a09e3c4068dfe9aa93981d84bf0fa6d26409",
+  "conditioning_source_same_bytes_as_run": true,
+  "body_backend": {
+    "backend": "native",
+    "core_equations_changed": false,
+    "stochastic_sampling": false,
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so",
+    "library_sha256": "26baa1ed012f1de7849f3e09373e7a8b18860cfacded7fa2ea10a5ebe382c0c8"
+  },
+  "production_changed": false,
+  "raw_changed": false,
+  "truth_used": false,
+  "monte_carlo_used": false,
+  "errors": [],
+  "summary": {
+    "original_IMU_event_count": 400,
+    "original_IMU_parent_branches": 800,
+    "paired_original_candidate_evaluations": 2452,
+    "comparison": "Exact dtype/shape and C-order raw array bytes for residual and Jacobian; signed zeros included",
+    "new_cut_exceptions": 0,
+    "nonbitwise_evaluations": 0,
+    "max_residual_difference": 0.0,
+    "max_jacobian_difference": 0.0,
+    "max_original_final_mean_replay_difference": 7.771561172376096e-16,
+    "max_original_final_objective_replay_difference": 7.105427357601002e-14,
+    "max_original_final_log_evidence_replay_difference": 7.105427357601002e-14,
+    "evaluator_call_counts_match_all": true,
+    "errors": 0,
+    "wall_seconds": 5.862801746930927
+  },
+  "scope": "Every original effective IMU job archived through the bounded-drain shutdown, both Keep/Reset parents. Replays the unchanged original GN operator using its frozen old evaluator; at every initial/trial/final evaluation also checks the release evaluator. If numeric outputs agree, the evaluator-only change has no effect on that original trajectory. This does not replace a new live run of the release source.",
+  "full_branch_report": {
+    "path": "/tmp/probtf_nonlinear_fixed_prior_live_20261018/imu_cut_parallel_replay.json",
+    "sha256": "b5a4332db270923372929bfaec9d20d6a57e5682dd91018b8851fed486062e95",
+    "bytes": 848601
+  },
+  "audit_script": {
+    "path": "/tmp/probtf_nonlinear_imu_cut_parallel_replay_20261018.py",
+    "sha256": "0c6676e5db22abc0f912fcae63307e8a2f6fccdbba6185562bb5106325a84857"
+  }
+}

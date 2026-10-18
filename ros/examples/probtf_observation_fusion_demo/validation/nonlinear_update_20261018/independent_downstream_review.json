@@ -1,0 +1,100 @@
+{
+  "scope": "Independent direct chronological fixed-command fixture; prior\u2192IMU\u2192image at same acquisition time with sequence preserved. Verifies core snapshot identity, canonical readonly and actual frozen K-ratio constructor/evaluation interfaces; not actual K equilibrium/evidence, closed-loop or speed validation.",
+  "source_hashes": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_model.py": "9308e877e27c00c5883fecd3c138a84f11426238f30682eab36f02ceb5452546",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_observation.py": "9470f64cc7724f1ea8ed95261e3b557780669b118b727636ffbeabf452891ea2",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/nonlinear_conditioning.py": "f67205fe01def452e82bef91e335ea9e6c3934ce06317d973822dc7314ef4c80",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "8eed514c0d14cff48a35225a2fda8e27a0cdbc5a974a078d7ad47b73d90e827a"
+  },
+  "source_unchanged": true,
+  "rows": [
+    {
+      "event_id": "independent-review:joint",
+      "kind": "joint",
+      "sequence": 1,
+      "source_stamp": 1000.0,
+      "source_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "state_id": "4d61391b0830d5c2786cec453fa9b037ade03abbbf7039fb9e3c7a360b58f00b",
+      "source_snapshot_id_verified": true,
+      "snapshot_query_count": 44,
+      "K_ratio_source_validated": true,
+      "K_ratio_log_value_at_zero_chart": 0.0,
+      "K_ratio_score_finite": true,
+      "K_physical_equilibrium_or_evidence_evaluated": false,
+      "parent_count": 1,
+      "raw_posterior_children": 1,
+      "goal_count": 1,
+      "full_covariance_shape": [
+        66,
+        66
+      ],
+      "elapsed_wall_s": 0.023300024215131998
+    },
+    {
+      "event_id": "independent-review:imu",
+      "kind": "imu",
+      "sequence": 2,
+      "source_stamp": 1000.0,
+      "source_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "state_id": "15999ef9e30b839283aaa71397d001bb13db6d960f72e87ff8af33f87f7c943b",
+      "source_snapshot_id_verified": true,
+      "snapshot_query_count": 46,
+      "K_ratio_source_validated": true,
+      "K_ratio_log_value_at_zero_chart": -450.5556113640305,
+      "K_ratio_score_finite": true,
+      "K_physical_equilibrium_or_evidence_evaluated": false,
+      "parent_count": 2,
+      "raw_posterior_children": 2,
+      "goal_count": 1,
+      "full_covariance_shape": [
+        66,
+        66
+      ],
+      "elapsed_wall_s": 0.04492219490930438
+    },
+    {
+      "event_id": "independent-review:image",
+      "kind": "image",
+      "sequence": 3,
+      "source_stamp": 1000.0,
+      "source_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "state_id": "a21a9be48822964b0a1fa563653c4230e6daa88eb04352948a8c1e96f92f06d5",
+      "source_snapshot_id_verified": true,
+      "snapshot_query_count": 44,
+      "K_ratio_source_validated": true,
+      "K_ratio_log_value_at_zero_chart": 1.1660774640016591,
+      "K_ratio_score_finite": true,
+      "K_physical_equilibrium_or_evidence_evaluated": false,
+      "parent_count": 2,
+      "raw_posterior_children": 2,
+      "goal_count": 1,
+      "full_covariance_shape": [
+        66,
+        66
+      ],
+      "elapsed_wall_s": 0.20674760406836867
+    }
+  ],
+  "production_source_edited": false
+}

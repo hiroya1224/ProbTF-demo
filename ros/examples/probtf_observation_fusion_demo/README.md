@@ -254,3 +254,5 @@ IMUでは全601件の剛性密度比因子を保持し、600回の指令選定�
 # 2026年10月18日の調査資料
 
 初期表示は [INITIAL_PRIOR.md](INITIAL_PRIOR.md)、全取得の共同バッチ推定とKの取得指令対応は [BATCH_INFERENCE.md](BATCH_INFERENCE.md)、段階別の壁時計/CPU監視は [RUNTIME_MONITORING.md](RUNTIME_MONITORING.md) を参照する。これらの修正・計測は、閉ループの暴走解消や到達成功を意味しない。
+
+暴走と推定停滞の実測は [調査報告](RUNAWAY_INVESTIGATION_20261018.md) と [動作の見方・録画](RUNAWAY_OBSERVATIONS_20261018.md)。90秒動作は両case未達で、推定drainもcutoff時点で未完了。履歴読出し最適化と閉ループ安定化を区別している。

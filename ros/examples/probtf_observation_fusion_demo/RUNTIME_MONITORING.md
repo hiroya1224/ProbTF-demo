@@ -9,3 +9,5 @@
 外部observerは小さいcurrentファイルと `/proc/<pid>/stat` を読み、計算中のstage経過時間とCPU増分を監視できる。CPU時間はそのprocessの全threadの合計であり、wall時間との差を単独でI/O待ちと断定できない。複数caseの同時実行、録画、OSスケジューリングを実測条件へ記録する。
 
 動作開始前の `INITIAL_PRIOR`、物理90秒終了、推定処理中、全raw処理済みを区別する。未完了stageの実測下限と完了所要時間を区別する。有限な長時間計算を監査閾値で打ち切ったり、未処理観測を捨てて速度を装う機構は追加していない。
+
+`FrozenKPacket.proposal` は初回に元recordから小さいproposalの不変JSONを導出して再利用し、各呼出しへ独立copyを返す。全recordとhashは保持する。小さい代表値を読むために全履歴を毎回decodeする費用と、連続密度を照会する力学計算の費用を混同しない。測定と修正前後の区別は [RUNAWAY_INVESTIGATION_20261018.md](RUNAWAY_INVESTIGATION_20261018.md) に記録する。

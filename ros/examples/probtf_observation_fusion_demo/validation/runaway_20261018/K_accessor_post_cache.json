@@ -1,0 +1,439 @@
+{
+  "schema": "probtf_same_saved_K_accessor_benchmark_v1",
+  "label": "post-cache-current-source",
+  "fixture_index_sha256": "e6c882378478f34356e27195da5ec698e25daea9744c368f96e7cded38ea057c",
+  "source_module_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py",
+  "source_module_sha256": "2b7e0933a721d3962529db0372c8a824ae5fb2fb44ea8157cdd553731b94f219",
+  "script_sha256": "a4c99ffd089459a60f38e07690cf99ef14575644d3b8bba66cb54d7f8571d8c8",
+  "measurement_wall_time_s": 1792293500.7757945,
+  "load_average": [
+    4.93,
+    5.03,
+    3.85
+  ],
+  "python": "3.8.10 (default, Mar 18 2025, 20:04:55) \n[GCC 9.4.0]",
+  "kind": "offline accessor-only microbenchmark on unchanged live-run fixture packet bytes; not a live profile or new reaching trial",
+  "math_or_runtime_source_modified": false,
+  "rows": [
+    {
+      "case": "marker",
+      "batch_id": "a18be8f218f0c01a48730cec212ef8a80d97c45b66669f9397cf46e2db9a1af0",
+      "source_time_s": 0.0,
+      "density_id": "275b33f5e68e59241da8f5b18ba666589b3f85e4514590301d6b26a2836bfb9c",
+      "packet_id": "91c21977e8bc97deb27262c0d0d3741b9d50f6d49f28423ca75efce249c02fc3",
+      "record_json_bytes": 103779,
+      "path": "/tmp/probtf_frozen_K_accessor_fixtures_20261018/marker_91c21977e8bc97deb27262c0d0d3741b9d50f6d49f28423ca75efce249c02fc3.json",
+      "selected_K": [
+        104.09105922304336,
+        90.4818479253694,
+        95.3915861784857,
+        104.09792358691507,
+        101.01376251598218,
+        104.04663251319776
+      ],
+      "matches_physical_end_latest_packet_ID": false,
+      "proposal": {
+        "cold_first_access_wall_s": 0.0011310759000480175,
+        "cold_first_access_cpu_s": 0.0011327200000000315,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 1.4402670785784721e-05,
+          "minimum": 1.4211982488632202e-05,
+          "maximum": 4.171626642346382e-05
+        },
+        "warmed_access_cpu_s": {
+          "median": 1.5067000000007491e-05,
+          "minimum": 1.4882000000049356e-05,
+          "maximum": 4.3314999999988224e-05
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 1.613539643585682e-05,
+          "minimum": 1.588510349392891e-05,
+          "maximum": 4.4661108404397964e-05
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 1.6765000000001917e-05,
+          "minimum": 1.6495000000005255e-05,
+          "maximum": 4.620900000001926e-05
+        }
+      },
+      "record": {
+        "cold_first_access_wall_s": 0.0008391565643250942,
+        "cold_first_access_cpu_s": 0.0008400299999999916,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 0.0007405024953186512,
+          "minimum": 0.0007276218384504318,
+          "maximum": 0.0008580568246543407
+        },
+        "warmed_access_cpu_s": {
+          "median": 0.0007412269999999832,
+          "minimum": 0.0007283329999999699,
+          "maximum": 0.0008601510000000312
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 0.0007846462540328503,
+          "minimum": 0.000770288985222578,
+          "maximum": 0.0009086057543754578
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 0.0007853029999999595,
+          "minimum": 0.0007709169999999821,
+          "maximum": 0.0009105870000000182
+        }
+      },
+      "full_record_and_hash_unchanged": true,
+      "independent_mutable_proposal_copies_verified": true
+    },
+    {
+      "case": "marker",
+      "batch_id": "9cf81664bbb8839f820555363235924c1428717cc59396f8fc97e88f1f9ff1c2",
+      "source_time_s": 0.49639153480529785,
+      "density_id": "fb890ac6fda578235e4b9a6c2d0951f824ff0aeec085ec72bd9fcd7c84a6638f",
+      "packet_id": "aba59ef230f14e1959a95caa711fc9530dd5f3d55d71b640b81787cc8496ac94",
+      "record_json_bytes": 330190,
+      "path": "/tmp/probtf_frozen_K_accessor_fixtures_20261018/marker_aba59ef230f14e1959a95caa711fc9530dd5f3d55d71b640b81787cc8496ac94.json",
+      "selected_K": [
+        102.26337247510033,
+        103.78987981551624,
+        153.82021484502056,
+        102.2764015826019,
+        97.47463499522235,
+        102.16732934445771
+      ],
+      "matches_physical_end_latest_packet_ID": false,
+      "proposal": {
+        "cold_first_access_wall_s": 0.002721833996474743,
+        "cold_first_access_cpu_s": 0.00272325499999998,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 1.6069971024990082e-05,
+          "minimum": 1.582503318786621e-05,
+          "maximum": 3.1117815524339676e-05
+        },
+        "warmed_access_cpu_s": {
+          "median": 1.6750000000009813e-05,
+          "minimum": 1.6495000000005255e-05,
+          "maximum": 3.242800000002877e-05
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 1.764274202287197e-05,
+          "minimum": 1.738686114549637e-05,
+          "maximum": 3.345217555761337e-05
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 1.8282499999994206e-05,
+          "minimum": 1.8046999999965507e-05,
+          "maximum": 3.466200000001862e-05
+        }
+      },
+      "record": {
+        "cold_first_access_wall_s": 0.002411356195807457,
+        "cold_first_access_cpu_s": 0.002412068999999961,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 0.0021533954422920942,
+          "minimum": 0.0020054690539836884,
+          "maximum": 0.002392105758190155
+        },
+        "warmed_access_cpu_s": {
+          "median": 0.0021528449999999866,
+          "minimum": 0.0020062100000000083,
+          "maximum": 0.002393130999999993
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 0.002299159299582243,
+          "minimum": 0.0021463301964104176,
+          "maximum": 0.0025404486805200577
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 0.002300215999999994,
+          "minimum": 0.0021470210000000267,
+          "maximum": 0.002541422999999987
+        }
+      },
+      "full_record_and_hash_unchanged": true,
+      "independent_mutable_proposal_copies_verified": true
+    },
+    {
+      "case": "marker",
+      "batch_id": "78855258fdf49096f3825f1ef1345015817d9f0d5a0662eb40f60978c2ef548c",
+      "source_time_s": 2.2778968811035156,
+      "density_id": "6da336771de26e42040127e5186c09773aa44b72bf79eb42e2ce494041ca3b70",
+      "packet_id": "582ece856f31f88e899fd9df394a30ee0d9dc31c28ee15698936f66603427e91",
+      "record_json_bytes": 3713408,
+      "path": "/tmp/probtf_frozen_K_accessor_fixtures_20261018/marker_582ece856f31f88e899fd9df394a30ee0d9dc31c28ee15698936f66603427e91.json",
+      "selected_K": [
+        22.36067977499789,
+        477.3014606183037,
+        22.36067977499789,
+        23.471088357343397,
+        32.31739099561858,
+        23.85990349931967
+      ],
+      "matches_physical_end_latest_packet_ID": true,
+      "proposal": {
+        "cold_first_access_wall_s": 0.028776145074516535,
+        "cold_first_access_cpu_s": 0.028767668000000024,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 1.7252052202820778e-05,
+          "minimum": 1.711677759885788e-05,
+          "maximum": 4.007341340184212e-05
+        },
+        "warmed_access_cpu_s": {
+          "median": 1.790700000001144e-05,
+          "minimum": 1.7775999999969372e-05,
+          "maximum": 4.1672000000048115e-05
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 1.8824124708771706e-05,
+          "minimum": 1.8608756363391876e-05,
+          "maximum": 4.2397063225507736e-05
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 1.9458999999971693e-05,
+          "minimum": 1.922799999998226e-05,
+          "maximum": 4.395600000001165e-05
+        }
+      },
+      "record": {
+        "cold_first_access_wall_s": 0.02702424582093954,
+        "cold_first_access_cpu_s": 0.027016812,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 0.025872022146359086,
+          "minimum": 0.024821158032864332,
+          "maximum": 0.038237299770116806
+        },
+        "warmed_access_cpu_s": {
+          "median": 0.025863366499999985,
+          "minimum": 0.024815099000000007,
+          "maximum": 0.038220760000000076
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 0.02765612304210663,
+          "minimum": 0.026429202407598495,
+          "maximum": 0.040223557967692614
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 0.027646716500000112,
+          "minimum": 0.02641909600000003,
+          "maximum": 0.04020641899999999
+        }
+      },
+      "full_record_and_hash_unchanged": true,
+      "independent_mutable_proposal_copies_verified": true
+    },
+    {
+      "case": "imu_marker",
+      "batch_id": "2092537a26503fbc2cec4ca9d64347455767194656b594b35b5068a3e440e906",
+      "source_time_s": 0.0,
+      "density_id": "5b5324497f7eaa3e06dd611fac4f3f11abfd4e8fe0aae7dca3cc393fdcf3dee6",
+      "packet_id": "17965d9510949e028acf5d36267bbf0e094c06d8ed2c988accdfb0972c3e98a3",
+      "record_json_bytes": 112051,
+      "path": "/tmp/probtf_frozen_K_accessor_fixtures_20261018/imu_marker_17965d9510949e028acf5d36267bbf0e094c06d8ed2c988accdfb0972c3e98a3.json",
+      "selected_K": [
+        95.96440837291773,
+        90.56062557692363,
+        121.62978853218665,
+        96.00277990807658,
+        79.88638664680532,
+        95.71169223243606
+      ],
+      "matches_physical_end_latest_packet_ID": false,
+      "proposal": {
+        "cold_first_access_wall_s": 0.0010286550968885422,
+        "cold_first_access_cpu_s": 0.0010305760000000053,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 1.5639467164874077e-05,
+          "minimum": 1.550419256091118e-05,
+          "maximum": 3.0257273465394974e-05
+        },
+        "warmed_access_cpu_s": {
+          "median": 1.6314999999988977e-05,
+          "minimum": 1.61640000000407e-05,
+          "maximum": 3.1397000000099595e-05
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 1.7206883057951927e-05,
+          "minimum": 1.704692840576172e-05,
+          "maximum": 3.24910506606102e-05
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 1.783700000002053e-05,
+          "minimum": 1.76670000000545e-05,
+          "maximum": 3.359099999999948e-05
+        }
+      },
+      "record": {
+        "cold_first_access_wall_s": 0.0008630859665572643,
+        "cold_first_access_cpu_s": 0.000863955999999888,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 0.0007772848475724459,
+          "minimum": 0.0006948010995984077,
+          "maximum": 0.0008529191836714745
+        },
+        "warmed_access_cpu_s": {
+          "median": 0.0007780320000000396,
+          "minimum": 0.000695423999999889,
+          "maximum": 0.0008543319999998467
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 0.0008253403939306736,
+          "minimum": 0.0007361457683146,
+          "maximum": 0.0009049698710441589
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 0.0008259594999999731,
+          "minimum": 0.0007367159999998041,
+          "maximum": 0.0009060499999999916
+        }
+      },
+      "full_record_and_hash_unchanged": true,
+      "independent_mutable_proposal_copies_verified": true
+    },
+    {
+      "case": "imu_marker",
+      "batch_id": "cdf36fa280d1c85e416a7036de9a65b339cda528ab92de428e3e09739e856194",
+      "source_time_s": 0.5816915035247803,
+      "density_id": "b842390b6db75a1ddabf77b13673c2cef5fffb11faec02da73a7fe0b4d58692a",
+      "packet_id": "4fc7d2d54a60716897b23e5e1858b6e8c0b512a11a7d573422d235a9ae9e0d99",
+      "record_json_bytes": 507421,
+      "path": "/tmp/probtf_frozen_K_accessor_fixtures_20261018/imu_marker_4fc7d2d54a60716897b23e5e1858b6e8c0b512a11a7d573422d235a9ae9e0d99.json",
+      "selected_K": [
+        95.94398741942933,
+        94.26069577591733,
+        125.01476658962221,
+        95.98238139260432,
+        79.87100472324389,
+        95.69061342862152
+      ],
+      "matches_physical_end_latest_packet_ID": false,
+      "proposal": {
+        "cold_first_access_wall_s": 0.003307362087070942,
+        "cold_first_access_cpu_s": 0.0033050580000000274,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 1.564016565680504e-05,
+          "minimum": 1.5445053577423096e-05,
+          "maximum": 2.637133002281189e-05
+        },
+        "warmed_access_cpu_s": {
+          "median": 1.6314999999988977e-05,
+          "minimum": 1.6124000000061756e-05,
+          "maximum": 2.7490999999990606e-05
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 1.7147045582532883e-05,
+          "minimum": 1.6966834664344788e-05,
+          "maximum": 2.843514084815979e-05
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 1.7822000000111693e-05,
+          "minimum": 1.7586999999874564e-05,
+          "maximum": 2.9414000000116403e-05
+        }
+      },
+      "record": {
+        "cold_first_access_wall_s": 0.0028993706218898296,
+        "cold_first_access_cpu_s": 0.0029000809999999433,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 0.0028916196897625923,
+          "minimum": 0.002729334868490696,
+          "maximum": 0.0030384003184735775
+        },
+        "warmed_access_cpu_s": {
+          "median": 0.002892329499999957,
+          "minimum": 0.0027298149999999133,
+          "maximum": 0.0030360950000001274
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 0.003091283142566681,
+          "minimum": 0.002933165058493614,
+          "maximum": 0.0032325442880392075
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 0.0030919389999999325,
+          "minimum": 0.0029313679999998232,
+          "maximum": 0.003230156000000095
+        }
+      },
+      "full_record_and_hash_unchanged": true,
+      "independent_mutable_proposal_copies_verified": true
+    },
+    {
+      "case": "imu_marker",
+      "batch_id": "775fbd9fe39814ffd969014e0ea23bf26b896ee8d79ea1aaf68890ef85c4c0c2",
+      "source_time_s": 3.8611109256744385,
+      "density_id": "6769e25d39aa83b85756b57a915f3d02444667a8ccc87f22e37b96818600a8a9",
+      "packet_id": "fc6f004cbce3094872b0052589ac4275febdbf232a168546c329d1104d912a9f",
+      "record_json_bytes": 7954973,
+      "path": "/tmp/probtf_frozen_K_accessor_fixtures_20261018/imu_marker_fc6f004cbce3094872b0052589ac4275febdbf232a168546c329d1104d912a9f.json",
+      "selected_K": [
+        22.36067977499789,
+        60.48302590583354,
+        22.36067977499789,
+        23.91174037739452,
+        5.6612413962418895,
+        35.37343110251952
+      ],
+      "matches_physical_end_latest_packet_ID": true,
+      "proposal": {
+        "cold_first_access_wall_s": 0.06355377286672592,
+        "cold_first_access_cpu_s": 0.06352899000000001,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 1.6936101019382477e-05,
+          "minimum": 1.6666017472743988e-05,
+          "maximum": 4.409998655319214e-05
+        },
+        "warmed_access_cpu_s": {
+          "median": 1.762149999995355e-05,
+          "minimum": 1.7335999999978924e-05,
+          "maximum": 4.5569000000078574e-05
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 1.8483959138393402e-05,
+          "minimum": 1.818779855966568e-05,
+          "maximum": 4.6452973037958145e-05
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 1.912899999989559e-05,
+          "minimum": 1.8827999999970757e-05,
+          "maximum": 4.787200000011538e-05
+        }
+      },
+      "record": {
+        "cold_first_access_wall_s": 0.05723972897976637,
+        "cold_first_access_cpu_s": 0.05721946399999989,
+        "repetitions": 20,
+        "warmed_access_wall_s": {
+          "median": 0.06421182490885258,
+          "minimum": 0.05426830518990755,
+          "maximum": 0.07508339080959558
+        },
+        "warmed_access_cpu_s": {
+          "median": 0.06418896550000008,
+          "minimum": 0.054254025000000095,
+          "maximum": 0.07505370900000008
+        },
+        "warmed_access_including_release_wall_s": {
+          "median": 0.06861995020881295,
+          "minimum": 0.05827898997813463,
+          "maximum": 0.07916089193895459
+        },
+        "warmed_access_including_release_cpu_s": {
+          "median": 0.06859276700000017,
+          "minimum": 0.05826527299999995,
+          "maximum": 0.07912627799999994
+        }
+      },
+      "full_record_and_hash_unchanged": true,
+      "independent_mutable_proposal_copies_verified": true
+    }
+  ]
+}

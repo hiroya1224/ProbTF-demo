@@ -111,6 +111,26 @@ def test_native_modes_are_deduplicated_across_change_parents_and_keep_all_log_ma
     assert result.prior is canonical
 
 
+def test_finite_own_chart_roundoff_is_diagnostic_and_does_not_drop_native_modes(monkeypatch):
+    import probtf_observation_fusion_demo.fresh_goal as module
+    from probtf.spherical_law.fusion import Gaussian
+    result, canonical = _inputs()
+    expected, _ = fresh_marker_goals(result, canonical)
+    original = module._marker_mode_chart
+    def with_roundoff(*args):
+        law, volume = original(*args)
+        mean = law.mean.copy()
+        mean[3] += 2e-12
+        return Gaussian(mean, law.covariance), volume
+    monkeypatch.setattr(module, '_marker_mode_chart', with_roundoff)
+    actual, record = fresh_marker_goals(result, canonical)
+    assert [item.state.state_id for item in actual] == [item.state.state_id for item in expected]
+    assert len(actual) == 2
+    assert all(not item['numerical_chart_diagnostics']['legacy_rotation_origin_tolerance_met']
+               for item in module._native_modes(result.local_estimates[0].detector_result))
+    assert record['native_component_count'] == 2
+
+
 def test_changed_retained_map_cannot_pull_the_fresh_goal_away_from_the_image():
     result, canonical = _inputs()
     goals, _ = fresh_marker_goals(result, canonical)

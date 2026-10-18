@@ -1,6 +1,7 @@
 """Planar multi-mode pose inference and native ProbTF v2 construction."""
 
 from dataclasses import dataclass
+import logging
 import math
 from typing import Tuple
 
@@ -37,6 +38,9 @@ from prob_artag_detector.models import (
     MarkerObservation,
     PoseMixtureResult,
 )
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class PoseEstimationError(ValueError):
@@ -91,18 +95,23 @@ def _corners(corners_px):
 
 def _positive_definite(matrix, name, tolerance):
     value = np.asarray(matrix, dtype=float)
-    if value.shape[0] != value.shape[1] or not np.all(np.isfinite(value)):
+    if value.ndim != 2 or value.shape[0] != value.shape[1] or not np.all(np.isfinite(value)):
         raise ValueError("{} must be a finite square matrix.".format(name))
-    value = 0.5 * (value + value.T)
-    eigenvalues = np.linalg.eigvalsh(value)
-    scale = max(float(np.max(np.abs(eigenvalues))), 1.0)
-    if float(eigenvalues[0]) <= float(tolerance) * scale:
-        raise ValueError(
-            "{} must be positive definite (minimum eigenvalue {}).".format(
-                name, float(eigenvalues[0])
-            )
-        )
-    np.linalg.cholesky(value)
+    value = 0.5 * value + 0.5 * value.T
+    try:
+        eigenvalues = np.linalg.eigvalsh(value)
+        scale = max(float(np.max(np.abs(eigenvalues))), 1.0)
+        if not np.all(np.isfinite(eigenvalues)):
+            _LOGGER.warning("%s spectral audit returned nonfinite eigenvalues; using the required Cholesky result.", name)
+        elif float(eigenvalues[0]) <= float(tolerance) * scale:
+            _LOGGER.warning("%s relative spectral audit missed: minimum eigenvalue %s, threshold %s; no matrix modification.",
+                            name, float(eigenvalues[0]), float(tolerance) * scale)
+    except np.linalg.LinAlgError as error:
+        _LOGGER.warning("%s spectral audit failed: %s; using the required Cholesky result.", name, error)
+    try:
+        np.linalg.cholesky(value)
+    except np.linalg.LinAlgError as error:
+        raise ValueError("{} must be positive definite: required Cholesky factorization failed.".format(name)) from error
     return value
 
 
@@ -331,7 +340,7 @@ class PoseMixtureEstimator:
             raise PoseEstimationError("initial candidate objective is nonfinite.")
 
         iterations = 0
-        refinement_status = "converged"
+        refinement_status = "iteration_budget"
         for iterations in range(1, self.max_iterations + 1):
             jacobian = pose_jacobian(
                 self.object_points,
@@ -357,6 +366,7 @@ class PoseMixtureEstimator:
             if not np.all(np.isfinite(step)):
                 raise PoseEstimationError("refinement produced a nonfinite step.")
             if float(np.linalg.norm(step)) <= self.convergence_tolerance:
+                refinement_status = "converged"
                 break
 
             accepted = False
@@ -400,6 +410,7 @@ class PoseMixtureEstimator:
                 if float(np.linalg.norm(gradient, ord=np.inf)) <= max(
                     self.convergence_tolerance, 1e-7
                 ):
+                    refinement_status = "converged"
                     break
                 if len(seeds) > 1:
                     # IPPE's second planar hypothesis need not be an unconstrained
@@ -408,7 +419,8 @@ class PoseMixtureEstimator:
                     # silently deleting that discrete hypothesis.
                     refinement_status = "seed_branch_fallback"
                     break
-                raise PoseEstimationError("Mahalanobis refinement line search failed.")
+                refinement_status = "line_search_stalled"
+                break
 
         return rotation, translation, objective, iterations, refinement_status
 
@@ -649,8 +661,12 @@ class PoseMixtureEstimator:
                         else (
                             "No decreasing in-branch Gauss-Newton step was available; "
                             "the last valid IPPE-branch pose was retained explicitly."
-                            if mode.refinement_status == "seed_branch_fallback"
-                            else "Refinement converged without reaching the branch guard."
+                            if mode.refinement_status in ("seed_branch_fallback", "line_search_stalled")
+                            else (
+                                "Refinement iteration budget was exhausted; the finite last pose was retained without a convergence claim."
+                                if mode.refinement_status == "iteration_budget"
+                                else "Refinement converged without reaching the branch guard."
+                            )
                         )
                     )
                     + calibration_detail

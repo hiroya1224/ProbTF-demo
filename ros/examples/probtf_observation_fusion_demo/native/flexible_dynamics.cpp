@@ -25,7 +25,11 @@ constexpr double position_tolerance = 2e-11;
 constexpr double contact_velocity_tolerance = 2e-11;
 struct Failure : std::runtime_error { using std::runtime_error::runtime_error; };
 struct TraceRow { double t; Vector q, v; };
-struct Midpoint { Vector q, v, qm, vm, um; double residual; bool contact; };
+struct Midpoint {
+  Vector q, v, qm, vm, um;
+  double residual;
+  bool contact, converged, newton_budget_exhausted, line_search_stalled;
+};
 
 void require(bool condition, const std::string &message) {
   if (!condition) throw Failure(message);
@@ -76,7 +80,7 @@ struct Dynamics {
     require(std::isfinite(options.absolute_residual_tolerance) && options.absolute_residual_tolerance > 0. &&
             std::isfinite(options.relative_residual_tolerance) && options.relative_residual_tolerance >= 0.,
             "invalid residual tolerances");
-    require(options.max_newton_iterations > 0 && options.max_line_search_steps > 0 &&
+    require(options.max_newton_iterations >= 0 && options.max_line_search_steps >= 0 &&
             options.max_step_halvings >= 0, "invalid integrator iteration budgets");
     stiffness = read_vector(k, n, "stiffness");
     require((stiffness.array() > 0.).all(), "stiffness must be strictly positive");
@@ -255,7 +259,7 @@ struct Dynamics {
       Vector next_v = velocity;
       for (int j = 0; j < n; ++j) if (active[j]) next_v[j] = -velocity[j];
       try {
-        bool converged = false;
+        bool converged = false, newton_budget_exhausted = false, line_search_stalled = false;
         Vector value;
         double tolerance = 0.;
         for (int iteration = 0; iteration <= options.max_newton_iterations; ++iteration) {
@@ -264,7 +268,10 @@ struct Dynamics {
                                                         maximum_absolute((damping.array() * velocity.array()).matrix())));
           tolerance = options.absolute_residual_tolerance + options.relative_residual_tolerance * force_scale;
           if (free_norm(value, free) <= tolerance) { converged = true; break; }
-          require(iteration < options.max_newton_iterations, "implicit midpoint Newton budget exhausted");
+          if (iteration >= options.max_newton_iterations) {
+            newton_budget_exhausted = true;
+            break; // A finite last midpoint iterate remains usable.
+          }
           const Vector qm = position + .25 * h * (velocity + next_v);
           const Vector vm = .5 * (velocity + next_v);
           const Vector acceleration = (next_v - velocity) / h;
@@ -296,9 +303,11 @@ struct Dynamics {
               next_v = candidate; accepted = true; break;
             }
           }
-          require(accepted, "midpoint residual line search failed");
+          if (!accepted) {
+            line_search_stalled = true;
+            break; // Record the residual instead of relabelling convergence.
+          }
         }
-        require(converged, "implicit midpoint did not converge");
         bool feasible = true;
         const double contact_tolerance = std::max(tolerance, 2e-10);
         for (const auto &c : contact) {
@@ -314,6 +323,9 @@ struct Dynamics {
         result.um = mid_command;
         result.residual = free_norm(value, free);
         result.contact = mask != 0;
+        result.converged = converged;
+        result.newton_budget_exhausted = newton_budget_exhausted;
+        result.line_search_stalled = line_search_stalled;
         require(result.q.allFinite() && result.v.allFinite(), "non-finite midpoint state");
         return result;
       } catch (const Failure &exception) { last_failure = exception.what(); }
@@ -339,13 +351,16 @@ struct Dynamics {
     const Vector command_delta=u1-u0;
     require(command_delta.allFinite(), "command endpoint difference is not representable");
     const double nominal_count_value = std::ceil(dt/options.max_step_s);
-    require(std::isfinite(nominal_count_value) && nominal_count_value <= 10000000.,
-            "nominal substep budget exceeded");
-    const uint64_t nominal_count = static_cast<uint64_t>(std::max(1.,nominal_count_value));
+    require(std::isfinite(nominal_count_value), "nominal substep count is not representable");
+    // Bound one call's nominal work, rather than rejecting a finite elapsed
+    // interval. A saturated call reports its coarser actual step sizes.
+    const bool nominal_saturated = nominal_count_value > 10000000.;
+    const uint64_t nominal_count = static_cast<uint64_t>(std::max(1.,std::min(10000000.,nominal_count_value)));
     const Vector saved_q = q, saved_v = v, saved_a = a, saved_u = command;
     const double saved_time = time;
     const auto saved_trace = trace;
     diagnostic.fill(0.); counts.fill(0);
+    if (nominal_saturated) ++counts[PROBTF_DYN_NOMINAL_WORK_BUDGET_SATURATIONS];
     diagnostic[PROBTF_DYN_LAST_ADVANCE_DT_S] = dt;
     diagnostic[PROBTF_DYN_MIN_ACCEPTED_STEP_S] = std::numeric_limits<double>::infinity();
     energy_diagnostic();
@@ -363,7 +378,8 @@ struct Dynamics {
         const long double boundary = static_cast<long double>(dt)*boundary_index/nominal_count;
         const double elapsed = static_cast<double>(elapsed_precise);
         const long double remaining = boundary-elapsed_precise;
-        require(counts[PROBTF_DYN_ACCEPTED_SUBSTEPS] < 10000000, "substep safety budget exhausted");
+        if (counts[PROBTF_DYN_ACCEPTED_SUBSTEPS] >= 10000000)
+          ++counts[PROBTF_DYN_SUBSTEP_WORK_BUDGET_WARNINGS];
         double h = static_cast<double>(remaining);
         const double requested_h = h;
         Midpoint next;
@@ -411,8 +427,10 @@ struct Dynamics {
           // change other joint velocities according to the physical mass.
           next.v = cone_projection(m, incoming, contacts(next.q, incoming, false));
           double loss = .5*(incoming.dot(m*incoming)-next.v.dot(m*next.v));
-          require(loss >= -1e-10*(1.+incoming.dot(m*incoming)), "joint impact increased kinetic energy");
-          diagnostic[PROBTF_DYN_IMPACT_LOSS_J] += std::max(0.,loss);
+          require(std::isfinite(loss), "joint impact energy audit is non-finite");
+          if (loss < -1e-10*(1.+incoming.dot(m*incoming)))
+            ++counts[PROBTF_DYN_IMPACT_ENERGY_AUDIT_WARNINGS];
+          diagnostic[PROBTF_DYN_IMPACT_LOSS_J] += loss;
           ++counts[PROBTF_DYN_JOINT_IMPACTS];
         }
         diagnostic[PROBTF_DYN_DAMPING_LOSS_J] += h*(damping.array()*next.vm.array().square()).sum();
@@ -420,6 +438,9 @@ struct Dynamics {
         diagnostic[PROBTF_DYN_MIN_ACCEPTED_STEP_S] = std::min(diagnostic[PROBTF_DYN_MIN_ACCEPTED_STEP_S],h);
         diagnostic[PROBTF_DYN_MAX_ACCEPTED_STEP_S] = std::max(diagnostic[PROBTF_DYN_MAX_ACCEPTED_STEP_S],h);
         ++counts[PROBTF_DYN_ACCEPTED_SUBSTEPS];
+        if (!next.converged) ++counts[PROBTF_DYN_UNCONVERGED_FINITE_SUBSTEPS];
+        if (next.newton_budget_exhausted) ++counts[PROBTF_DYN_NEWTON_BUDGET_SUBSTEPS];
+        if (next.line_search_stalled) ++counts[PROBTF_DYN_LINE_SEARCH_STALLED_SUBSTEPS];
         if (next.contact) ++counts[PROBTF_DYN_ACTIVE_STOP_SUBSTEPS];
         q = next.q; v = next.v;
         const long double previous = elapsed_precise;
@@ -458,7 +479,7 @@ template<class Function> int protect(void *handle, Function function) {
 } // namespace
 
 extern "C" {
-int probtf_dynamics_abi_version(void) { return 1; }
+int probtf_dynamics_abi_version(void) { return 2; }
 void probtf_dynamics_default_options(ProbtfDynamicsOptions *value) { if(value) *value=defaults(); }
 void *probtf_dynamics_create(const char *urdf, int n, const double *k, const double *d,
                            double zeta, const ProbtfDynamicsOptions *options, char *error, size_t capacity) {

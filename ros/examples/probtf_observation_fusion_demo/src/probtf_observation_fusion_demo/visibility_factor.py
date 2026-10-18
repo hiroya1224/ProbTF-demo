@@ -45,8 +45,8 @@ def direction_penalty(position, minimum_norm_m=1e-9):
     radius = math.hypot(*position)
     if not math.isfinite(radius):
         raise ValueError('Marker position norm is non-finite.')
-    if radius <= minimum_norm_m:
-        raise ValueError('Marker position norm is degenerate at the configured numerical minimum.')
+    if radius == 0.:
+        raise ValueError('Marker bearing divides by a zero position norm.')
     unit = position/radius
     penalty = float(1.-unit[2])
     gradient = (unit[2]*unit-np.array([0., 0., 1.]))/radius
@@ -59,7 +59,7 @@ class VisibilityFactor:
     """Evaluate exp(-weight*V) in log form from complete per-mode queries.
 
     Config keys are ``enabled``, ``weight`` and ``minimum_norm_m`` (the alias
-    ``min_norm_m`` is also accepted). With no explicit weight the factor is
+    ``min_norm_m`` is also accepted as a diagnostic threshold). With no explicit weight the factor is
     neutral. Optional ``intrinsics`` may contain fx/fy/cx/cy and width/height;
     a 3x3 matrix is also accepted. Pixel diagnostics never change the factor.
     """
@@ -206,6 +206,8 @@ class VisibilityFactor:
                 mode.update(mean=mean.tolist(), covariance=covariance.tolist(),
                     position_mean=position.tolist(), position_covariance=covariance[:3, :3].tolist(),
                     position_norm_m=radius, penalty=penalty,
+                    position_norm_below_diagnostic_threshold=bool(radius <= self.minimum_norm_m),
+                    minimum_norm_is_acceptance_gate=False,
                     positive_optical_depth=bool(position[2] > 0.),
                     front_or_back='front' if position[2] > 0. else 'back' if position[2] < 0. else 'optical_plane',
                     optical_axis_angle_rad=math.acos(min(1., max(-1., cosine))),

@@ -197,7 +197,8 @@ def test_modal_TF_does_not_project_invalid_mean_or_modal_axes_into_a_rotation(in
     mode = (origin.query.mode if invalid_basis == 'zero_length' else
             2.*origin.query.mode-target.query.mode)
     points[index] = replace(target, query=replace(target.query, mode=mode))
-    with pytest.raises(ValueError, match='Modal goal TF queries'):
+    reason = 'nonzero divisor' if invalid_basis == 'zero_length' else 'determinant one'
+    with pytest.raises(ValueError, match=reason):
         goal_pose_records(replace(snapshot, points=tuple(points)))
 
 

@@ -130,7 +130,7 @@ def test_all_Armijo_rejections_keep_the_validated_initial_candidate(monkeypatch,
         assert diagnostics['selection_reason'].startswith('validated complete-criterion initial proposal')
 
 
-def test_failed_quadratic_returns_braking_baseline_even_after_a_J_improving_seed(monkeypatch):
+def test_finite_inexact_quadratic_keeps_the_J_improving_seed(monkeypatch):
     _, result, selector = _problem()
     def failed(_metric, _gradient, baseline, _lower, _upper):
         return np.zeros_like(baseline), dict(solver_success=False,
@@ -138,6 +138,6 @@ def test_failed_quadratic_returns_braking_baseline_even_after_a_J_improving_seed
     monkeypatch.setattr('probtf_observation_fusion_demo.moving_control._bounded_gradient_direction', failed)
     selected, diagnostics = selector.step(result, .5, initial_command=np.array([.04]))
     assert diagnostics['approach_initial_proposal']['accepted_as_initial_point']
-    np.testing.assert_array_equal(selected, result.prior.command)
-    assert diagnostics['quadratic_step']['fallback'] == 'maximal braking baseline'
+    np.testing.assert_allclose(selected, [.04], atol=1e-12)
+    assert diagnostics['quadratic_step']['fallback'] == 'validated feasible initial candidate retained'
     assert diagnostics['gradient_evaluation_count'] == 1

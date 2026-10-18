@@ -54,6 +54,18 @@ def test_a_locked_coordinate_remains_locked_in_the_coupled_problem():
     assert record['accepted']
 
 
+def test_finite_feasible_descent_is_used_when_optimizer_reports_no_convergence(monkeypatch):
+    from scipy.optimize import OptimizeResult
+    def inexact(*_args, **_kwargs):
+        return OptimizeResult(x=np.array([.25]), success=False, status=9,
+                              message='iteration budget exhausted', nit=1)
+    monkeypatch.setattr('probtf_observation_fusion_demo.moving_control.minimize', inexact)
+    direction, record = _solve([[1.]], [-1.], [-1.], [1.])
+    np.testing.assert_array_equal(direction, [.25])
+    assert record['accepted'] and not record['solver_success']
+    assert record['optimizer_success_is_acceptance_gate'] is False
+
+
 @pytest.mark.parametrize('objective_scale', [1., 1e6])
 def test_objective_units_do_not_change_the_bounded_minimizer(objective_scale):
     direction, _ = _solve(objective_scale*np.array([[4., 3.], [3., 4.]]),

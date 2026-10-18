@@ -20,7 +20,10 @@ _DOUBLE_NAMES = ('time_s', 'energy_j', 'kinetic_energy_j', 'gravity_energy_j',
     'energy_balance_residual_j', 'max_torque_residual_nm',
     'min_accepted_step_s', 'max_accepted_step_s', 'last_advance_dt_s')
 _COUNT_NAMES = ('accepted_substeps', 'newton_iterations', 'line_search_evaluations',
-                'step_halvings', 'joint_impacts', 'active_stop_substeps')
+                'step_halvings', 'joint_impacts', 'active_stop_substeps',
+                'unconverged_finite_substeps', 'newton_budget_substeps',
+                'line_search_stalled_substeps', 'impact_energy_audit_warnings',
+                'nominal_work_budget_saturations', 'substep_work_budget_warnings')
 _DOUBLE_POINTER = ct.POINTER(ct.c_double)
 
 
@@ -86,7 +89,7 @@ def _bind(library):
     for name, (arguments, result) in signatures.items():
         function = getattr(library, 'probtf_dynamics_'+name)
         function.argtypes, function.restype = arguments, result
-    if library.probtf_dynamics_abi_version() != 1:
+    if library.probtf_dynamics_abi_version() != 2:
         raise RuntimeError('The native dynamics library has an incompatible C ABI version.')
 
 

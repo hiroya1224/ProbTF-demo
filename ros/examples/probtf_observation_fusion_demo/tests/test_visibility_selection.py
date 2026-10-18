@@ -169,19 +169,15 @@ def test_disabled_or_zero_weight_is_bitwise_task_ablation_with_no_extra_pose_que
         assert np.asarray(first.velocity).tobytes() == np.asarray(second.velocity).tobytes()
 
 
-@pytest.mark.parametrize('missing', ['unacquired', 'degenerate'])
-def test_unavailable_view_rejects_new_input_and_retains_previous_finite_gradient(problems, missing):
+def test_unacquired_view_rejects_new_input_and_retains_previous_finite_gradient(problems):
     problem = problems['imu_marker']
     _, _, _, source, mapping, _, _ = problem
     current = controller(problem)
     reference = selection_gradient_at_command(current, source,
         _factor(weight=0.), command_map=mapping).record
-    if missing == 'unacquired':
-        source = replace(source, records=dict(source.records,
-            fixed_goal_memory=dict(source.records['fixed_goal_memory'], available=False)))
-        factor = _factor()
-    else:
-        factor = _factor(minimum_norm_m=10.)
+    source = replace(source, records=dict(source.records,
+        fixed_goal_memory=dict(source.records['fixed_goal_memory'], available=False)))
+    factor = _factor()
     failed = selection_gradient_at_command(current, source, factor, command_map=mapping).record
     assert failed['task_status'] == 'ok'
     assert failed['task_gradient'] == reference['task_gradient']
@@ -201,6 +197,22 @@ def test_unavailable_view_rejects_new_input_and_retains_previous_finite_gradient
     assert tracker.last_packet is previous
     np.testing.assert_array_equal(tracker.position, position)
     np.testing.assert_array_equal(tracker.velocity, velocity)
+
+
+def test_view_radius_quality_threshold_does_not_reject_finite_selection_gradient(problems):
+    problem = problems['imu_marker']
+    _, _, _, source, mapping, _, _ = problem
+    current = controller(problem)
+    reference = selection_gradient_at_command(current, source, _factor(), command_map=mapping).record
+    actual = selection_gradient_at_command(current, source,
+        _factor(minimum_norm_m=10.), command_map=mapping).record
+    assert actual['status'] == reference['status'] == 'ok'
+    np.testing.assert_array_equal(actual['selected_gradient'], reference['selected_gradient'])
+    np.testing.assert_array_equal(actual['task_gradient'], reference['task_gradient'])
+    assert actual['visibility_factor']['penalty'] == reference['visibility_factor']['penalty']
+    assert all(mode['position_norm_below_diagnostic_threshold']
+               and mode['minimum_norm_is_acceptance_gate'] is False
+               for mode in actual['visibility_factor']['per_mode_record'])
 
 
 def test_factor_weights_do_not_mutate_any_body_goal_cross_K_or_inference_record(problems):

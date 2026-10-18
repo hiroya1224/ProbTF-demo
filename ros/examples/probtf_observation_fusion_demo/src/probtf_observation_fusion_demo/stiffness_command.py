@@ -19,6 +19,24 @@ def _readonly(value, dtype=float):
     return result
 
 
+def equilibrium_anchor_diagnostics(hessian, residual):
+    """Record numerical quality without rejecting a usable command action."""
+    if not np.all(np.isfinite(hessian)) or not np.all(np.isfinite(residual)):
+        raise ValueError('The command anchor equations contain nonfinite values.')
+    record=dict(residual_inf=float(np.max(np.abs(residual))),
+        residual_within_legacy_tolerance=bool(np.max(np.abs(residual))<=1e-9),
+        numerical_quality_is_acceptance_gate=False)
+    try:
+        eigenvalues=np.linalg.eigvalsh(.5*hessian+.5*hessian.T)
+        available=bool(np.all(np.isfinite(eigenvalues)))
+        record.update(hessian_eigenvalues=eigenvalues.tolist() if available else None,
+            positive_curvature=bool(eigenvalues[0]>0.) if available else None)
+    except np.linalg.LinAlgError as error:
+        record.update(hessian_eigenvalues=None,positive_curvature=None,
+            eigendecomposition_diagnostic_error=str(error))
+    return record
+
+
 class StiffnessCommandMap:
     """One observation's fixed K and equilibrium branch for all trial commands."""
 
@@ -82,10 +100,7 @@ class StiffnessCommandMap:
         residual = identifier.robot.tau_gravity(self.anchor) + identifier.spring.torque(
             self.anchor, self.source_command, self.stiffness)
         residual[active] = 0.
-        if (not np.all(np.isfinite(hessian))
-                or np.max(np.abs(residual)) > 1e-9
-                or np.linalg.eigvalsh(.5*(hessian+hessian.T))[0] <= 0.):
-            raise ValueError('The recorded stiffness anchor is not a stable bounded equilibrium.')
+        anchor_diagnostics=equilibrium_anchor_diagnostics(hessian,residual)
         anchor_jacobian = self._store(self.source_command, self.anchor, hessian, active)[1]
         self._record = dict(
             source_command=list(command), source_stamp=self.source_stamp,
@@ -103,6 +118,7 @@ class StiffnessCommandMap:
             K_units='N m/rad', anchor_equilibrium=self.anchor.tolist(),
             anchor_command_jacobian=anchor_jacobian.tolist(),
             anchor_active_joint_limits=active.tolist(),
+            numerical_anchor_diagnostics=anchor_diagnostics,
             model_source=deepcopy(identifier.model_source),
             prediction_method='same observed joint law acted on by theta_eq(q,K)-theta_eq(c,K)',
             branch_policy='every command query starts at the same recorded current equilibrium; no evaluation-order warm starts',

@@ -438,10 +438,13 @@ class MovingInference:
                     for item in result.frozen_body_branches[1].posterior_components]))
                 keep_mass = float(logsumexp([component_log_weight(item)
                     for item in result.frozen_body_branches[0].posterior_components]))
-                if not np.isclose(reset_mass-keep_mass,
-                    np.log(self.change_probability)-np.log1p(-self.change_probability)+log_bf,
-                    atol=1e-9, rtol=1e-9):
-                    raise ValueError('Fused change odds and normalized joint evidence disagree.')
+                if not np.all(np.isfinite([keep_log, reset_log, keep_mass, reset_mass, log_bf])):
+                    raise ValueError('Fused change odds and joint evidence must have finite log masses.')
+                posterior_log_odds = reset_mass-keep_mass
+                evidence_log_odds = (np.log(self.change_probability)
+                    -np.log1p(-self.change_probability)+log_bf)
+                odds_verified = bool(np.isclose(posterior_log_odds, evidence_log_odds,
+                    atol=1e-9, rtol=1e-9))
                 surprise.update(applied=True, reason='fresh valid observation packet',
                     log_bayes_factor=float(log_bf),
                     posterior_change_probability=float(np.exp(reset_mass)),
@@ -452,7 +455,15 @@ class MovingInference:
                     observation_ids=list(result.records['observation_ids']),
                     transition=transition_record,
                     prior_source_state_ids=[item.state.state_id for item in native_priors],
-                    initial_packet=not bool(self.components))
+                    initial_packet=not bool(self.components),
+                    joint_evidence_log_odds_consistency=dict(
+                        posterior_log_odds=float(posterior_log_odds),
+                        evidence_log_odds=float(evidence_log_odds),
+                        residual=float(posterior_log_odds-evidence_log_odds),
+                        verified=odds_verified, absolute_tolerance=1e-9, relative_tolerance=1e-9,
+                        update_gate=False,
+                        warning=None if odds_verified else
+                            'Fused change odds and normalized joint evidence differ beyond the diagnostic tolerance.'))
             else:
                 # Missing images are not evidence for a change. Preserve the
                 # ordinary prior bit for bit and retain the detector result.

@@ -25,6 +25,56 @@ from test_sequential_inference import _analytic_sensor, _scalar_inputs
 PACKAGE = Path(__file__).resolve().parents[1]
 
 
+def test_finite_joint_evidence_odds_roundoff_is_diagnostic_and_does_not_change_the_law(
+        sensor_problem, monkeypatch):
+    import probtf_observation_fusion_demo.moving_inference as module
+    scene, inputs, cases = sensor_problem
+    reference = MovingInference(scene.robot_description, cases['imu'], config_path=scene.legacy_inference_config)
+    expected = reference.update(inputs, 0)
+    original_run = module.run
+    discrepancy = 1e-4
+    def rounded_evidence(*args, **kwargs):
+        result = original_run(*args, **kwargs)
+        if result.sensor_posteriors and kwargs.get('joint_evidence'):
+            # Perturb only a redundant evidence diagnostic. All actual
+            # posterior components, masses, covariances and IDs are intact.
+            result.records['joint_observation_evidence']['parents'][1]['log_evidence'] += discrepancy
+        return result
+    monkeypatch.setattr(module, 'run', rounded_evidence)
+    inference = MovingInference(scene.robot_description, cases['imu'], config_path=scene.legacy_inference_config)
+    actual = inference.update(inputs, 0)
+    diagnostic = actual.records['bayes_factor_surprise']['joint_evidence_log_odds_consistency']
+    assert not diagnostic['verified']
+    assert not diagnostic['update_gate']
+    assert diagnostic['residual'] == pytest.approx(-discrepancy, abs=1e-10)
+    assert diagnostic['warning']
+    for actual_component, reference_component in zip(actual.stages[-1].components, expected.stages[-1].components):
+        assert actual_component.state.state_id == reference_component.state.state_id
+        assert actual_component.weight == reference_component.weight
+        assert actual_component.log_weight == reference_component.log_weight
+        np.testing.assert_array_equal(actual_component.state.covariance, reference_component.state.covariance)
+    # A finite diagnostic discrepancy does not stall the next fresh event.
+    next_inputs = replace(inputs, stamp=1000.05, time=.05)
+    next_result = inference.update(next_inputs, 1)
+    assert next_result.records['bayes_factor_surprise']['applied']
+    assert inference.last_result is next_result
+
+
+def test_nonfinite_joint_evidence_odds_remains_an_actual_failure(sensor_problem, monkeypatch):
+    import probtf_observation_fusion_demo.moving_inference as module
+    scene, inputs, cases = sensor_problem
+    original_run = module.run
+    def invalid_evidence(*args, **kwargs):
+        result = original_run(*args, **kwargs)
+        if result.sensor_posteriors and kwargs.get('joint_evidence'):
+            result.records['joint_observation_evidence']['parents'][1]['log_evidence'] = np.nan
+        return result
+    monkeypatch.setattr(module, 'run', invalid_evidence)
+    inference = MovingInference(scene.robot_description, cases['imu'], config_path=scene.legacy_inference_config)
+    with pytest.raises(ValueError, match='must have finite log masses'):
+        inference.update(inputs, 0)
+
+
 @pytest.mark.parametrize('values', [(.0, .0), (.4, 1.2), (8., 9.)])
 def test_joint_bayes_factor_uses_normalized_correlated_sensor_evidence(values, monkeypatch):
     common, paths, original, observations = _scalar_inputs()

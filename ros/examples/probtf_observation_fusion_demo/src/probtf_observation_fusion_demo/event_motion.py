@@ -622,7 +622,7 @@ class AsyncMotionSession:
             gradient_source_command_distance_rad=None if gradient is None else
                 float(np.linalg.norm(self.command-np.asarray(gradient.source_command))),
             gradient_evaluations_completed=self.gradient_evaluations_completed,
-            gradient_input_policy='sample_and_hold_last_accepted; optional configured stale rejection',
+            gradient_input_policy='sample_and_hold_last_accepted; age, distance and lag diagnostics never stop finite updates',
             running_gradient_gains=None if self.gradient_tracker is None else dict(
                 eta=self.gradient_tracker.eta,gamma=self.gradient_tracker.gamma),
             running_gradient_stale_thresholds=None if self.gradient_tracker is None else dict(

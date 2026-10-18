@@ -13,7 +13,7 @@ import numpy as np
 
 from probtf_observation_fusion_demo.model import component_log_weight
 from probtf_observation_fusion_demo.moving_control import control_components
-from probtf_observation_fusion_demo.stiffness_command import StiffnessCommandMap
+from probtf_observation_fusion_demo.stiffness_command import StiffnessCommandMap, equilibrium_anchor_diagnostics
 from probtf_observation_fusion_demo.stiffness_identification import StiffnessIdentifier
 
 
@@ -323,10 +323,7 @@ class PhysicalActionEngine:
         residual = self.identifier.robot.tau_gravity(captured_equilibrium)+self.identifier.spring.torque(
             captured_equilibrium, captured_command, stiffness)
         residual[active] = 0.
-        if (np.max(np.abs(residual)) > 1e-9
-                or not np.all(np.isfinite(hessian))
-                or np.linalg.eigvalsh(.5*(hessian+hessian.T))[0] <= 0.):
-            raise ValueError('The captured K anchor is not a stable bounded equilibrium.')
+        anchor_diagnostics=equilibrium_anchor_diagnostics(hessian,residual)
         if action is not None and not np.array_equal(action['auxiliary_active_joint_limits'], active):
             raise ValueError('A direct action packet must retain its actual equilibrium active set.')
         self.packet = packet
@@ -336,6 +333,7 @@ class PhysicalActionEngine:
         self._captured_record = record
         self._execution_record = execution
         self._action_record = action
+        self._anchor_numerical_diagnostics=anchor_diagnostics
         self._cache = {}
         self.equilibrium_evaluation_count = 0
         self._store(captured_command, captured_equilibrium, hessian, active)
@@ -378,7 +376,8 @@ class PhysicalActionEngine:
             captured_observation_ids=list(record['observation_ids']),
             numerical_branch_anchor=self.captured_equilibrium.tolist(),
             numerical_branch_anchor_command=self.captured_command.tolist(),
-            branch_policy='all retained-K queries start at the same captured stable equilibrium; no evaluation-order warm starts',
+            branch_policy='all retained-K queries start at the same captured finite auxiliary equilibrium iterate; no evaluation-order warm starts',
+            numerical_anchor_diagnostics=dict(self._anchor_numerical_diagnostics),
             physical_truth_received=False, body_reconstructed_from_stiffness=False,
             parameter_density_updated=False)
         if self._execution_record is not None:

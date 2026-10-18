@@ -124,7 +124,7 @@ def test_inactive_factor_is_exact_unit_and_does_not_inspect_invalid_candidates(c
     assert record['unit_factor_applied']
 
 
-@pytest.mark.parametrize('bad', [[0., 0., 0.], [0., 0., 1e-12], [np.nan, 0., 1.],
+@pytest.mark.parametrize('bad', [[0., 0., 0.], [np.nan, 0., 1.],
                                  [np.inf, 0., 1.]])
 def test_bad_active_mode_makes_complete_factor_unavailable_without_renormalizing_survivors(bad):
     record = factor().evaluate([component(.9), component(.1)],
@@ -136,6 +136,18 @@ def test_bad_active_mode_makes_complete_factor_unavailable_without_renormalizing
     assert math.isclose(record['per_mode_record'][0]['normalized_weight'], .9, abs_tol=2e-16)
     assert record['per_mode_record'][1]['status'] == 'unavailable'
     json.dumps(record, allow_nan=False)
+
+
+def test_finite_bearing_below_numerical_radius_threshold_remains_usable():
+    position = np.array([1e-12, 0., 1e-12])
+    penalty, gradient = direction_penalty(position)
+    assert np.isfinite(penalty) and np.all(np.isfinite(gradient))
+    record = factor().evaluate([component()], [query(position)])
+    assert record['status'] == 'ok'
+    mode = record['per_mode_record'][0]
+    assert mode['position_norm_below_diagnostic_threshold']
+    assert mode['minimum_norm_is_acceptance_gate'] is False
+    np.testing.assert_array_equal(mode['analytic_position_gradient'], gradient)
 
 
 def test_no_candidates_and_all_zero_mass_are_explicit():

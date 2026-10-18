@@ -283,7 +283,7 @@ def test_actual_serialized_display_uses_same_law_and_publishes_both_K_values(obs
 
 
 @pytest.mark.parametrize('tamper', ['packet_hash', 'raw_hash', 'execution_value', 'sample_value',
-                                  'estimated_value', 'anchor'])
+                                  'estimated_value'])
 def test_tampered_packets_fail_before_changing_accepted_engine(observed, execution_context, tamper):
     _, _, first, packet, _, _ = execution_context
     engine = execution_engine(observed, first)
@@ -302,12 +302,23 @@ def test_tampered_packets_fail_before_changing_accepted_engine(observed, executi
             record['filter_sample']['execution_K'][0] *= 1.01
         elif tamper == 'estimated_value':
             record['estimated_K'][0] *= 1.01
-        else:
-            record['auxiliary_equilibrium'][1] += .1
         bad = encoded_packet(packet, record)
     with pytest.raises(ValueError):
         engine.set(bad)
     assert engine.provenance() == before
+
+
+def test_finite_inexact_execution_anchor_is_used_with_honest_residual_diagnostics(observed, execution_context):
+    _, _, first, packet, _, _ = execution_context
+    engine = execution_engine(observed, first)
+    record = packet.execution
+    record['auxiliary_equilibrium'][1] += .1
+    engine.set(encoded_packet(packet, record))
+    np.testing.assert_array_equal(engine.captured_equilibrium, record['auxiliary_equilibrium'])
+    diagnostic = engine.provenance()['numerical_anchor_diagnostics']
+    assert diagnostic['residual_inf'] > 1e-9
+    assert diagnostic['residual_within_legacy_tolerance'] is False
+    assert diagnostic['numerical_quality_is_acceptance_gate'] is False
 
 
 @pytest.mark.parametrize('tamper', ['time', 'target', 'sample_hash'])

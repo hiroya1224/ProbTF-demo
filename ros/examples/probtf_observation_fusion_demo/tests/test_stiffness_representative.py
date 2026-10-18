@@ -17,6 +17,9 @@ def context(log_density, *, settings=None, dimension=2):
     identifier.components = identifier.initial_components
     identifier.factors = (SimpleNamespace(factor_id='factor:1'),)
     identifier._branch_anchor = None
+    # This fixture substitutes a finite equilibrium response for mechanics;
+    # it does not perform or claim a real auxiliary numerical audit.
+    identifier.last_equilibrium_audit = None
     calls, predictions = [], []
 
     def density(x):

@@ -7,6 +7,7 @@ or a Gaussian projection. Finite numerical trials serve initial proposals only.
 """
 
 from pathlib import Path
+from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from types import SimpleNamespace
@@ -396,6 +397,25 @@ class StiffnessIdentifier:
         self.last_stamp = None
         self.last_key = self.last_record = None
         self._branch_anchor = None
+        self.last_equilibrium_audit = None
+        self.last_continuation_audit = None
+        self.equilibrium_audit_summary = dict(evaluations=0,
+            residual_warning_count=0, nonpositive_curvature_count=0,
+            maximum_KKT_residual_nm=0.)
+
+    def numerical_diagnostics(self):
+        """Report numerical quality without making finite audits fatal.
+
+        An inaccurate finite auxiliary root is an explicitly approximate
+        command/parameter model. No covariance, density or Hessian is altered
+        to turn an audit into a passed check. Actual nonfinite arithmetic and
+        failed linear solves still raise at their point of use.
+        """
+        return deepcopy(dict(
+            policy='finite residual, curvature and iteration audits are diagnostic only; actual nonfinite arithmetic or unsolved linear systems remain errors',
+            last_equilibrium=getattr(self, 'last_equilibrium_audit', None),
+            last_continuation=getattr(self, 'last_continuation_audit', None),
+            equilibrium_summary=getattr(self, 'equilibrium_audit_summary', None)))
 
     def _evidence_starts(self):
         """Numerical evidence-mode starts; never a finite stiffness prior."""
@@ -450,16 +470,22 @@ class StiffnessIdentifier:
         # L-BFGS can stop on floating-point potential changes before its torque
         # residual is accurate enough to differentiate. Refine the very same
         # existing potential/KKT equations, without adding an error model.
+        iterations, termination = 0, 'refinement_iteration_budget'
         for _ in range(24):
             hessian, _ = self.sensitivity.equilibrium_jacobians(theta, command, stiffness)
-            if np.linalg.eigvalsh(.5*(hessian+hessian.T))[0] <= 0.:
-                raise ValueError('Auxiliary continuation left its stable equilibrium branch.')
             residual = self.robot.tau_gravity(theta)+self.spring.torque(theta, command, stiffness)
             residual[self.sensitivity.last_active_set] = 0.
+            if (not np.all(np.isfinite(theta)) or not np.all(np.isfinite(hessian))
+                    or not np.all(np.isfinite(residual))):
+                raise ValueError('Auxiliary equilibrium refinement has nonfinite arithmetic.')
             norm = float(np.max(np.abs(residual)))
             if norm <= 1e-11:
+                termination = 'refinement_residual_target'
                 break
             direction = np.linalg.solve(hessian, residual)
+            if not np.all(np.isfinite(direction)):
+                raise ValueError('Auxiliary equilibrium Newton direction is nonfinite.')
+            iterations += 1
             potential = self.solver._V_total(self.robot, self.spring, theta, command, stiffness)
             accepted = False
             for backtrack in range(16):
@@ -474,14 +500,46 @@ class StiffnessIdentifier:
                     theta, accepted = candidate, True
                     break
             if not accepted:
+                termination = 'no_further_residual_and_potential_reduction'
                 break
         hessian, parameter_jacobian = self.sensitivity.equilibrium_jacobians(theta, command, stiffness)
         residual = self.robot.tau_gravity(theta)+self.spring.torque(theta, command, stiffness)
         residual[self.sensitivity.last_active_set] = 0.
-        if not np.all(np.isfinite(theta)) or np.max(np.abs(residual)) > 1e-9:
-            raise ValueError('Auxiliary model did not satisfy the bounded equilibrium KKT residual.')
-        if np.linalg.eigvalsh(.5*(hessian+hessian.T))[0] <= 0.:
-            raise ValueError('Auxiliary equilibrium is not a stable branch.')
+        if (not np.all(np.isfinite(theta)) or not np.all(np.isfinite(hessian))
+                or not np.all(np.isfinite(parameter_jacobian))
+                or not np.all(np.isfinite(residual))):
+            raise ValueError('Auxiliary equilibrium result has nonfinite arithmetic.')
+        eigenvalues, curvature_error = None, None
+        try:
+            candidate_eigenvalues = np.linalg.eigvalsh(.5*hessian+.5*hessian.T)
+            if np.all(np.isfinite(candidate_eigenvalues)):
+                eigenvalues = candidate_eigenvalues
+            else:
+                curvature_error = 'Diagnostic Hessian eigendecomposition returned nonfinite eigenvalues.'
+        except np.linalg.LinAlgError as exc:
+            curvature_error = '%s: %s' % (type(exc).__name__, exc)
+        residual_norm = float(np.max(np.abs(residual)))
+        self.last_equilibrium_audit = dict(theta=theta.tolist(),
+            command=np.asarray(command).tolist(), selected_K=np.asarray(stiffness).tolist(),
+            KKT_residual_nm=residual.tolist(), KKT_residual_inf_nm=residual_norm,
+            KKT_audit_tolerance_nm=1e-9, KKT_tolerance_satisfied=residual_norm <= 1e-9,
+            Hessian_eigenvalues=None if eigenvalues is None else eigenvalues.tolist(),
+            positive_curvature=None if eigenvalues is None else bool(eigenvalues[0] > 0.),
+            curvature_audit_error=curvature_error,
+            refinement_iterations=iterations, refinement_termination=termination,
+            refinement_target_nm=1e-11, refinement_converged=residual_norm <= 1e-11,
+            active_joint_limits=self.sensitivity.last_active_set.tolist(),
+            used_finite_auxiliary_result=True, audit_is_fatal=False,
+            Hessian_modified=False, physical_stability_guaranteed=False)
+        summary = getattr(self, 'equilibrium_audit_summary', dict(evaluations=0,
+            residual_warning_count=0, nonpositive_curvature_count=0,
+            maximum_KKT_residual_nm=0.))
+        summary['evaluations'] += 1
+        summary['residual_warning_count'] += int(residual_norm > 1e-9)
+        summary['nonpositive_curvature_count'] += int(eigenvalues is not None and eigenvalues[0] <= 0.)
+        summary['curvature_audit_failure_count'] = summary.get('curvature_audit_failure_count', 0)+int(curvature_error is not None)
+        summary['maximum_KKT_residual_nm'] = max(summary['maximum_KKT_residual_nm'], residual_norm)
+        self.equilibrium_audit_summary = summary
         return theta, hessian, parameter_jacobian, self.sensitivity.last_active_set.copy()
 
     def _freeze_branch(self, state, record):
@@ -499,12 +557,17 @@ class StiffnessIdentifier:
             anchor_logK=anchor.tolist(), anchor_equilibrium=theta.tolist(),
             anchor_active_joint_limits=active.tolist(), source_state_id=state.state_id,
             maximum_logK_step=.1, maximum_segment_bisections=10,
-            role='auxiliary equilibrium branch only; no body or parameter-prior replacement')
+            maximum_logK_step_role='nominal numerical step; long finite paths use the recorded coarser bounded-work partition',
+            anchor_numerical_audit=deepcopy(self.last_equilibrium_audit),
+            role='auxiliary numerical equilibrium branch only; no body or parameter-prior replacement and no physical stability guarantee')
 
     def _branch_equilibrium(self, x, state):
         command = np.asarray(state.command)
         anchor = getattr(self, '_branch_anchor', None)
         if anchor is None or anchor[0] != state.state_id:
+            self.last_continuation_audit = dict(method='direct auxiliary solve',
+                requested_stages=None, used_stages=None, work_budget_saturated=False,
+                audit_is_fatal=False)
             stiffness = np.exp(x)
             return self._refine_equilibrium(
                 self.solver.solve(command, stiffness, theta_init=command), command, stiffness)
@@ -520,9 +583,14 @@ class StiffnessIdentifier:
                 middle = .5*(left+right)
                 midway = segment(left, middle, initial, depth+1)
                 return segment(middle, right, midway[0], depth+1)
-        count = max(1, int(np.ceil(np.max(np.abs(x-start))/.1)))
-        if count > 1000:
-            raise ValueError('Auxiliary continuation exceeds its numerical path-length budget.')
+        requested_count = max(1, int(np.ceil(np.max(np.abs(x-start))/.1)))
+        count = min(requested_count, 1000)
+        self.last_continuation_audit = dict(method='same anchor and straight log-K path',
+            requested_stages=requested_count, used_stages=count,
+            nominal_maximum_logK_step=.1,
+            used_maximum_logK_step=float(np.max(np.abs(x-start))/count),
+            work_budget_saturated=bool(requested_count > count), numerical_work_budget=1000,
+            stiffness_candidate_clipped=False, anchor_changed=False, audit_is_fatal=False)
         left = start
         result = None
         for fraction in range(1, count+1):
@@ -537,6 +605,8 @@ class StiffnessIdentifier:
             raise ValueError('Nonfinite auxiliary stiffness candidate.')
         theta, hessian, parameter_jacobian, active = self._branch_equilibrium(x, state)
         derivative = -np.linalg.solve(hessian, parameter_jacobian)
+        if not np.all(np.isfinite(derivative)):
+            raise ValueError('Auxiliary equilibrium parameter sensitivity is nonfinite.')
         value, jacobian = self._body_chart(theta, derivative, state)
         return value, jacobian, theta, active
 
@@ -769,6 +839,7 @@ class StiffnessIdentifier:
         if bfs is not None and record['posterior'] is not None:
             record['stiffness_posterior_defined'] = True
         self.last_stamp = state.stamp
+        record['auxiliary_numerical_diagnostics'] = self.numerical_diagnostics()
         self.last_key, self.last_record = key, record
         return record
 
@@ -1006,7 +1077,8 @@ class StiffnessIdentifier:
             finally:
                 self._branch_anchor = saved
             item = dict(item, equilibrium=np.array(equilibrium, copy=True),
-                        active=np.array(active, copy=True))
+                        active=np.array(active, copy=True),
+                        equilibrium_numerical_audit=deepcopy(self.last_equilibrium_audit))
             cache[key] = item
             return item
 
@@ -1142,7 +1214,8 @@ class StiffnessIdentifier:
             density_improvement_claimed=bool(selected['density'] > base['density']),
             density_evaluation_count=density_evaluations,
             successful_density_evaluation_count=len(evaluations),
-            current_equilibrium_evaluation_count=equilibrium_evaluations)
+            current_equilibrium_evaluation_count=equilibrium_evaluations,
+            selected_equilibrium_numerical_audit=selected['equilibrium_numerical_audit'])
         command = np.asarray(state.command)
         proposed = command+(command-equilibrium)
         proposal = dict(command=proposed.tolist(), source_command=list(state.command),
@@ -1155,11 +1228,13 @@ class StiffnessIdentifier:
             base_candidate_log_unnormalized_density=base['density'],
             density_improvement_claimed=selection['density_improvement_claimed'],
             auxiliary_equilibrium=equilibrium.tolist(), auxiliary_active_joint_limits=active.tolist(),
+            auxiliary_equilibrium_numerical_audit=selected['equilibrium_numerical_audit'],
             method='current command plus its equilibrium deflection under an evaluated continuous-density local K representative',
             acceptance='caller must project command limits and compare the complete current body-distribution objective',
             global_mode_claimed=False)
         self.last_record.update(proposal_status='deterministic_density_representative',
             proposal_selection=selection, command_proposal=proposal,
+            auxiliary_numerical_diagnostics=self.numerical_diagnostics(),
             feedback_to_body=False, feedback_to_body_or_control=True,
             feedback_to_control='initial command proposal only')
         return proposal

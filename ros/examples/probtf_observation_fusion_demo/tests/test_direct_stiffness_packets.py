@@ -245,7 +245,7 @@ def test_new_direct_epoch_cannot_rewrite_an_old_ledger_or_use_an_old_map(observe
     assert new_view.records['stiffness']['action_stiffness'] == second.action
 
 
-@pytest.mark.parametrize('tamper', ['hash', 'raw_hash', 'K', 'anchor', 'active', 'past_anchor'])
+@pytest.mark.parametrize('tamper', ['hash', 'raw_hash', 'K', 'active', 'past_anchor'])
 def test_direct_packet_tampering_cannot_change_the_accepted_engine(observed, direct_context, tamper):
     _, _, first, second = direct_context
     engine = _engine(observed, first)
@@ -259,8 +259,6 @@ def test_direct_packet_tampering_cannot_change_the_accepted_engine(observed, dir
         action = second.action
         if tamper == 'K':
             action['selected_K'][0] *= 1.01
-        elif tamper == 'anchor':
-            action['auxiliary_equilibrium'][1] += .1
         elif tamper == 'active':
             action['auxiliary_active_joint_limits'][0] = not action['auxiliary_active_joint_limits'][0]
         else:
@@ -269,6 +267,20 @@ def test_direct_packet_tampering_cannot_change_the_accepted_engine(observed, dir
     with pytest.raises(ValueError):
         engine.set(bad)
     assert engine.provenance() == before
+
+
+def test_finite_inexact_direct_anchor_is_used_with_honest_residual_diagnostics(observed, direct_context):
+    _, _, first, second = direct_context
+    engine = _engine(observed, first)
+    action = second.action
+    action['auxiliary_equilibrium'][1] += .1
+    packet = _tamper(second, action)
+    engine.set(packet)
+    np.testing.assert_array_equal(engine.captured_equilibrium, action['auxiliary_equilibrium'])
+    diagnostic = engine.provenance()['numerical_anchor_diagnostics']
+    assert diagnostic['residual_inf'] > 1e-9
+    assert diagnostic['residual_within_legacy_tolerance'] is False
+    assert diagnostic['numerical_quality_is_acceptance_gate'] is False
 
 
 def test_capture_and_reanchor_do_not_evaluate_update_or_sample_a_parameter_density(observed, direct_context, monkeypatch):

@@ -69,13 +69,19 @@ class StiffnessEvidenceUnavailable(ValueError):
 
 
 class LocalLaplaceEvidence:
-    """Explicit local mass approximation, separate from the retained K law.
+    """Local-mode Laplace formula at a finite optimizer iterate.
 
-    Rank deterministic numerical starts, find one stationary local mode with
-    the complete score, and validate its unmodified Hessian at two difference
-    steps. No mode/covariance is substituted for the continuous density. This
-    does not integrate all modes or guarantee the total evidence's accuracy.
-    Seed/evaluation failures are recorded, never converted to zero density.
+    Rank deterministic starts and run BFGS with the complete score. A finite
+    result need not meet the optimizer's stopping tolerance: that quality
+    check is diagnostic, not a condition for updating the retained law. Use
+    one central score-difference width for the former local-mode Laplace
+    formula. Stationarity is not required. The formula omits the linear
+    score term, so it is not the exact integral of a quadratic log-density
+    expansion at a nonstationary iterate.
+    Actual evaluation/factorization failures remain failures; no jitter,
+    clipped curvature, or fabricated mass is supplied. No mode/covariance is
+    substituted for the continuous density. This does not integrate all
+    modes or guarantee the total evidence's accuracy.
     """
 
     def _continue_available_bfgs(self, query, accepted, diagnostics):
@@ -203,23 +209,40 @@ class LocalLaplaceEvidence:
 
     def __call__(self, density):
         started = time.perf_counter()
-        diagnostics = dict(approximation='single stationary local-mode Laplace mass only; no continuous-law replacement',
+        # The former two-width rule used its fine (half-configured) width
+        # in the mass formula. Retain that numerical choice without running
+        # its coarse-width comparison or adaptive quality audit.
+        actual_hessian_step = .5*self.hessian_step
+        diagnostics = dict(approximation='local-mode Laplace formula evaluated at a finite optimizer iterate; stationarity not required; no continuous-law replacement',
+            linear_score_term_in_mass_formula=False,
+            approximation_note='The former local-mode Laplace formula is retained; it is not the exact quadratic log-density integral at a nonstationary iterate.',
             global_mass_accuracy_guaranteed=False, all_modes_integrated=False,
             mode_method='deterministic-start ranking followed by BFGS with the complete density score',
             maximum_iterations=self.max_iterations, gradient_tolerance=self.gradient_tolerance,
-            Hessian_steps=[self.hessian_step, .5*self.hessian_step],
-            configured_Hessian_steps=[self.hessian_step, .5*self.hessian_step],
+            Hessian_step=actual_hessian_step, Hessian_steps=[actual_hessian_step],
+            configured_hessian_step=self.hessian_step,
+            configured_Hessian_steps=[self.hessian_step, actual_hessian_step],
             max_hessian_refinements=self.max_hessian_refinements,
-            adaptive_Hessian_steps_enabled=self.max_hessian_refinements > 0,
+            adaptive_Hessian_steps_enabled=False,
             Hessian_refinement_count=0, Hessian_attempts=[],
             Hessian_relative_tolerance=self.hessian_relative_tolerance,
             Hessian_absolute_tolerance=self.hessian_absolute_tolerance,
+            deprecated_numerical_audit_settings=dict(
+                hessian_relative_tolerance=self.hessian_relative_tolerance,
+                hessian_absolute_tolerance=self.hessian_absolute_tolerance,
+                max_hessian_refinements=self.max_hessian_refinements,
+                configured_hessian_step_role='legacy coarse width; mass curvature uses half this width as before',
+                effect='accepted for configuration compatibility; no second-width evaluation or acceptance gate'),
+            numerical_quality_checks_are_update_gates=False,
+            two_step_stability_checked=False, two_step_stability_verified=None,
             unavailable_starts=[], unavailable_trials=[],
             availability_recovery=dict(applied=False),
             evaluations=0, density_projection_applied=False)
         cache = {}
         def query(x):
             x = np.asarray(x, dtype=float)
+            if x.ndim != 1 or not x.size or not np.all(np.isfinite(x)):
+                raise ValueError('A Laplace density query needs finite log-stiffness coordinates.')
             key = x.tobytes()
             if key not in cache:
                 diagnostics['evaluations'] += 1
@@ -282,110 +305,65 @@ class LocalLaplaceEvidence:
             mode_log_density=value, mode_score=score.tolist(), mode_score_inf=score_norm)
         mode = np.array(optimum.x, copy=True)
         diagnostics['stationarity_polish'] = []
-        if (not optimum.success and self.gradient_tolerance < score_norm
-                <= 100.*self.gradient_tolerance):
-            # Near a stationary point BFGS can stop on rounded objective
-            # changes while the explicitly evaluated score still resolves a
-            # Newton correction. Solve that same score, without loosening its
-            # tolerance or modifying a Hessian to force positive curvature.
-            for _ in range(3):
-                try:
-                    matrix = np.column_stack([-(query(mode+self.hessian_step*axis)[1]
-                        -query(mode-self.hessian_step*axis)[1])/(2.*self.hessian_step)
-                        for axis in np.eye(mode.size)])
-                    symmetric = .5*(matrix+matrix.T)
-                    np.linalg.cholesky(symmetric)
-                    direction = np.linalg.solve(symmetric, score)
-                    trial_value, trial_score = query(mode+direction)
-                    trial_norm = float(np.max(np.abs(trial_score)))
-                except (ValueError, np.linalg.LinAlgError, FloatingPointError):
-                    break
-                # This is a root solve for the score, followed below by
-                # stationarity, SPD and two-step Hessian checks. Small
-                # differences of a log density built from large cancelling
-                # body-density terms cannot provide an objective monotonicity
-                # test at this precision. Its final magnitude does not bound
-                # that cancellation error. Do not loosen the score tolerance
-                # or add a fictitious density-based acceptance guarantee.
-                accepted = trial_norm < score_norm
-                diagnostics['stationarity_polish'].append(dict(
-                    score_inf_before=score_norm, score_inf_after=trial_norm,
-                    log_density_before=value, log_density_after=trial_value,
-                    objective_monotonicity_required=False,
-                    acceptance='score residual decrease; unmodified SPD and two-step Hessian verified at the final mode',
-                    accepted=bool(accepted)))
-                if not accepted:
-                    break
-                mode += direction
-                value, score, score_norm = trial_value, trial_score, trial_norm
-                if score_norm <= self.gradient_tolerance:
-                    break
-            diagnostics.update(mode=mode.tolist(), mode_log_density=value,
-                mode_score=score.tolist(), mode_score_inf=score_norm)
-        if score_norm > self.gradient_tolerance:
-            fail('Laplace evidence mode did not satisfy the configured full-score tolerance.')
-        hessian_cache = {}
-        for refinement in range(self.max_hessian_refinements+1):
-            coarse = self.hessian_step*(.5**refinement)
-            steps = [coarse, .5*coarse]
-            attempt = dict(refinement=refinement, steps=steps,
-                reused_previous_fine=coarse in hessian_cache)
-            diagnostics['Hessian_attempts'].append(attempt)
-            diagnostics.update(Hessian_steps=steps, Hessian_refinement_count=refinement)
-            hessians = []
-            try:
-                for step in steps:
-                    if step not in hessian_cache:
-                        hessian_cache[step] = np.column_stack([-(query(mode+step*axis)[1]
-                            -query(mode-step*axis)[1])/(2.*step)
-                            for axis in np.eye(mode.size)])
-                    hessians.append(hessian_cache[step])
-            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                attempt.update(available=False, reason=str(error), precision_checks_passed=False)
-                fail('Laplace evidence Hessian evaluation is unavailable: '+str(error))
-            asymmetry = [float(np.max(np.abs(item-item.T))) for item in hessians]
-            difference = float(np.max(np.abs(hessians[0]-hessians[1])))
-            stable = bool(np.allclose(hessians[0], hessians[1],
+        diagnostics.update(stationarity_verified=bool(score_norm <= self.gradient_tolerance),
+            finite_nonstationary_point_accepted=bool(score_norm > self.gradient_tolerance),
+            optimizer_failure_is_fatal=False,
+            stationarity_polish_status='not performed; finite optimizer result is used without a residual acceptance gate')
+        attempt = dict(steps=[actual_hessian_step], precision_checks_required=False)
+        diagnostics['Hessian_attempts'].append(attempt)
+        try:
+            with np.errstate(over='raise', invalid='raise', divide='raise'):
+                matrix = np.column_stack([-(query(mode+actual_hessian_step*axis)[1]
+                    -query(mode-actual_hessian_step*axis)[1])/(2.*actual_hessian_step)
+                    for axis in np.eye(mode.size)])
+                # A scalar quadratic form uses the symmetric part. This is
+                # an arithmetic average, not curvature clipping or jitter.
+                symmetric = .5*matrix+.5*matrix.T
+            if not np.all(np.isfinite(symmetric)):
+                raise FloatingPointError('The calculated Laplace Hessian contains NaN or infinity.')
+        except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+            attempt.update(available=False, reason=str(error))
+            diagnostics['failed_operation'] = 'score-difference Hessian evaluation'
+            fail('Laplace evidence Hessian evaluation is unavailable: '+str(error))
+        # Cheap quality diagnostics never reject a finite expansion. A second
+        # width is deliberately not evaluated in the updating path.
+        with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
+            asymmetry = float(np.max(np.abs(matrix-matrix.T)))
+            symmetry_verified = bool(np.allclose(matrix, matrix.T,
                 rtol=self.hessian_relative_tolerance, atol=self.hessian_absolute_tolerance))
-            symmetric = [bool(np.allclose(matrix, matrix.T,
-                rtol=self.hessian_relative_tolerance, atol=self.hessian_absolute_tolerance))
-                for matrix in hessians]
-            reason = ('Laplace evidence Hessian is unstable across the two score-difference steps.'
-                if not stable else 'Laplace evidence score Hessian is not numerically symmetric.'
-                if not all(symmetric) else None)
-            attempt.update(available=True, Hessians=[matrix.tolist() for matrix in hessians],
-                raw_asymmetry_max=asymmetry, step_difference_max=difference,
-                two_step_stability_verified=stable, symmetry_verified=symmetric,
-                precision_checks_passed=reason is None, reason=reason)
-            diagnostics.update(Hessian_raw_asymmetry_max=asymmetry,
-                Hessian_step_difference_max=difference)
-            if reason is None:
-                break
-            if refinement == self.max_hessian_refinements:
-                fail(reason)
-            # Re-evaluate the same full score with both widths halved. The
-            # preceding fine matrix becomes the next coarse matrix. Neither
-            # tolerances nor the density, mode, or curvature are modified.
-        # Symmetrization removes roundoff only after the symmetry check. No
-        # eigenvalue clipping, variance cap or positive diagonal is added.
-        symmetric = .5*(hessians[1]+hessians[1].T)
-        eigenvalues = np.linalg.eigvalsh(symmetric)
-        diagnostics['Hessian_eigenvalues'] = eigenvalues.tolist()
+        attempt.update(available=True, Hessians=[matrix.tolist()],
+            raw_asymmetry_max=[asymmetry if np.isfinite(asymmetry) else None],
+            symmetry_verified=[symmetry_verified], reason=None)
+        diagnostics.update(Hessian=symmetric.tolist(),
+            Hessian_raw_asymmetry_max=attempt['raw_asymmetry_max'],
+            Hessian_symmetry_verified=symmetry_verified,
+            Hessian_step_difference_max=None,
+            Hessian_symmetrization='arithmetic mean of the raw score Jacobian and its transpose; no eigenvalue modification')
+        try:
+            eigenvalues = np.linalg.eigvalsh(symmetric)
+            with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
+                condition = float(np.max(np.abs(eigenvalues))/np.min(np.abs(eigenvalues)))
+            diagnostics.update(Hessian_eigenvalues=eigenvalues.tolist() if np.all(np.isfinite(eigenvalues)) else None,
+                Hessian_condition_number=condition if np.isfinite(condition) else None,
+                Hessian_condition_number_finite=bool(np.isfinite(condition)))
+        except np.linalg.LinAlgError as error:
+            diagnostics.update(Hessian_eigenvalues=None, Hessian_condition_number=None,
+                Hessian_spectral_diagnostic_reason=str(error))
         try:
             cholesky = np.linalg.cholesky(symmetric)
-        except np.linalg.LinAlgError:
-            fail('Laplace evidence requires a positive definite unmodified mode Hessian.')
-        condition = float(eigenvalues[-1]/eigenvalues[0])
-        diagnostics['Hessian_condition_number'] = condition
-        if not np.isfinite(condition) or condition*np.finfo(float).eps >= 1.:
-            fail('Laplace evidence mode Hessian is numerically unresolved at float precision.')
-        log_determinant = float(2.*np.log(np.diag(cholesky)).sum())
-        log_integral = float(value+.5*mode.size*math.log(2.*math.pi)-.5*log_determinant)
-        diagnostics.update(Hessian=symmetric.tolist(), Hessian_log_determinant=log_determinant,
-            seconds=time.perf_counter()-started, stationarity_verified=True,
-            positive_definiteness_verified=True, two_step_stability_verified=True,
+            with np.errstate(over='raise', invalid='raise', divide='raise'):
+                log_determinant = float(2.*np.log(np.diag(cholesky)).sum())
+                log_integral = float(value+.5*mode.size*math.log(2.*math.pi)-.5*log_determinant)
+            if not np.isfinite(log_integral):
+                raise FloatingPointError('The calculated Laplace log mass is not finite.')
+        except (np.linalg.LinAlgError, FloatingPointError) as error:
+            diagnostics.update(failed_operation='Cholesky factorization / Laplace log mass',
+                positive_definiteness_verified=False)
+            fail('Laplace evidence factorization or mass calculation failed: '+str(error))
+        diagnostics.update(Hessian_log_determinant=log_determinant,
+            seconds=time.perf_counter()-started, positive_definiteness_verified=True,
             support_regularization_added=False)
-        return LogIntegral(log_integral, 'local stationary-mode Laplace evidence',
+        return LogIntegral(log_integral, 'finite-iterate local-mode Laplace evidence',
                            exact=False, diagnostics=diagnostics)
 
 

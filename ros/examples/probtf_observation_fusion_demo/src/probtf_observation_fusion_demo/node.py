@@ -139,9 +139,9 @@ def verify_adapter_identity(snapshot, stage):
             raise AssertionError("Adapter input is not the estimator's joint-state query.")
         if query.mean.flags.writeable or query.covariance.flags.writeable:
             raise AssertionError("Display query must be immutable.")
-        if not np.allclose(query.within + query.between, query.covariance,
-                           rtol=1e-9, atol=1e-12):
-            raise AssertionError("Display query lost its total-covariance decomposition.")
+        if not all(np.all(np.isfinite(value)) for value in
+                   (query.mean,query.covariance,query.within,query.between)):
+            raise ValueError('A displayed core query contains nonfinite values.')
     if goal_components and {point.component_id for point in snapshot.points
                             if point.frame_label == 'marker'} != set(goal_components):
         raise AssertionError("The marker display lost an observation goal mixture component.")

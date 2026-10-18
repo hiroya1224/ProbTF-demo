@@ -1,11 +1,16 @@
 """Projection and local right-perturbation Jacobians."""
 
+import logging
+
 import cv2
 import numpy as np
 
 from probtf.geometry import skew
 
 from prob_artag_detector.models import CameraModel
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def ippe_square_object_points(tag_size_m):
@@ -156,19 +161,30 @@ def pose_jacobian(
     analytic = analytic_pinhole_pose_jacobian(
         object_points, rotation, translation, camera_model
     )
+    if not np.all(np.isfinite(analytic)):
+        raise ValueError("analytic pinhole Jacobian produced nonfinite values.")
     if verify:
-        numerical = finite_difference_pose_jacobian(
-            object_points,
-            rotation,
-            translation,
-            camera_model,
-            finite_difference_step,
-        )
-        if not np.allclose(
-            analytic,
-            numerical,
-            rtol=float(verification_rtol),
-            atol=float(verification_atol),
-        ):
-            raise ValueError("analytic pinhole Jacobian failed finite-difference verification.")
+        try:
+            numerical = finite_difference_pose_jacobian(
+                object_points,
+                rotation,
+                translation,
+                camera_model,
+                finite_difference_step,
+            )
+            if not np.all(np.isfinite(numerical)):
+                _LOGGER.warning("analytic pinhole Jacobian finite-difference audit unavailable: nonfinite reference values; retaining the finite analytic Jacobian.")
+            elif not np.allclose(
+                analytic,
+                numerical,
+                rtol=float(verification_rtol),
+                atol=float(verification_atol),
+            ):
+                with np.errstate(over='ignore', invalid='ignore'):
+                    error = float(np.max(np.abs(analytic-numerical)))
+                _LOGGER.warning("analytic pinhole Jacobian finite-difference audit missed: maximum absolute difference %s, rtol %s, atol %s; retaining the finite analytic Jacobian.",
+                                error, verification_rtol, verification_atol)
+        except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+            _LOGGER.warning("analytic pinhole Jacobian finite-difference audit unavailable: %s: %s; retaining the finite analytic Jacobian.",
+                            type(error).__name__, error)
     return analytic

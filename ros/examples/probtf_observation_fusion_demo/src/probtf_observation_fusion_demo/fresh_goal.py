@@ -49,8 +49,9 @@ def _native_modes(detected):
         law, log_volume = _marker_mode_chart(component, quat_to_rotmat(quaternion))
         # This chart is at the component's own mode. Its rotation origin is
         # exactly zero; a computed roundoff residual is not another shift.
-        if not np.allclose(law.mean[3:], 0., rtol=0., atol=1e-12):
-            raise ValueError('A native image mode did not use its own rotation chart.')
+        chart_residual = np.asarray(law.mean[3:])
+        if not np.all(np.isfinite(chart_residual)):
+            raise ValueError('A native image mode has nonfinite rotation-chart coordinates.')
         output.append(dict(native_component_id=component.component_id,
             native_seed_index=None if not seeds else int(seeds[index]),
             native_log_mass=float(logs[index]), image_log_weight=float(log_weights[index]),
@@ -62,7 +63,12 @@ def _native_modes(detected):
             native_translation_rotation_coupling=component.translation.rotation_coupling.tolist(),
             image_only_mean=np.concatenate((law.mean[:3], np.zeros(3))).tolist(),
             image_only_covariance=law.covariance.tolist(),
-            native_chart_log_volume=float(log_volume)))
+            native_chart_log_volume=float(log_volume),
+            numerical_chart_diagnostics=dict(
+                rotation_origin_residual=chart_residual.tolist(),
+                rotation_origin_residual_inf=float(np.max(np.abs(chart_residual))),
+                legacy_rotation_origin_tolerance_met=bool(np.allclose(chart_residual, 0., rtol=0., atol=1e-12)),
+                numerical_quality_is_acceptance_gate=False)))
     return output
 
 

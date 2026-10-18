@@ -330,30 +330,53 @@ def test_subnormal_positive_duration_never_returns_nonfinite_work_diagnostics(tm
                    if isinstance(value, float))
 
 
-def test_failed_nonlinear_Newton_advance_rolls_back_state_time_command_and_trace(tmp_path):
+def test_finite_nonlinear_Newton_budget_miss_advances_with_honest_audit(tmp_path):
     scene = MovingSwitchScene(tmp_path)
     frame = scene.step(0., 1000., render_camera=False)
     dynamics = NativeDynamics(scene.urdf, scene.config['plant']['stiffness'],
         max_step_s=.02, absolute_residual_tolerance=1e-14,
         relative_residual_tolerance=1e-14, max_newton_iterations=1, max_step_halvings=0)
     dynamics.reset(frame.joints, velocity=[.4, -.3, .2, -.2, .3, -.4], command=frame.command)
-    before, trace = dynamics.state(), _native_trace(dynamics)
-    with pytest.raises(RuntimeError, match='midpoint'):
-        dynamics.advance(.05, frame.command, frame.command+np.array([.1, -.1, .1, .1, -.1, .1]))
+    before = dynamics.state()
+    trace = dynamics.advance(.05, frame.command,
+        frame.command+np.array([.1, -.1, .1, .1, -.1, .1]))
     after = dynamics.state()
     for key in ('position', 'velocity', 'acceleration'):
-        np.testing.assert_array_equal(after[key], before[key])
-    assert after['diagnostics']['time_s'] == before['diagnostics']['time_s']
+        assert np.all(np.isfinite(after[key]))
+    assert not np.array_equal(after['position'], before['position'])
+    assert trace['times'][-1] == .05
+    assert after['diagnostics']['time_s'] == .05
     assert after['diagnostics']['newton_iterations'] >= 1
-    assert after['diagnostics']['last_advance_failed']
-    assert 'midpoint' in after['diagnostics']['last_advance_error']
-    assert after['diagnostics']['advance_diagnostics_scope'] == 'failed_advance_attempt'
-    for actual, expected in zip(_native_trace(dynamics), trace):
-        np.testing.assert_array_equal(actual, expected)
+    assert after['diagnostics']['unconverged_finite_substeps'] > 0
+    assert after['diagnostics']['newton_budget_substeps'] > 0
+    assert after['diagnostics']['max_torque_residual_nm'] > 1e-10
+    assert not after['diagnostics']['last_advance_failed']
+    assert after['diagnostics']['last_advance_error'] is None
     dynamics.reset(frame.joints, velocity=np.zeros(6), command=frame.command)
     assert not dynamics.diagnostics()['last_advance_failed']
     assert dynamics.diagnostics()['last_advance_error'] is None
     assert dynamics.diagnostics()['advance_diagnostics_scope'] == 'accepted_state_and_last_successful_advance'
+
+
+@pytest.mark.parametrize('budgets,warning', [
+    ({'max_newton_iterations': 0}, 'newton_budget_substeps'),
+    ({'max_line_search_steps': 0}, 'line_search_stalled_substeps'),
+])
+def test_finite_physics_iteration_or_line_search_audit_never_becomes_a_pipeline_stop(tmp_path, budgets, warning):
+    scene = MovingSwitchScene(tmp_path)
+    frame = scene.step(0., 1000., render_camera=False)
+    dynamics = NativeDynamics(scene.urdf, scene.config['plant']['stiffness'],
+        absolute_residual_tolerance=1e-30, relative_residual_tolerance=0., **budgets)
+    dynamics.reset(frame.joints, velocity=[.02, -.02, .02, -.02, .02, -.02], command=frame.command)
+    for _ in range(2):
+        trace = dynamics.advance(.001, frame.command, frame.command)
+        assert trace['times'][-1] == .001
+        assert np.all(np.isfinite(trace['positions']))
+        diagnostics = dynamics.diagnostics()
+        assert diagnostics['unconverged_finite_substeps'] > 0
+        assert diagnostics[warning] > 0
+        assert not diagnostics['last_advance_failed']
+    assert dynamics.diagnostics()['time_s'] == pytest.approx(.002)
 
 
 def test_scene_motion_is_continuous_and_keeps_actual_velocity_when_command_is_held(tmp_path):

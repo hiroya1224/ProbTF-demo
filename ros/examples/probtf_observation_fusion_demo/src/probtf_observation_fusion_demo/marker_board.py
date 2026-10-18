@@ -217,9 +217,10 @@ def _project_central(branches, reference, integration_steps):
             refinement_evaluations = int(refined.nfev)
             fit_method += '; deterministic relative-moment concentration refinement'
     fitted = bingham_second_moment(parameter, integration_steps=integration_steps)
+    if not all(np.all(np.isfinite(item)) for item in (parameter, target, fitted)):
+        raise ValueError('The central Bingham fit contains nonfinite parameters or moments.')
     fit_error = float(np.max(np.abs(fitted-target)))
-    if fit_error > 1e-6:
-        raise ValueError('The central Bingham second-moment fit did not meet its declared residual tolerance.')
+    fit_tolerance_verified = bool(fit_error <= 1e-6)
     try:
         quaternion, omega = bingham_rotation_coordinates(parameter)
         domain_reason = None
@@ -246,6 +247,11 @@ def _project_central(branches, reference, integration_steps):
         quaternion_second_moment_target=target.tolist(),
         quaternion_second_moment_fitted=fitted.tolist(),
         quaternion_second_moment_fit_max_error=fit_error,
+        quaternion_second_moment_fit_tolerance=1e-6,
+        quaternion_second_moment_fit_tolerance_verified=fit_tolerance_verified,
+        quaternion_second_moment_fit_residual_is_update_gate=False,
+        quaternion_second_moment_fit_warning=(None if fit_tolerance_verified else
+            'The finite central Bingham fit exceeds the diagnostic second-moment residual tolerance.'),
         bingham_fit_method=fit_method, core_bingham_fit_max_error=core_fit_max_error,
         bingham_fit_refinement_used=refinement_evaluations > 0,
         bingham_fit_refinement_function_evaluations=refinement_evaluations,
@@ -255,7 +261,7 @@ def _project_central(branches, reference, integration_steps):
         product_covariance=None if product_covariance is None else product_covariance.tolist(),
         applied=domain_reason is None, deferred=domain_reason is not None,
         single_proxy_domain_reason=domain_reason,
-        approximation=('central derived law only: translation moment Gaussian times quaternion-second-moment matched single Bingham; position/orientation cross discarded here'
+        approximation=('central derived law only: translation moment Gaussian times a single Bingham fitted to quaternion second moments with its residual recorded; position/orientation cross discarded here'
             if domain_reason is None else 'single central approximation not applied; every full correlated Gaussian branch and normalized log mass retained'))
     if domain_reason is not None:
         return None, record

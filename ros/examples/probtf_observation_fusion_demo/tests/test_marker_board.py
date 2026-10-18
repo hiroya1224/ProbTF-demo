@@ -2,6 +2,7 @@
 
 from dataclasses import replace
 import json
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -159,6 +160,47 @@ def test_native_mixture_moments_include_between_covariance_and_match_quaternion_
     assert result.record['raw_native_mixtures_retained']
     assert result.record['central_position_orientation_product_approximation']
     json.dumps(result.record, allow_nan=False)
+
+
+def test_finite_inexact_central_bingham_fit_records_residual_and_keeps_all_native_modes(monkeypatch):
+    import probtf_observation_fusion_demo.marker_board as module
+    native = detection(21, angles=(-.03, .03), log_masses=np.log([.3, .7]))
+    original_parameters = tuple(component.orientation.parameter_matrix().copy()
+                                for component in native.record.distribution.components)
+    incomplete_parameter = np.diag([-100., -110., -120., 0.])
+    monkeypatch.setattr(module, 'match_bingham_to_second_moment',
+                        lambda *args, **kwargs: incomplete_parameter.copy())
+    monkeypatch.setattr(module, 'least_squares',
+                        lambda *args, **kwargs: SimpleNamespace(x=np.log([100., 110., 120.]), nfev=1))
+    result = fuse_marker_board({21: native}, SETTINGS)
+    projection = result.record['steps'][0]['projection']
+    assert projection['quaternion_second_moment_fit_max_error'] > 1e-6
+    assert not projection['quaternion_second_moment_fit_tolerance_verified']
+    assert not projection['quaternion_second_moment_fit_residual_is_update_gate']
+    assert projection['quaternion_second_moment_fit_warning']
+    assert projection['applied']
+    assert result.record['central_component_count'] == 1
+    assert len(result.record['raw_observations'][0]['components']) == 2
+    assert result.record['raw_native_mixtures_retained']
+    for component, original in zip(native.record.distribution.components, original_parameters):
+        np.testing.assert_array_equal(component.orientation.parameter_matrix(), original)
+    json.dumps(result.record, allow_nan=False)
+
+
+def test_nonfinite_central_bingham_moment_remains_an_actual_failure(monkeypatch):
+    import probtf_observation_fusion_demo.marker_board as module
+    native = detection(21, angles=(-.03, .03))
+    incomplete_parameter = np.diag([-100., -110., -120., 0.])
+    actual_moment = module.bingham_second_moment
+    def invalid_moment(parameter, **kwargs):
+        if np.array_equal(parameter, incomplete_parameter):
+            return np.full((4, 4), np.nan)
+        return actual_moment(parameter, **kwargs)
+    monkeypatch.setattr(module, 'match_bingham_to_second_moment',
+                        lambda *args, **kwargs: incomplete_parameter.copy())
+    monkeypatch.setattr(module, 'bingham_second_moment', invalid_moment)
+    with pytest.raises(ValueError, match='nonfinite parameters or moments'):
+        fuse_marker_board({21: native}, SETTINGS)
 
 
 def test_underflowed_native_mode_can_become_the_dominant_product_without_pruning():

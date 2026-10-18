@@ -179,33 +179,35 @@ def test_bad_result_is_explicitly_rejected_and_never_replaces_last_good_input(ch
     assert not state.halted
 
 
-def test_stale_rejection_and_held_input_stop_only_with_explicit_configured_threshold():
+def test_age_threshold_is_a_diagnostic_and_never_stops_finite_updates():
     unconstrained = tracker()
     assert unconstrained.accept(packet(), 100.)['accepted']
     assert unconstrained.advance(.01, stamp=100.01).record['status'] == 'tracking'
     bounded = tracker(max_source_age=.5)
-    assert not bounded.accept(packet(), 1.)['accepted']
-    assert bounded.last_packet is None
+    adoption=bounded.accept(packet(), 1.)
+    assert adoption['accepted']
+    assert adoption['numerical_diagnostic_warning']=='source_age_exceeded'
     assert bounded.accept(packet(), .1)['accepted']
     bounded.advance(.2)
     safe = bounded.position
     result = bounded.advance(.4)
-    assert result.record['reason'] == 'held_gradient_source_age_exceeded'
-    assert result.record['stop_requested']
-    np.testing.assert_array_equal(result.command, safe)
-    np.testing.assert_array_equal(result.velocity, [0., 0.])
+    assert result.record['numerical_diagnostic_warning']=='source_age_exceeded'
+    assert result.record['status']=='tracking' and not result.record['stop_requested']
+    assert not bounded.halted
+    assert np.linalg.norm(np.asarray(result.command)-safe)>0.
 
 
 @pytest.mark.parametrize('options,updates,expected', [
-    ({'max_command_distance': .001}, None, 'held_gradient_source_command_distance_exceeded'),
-    ({'max_snapshot_update_lag': 1}, 7, 'held_gradient_snapshot_update_lag_exceeded'),
+    ({'max_command_distance': .001}, None, 'source_command_distance_exceeded'),
+    ({'max_snapshot_update_lag': 1}, 7, 'snapshot_update_lag_exceeded'),
 ])
 def test_optional_distance_and_update_lag_thresholds_are_observable(options, updates, expected):
     state = tracker(**options)
     assert state.accept(packet(), 0.)['accepted']
     state.advance(.1)
-    stopped = state.advance(.01, snapshot_update_count=updates)
-    assert stopped.record['reason'] == expected
+    continued = state.advance(.01, snapshot_update_count=updates)
+    assert continued.record['numerical_diagnostic_warning'] == expected
+    assert continued.record['status']=='tracking' and not state.halted
 
 
 def test_joint_limit_stops_at_last_safe_position_and_records_unclipped_rejected_command():

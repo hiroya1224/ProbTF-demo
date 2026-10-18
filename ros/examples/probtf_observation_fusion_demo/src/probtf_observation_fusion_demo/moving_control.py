@@ -114,12 +114,13 @@ def _bounded_gradient_direction(metric, gradient, baseline, lower, upper):
     feasible = (np.all(np.isfinite(direction))
         and np.all(baseline+direction >= lower-1e-12)
         and np.all(baseline+direction <= upper+1e-12))
-    accepted = bool(solved.success and feasible and gradient @ direction < 0.)
+    accepted = bool(feasible and gradient @ direction < 0.)
     if not accepted:
         direction = np.zeros_like(baseline)
     return direction, dict(method='coupled box-constrained Fisher quadratic',
         solver='deterministic SLSQP with analytic quadratic gradient',
         solver_success=bool(solved.success), solver_status=int(solved.status),
+        optimizer_success_is_acceptance_gate=False,
         solver_message=str(solved.message), iterations=int(solved.nit),
         constraints_satisfied=bool(feasible),
         accepted=accepted,
@@ -764,8 +765,7 @@ class MovingController:
         metric = self._step_metric(components, initial_item[3], command_jacobian)
         direction, quadratic_record = _bounded_gradient_direction(
             metric, raw_gradient, baseline, lower, upper)
-        solver_failed = not (quadratic_record['solver_success']
-                             and quadratic_record['constraints_satisfied'])
+        solver_failed = not quadratic_record['constraints_satisfied']
         if solver_failed:
             quadratic_record['fallback'] = 'maximal braking baseline'
         elif not quadratic_record['accepted']:

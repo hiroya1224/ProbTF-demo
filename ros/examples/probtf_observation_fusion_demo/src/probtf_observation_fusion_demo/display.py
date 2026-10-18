@@ -71,6 +71,10 @@ def query_record(point):
         "source_version": query.version,
         "source_command": list(query.command),
         "approximation_order": query.approximation_order,
+        "total_covariance_residual_inf": float(np.max(np.abs(query.within+query.between-query.covariance))),
+        "total_covariance_identity_verified": bool(np.allclose(query.within+query.between,
+            query.covariance,rtol=1e-9,atol=1e-12)),
+        "numerical_quality_is_stop_gate": False,
         "frame_label": point.frame_label,
         "axis": point.axis,
         "component_id": point.component_id,
@@ -143,9 +147,8 @@ def goal_axis_records(snapshot):
 def goal_pose_records(snapshot):
     """Query each component's modal TF from its same four core endpoints.
 
-    A common positive axis length and an orthonormal right-handed modal basis
-    are required. No mean-frame approximation, mixture selection, covariance
-    change or projection of a nonorthogonal mean basis is performed here.
+    Finite modal endpoints provide the same TF conversion as before. Numerical
+    length/orthogonality checks are diagnostics, never publication stop gates.
     """
     groups = {}
     for axis in goal_axis_records(snapshot):
@@ -156,21 +159,24 @@ def goal_pose_records(snapshot):
         origin = np.asarray(source['start'])
         columns = np.column_stack([np.asarray(group[axis]['end'])-origin for axis in ('x', 'y', 'z')])
         lengths = np.linalg.norm(columns, axis=0)
-        if (not np.all(np.isfinite(columns)) or lengths[0] <= 0.
-                or not np.allclose(lengths, lengths[0], rtol=1e-10, atol=1e-12)):
-            raise ValueError('Modal goal TF queries require a common positive axis length.')
+        if not np.all(np.isfinite(columns)) or not np.isfinite(lengths[0]) or lengths[0]<=0.:
+            raise ValueError('Modal goal TF conversion needs finite endpoints and a nonzero divisor.')
         rotation = columns/lengths[0]
-        if (not np.allclose(rotation.T @ rotation, np.eye(3), rtol=0., atol=1e-10)
-                or not np.isclose(np.linalg.det(rotation), 1., rtol=0., atol=1e-10)):
-            raise ValueError('Modal goal TF queries must form a right-handed orthonormal frame.')
+        quaternion=rotmat_to_quat(rotation)
+        if not np.all(np.isfinite(quaternion)):
+            raise ValueError('Modal goal TF quaternion conversion produced nonfinite values.')
         common_keys = ('component_id', 'component_index', 'child_frame_id', 'weight', 'log_weight',
             'source_component_id', 'source_state_id', 'source_frame', 'source_stamp',
             'source_version', 'source_command', 'goal_memory_available',
             'goal_observation_stamp', 'goal_observation_version', 'goal_observation_command',
             'goal_observation_ids', 'operation')
         records.append(dict({key: source[key] for key in common_keys},
-            translation=origin.tolist(), rotation_wxyz=rotmat_to_quat(rotation).tolist(),
+            translation=origin.tolist(), rotation_wxyz=quaternion.tolist(),
             rotation_matrix=rotation.tolist(), axis_length_m=float(lengths[0]),
+            numerical_diagnostics=dict(axis_lengths_m=lengths.tolist(),
+                common_axis_length_verified=bool(np.allclose(lengths,lengths[0],rtol=1e-10,atol=1e-12)),
+                orthogonality_residual_inf=float(np.max(np.abs(rotation.T@rotation-np.eye(3)))),
+                determinant=float(np.linalg.det(rotation)),numerical_quality_is_stop_gate=False),
             origin_query_id=source['origin_query_id'],
             endpoint_query_ids={axis: group[axis]['endpoint_query_id'] for axis in ('x', 'y', 'z')},
             modal_endpoints={axis: group[axis]['end'] for axis in ('x', 'y', 'z')}))

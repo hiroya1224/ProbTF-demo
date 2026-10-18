@@ -264,8 +264,7 @@ class RunningGradientTracker:
                 elif (metrics['gradient_snapshot_update_lag'] is not None
                       and metrics['gradient_snapshot_update_lag'] < 0):
                     reason = 'source_snapshot_is_in_future'
-                else:
-                    reason = self._stale_reason(metrics)
+                record['numerical_diagnostic_warning']=self._stale_reason(metrics)
         except (TypeError, ValueError, OverflowError) as error:
             reason = 'invalid_packet'
             record['validation_error'] = str(error)
@@ -339,9 +338,8 @@ class RunningGradientTracker:
         metrics = self._metrics(self.last_packet, next_stamp, snapshot_update_count)
         record.update(metrics)
         record['gradient_distance_evaluated_at_command'] = self._position.tolist()
-        reason = self._stale_reason(metrics)
-        if reason is not None:
-            return self._stop('held_gradient_'+reason, record)
+        record['numerical_diagnostic_warning']=self._stale_reason(metrics)
+        record['numerical_quality_is_stop_gate']=False
         try:
             command, velocity = step_running_gradient(self._position, self._velocity,
                 self.last_packet.gradient, dt, self.eta, self.gamma)

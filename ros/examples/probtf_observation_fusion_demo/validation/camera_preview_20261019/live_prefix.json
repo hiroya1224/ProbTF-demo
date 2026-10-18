@@ -1,0 +1,107 @@
+{
+  "scope": "live prefix after disk-capacity recovery; no full180s or estimator-drain claim",
+  "cases": {
+    "marker": {
+      "source_directory": "/tmp/probtf_camera_pipeline_rviz_recovered_20261019/marker",
+      "physical_s": 34.6510625067167,
+      "preview_age_s": 0.06324267387390137,
+      "age_at_preview_ready_s": {
+        "count": 366,
+        "median": 0.06944859027862549,
+        "max": 0.6618168354034424,
+        "p95": 0.10689306259155273
+      },
+      "raw_backlog": 6,
+      "failure": null,
+      "stiffness_failure": null,
+      "frame_pipeline_timings_s": {
+        "render_seconds": {
+          "count": 732,
+          "median": 0.03455761494114995,
+          "max": 0.05077363597229123,
+          "p95": 0.040281420573592186
+        },
+        "preview_detection_seconds": {
+          "count": 732,
+          "median": 0.023052993463352323,
+          "max": 0.0390247218310833,
+          "p95": 0.02732759015634656
+        },
+        "foreground_queue_seconds": {
+          "count": 732,
+          "median": 0.001698136329650879,
+          "max": 0.4666635990142822,
+          "p95": 0.024746417999267578
+        },
+        "archive_seconds": {
+          "count": 366,
+          "median": 0.017293234588578343,
+          "max": 0.24886875692754984,
+          "p95": 0.1456956909969449
+        },
+        "writer_wait_s": {
+          "count": 366,
+          "median": 0.0006720069795846939,
+          "max": 0.18905504187569022,
+          "p95": 0.09484675573185086
+        }
+      }
+    },
+    "imu_marker": {
+      "source_directory": "/tmp/probtf_camera_pipeline_rviz_recovered_20261019/imu_marker",
+      "physical_s": 31.043033320922405,
+      "preview_age_s": 0.12158465385437012,
+      "age_at_preview_ready_s": {
+        "count": 327,
+        "median": 0.06886816024780273,
+        "max": 0.5526707172393799,
+        "p95": 0.10973143577575684
+      },
+      "raw_backlog": 11,
+      "failure": null,
+      "stiffness_failure": null,
+      "frame_pipeline_timings_s": {
+        "render_seconds": {
+          "count": 654,
+          "median": 0.03277356596663594,
+          "max": 0.05359145812690258,
+          "p95": 0.03901981841772795
+        },
+        "preview_detection_seconds": {
+          "count": 654,
+          "median": 0.022889777086675167,
+          "max": 0.039303377736359835,
+          "p95": 0.027368346229195595
+        },
+        "foreground_queue_seconds": {
+          "count": 654,
+          "median": 0.0017626285552978516,
+          "max": 0.2974231243133545,
+          "p95": 0.022089004516601562
+        },
+        "archive_seconds": {
+          "count": 327,
+          "median": 0.018034833949059248,
+          "max": 0.11402437323704362,
+          "p95": 0.0701386327855289
+        },
+        "writer_wait_s": {
+          "count": 327,
+          "median": 0.0006485898047685623,
+          "max": 0.0903447400778532,
+          "p95": 0.02094228472560644
+        }
+      }
+    }
+  },
+  "ROS_subscriber_probe": {
+    "case": "marker",
+    "duration_wall_s": 2.0,
+    "received_images": 25,
+    "physical_metadata_minus_image_stamp_s": {
+      "max": 0.9492106437683105,
+      "min": 0.0
+    },
+    "scope": "independent subscriber to the same detection_image and motion_metadata topics as the viewer; callbacks are asynchronous, so this is not synchronized end-to-end latency"
+  }
+}

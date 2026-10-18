@@ -115,6 +115,53 @@ def test_publication_process_preserves_wire_snapshot_pixels_and_every_raw_event(
     assert not packet.control['snapshot'].points[0].query.covariance.flags.writeable
 
 
+def test_original_camera_preview_is_sent_before_slow_scene_and_raw_publication(
+        render_context, acquired, monkeypatch):
+    renderer, clock, control, source = render_context
+    pixels = acquired[1].image
+    source_stamp = source.prior.stamp-3.
+    physical_stamp = source.prior.stamp+.5
+    original_scene_publish = renderer.display.publish
+    original_raw_publish = renderer.joint_commands.publish
+    seen = []
+
+    def assert_preview_already_published():
+        assert len(renderer.images.messages) == 1
+        message = renderer.images.messages[0]
+        assert message.header.stamp.to_sec() == source_stamp
+        assert message.header.frame_id == 'camera_optical_frame'
+        assert message.data == pixels.tobytes()
+        assert (message.height, message.width) == pixels.shape[:2]
+
+    def publish_raw(message):
+        assert_preview_already_published()
+        seen.append('raw')
+        original_raw_publish(message)
+
+    def slow_scene_publish(*args, **kwargs):
+        assert_preview_already_published()
+        seen.append('scene')
+        # A blocked scene/manifest path must not hold back this packet's
+        # already completed camera image or give it the current frame stamp.
+        clock[0] += 10.
+        original_scene_publish(*args, **kwargs)
+
+    monkeypatch.setattr(renderer.joint_commands, 'publish', publish_raw)
+    monkeypatch.setattr(renderer.display, 'publish', slow_scene_publish)
+    event = dict(kind='joint', stamp=physical_stamp, command=source.prior.command,
+        payload=dict(command_velocity=[.01]*6))
+    packet = packet_for(control, stamp=physical_stamp, raw=(event,),
+        preview=(0, pixels, source_stamp))
+    acknowledgement = renderer.process(packet)
+    assert seen == ['raw', 'scene']
+    assert renderer.images.settings['queue_size'] == 1
+    assert acknowledgement['raw_counts'] == dict(joint=1, imu=0, image=0)
+    assert renderer.joint_commands.messages[0].header.stamp.to_sec() == physical_stamp
+    assert len(renderer.trajectory) == 1
+    assert renderer.trajectory[0]['stamp'] == physical_stamp
+    assert len(renderer.distributions.messages) == len(renderer.snapshots.messages) == 1
+
+
 def test_trajectory_deltas_cache_source_and_never_repeat_snapshot_or_drop_raw(render_context):
     renderer,clock,control,source=render_context
     renderer.process(packet_for(control))

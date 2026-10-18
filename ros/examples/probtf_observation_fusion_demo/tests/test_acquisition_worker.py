@@ -31,8 +31,11 @@ def test_archive_worker_preserves_all_same_time_raw_sensors_and_exact_pixels(tmp
         marker_size=scene.config['marker']['size'], marker_ids=tuple(range(17,26)))
     database = tmp_path/'observations.sqlite3'
     acquisition_worker(requests,replies,specification,str(database),str(tmp_path))
-    answers = [replies.get_nowait() for _ in range(3)]
+    answers = [replies.get_nowait() for _ in range(4)]
     assert not any(item.get('failed') for item in answers), answers
+    archived_answer = next(item for item in answers if item['kind'] == 'image_ready')
+    preview_answer = next(item for item in answers if item['kind'] == 'preview_ready')
+    assert preview_answer['stamp'] == frame.stamp
     with SensorEventStore(database) as store:
         events = store.events()
         assert [item.event_id for item in events] == ['j0','i0','c0']
@@ -44,7 +47,7 @@ def test_archive_worker_preserves_all_same_time_raw_sensors_and_exact_pixels(tmp
         pixels = events[2].payload['image']
         archived = cv2.imread(str(tmp_path/events[2].payload['image_path']),cv2.IMREAD_UNCHANGED)
         np.testing.assert_array_equal(pixels,archived)
-        np.testing.assert_array_equal(pixels,answers[2]['image'])
+        np.testing.assert_array_equal(pixels,archived_answer['image'])
         assert events[2].payload['image_sha256'] == hashlib.sha256(pixels.tobytes()).hexdigest()
         forbidden = {'camera_pose','marker_pose','camera_history','joints','stiffness','goal'}
         assert all(not (forbidden & set(item.payload)) for item in events)

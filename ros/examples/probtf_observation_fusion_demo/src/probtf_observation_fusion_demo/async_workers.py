@@ -4,6 +4,8 @@ import hashlib
 import io
 import json
 from pathlib import Path
+from queue import Empty, Queue
+from threading import Event, Thread
 import time
 import traceback
 
@@ -65,9 +67,14 @@ def _freeze_arrays(value, seen=None):
 def _worker_error(output, worker):
     output.put(dict(failed=True, worker=worker, traceback=traceback.format_exc()))
 
-def _archive_image(path, image, index, stamp, dictionary, parameters, detector, marker_id):
+def _write_camera_image(path, image):
+    """Lossless archival only; preview generation never waits on this call."""
     if not cv2.imwrite(str(path), image):
         raise IOError('Failed to archive camera frame '+str(path))
+
+
+def _camera_preview(image, index, stamp, dictionary, parameters, detector, marker_id):
+    """Annotate the original pixels without writing or changing those pixels."""
     gray = image if image.ndim == 2 else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     corners, ids, _ = (detector.detectMarkers(gray) if detector is not None else
         cv2.aruco.detectMarkers(gray, dictionary, parameters=parameters))
@@ -82,6 +89,12 @@ def _archive_image(path, image, index, stamp, dictionary, parameters, detector, 
                               True, (0, 255, 0), 2, cv2.LINE_AA)
     return dict(index=index, stamp=stamp, visible=bool(visible), image=preview,
                 visible_marker_ids=visible_ids)
+
+
+def _archive_image(path, image, index, stamp, dictionary, parameters, detector, marker_id):
+    """Historical combined helper retained for callers outside the pipeline."""
+    _write_camera_image(path, image)
+    return _camera_preview(image, index, stamp, dictionary, parameters, detector, marker_id)
 
 def _handoff_result(result):
     """Transfer the identical final law, excluding already saved raw charts."""
@@ -963,15 +976,108 @@ def event_inference_worker(requests, replies, description, urdf, templates, outp
 
 
 def acquisition_worker(requests, replies, specification, database, output):
-    """Physical-side camera rendering and durable raw-event acquisition.
+    """Render each capture once; archive every raw event on an ordered writer.
 
-    One producer queue supplies already timestamped joint/IMU readings and
-    camera exposure requests. The latter's private world geometry is used
-    solely here to produce pixels; only pixels/measurement metadata enter the
-    public observation database. Neither the simulator nor its servo waits
-    for rendering, PNG encoding or a database BLOB commit.
+    Camera RNG and detection stay on the foreground thread in capture order.
+    The writer owns its SQLite connection and processes raw events and DB
+    operations in the original producer order. A preview is explicitly ready
+    before its archival acknowledgement; it is never a new sensor event.
     """
     cv2.setNumThreads(1)
+    archive_queue, archive_failed = Queue(), Event()
+    writer = None
+
+    def archive_requests():
+        store = None
+        try:
+            # SQLite state belongs to this writer only, including selections
+            # and completions; an unarchived acquisition cannot be overtaken.
+            store = SensorEventStore(database)
+            while True:
+                job = archive_queue.get()
+                if job is None:
+                    return
+                request = job['request']
+                kind = request['kind']
+                if kind == 'database_operation':
+                    if request['operation'] == 'select_batch':
+                        batch = store.claim_batch('inference', max_stamp=request['through_stamp'],
+                            snapshot_id=request['snapshot_id'], include_payload=False,
+                            initial_command_only=request.get('initial_command_only', False))
+                        replies.put(dict(kind='database_batch_selection', batch=batch,
+                            acquisition_watermark=request.get('acquisition_watermark')))
+                    elif request['operation'] == 'select':
+                        selected = None
+                        while True:
+                            event = store.claim_next('inference', through_stamp=request['through_stamp'])
+                            if event is None:
+                                break
+                            sensor = {'imu': 'imu', 'image': 'marker'}.get(event.kind)
+                            initialize = request['initialize'] and event.kind == 'joint'
+                            if initialize or (sensor is not None and sensor in request['enabled_sensors']):
+                                selected = event
+                                break
+                            store.complete(event.event_id, 'inference', result_metadata=dict(
+                                observation_fused=False, reason=('command notification' if event.kind == 'joint'
+                                    else 'sensor not enabled in this comparison case')))
+                        replies.put(dict(kind='database_selection', event=selected,
+                            acquisition_watermark=request.get('acquisition_watermark')))
+                    elif request['operation'] == 'complete':
+                        store.complete(request['event_id'], 'inference',
+                            result_metadata=request['result_metadata'])
+                        replies.put(dict(kind='database_completed', event_id=request['event_id']))
+                    elif request['operation'] == 'fail':
+                        store.fail(request['event_id'], 'inference', request['error'])
+                        replies.put(dict(kind='database_failed', event_id=request['event_id']))
+                    else:
+                        raise ValueError('Unknown observation database operation.')
+                    continue
+                metadata = dict(time=request['time'], frame_index=request['frame_index'])
+                received = request['received_wall_stamp']
+                if kind != 'image':
+                    metadata.update(request['payload'])
+                    event = store.append(request['event_id'], kind, request['stamp'],
+                        request['command'], metadata, received_wall_stamp=received)
+                    replies.put(dict(kind='raw_ready', sensor_kind=kind,
+                        event_id=event.event_id, event_sequence=event.sequence,
+                        frame_index=request['frame_index'], stamp=request['stamp']))
+                    continue
+                archive_started = time.monotonic()
+                store.reserve(request['event_id'], kind, request['stamp'],
+                    request['command'], received_wall_stamp=received)
+                reserved = time.monotonic()
+                _write_camera_image(job['path'], job['image'])
+                image_written = time.monotonic()
+                metadata.update(image=job['image'], image_stamp=request['stamp'],
+                    image_path=job['path'].name, image_sha256=job['image_sha256'])
+                event = store.supply_payload(request['event_id'], metadata)
+                archived = time.monotonic()
+                replies.put(dict(kind='image_ready', sensor_kind=kind,
+                    event_id=event.event_id, event_sequence=event.sequence,
+                    frame_index=request['frame_index'], stamp=request['stamp'],
+                    image=job['image'], preview=job['preview'],
+                    camera_diagnostics=job['camera_diagnostics'],
+                    work_seconds=archived-job['started'],
+                    image_sha256=metadata['image_sha256'], image_path=job['path'].name,
+                    acquisition_timing=dict(render_seconds=job['render_seconds'],
+                        preview_seconds=job['preview_seconds'],
+                        preview_detection_seconds=job['preview_seconds'],
+                        foreground_queue_seconds=job['foreground_queue_seconds'],
+                        archive_queue_seconds=archive_started-job['archive_enqueued'],
+                        writer_wait_s=archive_started-job['archive_enqueued'],
+                        archive_seconds=archived-archive_started,
+                        total_work_seconds=archived-job['started'],
+                        database_reservation_seconds=reserved-archive_started,
+                        image_write_seconds=image_written-reserved,
+                        database_payload_seconds=archived-image_written),
+                    archival_complete=True))
+        except Exception:
+            archive_failed.set()
+            _worker_error(replies, 'acquisition')
+        finally:
+            if store is not None:
+                store.close()
+
     try:
         board = specification['board']
         camera = (BoardCamera(specification['texture'], board,
@@ -984,73 +1090,60 @@ def acquisition_worker(requests, replies, specification, database, output):
         parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
         detector = (cv2.aruco.ArucoDetector(dictionary, parameters)
                     if hasattr(cv2.aruco, 'ArucoDetector') else None)
-        store = SensorEventStore(database)
+        writer = Thread(target=archive_requests, name='camera-raw-archive', daemon=True)
+        writer.start()
         while True:
-            request = requests.get()
+            if archive_failed.is_set():
+                return
+            try:
+                request = requests.get(timeout=.05)
+            except Empty:
+                continue
             if request is None:
-                store.close()
                 return
             kind = request['kind']
-            if kind=='database_operation':
-                if request['operation']=='select_batch':
-                    batch=store.claim_batch('inference', max_stamp=request['through_stamp'],
-                        snapshot_id=request['snapshot_id'], include_payload=False,
-                        initial_command_only=request.get('initial_command_only', False))
-                    replies.put(dict(kind='database_batch_selection', batch=batch,
-                        acquisition_watermark=request.get('acquisition_watermark')))
-                elif request['operation']=='select':
-                    selected=None
-                    while True:
-                        event=store.claim_next('inference',through_stamp=request['through_stamp'])
-                        if event is None:
-                            break
-                        sensor={'imu':'imu','image':'marker'}.get(event.kind)
-                        initialize=request['initialize'] and event.kind=='joint'
-                        if initialize or (sensor is not None and sensor in request['enabled_sensors']):
-                            selected=event
-                            break
-                        store.complete(event.event_id,'inference',result_metadata=dict(
-                            observation_fused=False,reason=('command notification' if event.kind=='joint'
-                                else 'sensor not enabled in this comparison case')))
-                    replies.put(dict(kind='database_selection',event=selected,
-                        acquisition_watermark=request.get('acquisition_watermark')))
-                elif request['operation']=='complete':
-                    store.complete(request['event_id'],'inference',
-                        result_metadata=request['result_metadata'])
-                    replies.put(dict(kind='database_completed',event_id=request['event_id']))
-                elif request['operation']=='fail':
-                    store.fail(request['event_id'],'inference',request['error'])
-                    replies.put(dict(kind='database_failed',event_id=request['event_id']))
-                else:
-                    raise ValueError('Unknown observation database operation.')
-                continue
-            metadata = dict(time=request['time'], frame_index=request['frame_index'])
-            received = request['received_wall_stamp']
             if kind != 'image':
-                metadata.update(request['payload'])
-                event = store.append(request['event_id'], kind, request['stamp'],
-                    request['command'], metadata, received_wall_stamp=received)
-                replies.put(dict(kind='raw_ready', sensor_kind=kind,
-                    event_id=event.event_id, event_sequence=event.sequence,
-                    frame_index=request['frame_index'], stamp=request['stamp']))
+                archive_queue.put(dict(request=request))
                 continue
-            store.reserve(request['event_id'], kind, request['stamp'],
-                request['command'], received_wall_stamp=received)
+            foreground_queue_seconds = time.time()-request['received_wall_stamp']
             started = time.monotonic()
             image = camera.render(request['camera_pose'], request['marker_pose'],
                                   request['camera_history'])
+            rendered = time.monotonic()
+            # The writer and preview share the exact original capture, with no
+            # extra RNG draws, changed blur, re-rendering or observation IDs.
+            image.setflags(write=False)
             path = Path(output)/('capture_{:06d}.png'.format(request['frame_index']))
-            preview = _archive_image(path, image, request['frame_index'], request['stamp'],
+            preview = _camera_preview(image, request['frame_index'], request['stamp'],
                 dictionary, parameters, detector, specification['marker_ids'])
-            metadata.update(image=image, image_stamp=request['stamp'],
-                image_path=path.name,
-                image_sha256=hashlib.sha256(image.tobytes()).hexdigest())
-            event = store.supply_payload(request['event_id'], metadata)
-            replies.put(dict(kind='image_ready', sensor_kind=kind,
-                event_id=event.event_id, event_sequence=event.sequence,
+            previewed = time.monotonic()
+            image_sha256 = hashlib.sha256(image.tobytes()).hexdigest()
+            diagnostics = dict(camera.diagnostics)
+            replies.put(dict(kind='preview_ready', sensor_kind=kind,
+                event_id=request['event_id'],
                 frame_index=request['frame_index'], stamp=request['stamp'],
-                image=image, preview=preview, camera_diagnostics=dict(camera.diagnostics),
+                command=list(request['command']),
+                image=image, preview=preview, camera_diagnostics=diagnostics,
                 work_seconds=time.monotonic()-started,
-                image_sha256=metadata['image_sha256'], image_path=path.name))
+                image_sha256=image_sha256, image_path=path.name,
+                acquisition_timing=dict(render_seconds=rendered-started,
+                    preview_seconds=previewed-rendered,
+                    preview_detection_seconds=previewed-rendered,
+                    foreground_queue_seconds=foreground_queue_seconds,
+                    total_work_seconds=time.monotonic()-started),
+                archival_complete=False, observation_event_created=False))
+            archive_queue.put(dict(request=request, image=image, path=path,
+                preview=preview, camera_diagnostics=diagnostics,
+                image_sha256=image_sha256, started=started,
+                render_seconds=rendered-started, preview_seconds=previewed-rendered,
+                foreground_queue_seconds=foreground_queue_seconds,
+                archive_enqueued=time.monotonic()))
     except Exception:
-        _worker_error(replies, 'acquisition')
+        if not archive_failed.is_set():
+            _worker_error(replies, 'acquisition')
+    finally:
+        if writer is not None:
+            # A normal shutdown drains every queued raw event and operation.
+            # A failed writer has already emitted an explicit failure reply.
+            archive_queue.put(None)
+            writer.join()

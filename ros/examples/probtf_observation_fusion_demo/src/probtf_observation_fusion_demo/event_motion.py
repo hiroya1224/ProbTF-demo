@@ -292,6 +292,30 @@ class AsyncMotionSession:
             if kind != 'image':
                 self.raw_publications.append(request)
 
+    def _accept_camera_preview(self, message):
+        """Display measured pixels before archival, without acknowledging raw.
+
+        The single camera preserves capture order; the independent writer's
+        older archival acknowledgement must never roll the live preview back.
+        """
+        index = message['frame_index']
+        if self.preview_capture_index is not None and index <= self.preview_capture_index:
+            return
+        preview = message['preview']
+        self.preview_image = preview['image']
+        self.preview_capture_index = index
+        self.marker_preview_visible = preview['visible']
+        if not preview['visible']:
+            self.last_marker_missing_capture = index
+        _append(self.output/'camera_previews.jsonl', {k: preview[k] for k in
+            ('index', 'stamp', 'visible', 'visible_marker_ids')})
+        if 'acquisition_timing' in message:
+            _append(self.output/'camera_pipeline.jsonl', dict(
+                readiness='preview', frame_index=index, source_stamp=message['stamp'],
+                physical_stamp=self.frame.stamp,
+                source_age_s=self.frame.stamp-message['stamp'],
+                archival_complete=False, timing=message['acquisition_timing']))
+
     def collect_archives(self):
         while True:
             try: message = self.acquisition_replies.get_nowait()
@@ -299,6 +323,9 @@ class AsyncMotionSession:
             if message.get('failed'):
                 self.failure = message
                 raise RuntimeError('Acquisition failed: '+message['traceback'])
+            if message['kind'] == 'preview_ready':
+                self._accept_camera_preview(message)
+                continue
             if message['kind']=='database_selection':
                 if not self.database_selection_pending:
                     raise ValueError('Unexpected database selection reply.')
@@ -325,16 +352,15 @@ class AsyncMotionSession:
             self.acquisition_completed += 1
             if message['kind'] != 'image_ready':
                 continue
-            preview = message['preview']
-            self.preview_image = preview['image']
-            self.preview_capture_index = message['frame_index']
-            self.marker_preview_visible = preview['visible']
-            if not preview['visible']:
-                self.last_marker_missing_capture = message['frame_index']
+            if 'acquisition_timing' in message:
+                _append(self.output/'camera_pipeline.jsonl', dict(
+                    readiness='archive', frame_index=message['frame_index'],
+                    source_stamp=message['stamp'], physical_stamp=self.frame.stamp,
+                    source_age_s=self.frame.stamp-message['stamp'],
+                    archival_complete=True, timing=message['acquisition_timing']))
+            self._accept_camera_preview(message)
             self.raw_publications.append(dict(kind='image',stamp=message['stamp'],
                 frame_index=message['frame_index'],image=message['image']))
-            _append(self.output/'camera_previews.jsonl',{k:preview[k] for k in
-                ('index','stamp','visible','visible_marker_ids')})
 
     def _steps_since(self,index,target_index=None):
         target_index = len(self.frames)-1 if target_index is None else target_index
@@ -1018,6 +1044,12 @@ class AsyncMotionSession:
             inference_command_model='quasistatic_equilibrium_increment',
             missed_acquisition_deadlines=dict(self.missed_acquisition_deadlines),sensor_event_database=stats,
             acquisition_requests=self.acquisition_submitted,acquisition_archived=self.acquisition_completed,
+            camera_preview_capture_index=self.preview_capture_index,
+            camera_preview_source_stamp=(None if self.preview_capture_index is None else
+                self.frames[self.preview_capture_index].stamp),
+            camera_preview_age_s=(None if self.preview_capture_index is None else
+                self.frame.stamp-self.frames[self.preview_capture_index].stamp),
+            camera_preview_waits_for_durable_archive=False,
             all_captured_sensor_data_archived=self.acquisition_completed==self.acquisition_submitted,
             all_enabled_observations_processed=self.estimation_finished,
             observation_scheduling='all events in acquisition order; no latest-only selection',

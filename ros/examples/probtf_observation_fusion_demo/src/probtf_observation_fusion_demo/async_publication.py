@@ -92,7 +92,7 @@ class PublicationRenderer:
         self.distributions = publisher('/observation_fusion/distributions', MarkerArray, queue_size=4, latch=True)
         self.snapshots = publisher('/observation_fusion/snapshot', String, queue_size=4, latch=True)
         self.stiffness = publisher('/observation_fusion/stiffness', String, queue_size=4, latch=True)
-        self.images = publisher('/observation_fusion/detection_image', Image, queue_size=2, latch=True)
+        self.images = publisher('/observation_fusion/detection_image', Image, queue_size=1, latch=True)
         self.raw_images = publisher('/observation_fusion/raw_image', Image, queue_size=4)
         self.raw_imu = publisher('/observation_fusion/imu', Imu, queue_size=32)
         self.joint_commands = publisher('/observation_fusion/joint_command', JointState, queue_size=32)
@@ -157,6 +157,16 @@ class PublicationRenderer:
         if row['stamp'] != packet.frame.stamp or tuple(row['command']) != tuple(packet.frame.command):
             raise ValueError('Published physical frame has a different trajectory command/time.')
         self.sequence = packet.sequence
+        # The live image has already been acquired and archived.  Send its
+        # unchanged pixels/source stamp before scene rendering and snapshot
+        # serialization, without delaying or discarding any raw publication.
+        if packet.preview is not None:
+            index, image, stamp = packet.preview
+            if index != self.published_image:
+                with self.monitor.stage('preview_publish', **context,
+                                        image_index=index, image_source_stamp=stamp):
+                    self.images.publish(image_message(image, stamp, 'camera_optical_frame'))
+                self.published_image = index
         with self.monitor.stage('raw_publish', **context,
                                 raw_event_count=len(packet.raw_events)):
             self._publish_raw_events(packet.raw_events)
@@ -211,13 +221,6 @@ class PublicationRenderer:
                 temporary = path.with_suffix('.json.tmp')
                 temporary.write_text(json.dumps(metadata, indent=2)+'\n')
                 temporary.replace(path)
-        if packet.preview is not None:
-            index, image, stamp = packet.preview
-            if index != self.published_image:
-                with self.monitor.stage('preview_publish', **context,
-                                        image_index=index, image_source_stamp=stamp):
-                    self.images.publish(image_message(image, stamp, 'camera_optical_frame'))
-                self.published_image = index
         record = dict(kind='published', pid=os.getpid(), sequence=packet.sequence,
             frame_index=packet.frame_index, physical_stamp=packet.frame.stamp,
             queue_delay_s=delay, trajectory_rows=len(self.trajectory),

@@ -44,9 +44,9 @@ def test_receipt_raw_publish_and_save_intervals_preserve_original_sources(render
     rows = progress(renderer)
     finished = [row for row in rows if row['event'] == 'stage_finished']
     assert [row['stage'] for row in finished] == [
-        'raw_publish', 'snapshot_wire_publish', 'snapshot_json_publish',
+        'preview_publish', 'raw_publish', 'snapshot_wire_publish', 'snapshot_json_publish',
         'stiffness_json_publish', 'scene_publish', 'motion_metadata_publish',
-        'manifest_json_save', 'preview_publish', 'publication_record_save']
+        'manifest_json_save', 'publication_record_save']
     assert all(row['outcome'] == 'completed' and row['duration_s'] >= 0.
                and row['cpu_s'] >= 0. for row in finished)
     assert all(row['context']['physical_stamp'] == packet.frame.stamp for row in finished)

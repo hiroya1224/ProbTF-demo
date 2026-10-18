@@ -428,7 +428,7 @@ class SimpleMotionSession:
         snapshot = None if display is None else display['snapshot']
         phase = {name: self.scene.trajectory[-1][name] for name in
             ('reaching_phase', 'reaching_phase_source') if name in self.scene.trajectory[-1]}
-        return dict(execution_mode='simple', control_mode='finite_expected_position_error',
+        return dict(execution_mode='simple', control_mode='finite_squared_mean_position_error',
             physical_stamp=self.frame.stamp, command=self.command.tolist(),
             displayed_prediction_stamp=None if snapshot is None else snapshot.stamp,
             displayed_prediction_command=None if snapshot is None else list(snapshot.command),

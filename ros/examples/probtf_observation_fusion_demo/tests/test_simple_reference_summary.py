@@ -59,6 +59,7 @@ def test_initial_and_later_bingham_candidates_keep_exact_ID_and_root_score_after
         assert before == after
         assert source['joint_source_state_id'] == comparison['joint_source_state_id']
         assert source['difference_covariance'] == comparison['difference_covariance']
+        assert not source['difference_covariance_trace_in_objective']
 
 
 def test_uninformative_records_without_K_do_not_create_fake_K_source_metadata(
@@ -169,7 +170,12 @@ def test_saved_body_change_audit_checks_actual_odds_transition_priors_and_canoni
     assert all(value == 0 for value in skipped['checks'].values())
 
 
-def test_plan_response_separates_mean_covariance_descent_and_actual_motion(monkeypatch):
+@pytest.mark.parametrize('objective,scores,family,include_trace', [
+    ('E_mu_c[||p_hand(B)-p_goal(E)||^2]', (4., 2.31), 'expected_squared_distance', True),
+    ('||E_mu_c[p_hand(B)]-E_mu_c[p_goal(E)]||^2', (1., .81), 'squared_mean_distance', False),
+])
+def test_plan_response_identifies_legacy_and_mean_objectives_without_changing_covariance_diagnostics(
+        monkeypatch, objective, scores, family, include_trace):
     tools = Path(__file__).resolve().parents[1]/'validation/tools'
     monkeypatch.syspath_prepend(str(tools))
     summary = importlib.import_module('summarize_simple_reference')
@@ -177,8 +183,8 @@ def test_plan_response_separates_mean_covariance_descent_and_actual_motion(monke
         difference_covariance=np.eye(3).tolist())
     after = dict(hand_mean=[.1, 0., 0.], mean_difference=[-.9, 0., 0.],
         difference_covariance=(.5*np.eye(3)).tolist())
-    row = dict(adoption_stamp=10., duration=.5, diagnostics=dict(goal_observed=True,
-        S_before=4., S_after=2.31, source_score=before, selected_score=after,
+    row = dict(adoption_stamp=10., duration=.5, diagnostics=dict(goal_observed=True, objective=objective,
+        S_before=scores[0], S_after=scores[1], source_score=before, selected_score=after,
         step_norm_rad=.02, selected_command_action=dict(active_joint_limits=[False, True])))
     physical = {0: dict(stamp=10., tip=[0., 0., 0.], physical_error_m=1.),
         1: dict(stamp=10.51, tip=[-.02, 0., 0.], physical_error_m=1.02)}
@@ -194,3 +200,9 @@ def test_plan_response_separates_mean_covariance_descent_and_actual_motion(monke
     assert result['predicted_hand_progress_along_estimated_goal_m'] == pytest.approx(.1)
     assert result['actual_hand_progress_along_estimated_goal_m'] == pytest.approx(-.02)
     assert result['physical_sample_overshoot_s'] == pytest.approx(.01)
+    assert result['reaching_objective']['family'] == family
+    assert result['reaching_objective']['covariance_trace_in_objective'] is include_trace
+    assert result['score_before_equation_residual'] == 0.
+    assert result['score_after_equation_residual'] == pytest.approx(0., abs=1.e-15)
+    unknown = summary.reaching_objective({})
+    assert unknown['family'] == 'unspecified' and unknown['covariance_trace_in_objective'] is None

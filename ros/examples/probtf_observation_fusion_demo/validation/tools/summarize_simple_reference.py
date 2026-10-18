@@ -151,6 +151,33 @@ def source_coverage(stamps):
         maximum_gap_s=(max(np.diff(ordered)) if len(ordered)>1 else None))
 
 
+def reaching_objective(diagnostics):
+    """Identify the law's saved selection rule, including historical runs."""
+    expression = diagnostics.get('objective')
+    known = {
+        'E_mu_c[||p_hand(B)-p_goal(E)||^2]': ('expected_squared_distance', True),
+        '||E_mu_c[p_hand(B)]-E_mu_c[p_goal(E)]||^2': ('squared_mean_distance', False),
+    }
+    if expression in known:
+        family, include_trace = known[expression]
+        source = 'saved objective expression'
+    else:
+        include_trace = diagnostics.get('source_score', {}).get('difference_covariance_trace_in_objective')
+        family = ('expected_squared_distance' if include_trace is True else
+            'squared_mean_distance' if include_trace is False else 'unspecified')
+        source = 'saved point-score declaration' if include_trace is not None else 'not recorded'
+    return dict(expression=expression, family=family,
+        covariance_trace_in_objective=include_trace, identification_source=source)
+
+
+def declared_score(point_score, objective):
+    include_trace = objective['covariance_trace_in_objective']
+    if include_trace is None:
+        return None
+    difference = np.asarray(point_score['mean_difference'])
+    return float(difference@difference+(np.trace(point_score['difference_covariance']) if include_trace else 0.))
+
+
 def finite_plan_response(row, physical, stamps, by_stamp):
     """Compare one saved prediction with its actual, finite-duration response."""
     diagnostics = row['diagnostics']
@@ -162,6 +189,8 @@ def finite_plan_response(row, physical, stamps, by_stamp):
         return None
     end = physical[end_index]
     before, after = diagnostics['source_score'], diagnostics['selected_score']
+    objective = reaching_objective(diagnostics)
+    declared_before, declared_after = (declared_score(item, objective) for item in (before, after))
     delta_predicted = np.asarray(after['hand_mean'])-before['hand_mean']
     delta_actual = np.asarray(end['tip'])-start['tip']
     before_squared = float(np.dot(before['mean_difference'], before['mean_difference']))
@@ -176,6 +205,9 @@ def finite_plan_response(row, physical, stamps, by_stamp):
     return dict(adoption_stamp=row['adoption_stamp'], evaluated_physical_stamp=end['stamp'],
         physical_sample_overshoot_s=end['stamp']-(row['adoption_stamp']+row['duration']),
         S_before=diagnostics['S_before'], S_after=diagnostics['S_after'],
+        reaching_objective=objective,
+        score_before_equation_residual=(None if declared_before is None else diagnostics['S_before']-declared_before),
+        score_after_equation_residual=(None if declared_after is None else diagnostics['S_after']-declared_after),
         mean_squared_distance_before_m2=before_squared,
         mean_squared_distance_after_m2=after_squared,
         predicted_mean_squared_distance_change_m2=after_squared-before_squared,
@@ -511,16 +543,29 @@ def summarize(run):
                 checks['selection_batch_endpoint_range_mismatch'] += data['selected_time_range'] != data['available_time_range']
 
     plans, S_changes, selected_steps, responses, goal_predictions, plan_model_inputs = [], [], [], [], [], []
+    objective_families, objective_expressions, objective_residuals = Counter(), Counter(), []
     active_limits = Counter()
     physical_stamps = [row['stamp'] for row in physical.values()]
     for row in rows(run/'simple_plans.jsonl', frontiers, warnings):
         counts['selected_plan_rows'] += 1
         diagnostics = row['diagnostics']
+        objective = reaching_objective(diagnostics)
+        objective_families[objective['family']] += 1
+        objective_expressions[objective['expression'] or 'not recorded'] += 1
         truth_flags(diagnostics, flags)
         checks['plan_actual_start_vs_selection_source_mismatch'] += row['start_command'] != diagnostics['source_command']
         checks['plan_body_goal_law_ID_mismatch'] += diagnostics['body_source_state_ids'] != diagnostics['goal_source_state_ids']
         checks['plan_body_reconstructed_from_K'] += bool(diagnostics['body_reconstructed_from_stiffness'])
         if diagnostics['goal_observed']:
+            for score_name, point_name in (('S_before', 'source_score'), ('S_after', 'selected_score')):
+                point_score = diagnostics[point_name]
+                expected_score = declared_score(point_score, objective)
+                if expected_score is not None:
+                    objective_residuals.append(diagnostics[score_name]-expected_score)
+                flag = point_score.get('difference_covariance_trace_in_objective')
+                checks['plan_objective_point_score_declaration_mismatch'] += (
+                    flag is not None and objective['covariance_trace_in_objective'] is not None
+                    and flag != objective['covariance_trace_in_objective'])
             counts['selected_goal_available_plans'] += 1
             checks['plan_S_increased'] += diagnostics['S_after'] > diagnostics['S_before']
             S_changes.append(diagnostics['S_after']-diagnostics['S_before'])
@@ -642,9 +687,15 @@ def summarize(run):
         maximum_body_translation_full_covariance_row_abs=largest_Dirac_row,
         maximum_known_local_translation_change_m=largest_local_translation_change,
         selected_S_changes=percentiles(S_changes), selected_step_norm_rad=percentiles(selected_steps),
+        reaching_objective=dict(plan_family_counts=dict(objective_families),
+            saved_expression_counts=dict(objective_expressions),
+            score_equation_residual_count=len(objective_residuals),
+            maximum_absolute_score_equation_residual=(float(np.max(np.abs(objective_residuals)))
+                if objective_residuals else None),
+            covariance_interpretation='Covariance and full hand/goal cross remain diagnostic data. Their trace contributes to S only for the explicitly recorded expected-squared-distance objective; squared-mean-distance selection scores corrected means alone.'),
         finite_plan_posthoc_response=dict(
             comparison_count=len(responses),
-            scope='Each plan uses its saved fixed-law prediction and physical frames at adoption and the first frame at or after its finite duration. Physical settling after this boundary and changes from subsequent observations are not attributed to this single plan.',
+            scope='Each plan uses its saved fixed-law prediction and physical frames at adoption and the first frame at or after its finite duration. Physical settling after this boundary and changes from subsequent observations are not attributed to this single plan. Covariance-trace changes remain diagnostics and are not described as score contributions for squared-mean-distance selection.',
             aggregate={key: percentiles([item[key] for item in responses if item[key] is not None])
                 for key in ('predicted_mean_squared_distance_change_m2',
                     'predicted_covariance_trace_change_m2', 'predicted_mean_distance_reduction_m',
@@ -693,6 +744,7 @@ def compact_report(report, full_path):
             'maximum_known_local_translation_change_m', 'finite_reference_max_abs_error_rad',
             'latest_manifest', 'truth_flag_values', 'forbidden_truth_payload_key_counts',
             'source_hash_comparison', 'physical_goal_posthoc', 'camera_detection'))
+        row['reaching_objective'] = run.get('reaching_objective')
         row['body_bayes_factor_surprise'] = run.get('body_bayes_factor_surprise')
         row['execution_failures'] = run.get('execution_failures', [])
         row['observation_coverage_by_sensor_kind'] = {

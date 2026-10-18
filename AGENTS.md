@@ -1,5 +1,11 @@
 # 必須条件
 
+## リーチング規準を平均の差の二乗に変更する（2026年10月19日・最新指定）
+
+ユーザーは変更対象を「リーチング規準」と明示確認した。最小参照版の唯一のtask規準を `S(c)=||E_mu_c[p_hand]-E_mu_c[p_goal]||²` とする。旧 `E_mu_c[||p_hand-p_goal||²]` の差分共分散traceはtask値・勾配・backtrack採用に加えず、診断としてだけ保持する。各平均には同じ共同候補に対する既存ProbTFのO(P)補正を含め、modal FK位置へ置き換えない。全covarianceと全crossを推定・伝播・表示・記録から削除しない。
+
+身体の観測更新に使うKLと期待負対数尤度、身体BFSのρ=0.25と起動オプション、Kの共同方位比更新、凍結Kによる増分作用、有限指令ステップと原時計／実ledgerは変更しない。旧規準の実走記録を新規準の性能として扱わず、objectiveの式・methodを区別して記録する。本節は下記の二乗誤差期待値をtask規準とする規定に、最小参照版のリーチング選定だけで優先する。core・RViz・画像／軸／粒子設定、真値禁止・モンテカルロ禁止の規定は維持する。
+
 ## 最小参照版の身体だけに選択可能なBFSを追加する（2026年10月19日・最新指定）
 
 ユーザーの「身体のほうだけ、rho = 0.25 のbayesian factor surprise、オプション切替」に従い、最小参照版の身体BFSを既定で有効にする。`config/simple_reference.yaml` の `body_bayes_factor_surprise.enabled` と、moving launchの `body_surprise:=true/false` で切り替える。launch未指定はYAMLを使い、明示falseを文字列の真値として解釈しない。全case wrapperの既定は `simple` とし、旧経路は明示指定した比較用に保つ。

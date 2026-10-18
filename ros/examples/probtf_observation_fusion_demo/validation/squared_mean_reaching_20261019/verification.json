@@ -1,0 +1,50 @@
+{
+  "verified_at_utc": "2026-10-18T19:56:57.440241+00:00",
+  "base_commit": "193722cd1181d868e875b7b1e462a44a425f26b6",
+  "task_objective": "||E_mu_c[p_hand(B)]-E_mu_c[p_goal(E)]||^2",
+  "trace_in_objective": false,
+  "propagated_O_P_mean_corrections_retained": true,
+  "observation_variational_objective_unchanged": true,
+  "body_BFS_rho": 0.25,
+  "K_BFS_enabled": false,
+  "K_evidence_enabled": false,
+  "tests": {
+    "passed": 1468,
+    "failed": 0,
+    "seconds": 265.04,
+    "existing_deprecation_warnings": 1,
+    "command": "source /home/leus/catkin_ws/devel/setup.bash && env PYTHONPATH=/tmp/probtf_switch_press_pytest:$PYTHONPATH OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/probtf_observation_fusion_demo/tests ros/examples/probtf_observation_fusion_demo/validation/tools",
+    "meaningful_counterexample": "real native joint-law queries: legacy trace descent increases corrected mean error; new selector decreases corrected mean error even when legacy expectation increases"
+  },
+  "hash_checks": {
+    "production": {
+      "file_count": 93,
+      "changed_paths": []
+    },
+    "compiled_libraries": {
+      "file_count": 5,
+      "changed_paths": []
+    },
+    "protected_core_and_rviz": {
+      "file_count": 214,
+      "changed_paths": []
+    }
+  },
+  "protected_rviz_file_count": 43,
+  "artifacts_sha256": {
+    "runtime_180s.json": "583359736135f94c4fdd884e23585808d633cd8abf873285c9153520950a4aff",
+    "source_manifest.json": "4f51b0b2e965f8501ae15054008f2020f6443c463e7f2718b7797d7a4fb4b1e4"
+  },
+  "changed_test_and_summary_sha256": {
+    "ros/examples/probtf_observation_fusion_demo/tests/test_simple_control.py": "446e13f3944e332821c0b339f109a8d5d488982ab385dc70e8dc71ebf93a155c",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_simple_reference_summary.py": "7b1f3ca3b4eb4586e83d28367ede86f531d1fe9c9a4368a7ab1ad2313c030530",
+    "ros/examples/probtf_observation_fusion_demo/validation/tools/summarize_simple_reference.py": "b828a820bd2547214f0b93152d94d81e2d487f7e078ba7b1563c49cbed57443d"
+  },
+  "limitations": [
+    "Marker never reached6mm; IMU+Marker transiently reached5.933mm but finished53.969mm away.",
+    "Same-snapshot mean-score descent does not guarantee monotonic physical distance across observation/model changes.",
+    "Observation thinning, finite Gaussian moment/variational approximations and unavailable K projections remain.",
+    "Collision checking stays disabled; physical scores are posthoc diagnostics only."
+  ],
+  "raw_outside_git": "/tmp/probtf_squared_mean_reaching_rviz_20261019"
+}

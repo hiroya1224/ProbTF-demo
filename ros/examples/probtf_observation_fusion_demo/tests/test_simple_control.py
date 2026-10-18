@@ -56,21 +56,25 @@ def joint_model():
     return inference, state, result, selector
 
 
-def test_root_frame_score_equals_full_joint_difference_moments_and_includes_environment_cross(joint_model):
+def test_root_frame_score_uses_corrected_means_and_keeps_full_cross_only_in_diagnostics(joint_model):
     inference, state, _, selector = joint_model
     score, record = selector.score(state)
     hand = point_query(state, inference.paths['hand'])
     goal = point_query(state, inference.paths['marker'])
     covariance, _, _ = conditional_total_covariance(state.covariance,
         hand.jacobian-goal.jacobian)
-    expected = float(np.linalg.norm(hand.mean-goal.mean)**2+np.trace(covariance))
+    expected = float(np.linalg.norm(hand.mean-goal.mean)**2)
     assert score == pytest.approx(expected, abs=1e-13)
     np.testing.assert_allclose(record['difference_covariance'], covariance, atol=1e-13)
-    independent = float(np.linalg.norm(hand.mean-goal.mean)**2
-        +np.trace(hand.covariance+goal.covariance))
-    assert abs(score-independent) > 1e-4
+    np.testing.assert_allclose(record['hand_goal_cross_covariance'],
+        hand.jacobian@state.covariance@goal.jacobian.T, atol=1e-13)
+    assert record['difference_covariance_trace'] == pytest.approx(np.trace(covariance))
+    assert record['expected_squared_difference'] == pytest.approx(expected+np.trace(covariance))
+    assert not record['difference_covariance_trace_in_objective']
+    assert abs(np.trace(covariance)-np.trace(hand.covariance+goal.covariance)) > 1e-4
     assert record['hand_state_id'] == record['goal_state_id'] == state.state_id
     assert not np.array_equal(hand.mean, hand.mode)
+    assert abs(score-np.linalg.norm(hand.mode-goal.mode)**2) > 1e-4
 
 
 def test_finite_euclidean_step_decreases_only_shared_score_and_keeps_source_law(joint_model, monkeypatch):
@@ -137,16 +141,74 @@ def test_no_marker_hold_does_not_query_unknown_goal_then_missing_marker_retains_
     assert record['goal_source_state_ids'] == [state.state_id]
 
 
-def test_direction_derivative_and_returned_score_include_candidate_covariance(joint_model):
+def test_direction_derivative_uses_corrected_means_and_keeps_candidate_covariance_diagnostics(joint_model):
     inference, state, result, selector = joint_model
     _, record = selector.select(result)
     expected = []
     for direction in np.eye(2):
         plus = command_state(state, 1e-5*direction, inference.body_ids, inference.actions)
         minus = command_state(state, -1e-5*direction, inference.body_ids, inference.actions)
-        expected.append((selector.score(plus)[0]-selector.score(minus)[0])/2e-5)
+        def mean_score(candidate):
+            hand = point_query(candidate, inference.paths['hand'])
+            goal = point_query(candidate, inference.paths['marker'])
+            return np.linalg.norm(hand.mean-goal.mean)**2
+        expected.append((mean_score(plus)-mean_score(minus))/2e-5)
     np.testing.assert_allclose(record['gradient'], expected, rtol=2e-7, atol=2e-8)
     assert record['source_score']['difference_covariance'] != record['selected_score']['difference_covariance']
+
+
+def test_mean_descent_reverses_legacy_trace_descent_when_shared_cross_covariance_competes(
+        joint_model, monkeypatch):
+    inference, original, _, selector = joint_model
+    covariance = original.covariance.copy()
+    covariance[5, 19] = covariance[19, 5] = 0.
+    covariance[5, 18] = covariance[18, 5] = .8*np.sqrt(covariance[5, 5]*covariance[18, 18])
+    hand = point_query(original, inference.paths['hand'])
+    transforms = list(original.transforms)
+    marker = transforms[-1]
+    transforms[-1] = BinghamTransform(marker.edge_id, hand.mean+[0., .001, 0.],
+        bingham=marker.bingham, translation_covariance=marker.translation_covariance)
+    state = JointTransformState(tuple(transforms), covariance, version=original.version,
+        stamp=original.stamp, command=original.command, component_id='trace_competes_with_reaching')
+    result = SimpleNamespace(prior=state,
+        stages=(Stage('canonical', (WeightedState(state.component_id, 1., state),)),),
+        records=dict(simple_inference=dict(goal_observed=True)))
+
+    def forbid(*args, **kwargs):
+        raise AssertionError('Both costs must be evaluated by deterministic native moment queries.')
+    for name in ('normal', 'random', 'randn', 'default_rng', 'multivariate_normal'):
+        monkeypatch.setattr(np.random, name, forbid)
+
+    def costs(command):
+        candidate = command_state(state, command, inference.body_ids, inference.actions)
+        hand = point_query(candidate, inference.paths['hand'])
+        goal = point_query(candidate, inference.paths['marker'])
+        cross = hand.jacobian@candidate.covariance@goal.jacobian.T
+        trace = np.trace(hand.covariance+goal.covariance-cross-cross.T)
+        mean = float(np.linalg.norm(hand.mean-goal.mean)**2)
+        return np.array([mean, mean+trace])
+
+    derivative = np.column_stack([(costs(1e-5*axis)-costs(-1e-5*axis))/2e-5
+        for axis in np.eye(2)])
+    assert derivative[0]@derivative[1] < 0.
+    before = costs(np.zeros(2))
+    legacy_direction = -selector.max_step*derivative[1]/np.linalg.norm(derivative[1])
+    legacy_cost = None
+    for index in range(selector.backtracks+1):
+        value = costs((.5**index)*legacy_direction)
+        if value[1] < before[1]:
+            legacy_cost = value
+            break
+    assert legacy_cost is not None and legacy_cost[0] > before[0]
+    selected, diagnostics = selector.select(result)
+    np.testing.assert_allclose(diagnostics['gradient'], derivative[0], rtol=2e-7, atol=2e-8)
+    after = costs(selected)
+    assert after[0] < before[0]
+    assert after[1] > before[1]
+    assert diagnostics['S_before'] == pytest.approx(before[0])
+    assert diagnostics['S_after'] == pytest.approx(after[0])
+    assert diagnostics['backtracking_trials'][-1]['accepted']
+    assert diagnostics['source_score']['hand_goal_cross_covariance'] != np.zeros((3, 3)).tolist()
 
 
 def test_joint_limits_are_used_without_velocity_or_curvature_model(joint_model):

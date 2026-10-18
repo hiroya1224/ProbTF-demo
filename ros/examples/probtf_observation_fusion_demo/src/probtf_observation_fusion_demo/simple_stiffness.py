@@ -284,7 +284,7 @@ class SimpleStiffnessIdentifier(StiffnessIdentifier):
                 auxiliary_equilibrium_numerical_audit=physical['audit'],
                 representative_from_prior=self.simple_projection_count == 0,
                 method='mode of the retained single log-K Gaussian; no extra command displacement is selected here',
-                acceptance='the separate selector evaluates the same joint-law expected squared reaching error',
+                acceptance='the separate selector evaluates the squared difference of the same joint-law propagated hand and goal means',
                 global_mode_claimed=False, evidence_computed=False)
         except (ValueError, np.linalg.LinAlgError, FloatingPointError, OverflowError) as error:
             record.update(proposal_status='unavailable', proposal_failure_reason=str(error),

@@ -9,12 +9,13 @@ from .moving_control import command_state
 
 
 def joint_reach_score(state, hand_path, marker_path, goal_offset, root_frame='base_link'):
-    """E[||p_hand-p_goal||²] in one root frame and one correlated law.
+    """||E[p_hand]-E[p_goal]||² in one root frame and one joint law.
 
     The two core queries retain their O(P) mean corrections.  Their cross
     covariance comes from the same original full P, as in the existing joint
     sensor-query assembly.  No independent goal law or relative-frame closure
-    is substituted for this root-frame squared-distance expectation.
+    is substituted. The difference covariance is retained as a diagnostic;
+    its trace is excluded from the reaching objective.
     """
     hand = point_query(state, hand_path, query_id='simple:hand', frame=root_frame)
     goal = point_query(state, marker_path, point=goal_offset,
@@ -22,10 +23,14 @@ def joint_reach_score(state, hand_path, marker_path, goal_offset, root_frame='ba
     cross = hand.jacobian @ state.covariance @ goal.jacobian.T
     difference = hand.mean-goal.mean
     covariance = hand.covariance+goal.covariance-cross-cross.T
-    score = float(difference @ difference+np.trace(covariance))
+    score = float(difference @ difference)
+    covariance_trace = float(np.trace(covariance))
     if not np.isfinite(score) or not np.all(np.isfinite(covariance)):
-        raise ValueError('The shared-law reaching expectation is nonfinite.')
+        raise ValueError('The shared-law mean-difference reaching query is nonfinite.')
     return score, dict(score=score, mean_difference=difference.tolist(),
+        mean_difference_squared=score, difference_covariance_trace=covariance_trace,
+        expected_squared_difference=score+covariance_trace,
+        difference_covariance_trace_in_objective=False,
         difference_covariance=covariance.tolist(), hand_mean=hand.mean.tolist(),
         goal_mean=goal.mean.tolist(), hand_goal_cross_covariance=cross.tolist(),
         hand_state_id=hand.state_id, goal_state_id=goal.state_id,
@@ -93,8 +98,8 @@ class SimpleSelector:
         if command_map is not None:
             command_map.validate_result(result)
         capture = None if command_map is None else command_map.record()
-        diagnostics = dict(method='single_finite_step_shared_joint_expected_position_error',
-            objective='E_mu_c[||p_hand(B)-p_goal(E)||^2]',
+        diagnostics = dict(method='single_finite_step_shared_joint_squared_mean_position_error',
+            objective='||E_mu_c[p_hand(B)]-E_mu_c[p_goal(E)]||^2',
             source_stamp=state.stamp, source_command=command.tolist(),
             source_prior_state_id=result.prior.state_id,
             body_source_state_ids=[state.state_id], goal_source_state_ids=[state.state_id],

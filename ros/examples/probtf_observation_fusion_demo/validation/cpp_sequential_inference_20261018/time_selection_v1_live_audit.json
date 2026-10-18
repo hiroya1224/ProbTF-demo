@@ -1,0 +1,546 @@
+{
+  "schema": "old_midpoint_selection_actual_run_audit_v1",
+  "input_run": "/tmp/probtf_cpp_sequential_live_20261018",
+  "source_path": "/tmp/probtf_cpp_sequential_live_20261018/frozen_source/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/observation_selection.py",
+  "source_sha256": "c245f3d4218003d965841e6be754fde9ac2d66a438ee78c0685959fdf01244f4",
+  "source_scope": "OLD midpoint/forward greedy source used during the recorded live run; not endpoint DP v2",
+  "cases": {
+    "marker": {
+      "frontier_count": 131,
+      "saved_policy_replay_exactly_matches": true,
+      "replay_mismatch_batch_ids": [],
+      "per_sensor": {
+        "imu": {
+          "available": 0,
+          "selected": 0,
+          "thinned_frontiers": 0,
+          "occupied_bins_missed": [],
+          "ordered_target_bin_misses": [],
+          "identical_clock_frontiers": 0,
+          "sparse_or_unthinned_frontiers": 131,
+          "selected_timestamps_verified": true,
+          "minimum_selected_span_fraction": null,
+          "maximum_selected_span_fraction": null,
+          "smallest_span_frontiers": [],
+          "occupied_bins_missed_count": 0,
+          "ordered_target_bin_miss_count": 0
+        },
+        "image": {
+          "available": 933,
+          "selected": 258,
+          "thinned_frontiers": 126,
+          "occupied_bins_missed": [],
+          "ordered_target_bin_misses": [],
+          "identical_clock_frontiers": 0,
+          "sparse_or_unthinned_frontiers": 5,
+          "selected_timestamps_verified": true,
+          "minimum_selected_span_fraction": 0.24801233448574758,
+          "maximum_selected_span_fraction": 0.8298443714050124,
+          "smallest_span_frontiers": [
+            {
+              "batch_id": "8ad21a2c5b9ac6190a1a91fc26110bf1960d6669dff39a51008b769f6fc23902",
+              "fraction": 0.24801233448574758,
+              "available_count": 4,
+              "selected_count": 2,
+              "available_range": [
+                1792080020.9211142,
+                1792080021.2082722
+              ],
+              "selected_range": [
+                1792080021.0177839,
+                1792080021.0890026
+              ]
+            },
+            {
+              "batch_id": "b12376896edc4084f9f249097795e975d3a098c277fef92de0c45671ac5ec2e1",
+              "fraction": 0.2529926937813846,
+              "available_count": 4,
+              "selected_count": 2,
+              "available_range": [
+                1792080026.5887163,
+                1792080026.8491871
+              ],
+              "selected_range": [
+                1792080026.689754,
+                1792080026.7556512
+              ]
+            },
+            {
+              "batch_id": "4ea03116a3d537155593ec7c92473d24b38c60c6fe63314d912298f286d1bc22",
+              "fraction": 0.2642888854613951,
+              "available_count": 6,
+              "selected_count": 2,
+              "available_range": [
+                1792080006.0228715,
+                1792080006.582448
+              ],
+              "selected_range": [
+                1792080006.185757,
+                1792080006.3336468
+              ]
+            },
+            {
+              "batch_id": "f2f84bde54a43b370dff502ef806f6adb23405816842204d678f0e80dbf9a7a4",
+              "fraction": 0.2732823960078199,
+              "available_count": 4,
+              "selected_count": 2,
+              "available_range": [
+                1792080053.4289858,
+                1792080053.7015543
+              ],
+              "selected_range": [
+                1792080053.5089753,
+                1792080053.5834634
+              ]
+            },
+            {
+              "batch_id": "964019dc573ebd9abdacf585294f74ddf61828f14ea0cf4c9a1df6d6b149b8b4",
+              "fraction": 0.2921736828458544,
+              "available_count": 4,
+              "selected_count": 2,
+              "available_range": [
+                1792080028.8399625,
+                1792080029.1029434
+              ],
+              "selected_range": [
+                1792080028.9279487,
+                1792080029.0047848
+              ]
+            }
+          ],
+          "occupied_bins_missed_count": 0,
+          "ordered_target_bin_miss_count": 0,
+          "global_time_range": [
+            1792080000.0,
+            1792080090.0
+          ],
+          "global_selected_time_range": [
+            1792080000.0,
+            1792080089.5841784
+          ],
+          "one_second_occupied_bins": 89,
+          "one_second_bins_without_selected_raw": [
+            60,
+            83
+          ]
+        }
+      }
+    },
+    "imu_marker": {
+      "frontier_count": 72,
+      "saved_policy_replay_exactly_matches": true,
+      "replay_mismatch_batch_ids": [],
+      "per_sensor": {
+        "imu": {
+          "available": 1841,
+          "selected": 556,
+          "thinned_frontiers": 67,
+          "occupied_bins_missed": [],
+          "ordered_target_bin_misses": [
+            {
+              "batch_id": "1df4882a4cb264a0b47ed6a08ffa797822ee73c7e1d36ac263fa0c5716b85e6a",
+              "bins": [
+                4
+              ]
+            },
+            {
+              "batch_id": "da94e8d21cc756785c182796ed53f3b4b17e00881c9138371e25cfe288ed46ef",
+              "bins": [
+                2,
+                3
+              ]
+            },
+            {
+              "batch_id": "d812cb6130395a7585fabe48b70834332343bf97e105df74e8da9debc3592aff",
+              "bins": [
+                6
+              ]
+            },
+            {
+              "batch_id": "ce7d92a71bffcf053db23d3b0bd498cc0522bf4de3c9f6bc4198271d2b197e2a",
+              "bins": [
+                4
+              ]
+            },
+            {
+              "batch_id": "5b031dbb420741e31a5bc397c32e5c2f7a93b1ea44029755066e94dc3aef836e",
+              "bins": [
+                2,
+                3
+              ]
+            },
+            {
+              "batch_id": "b158dffe6df3211850574e6d8af1f41143bef8e30bf9ebf6ed7e7066525007ec",
+              "bins": [
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "c98fda90dc0e0ea6d5266e55918b66ccf98b12a67c21ee5720e57fe2e2c98989",
+              "bins": [
+                2,
+                3
+              ]
+            },
+            {
+              "batch_id": "3af05e02adb70cd3ffe823e86990efa4bf2c461ebf61cd6e4d73015008c55687",
+              "bins": [
+                2,
+                3,
+                4
+              ]
+            },
+            {
+              "batch_id": "958147d7b41c03620a45bc26198076c88f9c9b9a47c895be52c2f2be8e05a1f2",
+              "bins": [
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "ecd205792af3e11d11bd6d3e4ed76af91366258f1628037ad6cb28f6244f1244",
+              "bins": [
+                1,
+                2,
+                3,
+                4
+              ]
+            },
+            {
+              "batch_id": "d20fcca27e02e12ad4fe04c9124c6a9c8bcb1cb9c517ab6c2e5331b9c6b84438",
+              "bins": [
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "424313bceb7dc6816ea5b22337d3caf851e622a8ef2fa2847417bf52b131d13b",
+              "bins": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "cd4cb732cfaaf4a485e544689bad8bb9aca153a335e3035f4a7d662e6587b81b",
+              "bins": [
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "7abab2b3fca49bfed9f8fd886fd357333d0b4bd35018c724b0eb46e9c07fc34b",
+              "bins": [
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "85ec989ed92ccc2f46ccffdd17a1487447f738c5e54c1851b6875d509a013d62",
+              "bins": [
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "70e639a21902b8f84cf1b4c3e91cb6d1c9f2bac43a66830ae8ec743b2b02de2a",
+              "bins": [
+                2,
+                3
+              ]
+            },
+            {
+              "batch_id": "507f9a2554190a02569504b8f39deb53eb2e6686eb1efdbb3f891781d1aeb000",
+              "bins": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "172110695849965b4f30689adc4f7fff0bcb574af2ec5685dd00fce0880cb170",
+              "bins": [
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "4a168e61c4a8f8001191ae1e245aa1a902960c69a3efc73db3c026ec54d73d43",
+              "bins": [
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "batch_id": "119d85212f6f396b31a0b67b13004e733ed3306e09edd573eaa5016c12015a64",
+              "bins": [
+                5,
+                6
+              ]
+            }
+          ],
+          "identical_clock_frontiers": 0,
+          "sparse_or_unthinned_frontiers": 5,
+          "selected_timestamps_verified": true,
+          "minimum_selected_span_fraction": 0.8482379259322402,
+          "maximum_selected_span_fraction": 0.9540022516972402,
+          "smallest_span_frontiers": [
+            {
+              "batch_id": "d93b0a5799a4676f9bf07a7764b24eb6f3b2477b2a4fef98f3e4fac86ffc3ffd",
+              "fraction": 0.8482379259322402,
+              "available_count": 24,
+              "selected_count": 8,
+              "available_range": [
+                1792080039.1120322,
+                1792080039.9399269
+              ],
+              "selected_range": [
+                1792080039.1824794,
+                1792080039.884731
+              ]
+            },
+            {
+              "batch_id": "51b9edbdaf3cf69f72cb709be7fd107b1d4a09a3fd326d42e28f9215bd3bff50",
+              "fraction": 0.8511828006311972,
+              "available_count": 24,
+              "selected_count": 8,
+              "available_range": [
+                1792080000.284963,
+                1792080001.0750113
+              ],
+              "selected_range": [
+                1792080000.3431742,
+                1792080001.0156498
+              ]
+            },
+            {
+              "batch_id": "5418f6c51181fc68b8b53fce63a84fbc44937e4bc1bb37081f85aefaa4236034",
+              "fraction": 0.8518091484141492,
+              "available_count": 28,
+              "selected_count": 8,
+              "available_range": [
+                1792080043.536261,
+                1792080044.6530926
+              ],
+              "selected_range": [
+                1792080043.6054265,
+                1792080044.5567539
+              ]
+            },
+            {
+              "batch_id": "3af05e02adb70cd3ffe823e86990efa4bf2c461ebf61cd6e4d73015008c55687",
+              "fraction": 0.8518826719613993,
+              "available_count": 20,
+              "selected_count": 8,
+              "available_range": [
+                1792080017.9029517,
+                1792080019.0028696
+              ],
+              "selected_range": [
+                1792080017.9639466,
+                1792080018.9009476
+              ]
+            },
+            {
+              "batch_id": "abc42954bbdce2fe144a6a63fe05b23f189b8477036c5511d9851d7bc7080900",
+              "fraction": 0.8526397760144871,
+              "available_count": 26,
+              "selected_count": 8,
+              "available_range": [
+                1792080040.6804938,
+                1792080041.6400204
+              ],
+              "selected_range": [
+                1792080040.753042,
+                1792080041.5711725
+              ]
+            }
+          ],
+          "occupied_bins_missed_count": 0,
+          "ordered_target_bin_miss_count": 20,
+          "global_time_range": [
+            1792080000.0,
+            1792080090.0
+          ],
+          "global_selected_time_range": [
+            1792080000.0,
+            1792080090.0
+          ],
+          "one_second_occupied_bins": 89,
+          "one_second_bins_without_selected_raw": []
+        },
+        "image": {
+          "available": 875,
+          "selected": 141,
+          "thinned_frontiers": 69,
+          "occupied_bins_missed": [],
+          "ordered_target_bin_misses": [],
+          "identical_clock_frontiers": 0,
+          "sparse_or_unthinned_frontiers": 3,
+          "selected_timestamps_verified": true,
+          "minimum_selected_span_fraction": 0.3107955059810906,
+          "maximum_selected_span_fraction": 0.8419340634969079,
+          "smallest_span_frontiers": [
+            {
+              "batch_id": "ecd205792af3e11d11bd6d3e4ed76af91366258f1628037ad6cb28f6244f1244",
+              "fraction": 0.3107955059810906,
+              "available_count": 9,
+              "selected_count": 2,
+              "available_range": [
+                1792080022.6915872,
+                1792080023.6713169
+              ],
+              "selected_range": [
+                1792080023.131258,
+                1792080023.4357536
+              ]
+            },
+            {
+              "batch_id": "119d85212f6f396b31a0b67b13004e733ed3306e09edd573eaa5016c12015a64",
+              "fraction": 0.33388586364912687,
+              "available_count": 10,
+              "selected_count": 2,
+              "available_range": [
+                1792080088.9114614,
+                1792080090.0
+              ],
+              "selected_range": [
+                1792080089.173942,
+                1792080089.5373898
+              ]
+            },
+            {
+              "batch_id": "d812cb6130395a7585fabe48b70834332343bf97e105df74e8da9debc3592aff",
+              "fraction": 0.3509261892472233,
+              "available_count": 11,
+              "selected_count": 2,
+              "available_range": [
+                1792080010.3267658,
+                1792080011.2648902
+              ],
+              "selected_range": [
+                1792080010.5886197,
+                1792080010.9178321
+              ]
+            },
+            {
+              "batch_id": "958ebd10aea4712dda372a5bc8a413e18e4eed684183ec9f2d6e437c8d7641d7",
+              "fraction": 0.4244989708052869,
+              "available_count": 8,
+              "selected_count": 2,
+              "available_range": [
+                1792080050.5105786,
+                1792080051.0869374
+              ],
+              "selected_range": [
+                1792080050.6825342,
+                1792080050.927198
+              ]
+            },
+            {
+              "batch_id": "f1726a62f57c317b176935da6d89eb1f4fa5b90f6c9b5657b68a29c4438faa04",
+              "fraction": 0.44275626832625214,
+              "available_count": 13,
+              "selected_count": 2,
+              "available_range": [
+                1792080032.314513,
+                1792080033.270724
+              ],
+              "selected_range": [
+                1792080032.5872846,
+                1792080033.010653
+              ]
+            }
+          ],
+          "occupied_bins_missed_count": 0,
+          "ordered_target_bin_miss_count": 0,
+          "global_time_range": [
+            1792080000.0,
+            1792080090.0
+          ],
+          "global_selected_time_range": [
+            1792080000.0,
+            1792080089.5373898
+          ],
+          "one_second_occupied_bins": 89,
+          "one_second_bins_without_selected_raw": [
+            59,
+            82
+          ]
+        }
+      }
+    }
+  },
+  "counterexamples": [
+    {
+      "available_times": [
+        0.0,
+        49.9,
+        50.1,
+        100.0
+      ],
+      "capacity": 2,
+      "old_selected_times": [
+        49.9,
+        50.1
+      ],
+      "old_target_midpoints": [
+        25.0,
+        75.0
+      ]
+    },
+    {
+      "available_times": [
+        0.0,
+        0.01,
+        0.02,
+        100.0,
+        100.01,
+        100.02
+      ],
+      "capacity": 4,
+      "old_selected_times": [
+        0.02,
+        100.0,
+        100.01,
+        100.02
+      ],
+      "old_target_midpoints": [
+        12.5025,
+        37.5075,
+        62.512499999999996,
+        87.5175
+      ]
+    }
+  ],
+  "limits": [
+    "temporal raw selection, not valid sensor fusion or nonlinear estimation accuracy",
+    "bin occupancy alone cannot detect two central points adjacent to a bin boundary",
+    "nominal target-bin misses can be caused by empty bins; occupied-bin misses are reported separately",
+    "old live timing/jump/reaching results do not validate the replacement DP policy",
+    "no production source, raw DB, commands or original run output changed"
+  ]
+}

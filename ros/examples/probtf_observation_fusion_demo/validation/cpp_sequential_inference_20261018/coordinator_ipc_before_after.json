@@ -1,0 +1,193 @@
+{
+  "schema": "coordinator_immutable_IPC_profile_comparison_v1",
+  "scope": "Two external per-thread cProfile IMU+marker35s experiments. Instrumentation and runtime scheduling affect rates. Overall Hz differences also include selector v2 and are not attributed solely to IPC changes. GC was never disabled.",
+  "cases": {
+    "before": {
+      "source_unchanged_during_experiment": true,
+      "profile_dir": "/tmp/probtf_cpp_coordinator_profile_20261018",
+      "profile_summary_sha256": "78d96fdab76c4e37760175321bd1783bba66558153ca6ee977a4a2daf3b23039",
+      "physical_elapsed_s": 35.0,
+      "actual_profiled_motion_hz": 21.966595987556595,
+      "actual_profiled_control_hz": 3.515610127496597,
+      "body_observation_source_stamp": 1792080034.0197284,
+      "K_jobs_completed_at_physical_cutoff": 40,
+      "K_jobs_submitted_at_physical_cutoff": 322,
+      "functions": {
+        "<built-in method _pickle.loads>": {
+          "primitive_calls": 3299,
+          "total_calls": 3299,
+          "self_s": 1.500336756,
+          "cumulative_s": 10.969950085
+        },
+        "freeze_json_record": {
+          "primitive_calls": 1404524,
+          "total_calls": 10322685,
+          "self_s": 6.981240598,
+          "cumulative_s": 9.462131283
+        },
+        "_freeze_arrays": {
+          "primitive_calls": 571,
+          "total_calls": 12152739,
+          "self_s": 6.935899505,
+          "cumulative_s": 10.395631437,
+          "direct_callers": [
+            {
+              "function": "_adopt_control_message",
+              "calls": 123,
+              "cumulative_s": 0.44541844100000005,
+              "average_s_per_call": 0.0036212881382113827
+            },
+            {
+              "function": "_accept_control_artifacts",
+              "calls": 123,
+              "cumulative_s": 3.562832776,
+              "average_s_per_call": 0.0289661201300813
+            },
+            {
+              "function": "_adopt_body_ready",
+              "calls": 325,
+              "cumulative_s": 6.387380220000001,
+              "average_s_per_call": 0.019653477600000004
+            }
+          ]
+        },
+        "poll": {
+          "primitive_calls": 770,
+          "total_calls": 770,
+          "self_s": 0.016030793,
+          "cumulative_s": 22.216501195000003
+        }
+      },
+      "GC": {
+        "motion/generation0": {
+          "count": 6721,
+          "sum_s": 0.36374793108552694,
+          "maximum_s": 0.006833851803094149
+        },
+        "motion/generation1": {
+          "count": 611,
+          "sum_s": 0.3085728595033288,
+          "maximum_s": 0.003095014952123165
+        },
+        "motion/generation2": {
+          "count": 35,
+          "sum_s": 4.980044855270535,
+          "maximum_s": 0.3616851926781237
+        }
+      },
+      "shutdown": {
+        "motion_finished": true,
+        "estimation_drained": false,
+        "pending_K_job_count": 292,
+        "raw_counts": {
+          "completed": 1258
+        },
+        "acquisition_submitted": 1258,
+        "acquisition_acknowledged": 1258
+      }
+    },
+    "after": {
+      "source_unchanged_during_experiment": true,
+      "profile_dir": "/tmp/probtf_cpp_coordinator_profile_after_20261018",
+      "profile_summary_sha256": "e260e7845bc2c5b9c6366288560b5de5055b4ffc5bcb40825cd82dbc650677ab",
+      "physical_elapsed_s": 35.0,
+      "actual_profiled_motion_hz": 49.101888078595145,
+      "actual_profiled_control_hz": 5.540361212806962,
+      "body_observation_source_stamp": 1792080033.8994384,
+      "K_jobs_completed_at_physical_cutoff": 39,
+      "K_jobs_submitted_at_physical_cutoff": 323,
+      "functions": {
+        "<built-in method _pickle.loads>": {
+          "primitive_calls": 5310,
+          "total_calls": 5310,
+          "self_s": 3.130796084,
+          "cumulative_s": 5.906917832
+        },
+        "_restore_frozen_dict": {
+          "primitive_calls": 49344,
+          "total_calls": 49344,
+          "self_s": 0.023319784000000003,
+          "cumulative_s": 0.036602845
+        },
+        "_restore_frozen_list": {
+          "primitive_calls": 1532335,
+          "total_calls": 1532335,
+          "self_s": 0.266743755,
+          "cumulative_s": 2.710255715
+        },
+        "_freeze_arrays": {
+          "primitive_calls": 709,
+          "total_calls": 5479386,
+          "self_s": 3.1755852960000004,
+          "cumulative_s": 4.7523231070000005,
+          "direct_callers": [
+            {
+              "function": "_adopt_control_message",
+              "calls": 194,
+              "cumulative_s": 0.7885845960000001,
+              "average_s_per_call": 0.004064869051546392
+            },
+            {
+              "function": "_accept_control_artifacts",
+              "calls": 193,
+              "cumulative_s": 2.898161468,
+              "average_s_per_call": 0.015016380663212436
+            },
+            {
+              "function": "_adopt_body_ready",
+              "calls": 322,
+              "cumulative_s": 1.065577043,
+              "average_s_per_call": 0.0033092454751552794
+            }
+          ]
+        },
+        "poll": {
+          "primitive_calls": 1720,
+          "total_calls": 1720,
+          "self_s": 0.023175662000000003,
+          "cumulative_s": 11.595683891
+        }
+      },
+      "GC": {
+        "motion/generation0": {
+          "count": 8544,
+          "sum_s": 0.49617216223850846,
+          "maximum_s": 0.004873017780482769
+        },
+        "motion/generation1": {
+          "count": 777,
+          "sum_s": 0.43741063540801406,
+          "maximum_s": 0.007049439009279013
+        },
+        "motion/generation2": {
+          "count": 35,
+          "sum_s": 6.279464196413755,
+          "maximum_s": 0.4997792779468
+        }
+      },
+      "shutdown": {
+        "motion_finished": true,
+        "estimation_drained": false,
+        "pending_K_job_count": 295,
+        "raw_counts": {
+          "completed": 2028
+        },
+        "acquisition_submitted": 2028,
+        "acquisition_acknowledged": 2028
+      }
+    }
+  },
+  "production_source_differences": [
+    "src/probtf_observation_fusion_demo/observation_selection.py",
+    "src/probtf_observation_fusion_demo/async_workers.py",
+    "src/probtf_observation_fusion_demo/immutable_body_cache.py"
+  ],
+  "immutable_transfer_microbenchmark_comparison": "/tmp/probtf_immutable_transfer_comparison_20261018.json",
+  "limitations": [
+    "A/B changes immutable transfer only; mathematical likelihoods, moments, fullcross, candidates and parameter estimation formulas are unchanged.",
+    "Original saved pickle compatibility and spawned source/query/numeric identities were tested; existing NaN/Inf diagnostic scalar handling is retained.",
+    "Function cumulative values are nested; do not add freeze_json_record to pickle.loads, or add GC pauses again to callback time.",
+    "GC full-generation pauses remain and grew in the run with more accepted control/display candidates; the broader retained-graph cost is not resolved.",
+    "Short profiled experiments do not establish120/240Hz normal runtime performance, reaching or pose accuracy."
+  ]
+}

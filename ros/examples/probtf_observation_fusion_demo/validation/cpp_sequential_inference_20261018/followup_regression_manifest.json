@@ -1,0 +1,30 @@
+{
+  "schema": "cpp_sequential_followup_regression_v1",
+  "git_head_before_commit": "cca164bb032a4dea078b5e59ff12db7de19b44aa",
+  "scope": "ros/examples/probtf_observation_fusion_demo/tests",
+  "result": {
+    "passed": 1056,
+    "failed": 0,
+    "warning_count": 1,
+    "warning": "existing hppfcl import deprecation",
+    "wall_seconds": 182.89,
+    "exit_code": 0
+  },
+  "log": {
+    "path": "/tmp/probtf_cpp_seq_followup_full_tests_20261018.log",
+    "sha256": "c425c40a7215e93f0a4f842527228f60bb3bddc464126f6d3dd00c3f897eade4"
+  },
+  "source_sha256": {
+    "src/probtf_observation_fusion_demo/immutable_body_cache.py": "c3c37c82cdf45df41a0da96571fec15e1adc890dff03e78e145044794c30ef4a",
+    "src/probtf_observation_fusion_demo/async_workers.py": "f744ed9109576cece52739e0c5cbd4b073726538f81e933b77fff9ae8230d37b",
+    "src/probtf_observation_fusion_demo/observation_selection.py": "86da2fba8b052d660f9d955cb9cc064747632d8bdea5b62b735e2d42b9fc15a9",
+    "tests/test_immutable_transfer.py": "6733e1dc53a5e53ec8697e3aa1a1c7540252028191db943a2d7e5285e66de698",
+    "tests/test_observation_selection.py": "22d0cd996184bcac5e2be10139547d98059f2aa371d1a26bd9687bf13721f5c2",
+    "validation/tools/benchmark_immutable_transfer.py": "5b4196054c676889ed4071de965ff4816feebfae553b9aead1eb7d5432921c97"
+  },
+  "changes_to_candidate_math": false,
+  "CPP_or_core_source_changes_since_e721c2f": false,
+  "selection_only_change": "endpoint-constrained ordered least squares v2",
+  "protected_file_count": 214,
+  "protected_differences": []
+}

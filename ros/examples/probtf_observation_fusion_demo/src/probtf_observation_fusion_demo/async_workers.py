@@ -33,6 +33,7 @@ from .sensor_event_store import SensorEventStore
 from .sequential_replay import (command_path_to_event, record_sequential_source,
     selected_sensor_event_ids, validate_claimed_event)
 from .stiffness_identification import StiffnessIdentifier
+from .immutable_body_cache import is_frozen_json_record
 from probtf_switch_press_demo.vision import PlanarCamera
 
 def _append(path, record):
@@ -48,11 +49,15 @@ def _freeze_arrays(value, seen=None):
     if isinstance(value, np.ndarray):
         value.setflags(write=False)
     elif isinstance(value, dict):
-        for item in value.values():
-            _freeze_arrays(item, seen)
+        # Only containers need this test: doing it for every scalar would
+        # itself repeat millions of JSON leaf checks on ordinary records.
+        if not is_frozen_json_record(value):
+            for item in value.values():
+                _freeze_arrays(item, seen)
     elif isinstance(value, (tuple, list)):
-        for item in value:
-            _freeze_arrays(item, seen)
+        if not is_frozen_json_record(value):
+            for item in value:
+                _freeze_arrays(item, seen)
     elif hasattr(value, '__dict__'):
         _freeze_arrays(vars(value), seen)
     return value

@@ -1,0 +1,108 @@
+{
+  "schema": "immutable_body_transfer_benchmark_v1",
+  "phase": "before",
+  "git_head": "cca164bb032a4dea078b5e59ff12db7de19b44aa",
+  "immutable_module_sha256": "6a081fc046e9cd3f67fed01ca66941b3938acff366e09af230de95033ac99253",
+  "algorithm_changed": false,
+  "original_archive_unchanged": true,
+  "gc_disabled": false,
+  "measurement_scope": "Single-process auxiliary transfer microbenchmark; original-file read, original decode, GC cleanup and identity/JSON checks excluded from reported decode/restore timings. The two phases may have different pickle representation, while the full source and law/record identities must match.",
+  "results": [
+    {
+      "input_path": "/tmp/probtf_cpp_sequential_live_20261018/imu_marker/stiffness_jobs/00000020_ceec9ccd82f2573a.pickle",
+      "original_archive_sha256": "dea214f627d311445a0f0395b033ac3cd33c29cefb9c0dd027dd447a4a86bd04",
+      "candidate_identity_sha256": "233fd5166a26ac0cec6e70512eeb7f3cedc0c49195fab992153f33992d7ba2f3",
+      "record_json_sha256": "f8d1eb003fd7913653d4430790984833e2f90cc208c2980991ec751aadcb86b9",
+      "encoded_payload_bytes": 1970327,
+      "encode_s": 0.005179402884095907,
+      "decode_wall": {
+        "median_s": 0.015902759041637182,
+        "minimum_s": 0.015730950981378555,
+        "maximum_s": 0.017041743267327547,
+        "repetitions": 7
+      },
+      "decode_cpu": {
+        "median_s": 0.01589796099999996,
+        "minimum_s": 0.01572189699999993,
+        "maximum_s": 0.01702846600000002,
+        "repetitions": 7
+      },
+      "ndarray_restore_wall": {
+        "median_s": 0.0652746637351811,
+        "minimum_s": 0.06398323085159063,
+        "maximum_s": 0.06638959283009171,
+        "repetitions": 7
+      },
+      "ndarray_restore_cpu": {
+        "median_s": 0.0652523129999999,
+        "minimum_s": 0.06396358199999996,
+        "maximum_s": 0.06636629500000002,
+        "repetitions": 7
+      }
+    },
+    {
+      "input_path": "/tmp/probtf_cpp_sequential_live_20261018/imu_marker/stiffness_jobs/00000346_1b06fa0906a53a7a.pickle",
+      "original_archive_sha256": "8fdf0f60bb8988f4d155fdcaf70fdef5d96e7501595da0e6c2fea67e5a0199c3",
+      "candidate_identity_sha256": "4e27dd09134f064ffdca019543745b7e007cc899c5973e2234cc2a74ecc93973",
+      "record_json_sha256": "0058d901e12cb4b88ac7ed742a20104f1be26ad0ecb7847f63ebd977540690a4",
+      "encoded_payload_bytes": 1959450,
+      "encode_s": 0.00488806888461113,
+      "decode_wall": {
+        "median_s": 0.015135432127863169,
+        "minimum_s": 0.015025229658931494,
+        "maximum_s": 0.015380354132503271,
+        "repetitions": 7
+      },
+      "decode_cpu": {
+        "median_s": 0.015131239999999657,
+        "minimum_s": 0.015020865000000105,
+        "maximum_s": 0.015373754999999933,
+        "repetitions": 7
+      },
+      "ndarray_restore_wall": {
+        "median_s": 0.0640562460757792,
+        "minimum_s": 0.06391991395503283,
+        "maximum_s": 0.06548717711120844,
+        "repetitions": 7
+      },
+      "ndarray_restore_cpu": {
+        "median_s": 0.064039666,
+        "minimum_s": 0.06390058600000015,
+        "maximum_s": 0.065464454,
+        "repetitions": 7
+      }
+    },
+    {
+      "input_path": "/tmp/probtf_cpp_sequential_live_20261018/imu_marker/stiffness_jobs/00000691_e7e79a7d3fbb5b5c.pickle",
+      "original_archive_sha256": "61f5cf7e1db41bce52a190e9f92e07d1cc47aa69492dec118d93951e0bab65e3",
+      "candidate_identity_sha256": "9b69fabcb045d08ecb18c0f95f82faa570287933243e65f116b1c7d0c682560f",
+      "record_json_sha256": "f268ff8c65027b3b867b3a255e4c33a6391682f897566ff118624fe38feebfd0",
+      "encoded_payload_bytes": 1930317,
+      "encode_s": 0.004413058049976826,
+      "decode_wall": {
+        "median_s": 0.014931795187294483,
+        "minimum_s": 0.014706102665513754,
+        "maximum_s": 0.01583002507686615,
+        "repetitions": 7
+      },
+      "decode_cpu": {
+        "median_s": 0.014926403000000033,
+        "minimum_s": 0.014701075999999702,
+        "maximum_s": 0.01582225699999995,
+        "repetitions": 7
+      },
+      "ndarray_restore_wall": {
+        "median_s": 0.06281479028984904,
+        "minimum_s": 0.06245059100911021,
+        "maximum_s": 0.06327680917456746,
+        "repetitions": 7
+      },
+      "ndarray_restore_cpu": {
+        "median_s": 0.06279434800000017,
+        "minimum_s": 0.06242942100000004,
+        "maximum_s": 0.06325940400000007,
+        "repetitions": 7
+      }
+    }
+  ]
+}

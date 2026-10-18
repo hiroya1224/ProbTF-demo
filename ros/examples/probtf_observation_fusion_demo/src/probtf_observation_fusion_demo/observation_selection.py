@@ -18,17 +18,53 @@ def _uniform_time_indices(events, count):
         # Immutable acquisition order supplies coverage when clocks coincide.
         indices = tuple(int((i + .5) * len(events) / count) for i in range(count))
         return indices, ()
-    targets = tuple(first + (i + .5) * (last - first) / count for i in range(count))
-    indices, previous = [], -1
-    for i, target in enumerate(targets):
-        # Reserve enough distinct later acquisitions. Ordered nearest-midpoint
-        # selection remains valid for irregular or repeated acquisition times.
-        stop = len(events) - (count - i - 1)
-        index = min(range(previous + 1, stop),
-                    key=lambda j: (abs(float(events[j].stamp) - target), events[j].sequence))
-        indices.append(index)
-        previous = index
-    return tuple(indices), targets
+    span = last-first
+    if math.isfinite(span):
+        relative = tuple((float(event.stamp)-first)/span for event in events)
+        interpolate = lambda fraction: first+fraction*span
+    else:
+        # Opposite, finite extreme timestamps can overflow their difference.
+        # A common positive rescaling preserves the same least-squares problem.
+        scale = max(abs(first), abs(last))
+        left, right = first/scale, last/scale
+        relative = tuple((float(event.stamp)/scale-left)/(right-left) for event in events)
+        interpolate = lambda fraction: (1.-fraction)*first+fraction*last
+    if count == 1:
+        index = min(range(len(events)),
+                    key=lambda j: (abs(relative[j]-.5), events[j].sequence))
+        return (index,), (interpolate(.5),)
+
+    fractions = tuple(i/(count-1) for i in range(count))
+    targets = (first,)+tuple(interpolate(value) for value in fractions[1:-1])+(last,)
+    # Fix both endpoint acquisitions. Midpoint targets could choose two almost
+    # simultaneous central observations while omitting both ends of a frontier.
+    # For the remaining strictly ordered indices j_i, minimize
+    #   sum_i ((t[j_i]-first)/(last-first)-i/(count-1))**2.
+    # A common scaling of all time residuals does not change the minimizer.
+    # Prefix minima evaluate the ordered assignment in O(count*len(events));
+    # unlike forward nearest-neighbor selection, an early choice cannot consume
+    # a cluster needed to distribute the later targets. Exact ties retain the
+    # first predecessor in immutable acquisition order.
+    size = len(events)
+    previous = [math.inf]*size
+    previous[0] = 0.
+    parents = [[None]*size for _ in range(count)]
+    for stage in range(1, count):
+        current = [math.inf]*size
+        best_cost, best_index = math.inf, None
+        for index in range(1, size):
+            if previous[index-1] < best_cost:
+                best_cost, best_index = previous[index-1], index-1
+            permitted = (index == size-1 if stage == count-1 else
+                         stage <= index <= size-count+stage)
+            if permitted and best_index is not None:
+                current[index] = best_cost+(relative[index]-fractions[stage])**2
+                parents[stage][index] = best_index
+        previous = current
+    indices = [size-1]
+    for stage in range(count-1, 0, -1):
+        indices.append(parents[stage][indices[-1]])
+    return tuple(reversed(indices)), targets
 
 
 def select_observations(events, enabled_sensors, options=None):
@@ -65,7 +101,11 @@ disabled sensors are not counted as statistical observations.
         per_sensor[kind] = dict(available_count=len(eligible), selected_count=len(retained),
             available_time_range=(None if not eligible else [eligible[0].stamp, eligible[-1].stamp]),
             selected_time_range=(None if not retained else [retained[0].stamp, retained[-1].stamp]),
-            target_bin_midpoints=list(targets),
+            target_times=list(targets),
+            endpoint_times_included=(len(retained) >= 2 and bool(eligible) and
+                retained[0].stamp == eligible[0].stamp and retained[-1].stamp == eligible[-1].stamp),
+            identical_timestamp_sequence_quantiles=(bool(eligible) and count < len(eligible)
+                and eligible[0].stamp == eligible[-1].stamp),
             selected_event_ids=[event.event_id for event in retained],
             selected_stamps=[event.stamp for event in retained],
             max_events=capacities.get(kind) if mode == 'uniform_time' else None)
@@ -73,8 +113,10 @@ disabled sensors are not counted as statistical observations.
                     if {'imu': 'imu', 'image': 'marker'}.get(event.kind) in enabled}
     omitted = eligible_ids - selected
     return dict(mode=mode,
+        selection_algorithm=('all_v1' if mode == 'all' else
+                             'endpoint_constrained_ordered_least_squares_v2'),
         selection_rule=('all enabled acquired observations' if mode == 'all' else
-                        'ordered nearest equal-duration-bin midpoint over the full per-sensor frontier'),
+                        'fixed endpoint times and globally least-squares ordered unique equal-time targets; singleton central time; identical-clock sequence quantiles'),
         selected_event_ids=[event.event_id for event in events if event.event_id in selected],
         unselected_event_ids=[event.event_id for event in events if event.event_id in omitted],
         per_sensor=per_sensor, thinning_applied=bool(omitted),

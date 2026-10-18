@@ -75,7 +75,19 @@ def _immutable(*args, **kwargs):
 
 
 class _FrozenDict(dict):
+    __slots__ = ()
     __setitem__ = __delitem__ = clear = pop = popitem = setdefault = update = __ior__ = _immutable
+
+    def __new__(cls, values=()):
+        result = dict.__new__(cls)
+        items = values.items() if isinstance(values, dict) else values
+        dict.__init__(result, ((key, freeze_json_record(item)) for key, item in items))
+        return result
+
+    def __init__(self, values=()):
+        # Construction/validation happens once in __new__. Calling __init__
+        # again cannot mutate an already retained record.
+        pass
 
     def __copy__(self):
         return self
@@ -85,11 +97,20 @@ class _FrozenDict(dict):
         return self
 
     def __reduce__(self):
-        return freeze_json_record, (dict(self),)
+        return _restore_frozen_dict, (dict(self),)
 
 
 class _FrozenList(list):
+    __slots__ = ()
     __setitem__ = __delitem__ = append = clear = extend = insert = pop = remove = reverse = sort = __iadd__ = __imul__ = _immutable
+
+    def __new__(cls, values=()):
+        result = list.__new__(cls)
+        list.extend(result, (freeze_json_record(item) for item in values))
+        return result
+
+    def __init__(self, values=()):
+        pass
 
     def __copy__(self):
         return self
@@ -99,7 +120,36 @@ class _FrozenList(list):
         return self
 
     def __reduce__(self):
-        return freeze_json_record, (list(self),)
+        return _restore_frozen_list, (list(self),)
+
+
+def _restore_frozen_dict(values):
+    """Trusted pickle restoration: children have already been restored.
+
+    The source type was constructed through the validating __new__, and
+    pickle invokes each child's reducer before this parent. A recursive JSON
+    validation here would repeat initial construction on every IPC receipt.
+    Like all Python pickle loading, this is not an untrusted-input boundary.
+    """
+    result = dict.__new__(_FrozenDict)
+    dict.__init__(result, values)
+    return result
+
+
+def _restore_frozen_list(values):
+    result = list.__new__(_FrozenList)
+    list.extend(result, values)
+    return result
+
+
+def is_frozen_json_record(value):
+    """A validated JSON-only subtree contains no ndarray to restore.
+
+    Use exact private types; an arbitrary dict/list subclass may own arrays.
+    The constructors validate ordinary inputs, and trusted pickle reducers
+    preserve every already immutable child without another recursive scan.
+    """
+    return type(value) in (_FrozenDict, _FrozenList)
 
 
 def freeze_json_record(value):
@@ -108,16 +158,22 @@ def freeze_json_record(value):
     Nested containers cannot be changed through another result's reference.
     Deepcopy and pickle preserve this immutability across async boundaries.
     """
-    if isinstance(value, (_FrozenDict, _FrozenList)):
+    if is_frozen_json_record(value):
         return value
     if isinstance(value, dict):
-        return _FrozenDict((key, freeze_json_record(item)) for key, item in value.items())
+        return _FrozenDict(value)
     if isinstance(value, list):
-        return _FrozenList(freeze_json_record(item) for item in value)
+        return _FrozenList(value)
     if isinstance(value, tuple):
         return tuple(freeze_json_record(item) for item in value)
-    if value is None or isinstance(value, (str, bool, int, float)):
+    if value is None or type(value) in (str, bool, int, float):
         return value
+    # Canonical JSON scalar values cannot carry a subclass's extra mutable
+    # attributes (possibly ndarrays). Numeric values, including NaN/Inf and
+    # their existing JSON serialization convention, are not changed.
+    for scalar in (str, bool, int, float):
+        if isinstance(value, scalar):
+            return scalar(value)
     raise TypeError('A retained JSON snapshot contains a non-JSON mutable value: '+type(value).__name__)
 
 

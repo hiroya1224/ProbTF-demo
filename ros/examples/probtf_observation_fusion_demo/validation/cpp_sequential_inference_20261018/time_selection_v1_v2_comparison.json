@@ -1,0 +1,330 @@
+{
+  "schema": "fixed_actual_frontiers_selection_only_v1_v2_comparison",
+  "input_run": "/tmp/probtf_cpp_sequential_live_20261018",
+  "old_source_sha256": "c245f3d4218003d965841e6be754fde9ac2d66a438ee78c0685959fdf01244f4",
+  "new_source_sha256": "86da2fba8b052d660f9d955cb9cc064747632d8bdea5b62b735e2d42b9fc15a9",
+  "cases": {
+    "marker": {
+      "imu": {
+        "old": {
+          "frontier_count": 131,
+          "available_count": 0,
+          "selected_count": 0,
+          "nonzero_range_frontiers": 0,
+          "minimum_selected_span_fraction": null,
+          "maximum_selected_span_fraction": null,
+          "both_endpoint_time_frontiers": 0,
+          "at_least_two_selected_frontiers": 0
+        },
+        "new": {
+          "frontier_count": 131,
+          "available_count": 0,
+          "selected_count": 0,
+          "nonzero_range_frontiers": 0,
+          "minimum_selected_span_fraction": null,
+          "maximum_selected_span_fraction": null,
+          "both_endpoint_time_frontiers": 0,
+          "at_least_two_selected_frontiers": 0
+        },
+        "changed_frontiers": 0,
+        "thinned_changed_frontiers": 0,
+        "count_mismatches": 0,
+        "selected_source_mismatches": 0,
+        "order_mismatches": 0,
+        "original_metadata_changed": 0,
+        "worst_old_examples": []
+      },
+      "image": {
+        "old": {
+          "frontier_count": 131,
+          "available_count": 933,
+          "selected_count": 258,
+          "nonzero_range_frontiers": 128,
+          "minimum_selected_span_fraction": 0.24801233448574758,
+          "maximum_selected_span_fraction": 1.0,
+          "both_endpoint_time_frontiers": 2,
+          "at_least_two_selected_frontiers": 128
+        },
+        "new": {
+          "frontier_count": 131,
+          "available_count": 933,
+          "selected_count": 258,
+          "nonzero_range_frontiers": 128,
+          "minimum_selected_span_fraction": 1.0,
+          "maximum_selected_span_fraction": 1.0,
+          "both_endpoint_time_frontiers": 128,
+          "at_least_two_selected_frontiers": 128
+        },
+        "changed_frontiers": 126,
+        "thinned_changed_frontiers": 126,
+        "count_mismatches": 0,
+        "selected_source_mismatches": 0,
+        "order_mismatches": 0,
+        "original_metadata_changed": 0,
+        "worst_old_examples": [
+          {
+            "batch_id": "8ad21a2c5b9ac6190a1a91fc26110bf1960d6669dff39a51008b769f6fc23902",
+            "available_time_range": [
+              1792080020.9211142,
+              1792080021.2082722
+            ],
+            "old_selected_stamps": [
+              1792080021.0177839,
+              1792080021.0890026
+            ],
+            "new_selected_stamps": [
+              1792080020.9211142,
+              1792080021.2082722
+            ],
+            "old_span": 0.24801233448574758,
+            "new_span": 1.0
+          },
+          {
+            "batch_id": "b12376896edc4084f9f249097795e975d3a098c277fef92de0c45671ac5ec2e1",
+            "available_time_range": [
+              1792080026.5887163,
+              1792080026.8491871
+            ],
+            "old_selected_stamps": [
+              1792080026.689754,
+              1792080026.7556512
+            ],
+            "new_selected_stamps": [
+              1792080026.5887163,
+              1792080026.8491871
+            ],
+            "old_span": 0.2529926937813846,
+            "new_span": 1.0
+          },
+          {
+            "batch_id": "4ea03116a3d537155593ec7c92473d24b38c60c6fe63314d912298f286d1bc22",
+            "available_time_range": [
+              1792080006.0228715,
+              1792080006.582448
+            ],
+            "old_selected_stamps": [
+              1792080006.185757,
+              1792080006.3336468
+            ],
+            "new_selected_stamps": [
+              1792080006.0228715,
+              1792080006.582448
+            ],
+            "old_span": 0.2642888854613951,
+            "new_span": 1.0
+          }
+        ]
+      }
+    },
+    "imu_marker": {
+      "imu": {
+        "old": {
+          "frontier_count": 72,
+          "available_count": 1841,
+          "selected_count": 556,
+          "nonzero_range_frontiers": 70,
+          "minimum_selected_span_fraction": 0.8482379259322402,
+          "maximum_selected_span_fraction": 1.0,
+          "both_endpoint_time_frontiers": 3,
+          "at_least_two_selected_frontiers": 70
+        },
+        "new": {
+          "frontier_count": 72,
+          "available_count": 1841,
+          "selected_count": 556,
+          "nonzero_range_frontiers": 70,
+          "minimum_selected_span_fraction": 1.0,
+          "maximum_selected_span_fraction": 1.0,
+          "both_endpoint_time_frontiers": 70,
+          "at_least_two_selected_frontiers": 70
+        },
+        "changed_frontiers": 67,
+        "thinned_changed_frontiers": 67,
+        "count_mismatches": 0,
+        "selected_source_mismatches": 0,
+        "order_mismatches": 0,
+        "original_metadata_changed": 0,
+        "worst_old_examples": [
+          {
+            "batch_id": "d93b0a5799a4676f9bf07a7764b24eb6f3b2477b2a4fef98f3e4fac86ffc3ffd",
+            "available_time_range": [
+              1792080039.1120322,
+              1792080039.9399269
+            ],
+            "old_selected_stamps": [
+              1792080039.1824794,
+              1792080039.2755728,
+              1792080039.3771188,
+              1792080039.4677308,
+              1792080039.5608912,
+              1792080039.668639,
+              1792080039.7701237,
+              1792080039.884731
+            ],
+            "new_selected_stamps": [
+              1792080039.1120322,
+              1792080039.2217758,
+              1792080039.3605912,
+              1792080039.4677308,
+              1792080039.5608912,
+              1792080039.7240183,
+              1792080039.8308856,
+              1792080039.9399269
+            ],
+            "old_span": 0.8482379259322402,
+            "new_span": 1.0
+          },
+          {
+            "batch_id": "51b9edbdaf3cf69f72cb709be7fd107b1d4a09a3fd326d42e28f9215bd3bff50",
+            "available_time_range": [
+              1792080000.284963,
+              1792080001.0750113
+            ],
+            "old_selected_stamps": [
+              1792080000.3431742,
+              1792080000.448917,
+              1792080000.5406256,
+              1792080000.6347618,
+              1792080000.7404807,
+              1792080000.8191586,
+              1792080000.9009948,
+              1792080001.0156498
+            ],
+            "new_selected_stamps": [
+              1792080000.284963,
+              1792080000.4144573,
+              1792080000.5072217,
+              1792080000.6347618,
+              1792080000.7404807,
+              1792080000.8519135,
+              1792080000.958855,
+              1792080001.0750113
+            ],
+            "old_span": 0.8511828006311972,
+            "new_span": 1.0
+          },
+          {
+            "batch_id": "5418f6c51181fc68b8b53fce63a84fbc44937e4bc1bb37081f85aefaa4236034",
+            "available_time_range": [
+              1792080043.536261,
+              1792080044.6530926
+            ],
+            "old_selected_stamps": [
+              1792080043.6054265,
+              1792080043.7333796,
+              1792080043.8688421,
+              1792080044.011597,
+              1792080044.1506271,
+              1792080044.3037393,
+              1792080044.444164,
+              1792080044.5567539
+            ],
+            "new_selected_stamps": [
+              1792080043.536261,
+              1792080043.6990833,
+              1792080043.8688421,
+              1792080044.011597,
+              1792080044.1506271,
+              1792080044.3523817,
+              1792080044.5002196,
+              1792080044.6530926
+            ],
+            "old_span": 0.8518091484141492,
+            "new_span": 1.0
+          }
+        ]
+      },
+      "image": {
+        "old": {
+          "frontier_count": 72,
+          "available_count": 875,
+          "selected_count": 141,
+          "nonzero_range_frontiers": 70,
+          "minimum_selected_span_fraction": 0.3107955059810906,
+          "maximum_selected_span_fraction": 1.0,
+          "both_endpoint_time_frontiers": 1,
+          "at_least_two_selected_frontiers": 70
+        },
+        "new": {
+          "frontier_count": 72,
+          "available_count": 875,
+          "selected_count": 141,
+          "nonzero_range_frontiers": 70,
+          "minimum_selected_span_fraction": 1.0,
+          "maximum_selected_span_fraction": 1.0,
+          "both_endpoint_time_frontiers": 70,
+          "at_least_two_selected_frontiers": 70
+        },
+        "changed_frontiers": 69,
+        "thinned_changed_frontiers": 69,
+        "count_mismatches": 0,
+        "selected_source_mismatches": 0,
+        "order_mismatches": 0,
+        "original_metadata_changed": 0,
+        "worst_old_examples": [
+          {
+            "batch_id": "ecd205792af3e11d11bd6d3e4ed76af91366258f1628037ad6cb28f6244f1244",
+            "available_time_range": [
+              1792080022.6915872,
+              1792080023.6713169
+            ],
+            "old_selected_stamps": [
+              1792080023.131258,
+              1792080023.4357536
+            ],
+            "new_selected_stamps": [
+              1792080022.6915872,
+              1792080023.6713169
+            ],
+            "old_span": 0.3107955059810906,
+            "new_span": 1.0
+          },
+          {
+            "batch_id": "119d85212f6f396b31a0b67b13004e733ed3306e09edd573eaa5016c12015a64",
+            "available_time_range": [
+              1792080088.9114614,
+              1792080090.0
+            ],
+            "old_selected_stamps": [
+              1792080089.173942,
+              1792080089.5373898
+            ],
+            "new_selected_stamps": [
+              1792080088.9114614,
+              1792080090.0
+            ],
+            "old_span": 0.33388586364912687,
+            "new_span": 1.0
+          },
+          {
+            "batch_id": "d812cb6130395a7585fabe48b70834332343bf97e105df74e8da9debc3592aff",
+            "available_time_range": [
+              1792080010.3267658,
+              1792080011.2648902
+            ],
+            "old_selected_stamps": [
+              1792080010.5886197,
+              1792080010.9178321
+            ],
+            "new_selected_stamps": [
+              1792080010.3267658,
+              1792080011.2648902
+            ],
+            "old_span": 0.3509261892472233,
+            "new_span": 1.0
+          }
+        ]
+      }
+    }
+  },
+  "source_unchanged": true,
+  "original_q_t_source_mapping": "selected IDs reference the original event metadata; commands and observations were unavailable to the selector",
+  "raw_measurements_decoded": false,
+  "body_or_K_updates_executed": false,
+  "physical_motion_reexecuted": false,
+  "limitations": [
+    "same old scheduling frontiers only; a real v2 run can have different future frontier boundaries",
+    "time spread comparison does not establish posterior accuracy, reaching, latency or detection success",
+    "selected raw count is distinct from valid/effective sensor observations"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "frozen_ablation_source_verification_v1",
+  "original_numerical_source_manifest": "/tmp/probtf_variational_final_sources_20261018.json",
+  "original_manifest_sha256": "c464e24121c9ea71054dc1d08e31c76d1d1c46b10803dd72b4f307ff17b63d5a",
+  "checked_source_count": 202,
+  "changed_sources": [],
+  "all_sources_identical": true,
+  "unchanged_probability_core": true,
+  "unchanged_production_control": true,
+  "diagnostic_truth_exception": "User explicitly requested single-factor truth and narrow-noise ablations; interventions confined to offline harness",
+  "baseline_candidate_ledger_checks": "Each of twelve candidates reconstructed by original restore with exact identity and full ledger-chain checks",
+  "baseline_source_physics_checks": "Exact source stamp and sent command plus actual FK tip vs saved physical tip <=1e-12 m",
+  "baseline_curvature_max_abs_difference": 0.0,
+  "dependencies": [
+    {
+      "path": "/tmp/probtf_1244_objective_analysis_20261018/decompose_objective.py",
+      "sha256": "d71f3f41cd06d0d70e662e78dbd9377500bf58d5ea1839c777f7e7075d3c548f"
+    },
+    {
+      "path": "/tmp/probtf_1244_objective_analysis_20261018/extract_sources.py",
+      "sha256": "10ae82f5c1a87bcc3c8f546950cc0f05158438fbd0f9998500816f4ada2a5ac3"
+    }
+  ]
+}

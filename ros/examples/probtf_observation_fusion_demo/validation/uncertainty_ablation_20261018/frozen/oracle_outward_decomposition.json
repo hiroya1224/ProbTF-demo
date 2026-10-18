@@ -1,0 +1,334 @@
+{
+  "schema": "all_truth_full_objective_outward_direction_decomposition_v1",
+  "script_sha256": "05b3f58ffac713c7c2a6afd48b1098358223c184db8c1b904c2bd08865dd953d",
+  "records": [
+    {
+      "source_time_s": 89.71282291412354,
+      "request_id": 530,
+      "condition": "oracle_all_centers",
+      "local_equilibrium_direction": [
+        -0.30884247699253803,
+        0.4744173566375811,
+        -0.6011809611832659,
+        -0.4583701889021357,
+        0.15978152248898142,
+        -0.28721522075581496
+      ],
+      "local_equilibrium_delta_norm": 0.10997388262748806,
+      "unit_direction_is_same_as_frozen_sweep": true,
+      "geometry_truth_checks": {
+        "core_hand_mode": [
+          0.8965196585478393,
+          -0.22076724362323327,
+          0.39756969359309674
+        ],
+        "actual_FK_hand": [
+          0.8965196585478445,
+          -0.22076724362320455,
+          0.3975696935930908
+        ],
+        "hand_mode_truth_max_abs_m": 2.8727020762175925e-14,
+        "core_goal_mode": [
+          1.1350000000000007,
+          -0.06000000000000436,
+          0.45999999999999985
+        ],
+        "actual_goal": [
+          1.135,
+          -0.060000000000000005,
+          0.45999999999999996
+        ],
+        "goal_mode_truth_max_abs_m": 4.3576253716537394e-15,
+        "hand_mode_orientation_abs_dot": 1.0,
+        "marker_mode_orientation_abs_dot": 1.0,
+        "core_hand_corrected_mean": [
+          0.902009801453675,
+          -0.19343951857007238,
+          0.3745682785923772
+        ],
+        "core_goal_corrected_mean": [
+          1.135089557770891,
+          -0.060000000000004355,
+          0.4604776414447485
+        ],
+        "hand_correction_m": [
+          0.005490142905835715,
+          0.02732772505316089,
+          -0.02300141500071956
+        ],
+        "goal_correction_m": [
+          8.955777089036943e-05,
+          6.938893903907228e-18,
+          0.00047764144474865544
+        ]
+      },
+      "full_selected_objective_directional_derivative": -16220.157247983518,
+      "source_gradient_dot_unit_direction": -16220.156047601286,
+      "estimated_marker_relative_mean_distance_derivative_m_per_unit_command": -0.014567116973784875,
+      "oracle_anchored_FK_true_goal_distance_derivative_m_per_unit_command": -0.015856217494558678,
+      "source_physical_distance_m": 0.29430685183902877,
+      "source_estimated_relative_mean_distance_m": 0.28419444302594393,
+      "derivative_terms_per_unit_command": {
+        "position_mean_in_quadratic": -12190.923571230076,
+        "position_covariance_in_quadratic": -8009.058896542294,
+        "position_quadratic_total": -20199.982349549828,
+        "position_logdet": 2.784747244621854,
+        "position_normalizer": 0.0,
+        "bingham_negative_quadratic": 40.53346272030467,
+        "bingham_logZ": 2.0442885259264187,
+        "view": 3934.462603029942
+      },
+      "position_chain_split_error": -0.00011822254236903973,
+      "term_sum_error": -4.551475285552442e-08,
+      "finite_directional_step": 1e-05,
+      "new_observations": 0,
+      "physical_truth_only_offline": true
+    },
+    {
+      "source_time_s": 89.71282291412354,
+      "request_id": 530,
+      "condition": "oracle_all_centers_narrow_trueK",
+      "local_equilibrium_direction": [
+        -0.6335111604700412,
+        0.3219565456793999,
+        0.09077277677153703,
+        -0.45574194706827176,
+        -0.06342016100010524,
+        0.5244473816432075
+      ],
+      "local_equilibrium_delta_norm": 74.14311713520783,
+      "unit_direction_is_same_as_frozen_sweep": true,
+      "geometry_truth_checks": {
+        "core_hand_mode": [
+          0.8965196585478603,
+          -0.22076724362313196,
+          0.3975696935930968
+        ],
+        "actual_FK_hand": [
+          0.8965196585478445,
+          -0.22076724362320455,
+          0.3975696935930908
+        ],
+        "hand_mode_truth_max_abs_m": 7.258083023486961e-14,
+        "core_goal_mode": [
+          1.1350000000000002,
+          -0.060000000000002086,
+          0.45999999999999996
+        ],
+        "actual_goal": [
+          1.135,
+          -0.060000000000000005,
+          0.45999999999999996
+        ],
+        "goal_mode_truth_max_abs_m": 2.0816681711721685e-15,
+        "hand_mode_orientation_abs_dot": 0.9999999999999999,
+        "marker_mode_orientation_abs_dot": 1.0,
+        "core_hand_corrected_mean": [
+          0.8965202075621509,
+          -0.22076451085062665,
+          0.39756739345159675
+        ],
+        "core_goal_corrected_mean": [
+          1.1350000089557772,
+          -0.060000000000002086,
+          0.46000004776414444
+        ],
+        "hand_correction_m": [
+          5.490142905850703e-07,
+          2.7327725053150065e-06,
+          -2.300141500044539e-06
+        ],
+        "goal_correction_m": [
+          8.95577700887884e-09,
+          0.0,
+          4.776414447293931e-08
+        ]
+      },
+      "full_selected_objective_directional_derivative": -225368020.4817747,
+      "source_gradient_dot_unit_direction": -225368029.0431076,
+      "estimated_marker_relative_mean_distance_derivative_m_per_unit_command": 0.3897878887298977,
+      "oracle_anchored_FK_true_goal_distance_derivative_m_per_unit_command": 0.38978830499136746,
+      "source_physical_distance_m": 0.29430685183902877,
+      "source_estimated_relative_mean_distance_m": 0.2943056862803003,
+      "derivative_terms_per_unit_command": {
+        "position_mean_in_quadratic": -807703.1056619436,
+        "position_covariance_in_quadratic": -247229142.2232046,
+        "position_quadratic_total": -248036845.94146904,
+        "position_logdet": 1.6980462918425585,
+        "position_normalizer": 0.0,
+        "bingham_negative_quadratic": 22652445.195056498,
+        "bingham_logZ": 1.0172916388384579,
+        "view": 16377.549672444045
+      },
+      "position_chain_split_error": 0.6126025021076202,
+      "term_sum_error": 0.0003725290298461914,
+      "finite_directional_step": 1e-05,
+      "new_observations": 0,
+      "physical_truth_only_offline": true
+    },
+    {
+      "source_time_s": 158.06119537353516,
+      "request_id": 848,
+      "condition": "oracle_all_centers",
+      "local_equilibrium_direction": [
+        -0.9128955987187386,
+        0.22326110329135848,
+        -0.21088278116937226,
+        -0.07814739059661287,
+        0.2562826334849064,
+        -0.022732252865335513
+      ],
+      "local_equilibrium_delta_norm": 0.22791076030396457,
+      "unit_direction_is_same_as_frozen_sweep": true,
+      "geometry_truth_checks": {
+        "core_hand_mode": [
+          0.9704782719705978,
+          -0.16111876613092546,
+          0.40826714354557103
+        ],
+        "actual_FK_hand": [
+          0.9704782719705972,
+          -0.16111876613092524,
+          0.40826714354557053
+        ],
+        "hand_mode_truth_max_abs_m": 5.551115123125783e-16,
+        "core_goal_mode": [
+          1.135,
+          -0.059999999999999734,
+          0.45999999999999996
+        ],
+        "actual_goal": [
+          1.135,
+          -0.060000000000000005,
+          0.45999999999999996
+        ],
+        "goal_mode_truth_max_abs_m": 2.706168622523819e-16,
+        "hand_mode_orientation_abs_dot": 1.0,
+        "marker_mode_orientation_abs_dot": 1.0,
+        "core_hand_corrected_mean": [
+          0.9693717949020739,
+          -0.16252972151984615,
+          0.4081057471413423
+        ],
+        "core_goal_corrected_mean": [
+          1.1350092596214123,
+          -0.059999999999999734,
+          0.46004938464753264
+        ],
+        "hand_correction_m": [
+          -0.0011064770685238479,
+          -0.0014109553889206927,
+          -0.0001613964042287419
+        ],
+        "goal_correction_m": [
+          9.259621412294194e-06,
+          0.0,
+          4.938464753267979e-05
+        ]
+      },
+      "full_selected_objective_directional_derivative": -25519.59467199389,
+      "source_gradient_dot_unit_direction": -25519.59464208924,
+      "estimated_marker_relative_mean_distance_derivative_m_per_unit_command": 0.5551618050644858,
+      "oracle_anchored_FK_true_goal_distance_derivative_m_per_unit_command": 0.5524709188853283,
+      "source_physical_distance_m": 0.19992171541519968,
+      "source_estimated_relative_mean_distance_m": 0.20163170378560372,
+      "derivative_terms_per_unit_command": {
+        "position_mean_in_quadratic": -3511.053651610343,
+        "position_covariance_in_quadratic": -22433.34054482133,
+        "position_quadratic_total": -25944.39422889536,
+        "position_logdet": 5.799177540488642,
+        "position_normalizer": 0.0,
+        "bingham_negative_quadratic": 417.62527855695447,
+        "bingham_logZ": 1.3751008268059193,
+        "view": 0.0
+      },
+      "position_chain_split_error": 3.2463685784023255e-05,
+      "term_sum_error": 2.2781023290008307e-08,
+      "finite_directional_step": 1e-05,
+      "new_observations": 0,
+      "physical_truth_only_offline": true
+    },
+    {
+      "source_time_s": 158.06119537353516,
+      "request_id": 848,
+      "condition": "oracle_all_centers_narrow_trueK",
+      "local_equilibrium_direction": [
+        -0.2719379777221149,
+        -0.015154794965020507,
+        0.021270795201423984,
+        -0.7162438719566644,
+        0.007191161156658399,
+        0.6421141836303089
+      ],
+      "local_equilibrium_delta_norm": 99.77937917412467,
+      "unit_direction_is_same_as_frozen_sweep": true,
+      "geometry_truth_checks": {
+        "core_hand_mode": [
+          0.9704782719705971,
+          -0.16111876613092424,
+          0.4082671435455685
+        ],
+        "actual_FK_hand": [
+          0.9704782719705972,
+          -0.16111876613092524,
+          0.40826714354557053
+        ],
+        "hand_mode_truth_max_abs_m": 2.0539125955565396e-15,
+        "core_goal_mode": [
+          1.1350000000000002,
+          -0.059999999999999304,
+          0.45999999999999996
+        ],
+        "actual_goal": [
+          1.135,
+          -0.060000000000000005,
+          0.45999999999999996
+        ],
+        "goal_mode_truth_max_abs_m": 7.008282842946301e-16,
+        "hand_mode_orientation_abs_dot": 1.0,
+        "marker_mode_orientation_abs_dot": 1.0,
+        "core_hand_corrected_mean": [
+          0.9704781613228902,
+          -0.16111890722646313,
+          0.4082671274059281
+        ],
+        "core_goal_corrected_mean": [
+          1.1350000009259624,
+          -0.059999999999999304,
+          0.4600000049384647
+        ],
+        "hand_correction_m": [
+          -1.1064770688573589e-07,
+          -1.4109553889141146e-07,
+          -1.6139640401924282e-08
+        ],
+        "goal_correction_m": [
+          9.259621958079833e-10,
+          0.0,
+          4.938464748249771e-09
+        ]
+      },
+      "full_selected_objective_directional_derivative": -64845920.24956382,
+      "source_gradient_dot_unit_direction": -64845920.18527163,
+      "estimated_marker_relative_mean_distance_derivative_m_per_unit_command": 0.052296937273765824,
+      "oracle_anchored_FK_true_goal_distance_derivative_m_per_unit_command": 0.05229685642454961,
+      "source_physical_distance_m": 0.1999217154151996,
+      "source_estimated_relative_mean_distance_m": 0.19992188628014487,
+      "derivative_terms_per_unit_command": {
+        "position_mean_in_quadratic": 58704.88894223276,
+        "position_covariance_in_quadratic": -62993147.69488272,
+        "position_quadratic_total": -62934442.797861986,
+        "position_logdet": 1.3447335092564572,
+        "position_normalizer": 0.0,
+        "bingham_negative_quadratic": -1911480.2426658568,
+        "bingham_logZ": 1.4462305141904606,
+        "view": 0.0
+      },
+      "position_chain_split_error": -0.008078500628471375,
+      "term_sum_error": 0.0,
+      "finite_directional_step": 1e-05,
+      "new_observations": 0,
+      "physical_truth_only_offline": true
+    }
+  ]
+}

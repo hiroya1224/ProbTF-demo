@@ -1,0 +1,51 @@
+{
+  "physical_motion_or_estimation_replayed": false,
+  "results_used_in_completed_motion": false,
+  "raw_request_count": 4976,
+  "completed_requested_motion": false,
+  "before": {
+    "counts": {
+      "completed": 3077,
+      "pending": 64,
+      "processing": 1270
+    },
+    "total": 4411,
+    "claimed_through_stamp": 1792080060.1707041,
+    "earliest_unfinished": {
+      "event_id": "joint:00003801",
+      "stamp": 1792080043.0017765,
+      "sequence": 3078,
+      "status": "processing"
+    },
+    "ordering": "acquisition stamp, then immutable insertion sequence",
+    "latest_only_selection": false
+  },
+  "after": {
+    "counts": {
+      "completed": 3077,
+      "pending": 629,
+      "processing": 1270
+    },
+    "total": 4976,
+    "claimed_through_stamp": 1792080060.1707041,
+    "earliest_unfinished": {
+      "event_id": "joint:00003801",
+      "stamp": 1792080043.0017765,
+      "sequence": 3078,
+      "status": "processing"
+    },
+    "ordering": "acquisition stamp, then immutable insertion sequence",
+    "latest_only_selection": false
+  },
+  "recovered_event_count": 565,
+  "remaining_missing_event_ids": [],
+  "all_raw_archived": true,
+  "completed_camera_prefix": 664,
+  "noise_prefix_bitwise_check": {
+    "event_id": "image:00005470",
+    "expected_sha256": "b09b84d764082271d2c4064cec954b6fbb56c44da09aec9373703944ef431936",
+    "reproduced_sha256": "b09b84d764082271d2c4064cec954b6fbb56c44da09aec9373703944ef431936",
+    "equal": true
+  },
+  "wall_seconds": 8.611619811039418
+}

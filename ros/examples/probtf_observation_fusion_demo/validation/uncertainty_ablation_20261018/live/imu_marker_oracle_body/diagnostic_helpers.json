@@ -1,0 +1,36 @@
+{
+  "actual_run_frozen_helper_copy_available": true,
+  "storage": "deduplicated lossless original source bytes; module filenames retained in this index",
+  "entries": [
+    {
+      "module_filename": "uncertainty_ablation.py",
+      "sha256": "7b70b3c4d6a8bfdd21728424f10ed81d13bd95d98e13902f4c724f51305c5cf3",
+      "selected_copy": "../../diagnostic_sources/7b70b3c4d6a8bfdd21728424f10ed81d13bd95d98e13902f4c724f51305c5cf3.py"
+    },
+    {
+      "module_filename": "uncertainty_ablation_audit.py",
+      "sha256": "7ad91a6aaaccbc11a8bb927e66bc4027fdf1a341657d47a9d1cbc931eecd0e13",
+      "selected_copy": "../../diagnostic_sources/7ad91a6aaaccbc11a8bb927e66bc4027fdf1a341657d47a9d1cbc931eecd0e13.py"
+    },
+    {
+      "module_filename": "uncertainty_ablation_landmark.py",
+      "sha256": "421dd155e4208acf36b6a5499bc94ea5ab0af832c00e4c1317fe33b58f75cec4",
+      "selected_copy": "../../diagnostic_sources/421dd155e4208acf36b6a5499bc94ea5ab0af832c00e4c1317fe33b58f75cec4.py"
+    },
+    {
+      "module_filename": "uncertainty_ablation_observations.py",
+      "sha256": "0345193043e25a179f38232019d4f7c08f0910ecda2add75d2a9a0fe502a92cb",
+      "selected_copy": "../../diagnostic_sources/0345193043e25a179f38232019d4f7c08f0910ecda2add75d2a9a0fe502a92cb.py"
+    },
+    {
+      "module_filename": "uncertainty_ablation_recover.py",
+      "sha256": "80bec2bd92187ccfe3c2513977b733a91aadfe7a57e2101db648fa7ed23ac280",
+      "selected_copy": "../../diagnostic_sources/80bec2bd92187ccfe3c2513977b733a91aadfe7a57e2101db648fa7ed23ac280.py"
+    },
+    {
+      "module_filename": "uncertainty_ablation_states.py",
+      "sha256": "7ec67c9317bea3cce504263c500fb45bdf05673cea589911b15522483e283342",
+      "selected_copy": "../../diagnostic_sources/7ec67c9317bea3cce504263c500fb45bdf05673cea589911b15522483e283342.py"
+    }
+  ]
+}

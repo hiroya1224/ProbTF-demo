@@ -1,0 +1,1677 @@
+{
+  "audit_wall_stamp": 1792327848.1149707,
+  "completed_case_count": 13,
+  "partial_case_count": 3,
+  "cases": [
+    {
+      "case": "imu_marker_all_oracle",
+      "sensor_configuration": "imu_marker",
+      "intervention": "all_oracle",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": false,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 98.92548058414832,
+      "failure_message": "Running-gradient explicit fail-safe: joint_position_out_of_range",
+      "reached_once": true,
+      "final_frame_reached": false,
+      "final_error_m": 1.1016343387906373,
+      "minimum_error_m": 0.001081215118888112,
+      "tip_arc_m": 41.22342021848015,
+      "net_shortening_per_arc": -0.017757824579952383,
+      "first_reach": {
+        "time_s": 37.41386301536113,
+        "arc_before_first_reach_m": 4.194149240528956,
+        "physical_error_at_first_reach_m": null,
+        "remaining_observed_duration_s": 61.51161756878719,
+        "remaining_arc_m": 37.02927097795119,
+        "final_frame_reached": false,
+        "source": "saved diagnostic trajectory summary",
+        "reached_once_is_not_sustained_reaching": true
+      },
+      "physical_cutoff_available": false,
+      "ages_at_physical_cutoff": null,
+      "actual_Hz": null,
+      "K_jobs_at_physical_cutoff": null,
+      "raw_at_physical_cutoff": null,
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 7573,
+        "recovered_event_count": 1533,
+        "database_completed_rows": 4227,
+        "database_pending_rows": 3346,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": null,
+      "executed_K_source_age_s": null,
+      "saved_control_body_observation_age_s": null,
+      "finite_VI": {
+        "saved_branches": 110,
+        "finite_nonstationary_branches": 70,
+        "gradient_inf": {
+          "n": 110,
+          "min": 4.587871610048366e-08,
+          "median": 1.9855851231171937e-05,
+          "p95": 790.9410406864541,
+          "max": 7393.0445337120855
+        },
+        "marker_position_residual_m": {
+          "n": 14,
+          "min": 4.752027789376393e-06,
+          "median": 0.00013401932350374425,
+          "p95": 0.0013758942501287382,
+          "max": 0.0016371573517098552
+        },
+        "gravity_tangent2_residual": {
+          "n": 96,
+          "min": 0.0003449572490406783,
+          "median": 0.015593439704843847,
+          "p95": 0.07589800251418759,
+          "max": 0.15666062275552686
+        },
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 877,
+        "missing_count": 261,
+        "first_missing_time_s": 0.2539999485015869,
+        "last_saved_time_s": 75.92459630966187,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 17,
+        "applied_count": 11
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_all_oracle/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/imu_marker_all_oracle_compact_audit.json",
+        "cutoff": null
+      },
+      "missing_cutoff_reason": "Trial ended before requested physical cutoff; end-of-request body/K ages, Hz and processed counts are unavailable, never zero-filled.",
+      "age_interpretation": "Recursive estimator ages remain recorded; control body centers are truth-replaced independently at each control capture."
+    },
+    {
+      "case": "imu_marker_baseline",
+      "sensor_configuration": "imu_marker",
+      "intervention": "baseline",
+      "trial_truth_assisted": false,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.09993281779836403,
+      "minimum_error_m": 0.08321222041314333,
+      "tip_arc_m": 1.4070569607409036,
+      "net_shortening_per_arc": 0.19165056120034105,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 70.49026107788086,
+        "gradient_source_s": 1.4384071826934814
+      },
+      "actual_Hz": {
+        "motion": 88.76071159212539,
+        "camera": 10.5755963697629,
+        "control": 5.074488232771336
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 74,
+        "submitted": 155
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 12861,
+        "archived": 10120,
+        "reserved_database_rows": 10142,
+        "database_completed_rows": 8278,
+        "database_pending_rows": 48,
+        "database_awaiting_payload_rows": 0
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 12861,
+        "recovered_event_count": 1684,
+        "database_completed_rows": 10094,
+        "database_pending_rows": 2767,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 16092,
+        "min": 0.13622093200683594,
+        "median": 0.26286137104034424,
+        "p95": 0.5094051361083983,
+        "max": 3.02394437789917
+      },
+      "executed_K_source_age_s": {
+        "n": 16092,
+        "min": 0.6530323028564453,
+        "median": 79.52486658096313,
+        "p95": 150.89004892110825,
+        "max": 159.62806749343872
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 735,
+        "min": 0.1445016860961914,
+        "median": 15.917940139770508,
+        "p95": 44.300740885734555,
+        "max": 49.551504135131836
+      },
+      "finite_VI": {
+        "saved_branches": 154,
+        "finite_nonstationary_branches": 95,
+        "gradient_inf": {
+          "n": 154,
+          "min": 1.142365122636102e-08,
+          "median": 2.203035491994687e-05,
+          "p95": 602.4469597183514,
+          "max": 7358.731639880448
+        },
+        "marker_position_residual_m": {
+          "n": 32,
+          "min": 1.494332455202894e-05,
+          "median": 0.0016625674645417228,
+          "p95": 0.006872048548823865,
+          "max": 0.00982775629613132
+        },
+        "gravity_tangent2_residual": {
+          "n": 122,
+          "min": 0.0021829909548631878,
+          "median": 0.012924928746380467,
+          "p95": 0.025456950111659275,
+          "max": 0.038689868191415004
+        },
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1621,
+        "missing_count": 0,
+        "first_missing_time_s": null,
+        "last_saved_time_s": 151.17691826820374,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_baseline/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/imu_marker_baseline_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_baseline/diagnostic_physical_cutoff.json"
+      }
+    },
+    {
+      "case": "imu_marker_known_landmark",
+      "sensor_configuration": "imu_marker",
+      "intervention": "known_landmark",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.08162620963842818,
+      "minimum_error_m": 0.08162620963842818,
+      "tip_arc_m": 1.3691844323138875,
+      "net_shortening_per_arc": 0.2103221870848432,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 59.00124931335449,
+        "gradient_source_s": 0.19572210311889648
+      },
+      "actual_Hz": {
+        "motion": 89.20917102439746,
+        "camera": 10.613869792364076,
+        "control": 5.084271491278377
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 69,
+        "submitted": 113
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 12764,
+        "archived": 9329,
+        "reserved_database_rows": 9330,
+        "database_completed_rows": 8625,
+        "database_pending_rows": 704,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 12764,
+        "recovered_event_count": 2046,
+        "database_completed_rows": 8625,
+        "database_pending_rows": 4139,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 15987,
+        "min": 0.13424086570739746,
+        "median": 0.2662959098815918,
+        "p95": 0.5222289085388182,
+        "max": 3.194434404373169
+      },
+      "executed_K_source_age_s": {
+        "n": 15987,
+        "min": 0.6704695224761963,
+        "median": 78.80653619766235,
+        "p95": 146.77995915412902,
+        "max": 153.75511956214905
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 767,
+        "min": 0.13494110107421875,
+        "median": 23.535030364990234,
+        "p95": 52.046164846420275,
+        "max": 59.14669990539551
+      },
+      "finite_VI": {
+        "saved_branches": 144,
+        "finite_nonstationary_branches": 88,
+        "gradient_inf": {
+          "n": 144,
+          "min": 5.117560372810818e-09,
+          "median": 2.3189669101519224e-05,
+          "p95": 389.2289064873682,
+          "max": 917.7145931782339
+        },
+        "marker_position_residual_m": {
+          "n": 30,
+          "min": 8.888604525591377e-05,
+          "median": 0.0015460807005312526,
+          "p95": 0.019281558613285402,
+          "max": 0.033457799787956315
+        },
+        "gravity_tangent2_residual": {
+          "n": 114,
+          "min": 0.0018399865444062547,
+          "median": 0.012800585906568794,
+          "p95": 0.026859258797909315,
+          "max": 0.04151403587468587
+        },
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1545,
+        "missing_count": 0,
+        "first_missing_time_s": null,
+        "last_saved_time_s": 144.25309681892395,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_known_landmark/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/imu_marker_known_landmark_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_known_landmark/diagnostic_physical_cutoff.json"
+      }
+    },
+    {
+      "case": "imu_marker_oracle_body",
+      "sensor_configuration": "imu_marker",
+      "intervention": "oracle_body",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.363966023474096,
+      "minimum_error_m": 0.363966023474096,
+      "tip_arc_m": 0.006830108706682667,
+      "net_shortening_per_arc": 0.8242988117597476,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 70.23287796974182,
+        "gradient_source_s": 0.46457672119140625
+      },
+      "actual_Hz": {
+        "motion": 89.49358355430432,
+        "camera": 10.68205524049875,
+        "control": 4.901146657292975
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 81,
+        "submitted": 113
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 12850,
+        "archived": 10119,
+        "reserved_database_rows": 10120,
+        "database_completed_rows": 7867,
+        "database_pending_rows": 2252,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 12850,
+        "recovered_event_count": 1381,
+        "database_completed_rows": 10713,
+        "database_pending_rows": 2137,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 16033,
+        "min": 0.14447593688964844,
+        "median": 0.2765321731567383,
+        "p95": 0.5205122470855713,
+        "max": 2.922898530960083
+      },
+      "executed_K_source_age_s": {
+        "n": 16033,
+        "min": 0.6983621120452881,
+        "median": 71.6685152053833,
+        "p95": 129.97509927749633,
+        "max": 137.93192529678345
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 725,
+        "min": 0.1433122158050537,
+        "median": 23.07301926612854,
+        "p95": 53.74687390327453,
+        "max": 59.461687088012695
+      },
+      "finite_VI": {
+        "saved_branches": 170,
+        "finite_nonstationary_branches": 104,
+        "gradient_inf": {
+          "n": 170,
+          "min": 9.038479526105663e-09,
+          "median": 2.227308832122854e-05,
+          "p95": 728.2453656303962,
+          "max": 1696.57231800617
+        },
+        "marker_position_residual_m": {
+          "n": 36,
+          "min": 2.090917576447309e-06,
+          "median": 0.000500858393454678,
+          "p95": 0.0055701996561812175,
+          "max": 0.006972731183001187
+        },
+        "gravity_tangent2_residual": {
+          "n": 134,
+          "min": 0.0007850770061097725,
+          "median": 0.012140418530272108,
+          "p95": 0.02597874041763714,
+          "max": 0.03328733794419909
+        },
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1666,
+        "missing_count": 0,
+        "first_missing_time_s": null,
+        "last_saved_time_s": 156.00665497779846,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_oracle_body/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/imu_marker_oracle_body_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_oracle_body/diagnostic_physical_cutoff.json"
+      },
+      "age_interpretation": "Recursive estimator ages remain recorded; control body centers are truth-replaced independently at each control capture."
+    },
+    {
+      "case": "imu_marker_oracle_body_goal",
+      "sensor_configuration": "imu_marker",
+      "intervention": "oracle_body_goal",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": false,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 68.82940175011754,
+      "failure_message": "Running-gradient explicit fail-safe: joint_position_out_of_range",
+      "reached_once": true,
+      "final_frame_reached": false,
+      "final_error_m": 0.24301102605253494,
+      "minimum_error_m": 0.0028918250242535633,
+      "tip_arc_m": 3.290740216187751,
+      "net_shortening_per_arc": 0.03846704376418855,
+      "first_reach": {
+        "time_s": 38.66241687303409,
+        "arc_before_first_reach_m": 2.2603737328481985,
+        "physical_error_at_first_reach_m": null,
+        "remaining_observed_duration_s": 30.16698487708345,
+        "remaining_arc_m": 1.0303664833395523,
+        "final_frame_reached": false,
+        "source": "saved diagnostic trajectory summary",
+        "reached_once_is_not_sustained_reaching": true
+      },
+      "physical_cutoff_available": false,
+      "ages_at_physical_cutoff": null,
+      "actual_Hz": null,
+      "K_jobs_at_physical_cutoff": null,
+      "raw_at_physical_cutoff": null,
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 4976,
+        "recovered_event_count": 565,
+        "database_completed_rows": 3077,
+        "database_pending_rows": 629,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": null,
+      "executed_K_source_age_s": null,
+      "saved_control_body_observation_age_s": null,
+      "finite_VI": {
+        "saved_branches": 88,
+        "finite_nonstationary_branches": 57,
+        "gradient_inf": {
+          "n": 88,
+          "min": 1.962841695082873e-08,
+          "median": 2.2666179284314136e-05,
+          "p95": 220.0832111796454,
+          "max": 6304.8954258217
+        },
+        "marker_position_residual_m": {
+          "n": 8,
+          "min": 0.00020281970827447357,
+          "median": 0.0019333845736923423,
+          "p95": 0.006356932482170469,
+          "max": 0.008013450344634826
+        },
+        "gravity_tangent2_residual": {
+          "n": 80,
+          "min": 0.003234171807442952,
+          "median": 0.018126665088981732,
+          "p95": 0.08486072256065456,
+          "max": 0.14423298771962775
+        },
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 607,
+        "missing_count": 63,
+        "first_missing_time_s": 0.25034093856811523,
+        "last_saved_time_s": 56.25236177444458,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_oracle_body_goal/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/imu_marker_oracle_body_goal_compact_audit.json",
+        "cutoff": null
+      },
+      "missing_cutoff_reason": "Trial ended before requested physical cutoff; end-of-request body/K ages, Hz and processed counts are unavailable, never zero-filled.",
+      "age_interpretation": "Recursive estimator ages remain recorded; control body centers are truth-replaced independently at each control capture."
+    },
+    {
+      "case": "imu_marker_oracle_goal",
+      "sensor_configuration": "imu_marker",
+      "intervention": "oracle_goal",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.363611261615233,
+      "minimum_error_m": 0.363611261615233,
+      "tip_arc_m": 0.055165601865339135,
+      "net_shortening_per_arc": 0.10848811845795775,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 64.32017612457275,
+        "gradient_source_s": 0.30481624603271484
+      },
+      "actual_Hz": {
+        "motion": 88.74842679123172,
+        "camera": 10.604920843154732,
+        "control": 5.007297307281776
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 67,
+        "submitted": 163
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 12763,
+        "archived": 10054,
+        "reserved_database_rows": 10055,
+        "database_completed_rows": 8156,
+        "database_pending_rows": 1899,
+        "database_awaiting_payload_rows": 0
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 12763,
+        "recovered_event_count": 1682,
+        "database_completed_rows": 10321,
+        "database_pending_rows": 2042,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 15976,
+        "min": 1.0251998901367188e-05,
+        "median": 0.26812422275543213,
+        "p95": 0.5048948526382446,
+        "max": 3.1024608612060547
+      },
+      "executed_K_source_age_s": {
+        "n": 15921,
+        "min": 0.5005078315734863,
+        "median": 81.66578984260559,
+        "p95": 156.68226718902588,
+        "max": 163.2656695842743
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 751,
+        "min": 0.1704857349395752,
+        "median": 16.51580262184143,
+        "p95": 48.06317400932312,
+        "max": 53.63246250152588
+      },
+      "finite_VI": {
+        "saved_branches": 138,
+        "finite_nonstationary_branches": 84,
+        "gradient_inf": {
+          "n": 138,
+          "min": 9.155659969756202e-09,
+          "median": 1.9089950293052795e-05,
+          "p95": 1225.1814591349903,
+          "max": 3653.615739297345
+        },
+        "marker_position_residual_m": {
+          "n": 28,
+          "min": 1.4449979981238097e-05,
+          "median": 0.000602793515844407,
+          "p95": 0.010713031973349206,
+          "max": 0.013846667579336693
+        },
+        "gravity_tangent2_residual": {
+          "n": 110,
+          "min": 0.0016047264076419745,
+          "median": 0.011851986334983328,
+          "p95": 0.02604841914677307,
+          "max": 0.04407690735042719
+        },
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1627,
+        "missing_count": 0,
+        "first_missing_time_s": null,
+        "last_saved_time_s": 153.34166717529297,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_oracle_goal/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/imu_marker_oracle_goal_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_oracle_goal/diagnostic_physical_cutoff.json"
+      }
+    },
+    {
+      "case": "imu_marker_oracle_marker",
+      "sensor_configuration": "imu_marker",
+      "intervention": "oracle_marker",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": false,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 0.9114550403319299,
+      "failure_message": "Running-gradient explicit fail-safe: joint_position_out_of_range",
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.6715046493359605,
+      "minimum_error_m": 0.36959607396520444,
+      "tip_arc_m": 0.4308040341405023,
+      "net_shortening_per_arc": -0.7008025725039793,
+      "first_reach": null,
+      "physical_cutoff_available": false,
+      "ages_at_physical_cutoff": null,
+      "actual_Hz": null,
+      "K_jobs_at_physical_cutoff": null,
+      "raw_at_physical_cutoff": null,
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 76,
+        "recovered_event_count": 0,
+        "database_completed_rows": 49,
+        "database_pending_rows": 27,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": null,
+      "executed_K_source_age_s": null,
+      "saved_control_body_observation_age_s": null,
+      "finite_VI": {
+        "saved_branches": 4,
+        "finite_nonstationary_branches": 4,
+        "gradient_inf": {
+          "n": 4,
+          "min": 2.391133256866671e-05,
+          "median": 46.7650363994007,
+          "p95": 852.8838564917277,
+          "max": 986.8874695983619
+        },
+        "marker_position_residual_m": {
+          "n": 2,
+          "min": 1.693592745150185e-05,
+          "median": 0.00013769989984204712,
+          "p95": 0.0002463874749935378,
+          "max": 0.00025846387223259237
+        },
+        "gravity_tangent2_residual": {
+          "n": 2,
+          "min": 0.011661874606513871,
+          "median": 0.011661874606513871,
+          "p95": 0.011661874606513871,
+          "max": 0.011661874606513871
+        },
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 11,
+        "missing_count": 1,
+        "first_missing_time_s": 0.8408915996551514,
+        "last_saved_time_s": 0.8408915996551514,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 3,
+        "applied_count": 3
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_oracle_marker/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/imu_marker_oracle_marker_compact_audit.json",
+        "cutoff": null
+      },
+      "missing_cutoff_reason": "Trial ended before requested physical cutoff; end-of-request body/K ages, Hz and processed counts are unavailable, never zero-filled."
+    },
+    {
+      "case": "imu_marker_true_K",
+      "sensor_configuration": "imu_marker",
+      "intervention": "true_K",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.1284381904047881,
+      "minimum_error_m": 0.1284381904047881,
+      "tip_arc_m": 1.304689724050137,
+      "net_shortening_per_arc": 0.18483926033524048,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 70.24782013893127,
+        "gradient_source_s": 0.2662663459777832
+      },
+      "actual_Hz": {
+        "motion": 103.50244411692363,
+        "camera": 11.454969754288825,
+        "control": 6.021166675089023
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 87,
+        "submitted": 113
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 13957,
+        "archived": 11155,
+        "reserved_database_rows": 11156,
+        "database_completed_rows": 8516,
+        "database_pending_rows": 2639,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 13957,
+        "recovered_event_count": 1707,
+        "database_completed_rows": 11439,
+        "database_pending_rows": 2518,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 18554,
+        "min": 0.12826228141784668,
+        "median": 0.24534738063812256,
+        "p95": 0.4539515137672424,
+        "max": 1.3120989799499512
+      },
+      "executed_K_source_age_s": {
+        "n": 18554,
+        "min": 0.6948843002319336,
+        "median": 69.38167631626129,
+        "p95": 124.1749768257141,
+        "max": 130.89507460594177
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 5,
+        "min": 0.1553030014038086,
+        "median": 0.22256183624267578,
+        "p95": 0.28407111167907717,
+        "max": 0.29080629348754883
+      },
+      "finite_VI": {
+        "saved_branches": 178,
+        "finite_nonstationary_branches": 109,
+        "gradient_inf": {
+          "n": 178,
+          "min": 9.16212635837868e-09,
+          "median": 2.1194085290221487e-05,
+          "p95": 409.1033427240551,
+          "max": 5442.274174220721
+        },
+        "marker_position_residual_m": {
+          "n": 36,
+          "min": 5.7262120371366805e-06,
+          "median": 0.0012226535959605207,
+          "p95": 0.004197252144601463,
+          "max": 0.006875911199311413
+        },
+        "gravity_tangent2_residual": {
+          "n": 142,
+          "min": 0.0029002345855888186,
+          "median": 0.01250626217944472,
+          "p95": 0.02393366272896072,
+          "max": 0.03796658170668604
+        },
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1780,
+        "missing_count": 0,
+        "first_missing_time_s": null,
+        "last_saved_time_s": 155.0905020236969,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_true_K/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/imu_marker_true_K_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/imu_marker_true_K/diagnostic_physical_cutoff.json"
+      },
+      "age_interpretation": "K source age names the original estimator packet for availability/provenance; the substituted true K value is constant."
+    },
+    {
+      "case": "marker_all_oracle",
+      "sensor_configuration": "marker",
+      "intervention": "all_oracle",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": true,
+      "final_frame_reached": true,
+      "final_error_m": 0.002736104028581376,
+      "minimum_error_m": 0.002736104028581376,
+      "tip_arc_m": 2.879831933487155,
+      "net_shortening_per_arc": 0.1273893679942623,
+      "first_reach": {
+        "time_s": 38.01512662600726,
+        "arc_before_first_reach_m": 2.869144925877899,
+        "physical_error_at_first_reach_m": 0.005991585373228785,
+        "remaining_observed_duration_s": 141.98487337399274,
+        "remaining_arc_m": 0.010687007609255783,
+        "final_frame_reached": true,
+        "source": "original physical trajectory streamed only through first reach",
+        "reached_once_is_not_sustained_reaching": true
+      },
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 62.99939703941345,
+        "gradient_source_s": 0.33037686347961426
+      },
+      "actual_Hz": {
+        "motion": 102.32360161180692,
+        "camera": 11.37709695057754,
+        "control": 5.558202942019634
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 18,
+        "submitted": 18
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 13785,
+        "archived": 10738,
+        "reserved_database_rows": 10739,
+        "database_completed_rows": 8986,
+        "database_pending_rows": 1753,
+        "database_awaiting_payload_rows": 0
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 13785,
+        "recovered_event_count": 1866,
+        "database_completed_rows": 8986,
+        "database_pending_rows": 4799,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 18420,
+        "min": 1.2874603271484375e-05,
+        "median": 0.26772332191467285,
+        "p95": 0.42567898035049434,
+        "max": 1.1075615882873535
+      },
+      "executed_K_source_age_s": {
+        "n": 18336,
+        "min": 0.8159639835357666,
+        "median": 31.61641800403595,
+        "p95": 63.788109600543976,
+        "max": 72.67724823951721
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 2,
+        "min": 0.41109752655029297,
+        "median": 0.4808692932128906,
+        "p95": 0.5436638832092285,
+        "max": 0.5506410598754883
+      },
+      "finite_VI": {
+        "saved_branches": 34,
+        "finite_nonstationary_branches": 34,
+        "gradient_inf": {
+          "n": 34,
+          "min": 3.6401027999304927,
+          "median": 518.9453888108253,
+          "p95": 4372.532020746006,
+          "max": 5581.050164486454
+        },
+        "marker_position_residual_m": {
+          "n": 34,
+          "min": 2.1657536518931522e-05,
+          "median": 0.00036769552388913425,
+          "p95": 0.0014420326765442304,
+          "max": 0.0021756974387599688
+        },
+        "gravity_tangent2_residual": null,
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1773,
+        "missing_count": 93,
+        "first_missing_time_s": 0.25450992584228516,
+        "last_saved_time_s": 155.2526183128357,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 29,
+        "applied_count": 17
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_all_oracle/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/marker_all_oracle_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_all_oracle/diagnostic_physical_cutoff.json"
+      },
+      "age_interpretation": "Recursive estimator ages remain recorded; control body centers are truth-replaced independently at each control capture."
+    },
+    {
+      "case": "marker_baseline",
+      "sensor_configuration": "marker",
+      "intervention": "baseline",
+      "trial_truth_assisted": false,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.1781007841764385,
+      "minimum_error_m": 0.1674469969147922,
+      "tip_arc_m": 1.4790193221170598,
+      "net_shortening_per_arc": 0.12947450173582634,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 83.41489696502686,
+        "gradient_source_s": 0.18517708778381348
+      },
+      "actual_Hz": {
+        "motion": 91.53582167052863,
+        "camera": 10.749134479750243,
+        "control": 5.374254623176516
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 36,
+        "submitted": 36
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 12985,
+        "archived": 9679,
+        "reserved_database_rows": 9680,
+        "database_completed_rows": 7038,
+        "database_pending_rows": 2641,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 12985,
+        "recovered_event_count": 2481,
+        "database_completed_rows": 9854,
+        "database_pending_rows": 3131,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 16420,
+        "min": 0.09711170196533203,
+        "median": 0.2572298049926758,
+        "p95": 0.4447978496551513,
+        "max": 2.906705141067505
+      },
+      "executed_K_source_age_s": {
+        "n": 16396,
+        "min": 0.7486050128936768,
+        "median": 39.04570186138153,
+        "p95": 75.62769687175751,
+        "max": 83.41489696502686
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 835,
+        "min": 0.4028444290161133,
+        "median": 23.743706226348877,
+        "p95": 56.379184293746945,
+        "max": 64.85664558410645
+      },
+      "finite_VI": {
+        "saved_branches": 72,
+        "finite_nonstationary_branches": 72,
+        "gradient_inf": {
+          "n": 72,
+          "min": 6.547173876861323e-05,
+          "median": 576.640466084446,
+          "p95": 2058.8208122154188,
+          "max": 4481.819502576571
+        },
+        "marker_position_residual_m": {
+          "n": 72,
+          "min": 6.361867652024389e-05,
+          "median": 0.003711045840413126,
+          "p95": 0.012230146485300247,
+          "max": 0.026007173106807092
+        },
+        "gravity_tangent2_residual": null,
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1533,
+        "missing_count": 37,
+        "first_missing_time_s": 1.2508950233459473,
+        "last_saved_time_s": 141.60018253326416,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": null,
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_baseline/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/marker_baseline_diagnostic_summary_extension.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_baseline/diagnostic_physical_cutoff.json"
+      }
+    },
+    {
+      "case": "marker_known_landmark",
+      "sensor_configuration": "marker",
+      "intervention": "known_landmark",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.1471102643831995,
+      "minimum_error_m": 0.12049502436008812,
+      "tip_arc_m": 0.8682304340588842,
+      "net_shortening_per_arc": 0.25625202809570685,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 87.32765865325928,
+        "gradient_source_s": 0.3944516181945801
+      },
+      "actual_Hz": {
+        "motion": 92.97606410582614,
+        "camera": 10.788219082761785,
+        "control": 5.566063233850998
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 24,
+        "submitted": 24
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 13063,
+        "archived": 9450,
+        "reserved_database_rows": 9451,
+        "database_completed_rows": 6752,
+        "database_pending_rows": 2698,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 13063,
+        "recovered_event_count": 2812,
+        "database_completed_rows": 9729,
+        "database_pending_rows": 3334,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 16681,
+        "min": 0.09783744812011719,
+        "median": 0.2506074905395508,
+        "p95": 0.43788933753967285,
+        "max": 2.780329704284668
+      },
+      "executed_K_source_age_s": {
+        "n": 16635,
+        "min": 0.9289712905883789,
+        "median": 37.51124882698059,
+        "p95": 77.65093026161016,
+        "max": 87.32765865325928
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 931,
+        "min": 0.388139009475708,
+        "median": 29.390339851379395,
+        "p95": 65.78920030593872,
+        "max": 73.64760422706604
+      },
+      "finite_VI": {
+        "saved_branches": 48,
+        "finite_nonstationary_branches": 48,
+        "gradient_inf": {
+          "n": 48,
+          "min": 0.020837614857555975,
+          "median": 143.92364071959537,
+          "p95": 612.5697446171873,
+          "max": 854.2544883539924
+        },
+        "marker_position_residual_m": {
+          "n": 48,
+          "min": 0.00010888209257143282,
+          "median": 0.0012679243660338622,
+          "p95": 0.002883154993518352,
+          "max": 0.00396321651430918
+        },
+        "gravity_tangent2_residual": null,
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1495,
+        "missing_count": 8,
+        "first_missing_time_s": 1.2573328018188477,
+        "last_saved_time_s": 138.33406519889832,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_known_landmark/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/marker_known_landmark_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_known_landmark/diagnostic_physical_cutoff.json"
+      }
+    },
+    {
+      "case": "marker_oracle_body",
+      "sensor_configuration": "marker",
+      "intervention": "oracle_body",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.363472504453024,
+      "minimum_error_m": 0.363472504453024,
+      "tip_arc_m": 0.010844273880615714,
+      "net_shortening_per_arc": 0.5646822995799122,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 51.0753915309906,
+        "gradient_source_s": 0.24814224243164062
+      },
+      "actual_Hz": {
+        "motion": 91.71946604872062,
+        "camera": 10.726978720021128,
+        "control": 5.392776303834043
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 30,
+        "submitted": 30
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 12977,
+        "archived": 9942,
+        "reserved_database_rows": 9944,
+        "database_completed_rows": 9352,
+        "database_pending_rows": 592,
+        "database_awaiting_payload_rows": 0
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 12977,
+        "recovered_event_count": 1646,
+        "database_completed_rows": 9352,
+        "database_pending_rows": 3625,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 16452,
+        "min": 0.10770463943481445,
+        "median": 0.25886762142181396,
+        "p95": 0.4046173572540283,
+        "max": 2.967886447906494
+      },
+      "executed_K_source_age_s": {
+        "n": 16426,
+        "min": 0.7785499095916748,
+        "median": 28.38826560974121,
+        "p95": 69.63187527656555,
+        "max": 80.09422779083252
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 916,
+        "min": 0.40287256240844727,
+        "median": 22.569222807884216,
+        "p95": 63.144134163856506,
+        "max": 71.48824381828308
+      },
+      "finite_VI": {
+        "saved_branches": 58,
+        "finite_nonstationary_branches": 58,
+        "gradient_inf": {
+          "n": 58,
+          "min": 0.08917907711613335,
+          "median": 184.4575021276058,
+          "p95": 1007.2845348176497,
+          "max": 1248.202678553126
+        },
+        "marker_position_residual_m": {
+          "n": 58,
+          "min": 1.4893419242942526e-05,
+          "median": 0.0006624158694638107,
+          "p95": 0.002652678902976699,
+          "max": 0.004401545552255349
+        },
+        "gravity_tangent2_residual": null,
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1657,
+        "missing_count": 0,
+        "first_missing_time_s": null,
+        "last_saved_time_s": 154.58377599716187,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_oracle_body/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/marker_oracle_body_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_oracle_body/diagnostic_physical_cutoff.json"
+      },
+      "age_interpretation": "Recursive estimator ages remain recorded; control body centers are truth-replaced independently at each control capture."
+    },
+    {
+      "case": "marker_oracle_body_goal",
+      "sensor_configuration": "marker",
+      "intervention": "oracle_body_goal",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": true,
+      "final_frame_reached": true,
+      "final_error_m": 0.0028563943107538107,
+      "minimum_error_m": 0.0028563943107538107,
+      "tip_arc_m": 2.3203507997706634,
+      "net_shortening_per_arc": 0.1580535493558552,
+      "first_reach": {
+        "time_s": 45.291068324353546,
+        "arc_before_first_reach_m": 2.3053604001461627,
+        "physical_error_at_first_reach_m": null,
+        "remaining_observed_duration_s": 134.70893167564645,
+        "remaining_arc_m": 0.014990399624500661,
+        "final_frame_reached": true,
+        "source": "saved diagnostic trajectory summary",
+        "reached_once_is_not_sustained_reaching": true
+      },
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 80.66183471679688,
+        "gradient_source_s": 0.30440807342529297
+      },
+      "actual_Hz": {
+        "motion": 91.86556196506909,
+        "camera": 10.710433105006963,
+        "control": 5.429166651277725
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 16,
+        "submitted": 17
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 12961,
+        "archived": 10010,
+        "reserved_database_rows": 10011,
+        "database_completed_rows": 7230,
+        "database_pending_rows": 72,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 12961,
+        "recovered_event_count": 1998,
+        "database_completed_rows": 9938,
+        "database_pending_rows": 3023,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 16537,
+        "min": 9.059906005859375e-06,
+        "median": 0.2568323612213135,
+        "p95": 0.39415473937988255,
+        "max": 2.76621413230896
+      },
+      "executed_K_source_age_s": {
+        "n": 16457,
+        "min": 0.7611384391784668,
+        "median": 38.65984606742859,
+        "p95": 72.81739211082457,
+        "max": 80.74510169029236
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 973,
+        "min": 0.4708564281463623,
+        "median": 33.82295060157776,
+        "p95": 71.8831708908081,
+        "max": 80.52357220649719
+      },
+      "finite_VI": {
+        "saved_branches": 34,
+        "finite_nonstationary_branches": 34,
+        "gradient_inf": {
+          "n": 34,
+          "min": 12.707014603767389,
+          "median": 1524.55439666559,
+          "p95": 4122.19519300485,
+          "max": 4591.985819233103
+        },
+        "marker_position_residual_m": {
+          "n": 34,
+          "min": 0.0004040394808033819,
+          "median": 0.0037524286861820655,
+          "p95": 0.012641358491281604,
+          "max": 0.013084724258113653
+        },
+        "gravity_tangent2_residual": null,
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1632,
+        "missing_count": 80,
+        "first_missing_time_s": 0.2524261474609375,
+        "last_saved_time_s": 152.91814541816711,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_oracle_body_goal/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/marker_oracle_body_goal_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_oracle_body_goal/diagnostic_physical_cutoff.json"
+      },
+      "age_interpretation": "Recursive estimator ages remain recorded; control body centers are truth-replaced independently at each control capture."
+    },
+    {
+      "case": "marker_oracle_goal",
+      "sensor_configuration": "marker",
+      "intervention": "oracle_goal",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.43347828985318976,
+      "minimum_error_m": 0.36959607396520444,
+      "tip_arc_m": 0.15010011451582503,
+      "net_shortening_per_arc": -0.4255973827471679,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 63.830546379089355,
+        "gradient_source_s": 1.1545748710632324
+      },
+      "actual_Hz": {
+        "motion": 90.11523525522661,
+        "camera": 10.621556443623048,
+        "control": 5.184079239913375
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 42,
+        "submitted": 42
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 12956,
+        "archived": 9670,
+        "reserved_database_rows": 9693,
+        "database_completed_rows": 8385,
+        "database_pending_rows": 1307,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 12956,
+        "recovered_event_count": 1925,
+        "database_completed_rows": 8385,
+        "database_pending_rows": 4571,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 16400,
+        "min": 1.0728836059570312e-05,
+        "median": 0.2624034881591797,
+        "p95": 0.4510916590690611,
+        "max": 2.8335659503936768
+      },
+      "executed_K_source_age_s": {
+        "n": 16318,
+        "min": 0.7950778007507324,
+        "median": 32.106348156929016,
+        "p95": 71.40093080997383,
+        "max": 81.85757970809937
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 815,
+        "min": 0.39511704444885254,
+        "median": 22.340511798858643,
+        "p95": 58.82610545158386,
+        "max": 66.63954901695251
+      },
+      "finite_VI": {
+        "saved_branches": 82,
+        "finite_nonstationary_branches": 82,
+        "gradient_inf": {
+          "n": 82,
+          "min": 0.6924668941319518,
+          "median": 205.55077887115556,
+          "p95": 517.5956605698149,
+          "max": 886.6740993440621
+        },
+        "marker_position_residual_m": {
+          "n": 82,
+          "min": 3.777929080127203e-06,
+          "median": 0.0014942754113710446,
+          "p95": 0.003311605077299971,
+          "max": 0.005999142064901496
+        },
+        "gravity_tangent2_residual": null,
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1615,
+        "missing_count": 0,
+        "first_missing_time_s": null,
+        "last_saved_time_s": 150.0909571647644,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": null,
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_oracle_goal/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/marker_oracle_goal_diagnostic_summary_extension.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_oracle_goal/diagnostic_physical_cutoff.json"
+      }
+    },
+    {
+      "case": "marker_oracle_marker",
+      "sensor_configuration": "marker",
+      "intervention": "oracle_marker",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.7275407231727079,
+      "minimum_error_m": 0.3695959164222543,
+      "tip_arc_m": 3.759133448925509,
+      "net_shortening_per_arc": -0.09521998994470826,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 68.3308596611023,
+        "gradient_source_s": 0.17394590377807617
+      },
+      "actual_Hz": {
+        "motion": 95.44032294264835,
+        "camera": 10.949073773379885,
+        "control": 6.235635253109461
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 18,
+        "submitted": 18
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 13269,
+        "archived": 9865,
+        "reserved_database_rows": 9866,
+        "database_completed_rows": 8179,
+        "database_pending_rows": 1686,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 13269,
+        "recovered_event_count": 226,
+        "database_completed_rows": 11540,
+        "database_pending_rows": 1729,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 17124,
+        "min": 0.11348772048950195,
+        "median": 0.2288588285446167,
+        "p95": 0.3563121795654296,
+        "max": 2.8011581897735596
+      },
+      "executed_K_source_age_s": {
+        "n": 17098,
+        "min": 0.7684273719787598,
+        "median": 35.84990310668945,
+        "p95": 71.63739731311797,
+        "max": 79.49030995368958
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 1110,
+        "min": 0.4066581726074219,
+        "median": 32.23198473453522,
+        "p95": 66.25149379968643,
+        "max": 74.82635378837585
+      },
+      "finite_VI": {
+        "saved_branches": 34,
+        "finite_nonstationary_branches": 34,
+        "gradient_inf": {
+          "n": 34,
+          "min": 0.01631346290336637,
+          "median": 510.55243452798464,
+          "p95": 2588.5197864290863,
+          "max": 3108.771691018718
+        },
+        "marker_position_residual_m": {
+          "n": 34,
+          "min": 1.484147055405655e-07,
+          "median": 0.00021101054338839014,
+          "p95": 0.0007227530604872877,
+          "max": 0.0016076421589172423
+        },
+        "gravity_tangent2_residual": null,
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1938,
+        "missing_count": 355,
+        "first_missing_time_s": 0.6702146530151367,
+        "last_saved_time_s": 177.16797304153442,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 31,
+        "applied_count": 17
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_oracle_marker/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/marker_oracle_marker_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_oracle_marker/diagnostic_physical_cutoff.json"
+      }
+    },
+    {
+      "case": "marker_true_K",
+      "sensor_configuration": "marker",
+      "intervention": "true_K",
+      "trial_truth_assisted": true,
+      "completed_requested_duration": true,
+      "requested_duration_s": 180.0,
+      "observed_physical_duration_s": 180.0,
+      "failure_message": null,
+      "reached_once": false,
+      "final_frame_reached": false,
+      "final_error_m": 0.14711626987716908,
+      "minimum_error_m": 0.14711626987716908,
+      "tip_arc_m": 1.0038871957535167,
+      "net_shortening_per_arc": 0.2216183302557637,
+      "first_reach": null,
+      "physical_cutoff_available": true,
+      "ages_at_physical_cutoff": {
+        "body_observation_s": 75.8300929069519,
+        "gradient_source_s": 0.22319531440734863
+      },
+      "actual_Hz": {
+        "motion": 106.36556708020159,
+        "camera": 11.638730706944095,
+        "control": 6.314763447496067
+      },
+      "K_jobs_at_physical_cutoff": {
+        "completed": 22,
+        "submitted": 22
+      },
+      "raw_at_physical_cutoff": {
+        "acquired_requests": 14154,
+        "archived": 10313,
+        "reserved_database_rows": 10314,
+        "database_completed_rows": 8208,
+        "database_pending_rows": 2105,
+        "database_awaiting_payload_rows": 1
+      },
+      "raw_after_run_recovery": {
+        "all_raw_archived": true,
+        "total_requests": 14154,
+        "recovered_event_count": 719,
+        "database_completed_rows": 11970,
+        "database_pending_rows": 2184,
+        "results_used_in_completed_motion": false
+      },
+      "executed_gradient_source_age_s": {
+        "n": 19088,
+        "min": 0.10663628578186035,
+        "median": 0.2388629913330078,
+        "p95": 0.38360372781753527,
+        "max": 1.0274412631988525
+      },
+      "executed_K_source_age_s": {
+        "n": 19062,
+        "min": 0.7698063850402832,
+        "median": 40.83214890956879,
+        "p95": 77.16753500699998,
+        "max": 86.25609278678894
+      },
+      "saved_control_body_observation_age_s": {
+        "n": 2,
+        "min": 0.3993544578552246,
+        "median": 0.44735777378082275,
+        "p95": 0.4905607581138611,
+        "max": 0.4953610897064209
+      },
+      "finite_VI": {
+        "saved_branches": 46,
+        "finite_nonstationary_branches": 46,
+        "gradient_inf": {
+          "n": 46,
+          "min": 1.3417578768923355e-05,
+          "median": 154.00632803671954,
+          "p95": 1675.5073954645316,
+          "max": 2559.6364169617405
+        },
+        "marker_position_residual_m": {
+          "n": 46,
+          "min": 1.6602939030645073e-05,
+          "median": 0.0011542743122593458,
+          "p95": 0.006949194263531909,
+          "max": 0.00982659260087038
+        },
+        "gravity_tangent2_residual": null,
+        "scope": "K-worker saved prefix, not guaranteed to cover all completed body updates"
+      },
+      "raw_detection": {
+        "saved_count": 1989,
+        "missing_count": 10,
+        "first_missing_time_s": 1.2506449222564697,
+        "last_saved_time_s": 171.08805990219116,
+        "scope": "saved raw preview window only, not necessarily all acquired images"
+      },
+      "prepared_marker_interventions": {
+        "saved_count": 0,
+        "applied_count": 0
+      },
+      "source_changed": [],
+      "inputs": {
+        "summary": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_true_K/diagnostic_summary.json",
+        "audit": "/tmp/probtf_uncertainty_ablation_20261018/analysis/marker_true_K_compact_audit.json",
+        "cutoff": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_true_K/diagnostic_physical_cutoff.json"
+      },
+      "age_interpretation": "K source age names the original estimator packet for availability/provenance; the substituted true K value is constant."
+    }
+  ],
+  "audit_changed_trial_laws": false,
+  "notes": [
+    "All data are original saved trial summaries or bounded audit statistics.",
+    "Partial trials lack requested end-of-run ages/Hz/counts; these are unknown, not zero.",
+    "No incomplete IMU baseline is used as a completed comparison."
+  ]
+}

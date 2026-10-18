@@ -1,0 +1,260 @@
+{
+  "method": "gzip level1, exact original bytes verified by decompression SHA before unlink",
+  "root": "/tmp/probtf_uncertainty_ablation_20261018/live/marker_true_K",
+  "files": [
+    {
+      "path": "acquisition_requests.jsonl",
+      "compressed_path": "acquisition_requests.jsonl.gz",
+      "sha256": "f624cb00c85f00fe717e27ed40abc843ba981d5847764dd8f471342fc5741e6f",
+      "original_bytes": 64381954,
+      "compressed_bytes": 23774823
+    },
+    {
+      "path": "assimilation_batches.jsonl",
+      "compressed_path": "assimilation_batches.jsonl.gz",
+      "sha256": "4f61dcdcd8a8d1444d585a735d9a2c43463246345a45027e2e053dc45e6731b8",
+      "original_bytes": 4360738,
+      "compressed_bytes": 1385941
+    },
+    {
+      "path": "commands.jsonl",
+      "compressed_path": "commands.jsonl.gz",
+      "sha256": "84ab121c6c462f19caadc13904f8b44c612ab5d0052784b2d88bf2372f2c7df1",
+      "original_bytes": 206907882,
+      "compressed_bytes": 29291048
+    },
+    {
+      "path": "control.jsonl",
+      "compressed_path": "control.jsonl.gz",
+      "sha256": "b5df71e9573a2e26707cb1e5664495c0f62c06077c685e35f7c633cab6f4e265",
+      "original_bytes": 3301343,
+      "compressed_bytes": 695916
+    },
+    {
+      "path": "diagnostic_control_truth.jsonl",
+      "compressed_path": "diagnostic_control_truth.jsonl.gz",
+      "sha256": "1d4c4a7b600d8b01f594475da8a6512e113bd982bca4c0d778d46499f6c63e50",
+      "original_bytes": 3759308,
+      "compressed_bytes": 1074224
+    },
+    {
+      "path": "estimation.jsonl",
+      "compressed_path": "estimation.jsonl.gz",
+      "sha256": "caa6f5f084e843821f94458d2a6ae922ad1fefb3a334a7822eac8b02cdc2320a",
+      "original_bytes": 261280053,
+      "compressed_bytes": 43316295
+    },
+    {
+      "path": "gradient_adoptions.jsonl",
+      "compressed_path": "gradient_adoptions.jsonl.gz",
+      "sha256": "8587967eeecda9e481a67b5c3de927097fa901de29a3912d7cac97ffa70afc2e",
+      "original_bytes": 44101773,
+      "compressed_bytes": 7461082
+    },
+    {
+      "path": "inference_batch_events.jsonl",
+      "compressed_path": "inference_batch_events.jsonl.gz",
+      "sha256": "87098a1152e512e7037a9291ec1d1f3123e71f76fcd1e178bc17447dde7885f4",
+      "original_bytes": 9058318,
+      "compressed_bytes": 442103
+    },
+    {
+      "path": "inference_batches.jsonl",
+      "compressed_path": "inference_batches.jsonl.gz",
+      "sha256": "ba5d2d3cdba0c65a213da46cd385331b6eda997b42ce5368f62a43ea18145dd4",
+      "original_bytes": 4581121,
+      "compressed_bytes": 1441332
+    },
+    {
+      "path": "observations.sqlite3",
+      "compressed_path": "observations.sqlite3.gz",
+      "sha256": "b877982b1e87d1d5313fbe972e4d3801510db2b5b3701b976e8b91c884c87265",
+      "original_bytes": 1465143296,
+      "compressed_bytes": 824238409
+    },
+    {
+      "path": "physical_trajectory.jsonl",
+      "compressed_path": "physical_trajectory.jsonl.gz",
+      "sha256": "48b34d4b0f7ec9971267699043f38aca73043e6679c1b89fb3e50c8cf73196fd",
+      "original_bytes": 100741034,
+      "compressed_bytes": 14567940
+    },
+    {
+      "path": "runtime/control_progress.jsonl",
+      "compressed_path": "runtime/control_progress.jsonl.gz",
+      "sha256": "0f9f6225d36ab555c2f3abc1ac40ad2a9df2a05452806ec8992a1de10b36babb",
+      "original_bytes": 3474622,
+      "compressed_bytes": 586783
+    },
+    {
+      "path": "stiffness.jsonl",
+      "compressed_path": "stiffness.jsonl.gz",
+      "sha256": "af474b64eb7e04da2109d325d2323f6a1ae2e531d02134e4e23b09848bc9c2c4",
+      "original_bytes": 8859781,
+      "compressed_bytes": 2181648
+    },
+    {
+      "path": "stiffness_jobs/00000001_adb92bcb7b5cb66a.pickle",
+      "compressed_path": "stiffness_jobs/00000001_adb92bcb7b5cb66a.pickle.gz",
+      "sha256": "a90232a7115c30396212d3e05026b8eec10bea1e28b9b3715be66306b8d717e5",
+      "original_bytes": 1604613,
+      "compressed_bytes": 370022
+    },
+    {
+      "path": "stiffness_jobs/00000002_b8e7a77a09ceacda.pickle",
+      "compressed_path": "stiffness_jobs/00000002_b8e7a77a09ceacda.pickle.gz",
+      "sha256": "5ab0d1de852ad811548f83a40c06111d647b73cb5dfaf847dc1c2086d95e08d0",
+      "original_bytes": 1618619,
+      "compressed_bytes": 444620
+    },
+    {
+      "path": "stiffness_jobs/00000003_b8e7a77a09ceacda.pickle",
+      "compressed_path": "stiffness_jobs/00000003_b8e7a77a09ceacda.pickle.gz",
+      "sha256": "70ae17d50e1a96100a1883f4587581d20fbdeeaeaec4e5baa8629350c9c044c6",
+      "original_bytes": 1650974,
+      "compressed_bytes": 445596
+    },
+    {
+      "path": "stiffness_jobs/00000004_5a508d2796817003.pickle",
+      "compressed_path": "stiffness_jobs/00000004_5a508d2796817003.pickle.gz",
+      "sha256": "c835fd5111c8e38f38da3dc64c8bc1ab191321427fb626e88e46cf2847fb038c",
+      "original_bytes": 1617384,
+      "compressed_bytes": 446627
+    },
+    {
+      "path": "stiffness_jobs/00000005_6bd82b7e6a6356a5.pickle",
+      "compressed_path": "stiffness_jobs/00000005_6bd82b7e6a6356a5.pickle.gz",
+      "sha256": "4255c246a7f6831ede995b002c689cb5663bdf0d6dc35341c9ebafa42bf805cc",
+      "original_bytes": 2736419,
+      "compressed_bytes": 685989
+    },
+    {
+      "path": "stiffness_jobs/00000006_88a3421f13dc0ba0.pickle",
+      "compressed_path": "stiffness_jobs/00000006_88a3421f13dc0ba0.pickle.gz",
+      "sha256": "549a429957886f2c0ba5f60fdc314ec891ff51d701aefd5e7b332e5366aa780c",
+      "original_bytes": 1574743,
+      "compressed_bytes": 429430
+    },
+    {
+      "path": "stiffness_jobs/00000007_88a3421f13dc0ba0.pickle",
+      "compressed_path": "stiffness_jobs/00000007_88a3421f13dc0ba0.pickle.gz",
+      "sha256": "40f1bb50d50633e05ccdff58197aecd72b401e00720c36576387fc8e4c6e891d",
+      "original_bytes": 3172528,
+      "compressed_bytes": 779610
+    },
+    {
+      "path": "stiffness_jobs/00000008_5a492f34288825a0.pickle",
+      "compressed_path": "stiffness_jobs/00000008_5a492f34288825a0.pickle.gz",
+      "sha256": "b92f3dfa6b1fc6a7cd2648b3eb9263a9663ecaa6c8b4a6f55c35510985d59038",
+      "original_bytes": 1542087,
+      "compressed_bytes": 422047
+    },
+    {
+      "path": "stiffness_jobs/00000009_5a492f34288825a0.pickle",
+      "compressed_path": "stiffness_jobs/00000009_5a492f34288825a0.pickle.gz",
+      "sha256": "56c389d9be6f6ce2902f8215a0f0b7f61cd76b4929d66f218542751deab34845",
+      "original_bytes": 4345752,
+      "compressed_bytes": 1039282
+    },
+    {
+      "path": "stiffness_jobs/00000010_17b4e0110c98ee8b.pickle",
+      "compressed_path": "stiffness_jobs/00000010_17b4e0110c98ee8b.pickle.gz",
+      "sha256": "ce2a1bb5bc257c0ac4e20faaaa04e71849730615a5eb15c89f5ff58dc7474c84",
+      "original_bytes": 1585357,
+      "compressed_bytes": 434041
+    },
+    {
+      "path": "stiffness_jobs/00000011_17b4e0110c98ee8b.pickle",
+      "compressed_path": "stiffness_jobs/00000011_17b4e0110c98ee8b.pickle.gz",
+      "sha256": "9b4c7c5d0c7acfa2579ad43e22efea902f809dfba10f84d81d70fc1a56620c2f",
+      "original_bytes": 5922917,
+      "compressed_bytes": 1397918
+    },
+    {
+      "path": "stiffness_jobs/00000012_511eec45d99ae807.pickle",
+      "compressed_path": "stiffness_jobs/00000012_511eec45d99ae807.pickle.gz",
+      "sha256": "f6619306f1536337b85bb12403ad4e96f541bc2765bf8eef6e6e4e8374e570ad",
+      "original_bytes": 1687741,
+      "compressed_bytes": 465405
+    },
+    {
+      "path": "stiffness_jobs/00000013_511eec45d99ae807.pickle",
+      "compressed_path": "stiffness_jobs/00000013_511eec45d99ae807.pickle.gz",
+      "sha256": "bc0fe88083d06e512b0ea05f6e898c363b5a0ec3df43f4a42702afb893a96aac",
+      "original_bytes": 8105172,
+      "compressed_bytes": 1868543
+    },
+    {
+      "path": "stiffness_jobs/00000014_44fc22ba4e3a4f42.pickle",
+      "compressed_path": "stiffness_jobs/00000014_44fc22ba4e3a4f42.pickle.gz",
+      "sha256": "70b79795fdaba1b85c7e775a8470b96caad3aad8350dec09e1c1537a360a9c0c",
+      "original_bytes": 1644844,
+      "compressed_bytes": 453736
+    },
+    {
+      "path": "stiffness_jobs/00000015_44fc22ba4e3a4f42.pickle",
+      "compressed_path": "stiffness_jobs/00000015_44fc22ba4e3a4f42.pickle.gz",
+      "sha256": "f316f2f263962421391453c3fbede13ee4570a5b797c9ed70cc584180891a384",
+      "original_bytes": 10682455,
+      "compressed_bytes": 2439945
+    },
+    {
+      "path": "stiffness_jobs/00000016_77c6f3b21868d2c1.pickle",
+      "compressed_path": "stiffness_jobs/00000016_77c6f3b21868d2c1.pickle.gz",
+      "sha256": "8e3cca5157d3b1bea13faebb58f4d05b859ff54756d1e713e0f1b02317e27549",
+      "original_bytes": 1655415,
+      "compressed_bytes": 455470
+    },
+    {
+      "path": "stiffness_jobs/00000017_77c6f3b21868d2c1.pickle",
+      "compressed_path": "stiffness_jobs/00000017_77c6f3b21868d2c1.pickle.gz",
+      "sha256": "e8a928b346a7411868f5f204334ddd2b66fddc57441f39deaed9691f718ff715",
+      "original_bytes": 14730963,
+      "compressed_bytes": 3308210
+    },
+    {
+      "path": "stiffness_jobs/00000018_88d219507d6ab687.pickle",
+      "compressed_path": "stiffness_jobs/00000018_88d219507d6ab687.pickle.gz",
+      "sha256": "ab658241705055946cc0ea8808c705ecf21a31b163d9750e3fe82c10906cd889",
+      "original_bytes": 1688031,
+      "compressed_bytes": 461203
+    },
+    {
+      "path": "stiffness_jobs/00000019_88d219507d6ab687.pickle",
+      "compressed_path": "stiffness_jobs/00000019_88d219507d6ab687.pickle.gz",
+      "sha256": "44197ee37b6442e820b6bcf66c564f1b34aa56cbedf3d73a53ca1f5b1c27da96",
+      "original_bytes": 20984685,
+      "compressed_bytes": 4645727
+    },
+    {
+      "path": "stiffness_jobs/00000020_ca79aa3b716a998e.pickle",
+      "compressed_path": "stiffness_jobs/00000020_ca79aa3b716a998e.pickle.gz",
+      "sha256": "0deae61aa696c397243fd3b5ec8be6922ec433858437a0047ff2a33d5361e8fb",
+      "original_bytes": 1671439,
+      "compressed_bytes": 457472
+    },
+    {
+      "path": "stiffness_jobs/00000021_ca79aa3b716a998e.pickle",
+      "compressed_path": "stiffness_jobs/00000021_ca79aa3b716a998e.pickle.gz",
+      "sha256": "803dcf925b5cf2b921b55ed9660a0d7bd1fa41b2404e7a970c9c49b89001bce4",
+      "original_bytes": 30757781,
+      "compressed_bytes": 6687714
+    },
+    {
+      "path": "stiffness_jobs/00000022_194f5c384b44a2e4.pickle",
+      "compressed_path": "stiffness_jobs/00000022_194f5c384b44a2e4.pickle.gz",
+      "sha256": "e95d156d85e0025cf3cc35ac995b7c9dfc8293f1a03776a5b32763b605588bc7",
+      "original_bytes": 1636451,
+      "compressed_bytes": 445232
+    },
+    {
+      "path": "stiffness_jobs/00000023_194f5c384b44a2e4.pickle",
+      "compressed_path": "stiffness_jobs/00000023_194f5c384b44a2e4.pickle.gz",
+      "sha256": "0cd968be1e1df0626d3ac2d0bb4b801438b68549a3f531701d6fc8a619e29164",
+      "original_bytes": 42734043,
+      "compressed_bytes": 9197517
+    }
+  ],
+  "original_bytes": 2345301636,
+  "compressed_bytes": 988238900
+}

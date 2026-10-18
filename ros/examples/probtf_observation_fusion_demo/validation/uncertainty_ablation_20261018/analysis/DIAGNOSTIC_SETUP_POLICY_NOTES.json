@@ -1,0 +1,66 @@
+{
+  "camera_noise": {
+    "seed": 21,
+    "stream": "PCG64 advanced in acquisition/capture order; not keyed by physical time",
+    "same_time_noise_identical_across_live_trials": false
+  },
+  "IMU_noise": {
+    "stream": "SeedSequence([seed,round(source_time*1e6),1701])",
+    "same_source_time_same_noise": true
+  },
+  "inference_monte_carlo_used": false,
+  "early_setup_string_correction": "Earlier frame/source-time sensor seeds text is superseded by the distinct camera and IMU policies above. Numerical seeds/renderer were never modified.",
+  "source_control": {
+    "production_numerical_sources": "SHA checked per run; no production/core/RViz edits in this diagnostic task",
+    "diagnostic_helpers": "First six Marker trials record initial helper SHA only. Frozen diagnostic_source byte copies and per-process helper imports from those copies start with both known_landmark trials; do not claim byte-identical diagnostic wrappers across the entire matrix.",
+    "semantic_mode_scope": "New modes/archival instrumentation were added between physical batches; control criterion and production dynamics remain unchanged."
+  },
+  "postmotion": {
+    "physical_duration_requested_s": 180.0,
+    "drain_wall_s": {
+      "marker_baseline": 15.0,
+      "marker_oracle_goal": 15.0,
+      "marker_oracle_marker": 60.0,
+      "marker_true_K": 60.0,
+      "others": 15.0
+    },
+    "drain_changes_physical_motion": false,
+    "raw_recovery": "Only complete saved acquisition requests after physical stop. Verify stateful camera prefix image SHA. Never assimilate recovered suffix into the completed motion or rewrite physical cutoffs.",
+    "body_completion_and_K_completion_distinct": true
+  },
+  "partial_trials": [
+    {
+      "case": "imu_marker_oracle_body_goal",
+      "physical_duration_s": 68.82940175011754,
+      "reason": "joint_position_out_of_range",
+      "requested_duration_s": 180.0,
+      "rerun_or_extrapolation_performed": false
+    },
+    {
+      "case": "imu_marker_oracle_marker",
+      "physical_duration_s": 0.9114550403319299,
+      "reason": "joint_position_out_of_range",
+      "requested_duration_s": 180.0,
+      "rerun_or_extrapolation_performed": false
+    },
+    {
+      "case": "imu_marker_all_oracle",
+      "physical_duration_s": 98.92548058414832,
+      "reason": "joint_position_out_of_range",
+      "requested_duration_s": 180.0,
+      "rerun_or_extrapolation_performed": false
+    }
+  ],
+  "final_harness_scope": {
+    "documented_mode_count": 8,
+    "unused_CLI_mode_removed": "oracle_marker_no_loss",
+    "unused_mode_ever_run": false,
+    "removal_after_last_trial_spawn": true,
+    "active_frozen_helper_sources_modified": false
+  },
+  "live_async_timing": {
+    "trial_clock": "Each trial has its own physical source clock and initial-prior barrier. Concurrent trials may finish startup at different wall-clock times.",
+    "repeated_noise_samples_or_update_schedule_identical": false,
+    "physical_duration_interpretation": "180 seconds requested for each case; three original joint-domain failures retained as shorter partial trials, without rerun or extrapolation."
+  }
+}

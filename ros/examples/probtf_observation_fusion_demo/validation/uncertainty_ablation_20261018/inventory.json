@@ -1,0 +1,540 @@
+{
+  "diagnostic_only": true,
+  "raw_archives_included": false,
+  "selected_file_count": 106,
+  "selected_total_bytes": 4547034,
+  "largest_file_bytes": 946300,
+  "indexed_frozen_module_instances_verified": 60,
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4463,
+      "sha256": "4a8321b2c6f8475bae9f915f1ce01e89e3155f60c56abcbc7efdf33736232da7"
+    },
+    {
+      "path": "analysis/CROSS_CASE_RUNTIME_SUMMARY.json",
+      "bytes": 60543,
+      "sha256": "74e46624cdf51e8026875ba23a67982f330c9de1a13d3374296c68c16a438054"
+    },
+    {
+      "path": "analysis/CROSS_CASE_RUNTIME_SUMMARY.md",
+      "bytes": 5770,
+      "sha256": "33442c68532b88ec8d79d26abd871c8ff5dfea3cd94e8acf2061d9c1cdb7853d"
+    },
+    {
+      "path": "analysis/DIAGNOSTIC_SETUP_POLICY_NOTES.json",
+      "bytes": 3117,
+      "sha256": "89616e9461a532bb1d85f4af4d5e23e0d4a5cc963cc1b268c482b28c0963a86f"
+    },
+    {
+      "path": "analysis/LIVE_MATRIX_FINAL.json",
+      "bytes": 16352,
+      "sha256": "ea1b6faa2cb5383aa2695bcfed3e4237b90f4fcacf8217b561817f98eb878559"
+    },
+    {
+      "path": "analysis/aggregate_uncertainty_ablations.py",
+      "bytes": 14706,
+      "sha256": "296205ae3fef6ac56e0e350c2e326e336f5bbaed7ac5ca4543f26eab9a40b035"
+    },
+    {
+      "path": "analysis/imu_all_oracle_failure/REPORT.md",
+      "bytes": 6677,
+      "sha256": "ecf28aa1814b9f789a677c011d97b6dbce14c4839d70ea7b1720c91effd01050"
+    },
+    {
+      "path": "analysis/imu_all_oracle_failure/failure_audit.json",
+      "bytes": 452734,
+      "sha256": "bf0484e6003a94ae4da4d52918472c395a05dd13a886e4c100ce1f6a1447b958"
+    },
+    {
+      "path": "analysis/imu_all_oracle_failure/inspect_failure.py",
+      "bytes": 11116,
+      "sha256": "044c661181d41616789683c317c74fdd3bf5c6e3f1b9abf3a7e15be23bec80e0"
+    },
+    {
+      "path": "analysis/imu_all_oracle_failure/write_report.py",
+      "bytes": 7096,
+      "sha256": "5ca800dffa49a0bb514eb9e03a5443667ed1f2d4ddc4fba69ad2d3380cc6cbcd"
+    },
+    {
+      "path": "analysis/imu_body_goal_failure/REPORT.md",
+      "bytes": 6826,
+      "sha256": "f477572d5e388220b07c0cab154a85005db5b1aa2ab3e5f8cad6cc8f14ca9a9a"
+    },
+    {
+      "path": "analysis/imu_body_goal_failure/failure_audit.json",
+      "bytes": 453758,
+      "sha256": "ebfa1ff26198ac79672a5ede4b95d151c7c835984a9f98db85bd005fd1dec775"
+    },
+    {
+      "path": "analysis/imu_body_goal_failure/inspect_failure.py",
+      "bytes": 10744,
+      "sha256": "760e52dc062760974080438c68a6fcd7ff9dc8de3cb9e5500aa3399acd8ccf87"
+    },
+    {
+      "path": "analysis/imu_body_goal_failure/write_report.py",
+      "bytes": 7945,
+      "sha256": "3c339bb9b4ecb71ecab1eada6b65184ac1abea079526bf95f186a42020226564"
+    },
+    {
+      "path": "analysis/imu_marker_failure/REPORT.md",
+      "bytes": 5641,
+      "sha256": "30d7ab16fa93fa620f09423262eabc0ba220d0f90feb4f33d63fdd5c88c134cc"
+    },
+    {
+      "path": "analysis/imu_marker_failure/failure_audit.json",
+      "bytes": 102857,
+      "sha256": "c1b603104e7990eafb449e7cb255c72fbf545b39692e030776bb111997578bf6"
+    },
+    {
+      "path": "analysis/imu_marker_failure/inspect_failure.py",
+      "bytes": 8382,
+      "sha256": "ab4316f0b06b5fd66f4292d881cc7e4239fe34e94f1010b4c043f64b735d2ee1"
+    },
+    {
+      "path": "analysis/imu_marker_failure/write_report.py",
+      "bytes": 6037,
+      "sha256": "2c7bfff88f67e67c5b2aa99f7bbcea1b5e625621ad21275b4ff5200b6d0d6c02"
+    },
+    {
+      "path": "analysis/marker_baseline_diagnostic_summary_extension.json",
+      "bytes": 109990,
+      "sha256": "50aee2abfb30a5ae01bfe316b4104161d407c7699c7fadfd4bc3a6303ecd65f4"
+    },
+    {
+      "path": "analysis/marker_oracle_goal_diagnostic_summary_extension.json",
+      "bytes": 120478,
+      "sha256": "ee22b37cae82ff414d8d5c97a0f66c2c1186c1178d0f659bb1697ea3fc320b46"
+    },
+    {
+      "path": "analysis/oracle_marker_early.json",
+      "bytes": 89066,
+      "sha256": "062bf90b4344a95d379e7f262f2688f20e051ce362491ecddfad358219e19d05"
+    },
+    {
+      "path": "analysis/probtf_oracle_marker_early_20261018.py",
+      "bytes": 8384,
+      "sha256": "28e3e76b151eba6e274fadab07cd850ca2ecb5c11b504dc62f230d46c1cfe9a1"
+    },
+    {
+      "path": "analysis/probtf_oracle_marker_initial_decomposition_20261018.py",
+      "bytes": 7186,
+      "sha256": "ace91f9e7f8b954768dc040e686a6bb898515699006911b0285fb9d0d85ced99"
+    },
+    {
+      "path": "analysis/probtf_uncertainty_live_audit_20261018.py",
+      "bytes": 9900,
+      "sha256": "52ece1e3f61c9fd91825d87f5d939246fc6fcf6533a3dccc722ae38da7d03c6a"
+    },
+    {
+      "path": "diagnostic_sources/0345193043e25a179f38232019d4f7c08f0910ecda2add75d2a9a0fe502a92cb.py",
+      "bytes": 14266,
+      "sha256": "0345193043e25a179f38232019d4f7c08f0910ecda2add75d2a9a0fe502a92cb"
+    },
+    {
+      "path": "diagnostic_sources/057e0243e59878239423826535a0d873d72b875ee439bdded41fad348e1afe48.py",
+      "bytes": 13403,
+      "sha256": "057e0243e59878239423826535a0d873d72b875ee439bdded41fad348e1afe48"
+    },
+    {
+      "path": "diagnostic_sources/421dd155e4208acf36b6a5499bc94ea5ab0af832c00e4c1317fe33b58f75cec4.py",
+      "bytes": 2499,
+      "sha256": "421dd155e4208acf36b6a5499bc94ea5ab0af832c00e4c1317fe33b58f75cec4"
+    },
+    {
+      "path": "diagnostic_sources/7ad91a6aaaccbc11a8bb927e66bc4027fdf1a341657d47a9d1cbc931eecd0e13.py",
+      "bytes": 14462,
+      "sha256": "7ad91a6aaaccbc11a8bb927e66bc4027fdf1a341657d47a9d1cbc931eecd0e13"
+    },
+    {
+      "path": "diagnostic_sources/7b70b3c4d6a8bfdd21728424f10ed81d13bd95d98e13902f4c724f51305c5cf3.py",
+      "bytes": 21638,
+      "sha256": "7b70b3c4d6a8bfdd21728424f10ed81d13bd95d98e13902f4c724f51305c5cf3"
+    },
+    {
+      "path": "diagnostic_sources/7ec67c9317bea3cce504263c500fb45bdf05673cea589911b15522483e283342.py",
+      "bytes": 9313,
+      "sha256": "7ec67c9317bea3cce504263c500fb45bdf05673cea589911b15522483e283342"
+    },
+    {
+      "path": "diagnostic_sources/80bec2bd92187ccfe3c2513977b733a91aadfe7a57e2101db648fa7ed23ac280.py",
+      "bytes": 7859,
+      "sha256": "80bec2bd92187ccfe3c2513977b733a91aadfe7a57e2101db648fa7ed23ac280"
+    },
+    {
+      "path": "diagnostic_sources/e9a39473109a6c972b14df5708ced85229bf4f9ba7075761c352f7cf1cce01b1.py",
+      "bytes": 21609,
+      "sha256": "e9a39473109a6c972b14df5708ced85229bf4f9ba7075761c352f7cf1cce01b1"
+    },
+    {
+      "path": "frozen/REPORT.md",
+      "bytes": 12917,
+      "sha256": "034583280a3512861f4155dbf6814f3847b05c5dafcfeccbc709b1fd6e5bcc95"
+    },
+    {
+      "path": "frozen/decompose_oracle_outward.py",
+      "bytes": 7696,
+      "sha256": "05b3f58ffac713c7c2a6afd48b1098358223c184db8c1b904c2bd08865dd953d"
+    },
+    {
+      "path": "frozen/oracle_outward_decomposition.json",
+      "bytes": 11794,
+      "sha256": "e2f20a54ea6f2118750f68c366fccbb7369d026c3b931ee8a0b4b75d54a16d8c"
+    },
+    {
+      "path": "frozen/profile_source_errors.py",
+      "bytes": 2811,
+      "sha256": "cc50733f49343796d58f870da6ca55f09eb55842eebeed4748157f019a6cc1bd"
+    },
+    {
+      "path": "frozen/run_frozen.py",
+      "bytes": 17402,
+      "sha256": "ad76b40f135e7236e57d4e45d11b4419200ff930a4ba35d2806ae5dd79819ca2"
+    },
+    {
+      "path": "frozen/source_absolute_errors.json",
+      "bytes": 21779,
+      "sha256": "d89a15c18d927fef5058efb4f47afcaaae5ae4dcc93d2f19b887ee70c5f1e43e"
+    },
+    {
+      "path": "frozen/source_verification.json",
+      "bytes": 1274,
+      "sha256": "c8dc03256b5d3e561a9e9a4b5bc74872be8f86df359192d451d71457fcf170ae"
+    },
+    {
+      "path": "frozen/summary.json",
+      "bytes": 946300,
+      "sha256": "759f56e3fb682f83efa3919edba36a06a3c9d88523dde39dc0c52f63a4859f2d"
+    },
+    {
+      "path": "live/imu_marker_all_oracle/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "9613d427040ab10254558639cd60d83fda276ff8a7148cb3da0a05229b82398c"
+    },
+    {
+      "path": "live/imu_marker_all_oracle/diagnostic_raw_recovery.json",
+      "bytes": 1480,
+      "sha256": "d4462b76d5e482ef762bedfb3c05093cee1048d386978a637a6563261c80c755"
+    },
+    {
+      "path": "live/imu_marker_all_oracle/diagnostic_setup.json",
+      "bytes": 35641,
+      "sha256": "c391b90559152e3df998509eef10acba73fd5e7b9d6187d9ddce9acc4999611d"
+    },
+    {
+      "path": "live/imu_marker_all_oracle/diagnostic_summary.json",
+      "bytes": 1723,
+      "sha256": "61a9a97715c095cfb07fb8be3ddb587cdbc1d0b6ef23afef18f8baf8235249a1"
+    },
+    {
+      "path": "live/imu_marker_baseline/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "9613d427040ab10254558639cd60d83fda276ff8a7148cb3da0a05229b82398c"
+    },
+    {
+      "path": "live/imu_marker_baseline/diagnostic_raw_recovery.json",
+      "bytes": 1456,
+      "sha256": "25e2a63a65954d0a3ec7a72c66b49056d95507961b355771fef84a24ff6862d3"
+    },
+    {
+      "path": "live/imu_marker_baseline/diagnostic_setup.json",
+      "bytes": 35640,
+      "sha256": "e038e841d26d34f72a2f66c32ada4c34c4f4b60ec8d92ef9f8ea99b0a5484a09"
+    },
+    {
+      "path": "live/imu_marker_baseline/diagnostic_summary.json",
+      "bytes": 916,
+      "sha256": "cc56257654fbc663039b66989153a2f3b8b947d1ab5144044182c6beee4fd3f5"
+    },
+    {
+      "path": "live/imu_marker_known_landmark/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "8003ad603092fb03c9f6ce541af9cb8c3a1bacf0d679520d9279d8ab20a3a514"
+    },
+    {
+      "path": "live/imu_marker_known_landmark/diagnostic_raw_recovery.json",
+      "bytes": 1484,
+      "sha256": "02be581e5df18eca3a85f84d9424f01b17a2205f2f3dbceb02f40ec4e3bbe613"
+    },
+    {
+      "path": "live/imu_marker_known_landmark/diagnostic_setup.json",
+      "bytes": 35616,
+      "sha256": "8fec47868846eb97429e270fb15142024e8c75043b6cdde201fb9c77c8b30555"
+    },
+    {
+      "path": "live/imu_marker_known_landmark/diagnostic_summary.json",
+      "bytes": 911,
+      "sha256": "84ecd9b5d8208602be3ac8a7d48fc1d07fe2f5adbca12222fcf283af4151fbee"
+    },
+    {
+      "path": "live/imu_marker_oracle_body/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "9613d427040ab10254558639cd60d83fda276ff8a7148cb3da0a05229b82398c"
+    },
+    {
+      "path": "live/imu_marker_oracle_body/diagnostic_raw_recovery.json",
+      "bytes": 1483,
+      "sha256": "c43320164d2becd3e962dc41560b434370f8400e6a03e4d210c208c08fba0e7a"
+    },
+    {
+      "path": "live/imu_marker_oracle_body/diagnostic_setup.json",
+      "bytes": 35642,
+      "sha256": "c01fc597505678ae3f17b7599e717008c9f362c5dd8a4be6d2661d0d5741d0ee"
+    },
+    {
+      "path": "live/imu_marker_oracle_body/diagnostic_summary.json",
+      "bytes": 911,
+      "sha256": "b3fce868e63026764b17f0141f5847fc6e9e5737c70051a563dcb2423abece40"
+    },
+    {
+      "path": "live/imu_marker_oracle_body_goal/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "9613d427040ab10254558639cd60d83fda276ff8a7148cb3da0a05229b82398c"
+    },
+    {
+      "path": "live/imu_marker_oracle_body_goal/diagnostic_raw_recovery.json",
+      "bytes": 1506,
+      "sha256": "2aee229f4760895187c4cae19e509c9d11186df8f12bb5ca917cd593aabb2821"
+    },
+    {
+      "path": "live/imu_marker_oracle_body_goal/diagnostic_setup.json",
+      "bytes": 35647,
+      "sha256": "ccfe89750241c49132774313c635dcda6fd5671d35587a77b24e53e65004ab35"
+    },
+    {
+      "path": "live/imu_marker_oracle_body_goal/diagnostic_summary.json",
+      "bytes": 1710,
+      "sha256": "fed543b0a718df97c430bc05419562c0c6a5950c818b196c177693611577c38d"
+    },
+    {
+      "path": "live/imu_marker_oracle_goal/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "9613d427040ab10254558639cd60d83fda276ff8a7148cb3da0a05229b82398c"
+    },
+    {
+      "path": "live/imu_marker_oracle_goal/diagnostic_raw_recovery.json",
+      "bytes": 1544,
+      "sha256": "402fe80410395c66b02e20ebfd81ca19eb2dc15ce2d536caa16deedee5955621"
+    },
+    {
+      "path": "live/imu_marker_oracle_goal/diagnostic_setup.json",
+      "bytes": 35642,
+      "sha256": "8fa2b41053d8cec69ca526e288e6f45f3362f2626ec4ff2cf42db3d11c4ca55f"
+    },
+    {
+      "path": "live/imu_marker_oracle_goal/diagnostic_summary.json",
+      "bytes": 911,
+      "sha256": "7c3a3029ddf14de8c9df762198e0be82d4b84dd99629b026c3758d20b23e70d8"
+    },
+    {
+      "path": "live/imu_marker_oracle_marker/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "9613d427040ab10254558639cd60d83fda276ff8a7148cb3da0a05229b82398c"
+    },
+    {
+      "path": "live/imu_marker_oracle_marker/diagnostic_raw_recovery.json",
+      "bytes": 1433,
+      "sha256": "d7366321b60c4b934cdac8e292afba06f9bea5bbcf0104b81e0e064292330738"
+    },
+    {
+      "path": "live/imu_marker_oracle_marker/diagnostic_setup.json",
+      "bytes": 35644,
+      "sha256": "66e1c9658d3a99b03e06b10676a5c0ea6a3755c3f6685c60cfc862be1d4313c7"
+    },
+    {
+      "path": "live/imu_marker_oracle_marker/diagnostic_summary.json",
+      "bytes": 1667,
+      "sha256": "6dacbdc3af553ba0a40c116881faf589bf1626132436f832991cb375fc105513"
+    },
+    {
+      "path": "live/imu_marker_true_K/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "9613d427040ab10254558639cd60d83fda276ff8a7148cb3da0a05229b82398c"
+    },
+    {
+      "path": "live/imu_marker_true_K/diagnostic_raw_recovery.json",
+      "bytes": 1486,
+      "sha256": "310403703acfdc4c5519ba14fb1b1366f1697755f099578606b32526bfc1f1f3"
+    },
+    {
+      "path": "live/imu_marker_true_K/diagnostic_setup.json",
+      "bytes": 35637,
+      "sha256": "9922a924070a3ad62c57ee891040e9cab8d6395b7a82f5706d8b5410ca9b9219"
+    },
+    {
+      "path": "live/imu_marker_true_K/diagnostic_summary.json",
+      "bytes": 901,
+      "sha256": "9b1146b6bcae0ce685d523f6dde04611e3eeb65065aa3fa36799ab33fe2394fd"
+    },
+    {
+      "path": "live/marker_all_oracle/diagnostic_raw_recovery.json",
+      "bytes": 1483,
+      "sha256": "7ebcc0efaa7efb6b0b93e96e1944528a3fca244f6c6dae41222f31bc20f960c7"
+    },
+    {
+      "path": "live/marker_all_oracle/diagnostic_setup.json",
+      "bytes": 35309,
+      "sha256": "990559df24077f8968788a6c57b6d9f118975c9063b81ee17571a73b215af3ab"
+    },
+    {
+      "path": "live/marker_all_oracle/diagnostic_summary.json",
+      "bytes": 839,
+      "sha256": "5cbb9fc64e7f0383323910497fe635fa7c2ba4a6d6d09a2f5217dc001795c9b8"
+    },
+    {
+      "path": "live/marker_baseline/diagnostic_raw_recovery.json",
+      "bytes": 1445,
+      "sha256": "63e465b6c3889cd36faad4af52213c187c3bf321df86592460558341ef478971"
+    },
+    {
+      "path": "live/marker_baseline/diagnostic_setup.json",
+      "bytes": 34897,
+      "sha256": "446f4a15efff867bf9670c2e0dbce88cd0efa96a0df285d115e8c01e14b8ee1f"
+    },
+    {
+      "path": "live/marker_baseline/diagnostic_summary.json",
+      "bytes": 849,
+      "sha256": "564e3f166d611c40008ba7116fd4dc2133c8c2a618dcee17f8781118b037e017"
+    },
+    {
+      "path": "live/marker_baseline/lossless_compression.json",
+      "bytes": 260740,
+      "sha256": "54d9b78a74f9f5a565cc24d6b2c96fe3493de13356122b0627fa3ea9f9cb0ed8"
+    },
+    {
+      "path": "live/marker_known_landmark/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "8003ad603092fb03c9f6ce541af9cb8c3a1bacf0d679520d9279d8ab20a3a514"
+    },
+    {
+      "path": "live/marker_known_landmark/diagnostic_raw_recovery.json",
+      "bytes": 1479,
+      "sha256": "d9b318e9108768b6b778008d6b357b8acfda8078e0aace50e2a509b8ca26fc9a"
+    },
+    {
+      "path": "live/marker_known_landmark/diagnostic_setup.json",
+      "bytes": 35612,
+      "sha256": "4ff81be4e3411dfa6381e9d6f3e6298e41ff0e72596cd3811ce17ee565a73e99"
+    },
+    {
+      "path": "live/marker_known_landmark/diagnostic_summary.json",
+      "bytes": 919,
+      "sha256": "f6665f25902970df3b45132583fd8a66b76b0ac380c55d844ed31c50a8dd2923"
+    },
+    {
+      "path": "live/marker_oracle_body/diagnostic_raw_recovery.json",
+      "bytes": 1455,
+      "sha256": "6094d8df0b9608e61308a6ee4ac04b0b7af988d53b6e9470c400019757c58c33"
+    },
+    {
+      "path": "live/marker_oracle_body/diagnostic_setup.json",
+      "bytes": 35310,
+      "sha256": "141b2410a6b7a915bab20a00c08416645a4410b5654ca15bbce07f1cc53836e3"
+    },
+    {
+      "path": "live/marker_oracle_body/diagnostic_summary.json",
+      "bytes": 843,
+      "sha256": "42150c0b716cad89e4de79caedb3a3e6ef0e5bd2f7b1b75cb6f6202a40882b68"
+    },
+    {
+      "path": "live/marker_oracle_body_goal/diagnostic_helpers.json",
+      "bytes": 1819,
+      "sha256": "9613d427040ab10254558639cd60d83fda276ff8a7148cb3da0a05229b82398c"
+    },
+    {
+      "path": "live/marker_oracle_body_goal/diagnostic_raw_recovery.json",
+      "bytes": 1454,
+      "sha256": "360b505c238394c8081471918f1b3fae4225e85bf1a7ebf48851b43a2242026b"
+    },
+    {
+      "path": "live/marker_oracle_body_goal/diagnostic_setup.json",
+      "bytes": 35643,
+      "sha256": "74734d75d9d9d4b3cbe03f184373442c358d8c03851f258e19872f026902f4e9"
+    },
+    {
+      "path": "live/marker_oracle_body_goal/diagnostic_summary.json",
+      "bytes": 939,
+      "sha256": "4e7552b6a49fe7fcdd8cd9ee9c08da8f2f43973fb3cb4eb1be4bee6569a179df"
+    },
+    {
+      "path": "live/marker_oracle_goal/diagnostic_raw_recovery.json",
+      "bytes": 1447,
+      "sha256": "4df8dbe7f26d32a21305efad5b7785c306502c4cd25e63451f8343c2176f59ba"
+    },
+    {
+      "path": "live/marker_oracle_goal/diagnostic_setup.json",
+      "bytes": 34899,
+      "sha256": "2add5de9f656be2a4aee3ebf334896d5ec9f2d0c2328e962bb07235a50e3c04f"
+    },
+    {
+      "path": "live/marker_oracle_goal/diagnostic_summary.json",
+      "bytes": 828,
+      "sha256": "57ab9317aa5f27a3034d728e18a5c730eb596bfdc7ba95d9f618fdffd04530c8"
+    },
+    {
+      "path": "live/marker_oracle_goal/lossless_compression.json",
+      "bytes": 259493,
+      "sha256": "376dd01b88bc68c92bbdf24167db885be56642ac8ce27c10977f8d26829be5bf"
+    },
+    {
+      "path": "live/marker_oracle_marker/diagnostic_raw_recovery.json",
+      "bytes": 1459,
+      "sha256": "a581bb537571df114b7e6c8278e2308d721aa61514ee69b4f056540838ecf9bb"
+    },
+    {
+      "path": "live/marker_oracle_marker/diagnostic_setup.json",
+      "bytes": 35106,
+      "sha256": "bae72f6f396d9da8d84eebd77312ecb5358bf14136c9e2c42d98c37f4e94b02d"
+    },
+    {
+      "path": "live/marker_oracle_marker/diagnostic_summary.json",
+      "bytes": 856,
+      "sha256": "f711e73550c67c90cea0208fa820570c966872b945ad62749c34327b398087fd"
+    },
+    {
+      "path": "live/marker_oracle_marker/lossless_compression.json",
+      "bytes": 300254,
+      "sha256": "8fb673f991ac571f1e9e3c35a9684881553cae769a3186988a92b35cb1610ebc"
+    },
+    {
+      "path": "live/marker_true_K/diagnostic_raw_recovery.json",
+      "bytes": 1484,
+      "sha256": "4ca88a7181de831952c281d49ad0972fc2b352732ae69f4bff2543ced72e1801"
+    },
+    {
+      "path": "live/marker_true_K/diagnostic_setup.json",
+      "bytes": 35099,
+      "sha256": "4c86cc61438a0e64f69b4d79591039f7d029735efec7912f0f1f1dc76af52b95"
+    },
+    {
+      "path": "live/marker_true_K/diagnostic_summary.json",
+      "bytes": 837,
+      "sha256": "cc903dc6a2c8387dda4d5d6d5f64f0411755aba69bdc6a39c1a03e5d21ee05b4"
+    },
+    {
+      "path": "live/marker_true_K/lossless_compression.json",
+      "bytes": 10702,
+      "sha256": "1c62f181f74c63829b64578c62c9b04178cb10c49e7cbd03a66ec69951acd0ce"
+    },
+    {
+      "path": "selected/closed_loop_distances.png",
+      "bytes": 161484,
+      "sha256": "ba9ea67d83ae0adf7c6061f1abe5effe968cad7886ef7e539ece68c68683a731"
+    },
+    {
+      "path": "selected/closed_loop_paths.png",
+      "bytes": 173111,
+      "sha256": "d370fac05c621859fa679d0148d0651883b605d6619f59867e4a434b8d18197a"
+    },
+    {
+      "path": "selected/closed_loop_summary.json",
+      "bytes": 95679,
+      "sha256": "722dbf9751f63033350884b61f307e6771dd06ae4b1c082c0ec7f7750f4292a6"
+    },
+    {
+      "path": "source_and_validation.json",
+      "bytes": 3469,
+      "sha256": "f32abe55f0e0d61dcf2f5828fe933c5ac99ec03c06e17a66dd855e3923494e7b"
+    }
+  ]
+}

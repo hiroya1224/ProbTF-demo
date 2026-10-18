@@ -1,0 +1,50 @@
+{
+  "physical_motion_or_estimation_replayed": false,
+  "results_used_in_completed_motion": false,
+  "raw_request_count": 13063,
+  "completed_requested_motion": true,
+  "before": {
+    "counts": {
+      "awaiting_payload": 1,
+      "completed": 9729,
+      "pending": 522
+    },
+    "total": 10252,
+    "claimed_through_stamp": 1792080134.456068,
+    "earliest_unfinished": {
+      "event_id": "joint:00012436",
+      "stamp": 1792080134.476955,
+      "sequence": 9730,
+      "status": "pending"
+    },
+    "ordering": "acquisition stamp, then immutable insertion sequence",
+    "latest_only_selection": false
+  },
+  "after": {
+    "counts": {
+      "completed": 9729,
+      "pending": 3334
+    },
+    "total": 13063,
+    "claimed_through_stamp": 1792080134.456068,
+    "earliest_unfinished": {
+      "event_id": "joint:00012436",
+      "stamp": 1792080134.476955,
+      "sequence": 9730,
+      "status": "pending"
+    },
+    "ordering": "acquisition stamp, then immutable insertion sequence",
+    "latest_only_selection": false
+  },
+  "recovered_event_count": 2812,
+  "remaining_missing_event_ids": [],
+  "all_raw_archived": true,
+  "completed_camera_prefix": 1524,
+  "noise_prefix_bitwise_check": {
+    "event_id": "image:00013102",
+    "expected_sha256": "4581281a77f8fe6db99e9eab01362c2ebd920be0acf2a0395849219acf5c587d",
+    "reproduced_sha256": "4581281a77f8fe6db99e9eab01362c2ebd920be0acf2a0395849219acf5c587d",
+    "equal": true
+  },
+  "wall_seconds": 40.84295479999855
+}

@@ -1,0 +1,129 @@
+{
+  "checked_at_utc": "2026-10-18T12:51:57.298761+00:00",
+  "original_production_manifest": "/tmp/probtf_variational_final_sources_20261018.json",
+  "original_manifest_sha256": "c464e24121c9ea71054dc1d08e31c76d1d1c46b10803dd72b4f307ff17b63d5a",
+  "original_production_files_checked": 202,
+  "original_production_changed": [],
+  "per_trial": {
+    "marker_baseline": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": null,
+      "frozen_helper_mismatches": null
+    },
+    "marker_oracle_goal": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": null,
+      "frozen_helper_mismatches": null
+    },
+    "marker_oracle_marker": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": null,
+      "frozen_helper_mismatches": null
+    },
+    "marker_true_K": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": null,
+      "frozen_helper_mismatches": null
+    },
+    "marker_oracle_body": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": null,
+      "frozen_helper_mismatches": null
+    },
+    "marker_all_oracle": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": null,
+      "frozen_helper_mismatches": null
+    },
+    "marker_known_landmark": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "marker_oracle_body_goal": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "imu_marker_baseline": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "imu_marker_oracle_goal": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "imu_marker_oracle_marker": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "imu_marker_true_K": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "imu_marker_oracle_body": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "imu_marker_all_oracle": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "imu_marker_known_landmark": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    },
+    "imu_marker_oracle_body_goal": {
+      "source_files": 179,
+      "rviz_files": 28,
+      "changed": [],
+      "frozen_helper_files": 6,
+      "frozen_helper_mismatches": []
+    }
+  },
+  "diagnostic_tests": {
+    "passed": 25,
+    "wall_s": 1.44,
+    "warning": "external hppfcl deprecation only; no test failure"
+  },
+  "diagnostic_only": true,
+  "production_numerical_changes": false,
+  "rviz_configuration_changes": false
+}

@@ -1,4 +1,7 @@
-"""Explicit truth interventions for the authorized diagnostic harness only.
+"""Withdrawn truth interventions, retained for historical source inspection.
+
+Direct truth-injection entrypoints are disabled by the 2026-10-19 user
+instruction. Baseline remains an object-identical pass-through.
 
 Never imported by production. All truth is supplied by the caller at the exact
 control capture time. Baseline is object-identical. Narrowing is a full
@@ -9,6 +12,8 @@ import hashlib
 import json
 
 import numpy as np
+
+from uncertainty_ablation_policy import require_baseline, reject_truth_injection
 
 from probtf.geometry import rotmat_to_quat
 from probtf.spherical_law.first_order import (
@@ -66,7 +71,8 @@ def intervene_control_result(predicted,inference,truth,intervention):
     The latter preserves all correlation coefficients by congruence. Goal
     centers/marginals and the internal unknown-marker law are not corrected.
     """
-    if intervention in ('baseline','oracle_marker','true_K'):
+    require_baseline(intervention)
+    if intervention == 'baseline':
         return predicted
     if intervention not in ('oracle_goal','oracle_body','oracle_body_goal','all_oracle'):
         raise ValueError('Unknown diagnostic intervention: '+str(intervention))
@@ -137,6 +143,7 @@ def oracle_K_packet(engine,result,existing_packet,truth):
     dynamic joints as an auxiliary equilibrium. If existing_packet is None,
     the caller may preserve initial K-unavailability for value-only isolation.
     """
+    reject_truth_injection('oracle stiffness packet construction')
     if existing_packet is None:
         return None
     record=existing_packet.record

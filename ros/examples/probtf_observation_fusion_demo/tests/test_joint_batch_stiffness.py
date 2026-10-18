@@ -79,6 +79,9 @@ def batch_inputs(state, tag='a', empty=False):
 def identifier(arm):
     scene, inference, _ = arm
     return StiffnessIdentifier(scene.urdf, inference.body_ids, dict(
+        # This file preserves the historical full-body batch formula. New
+        # endpoint inference has independent real-path integration tests.
+        matching_target='full_body_legacy',
         prior_config_path=str(REPO/'ros/examples/deflecomp/deflecomp_ros/config/estimator.yaml'),
         bayes_factor_surprise=dict(enabled=True, change_probability=.10,
             reset_measure='initial_log_stiffness', event_probability_unit='per_effective_sensor_event',

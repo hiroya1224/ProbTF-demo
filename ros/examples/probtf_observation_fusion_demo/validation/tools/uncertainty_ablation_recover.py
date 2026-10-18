@@ -127,7 +127,9 @@ def recover(output):
     workers.PlanarCamera=lambda *args,**kwargs:camera
     replies=RecordReplies(output/'diagnostic_raw_recovery_events.jsonl')
     try:
-        acquisition_worker(setup['intervention'],IteratorQueue(remaining()),replies,
+        # Recovery only renders/archives the original raw measurements. Never
+        # reinstall a historical oracle or recreate its inference sidecars.
+        acquisition_worker('baseline',IteratorQueue(remaining()),replies,
                            specification,str(output/'observations.sqlite3'),str(output))
     finally:
         workers.BoardCamera,workers.PlanarCamera=original_board,original_planar

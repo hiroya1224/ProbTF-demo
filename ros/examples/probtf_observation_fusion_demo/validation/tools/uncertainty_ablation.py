@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Isolated, explicitly truth-assisted, closed-loop uncertainty experiments.
+"""Baseline runner retaining the withdrawn truth-ablation implementation.
+
+Truth-assisted execution was revoked by the user on 2026-10-19. All worker
+and direct execution entrypoints now enforce baseline-only operation. The
+previous implementation and evidence remain available as historical records.
 
 This diagnostic does not edit/import a replacement production controller. It
 uses AsyncMotionSession, its five existing workers, native dynamics, complete
@@ -25,14 +29,15 @@ import traceback
 
 import numpy as np
 
+from uncertainty_ablation_policy import require_baseline, reject_truth_injection
+
 
 TOOLS = Path(__file__).resolve().parent
 PACKAGE = TOOLS.parents[1]
 if not (PACKAGE/'config/moving_estimation.yaml').is_file():
     import rospkg
     PACKAGE=Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
-MODES = ('baseline', 'oracle_goal', 'oracle_marker', 'true_K', 'oracle_body',
-         'all_oracle', 'known_landmark','oracle_body_goal')
+MODES = ('baseline',)
 
 
 def _frozen_helpers(output):
@@ -74,6 +79,7 @@ class QueueProxy:
 def control_worker(mode, requests, replies, description, urdf, templates, output,
                    horizon, control_mode=None, visibility_options=None,
                    artifact_requests=None):
+    require_baseline(mode)
     _frozen_helpers(output)
     import probtf_observation_fusion_demo.async_workers as workers
     from probtf_observation_fusion_demo.moving_inference import MovingInference
@@ -162,6 +168,7 @@ def control_worker(mode, requests, replies, description, urdf, templates, output
 
 
 def acquisition_worker(mode, requests, replies, specification, database, output):
+    require_baseline(mode)
     import probtf_observation_fusion_demo.async_workers as workers
     actual = workers.acquisition_worker
     original_board, original_planar = workers.BoardCamera, workers.PlanarCamera
@@ -232,6 +239,7 @@ def acquisition_worker(mode, requests, replies, specification, database, output)
 
 
 def inference_worker(mode, *args):
+    require_baseline(mode)
     _frozen_helpers(args[5])
     from probtf_observation_fusion_demo.async_workers import event_inference_worker
     restore = None
@@ -258,6 +266,7 @@ def inference_worker(mode, *args):
 class DiagnosticContext:
     """Select wrapper process targets without changing the production module."""
     def __init__(self, mode, output=None, helper_sources=None):
+        require_baseline(mode)
         self.context, self.mode = mp.get_context('spawn'), mode
         self.output=output
         self.helper_sources=helper_sources
@@ -267,6 +276,7 @@ class DiagnosticContext:
         return self.context.Queue()
 
     def Process(self, *, target, args, **kwargs):
+        require_baseline(self.mode)
         if self.output is not None and not self.copied:
             path=Path(self.output)/'diagnostic_source'
             path.mkdir()
@@ -282,6 +292,7 @@ class DiagnosticContext:
 
 
 def control_truth(session, request):
+    reject_truth_injection('control truth capture for oracle injection')
     frame = session.frame
     if (float(request['stamp']) != float(frame.stamp) or
             int(request['index']) != len(session.frames)-1):
@@ -296,6 +307,7 @@ def control_truth(session, request):
 
 
 def install_coordinator_proxies(session, mode):
+    require_baseline(mode)
     def request(value):
         if value is not None and mode in ('oracle_goal', 'true_K', 'oracle_body',
                                           'oracle_body_goal','all_oracle'):
@@ -342,6 +354,7 @@ def trajectory_summary(session):
 
 
 def run(case, mode, output, duration=180., drain=15.):
+    require_baseline(mode)
     from probtf_observation_fusion_demo.event_motion import AsyncMotionSession
     output = Path(output)
     root = PACKAGE.parents[2]

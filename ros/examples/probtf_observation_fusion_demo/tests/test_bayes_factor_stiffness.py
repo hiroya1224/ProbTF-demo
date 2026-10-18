@@ -136,6 +136,9 @@ def _identifier():
     # Isolate the adapter and exact density law from auxiliary URDF numerical
     # continuation, which has its own physical integration tests.
     identifier = StiffnessIdentifier.__new__(StiffnessIdentifier)
+    # This synthetic adapter fixture tests the historical local-body ratio;
+    # it deliberately has no tool geometry. Real hand tests use the full path.
+    identifier.matching_target = 'full_body_legacy'
     identifier.body_edge_ids = ('joint',)
     identifier.components = (PosteriorComponent('K-prior', Gaussian([0.], [[1.]])),)
     identifier.initial_components = identifier.components

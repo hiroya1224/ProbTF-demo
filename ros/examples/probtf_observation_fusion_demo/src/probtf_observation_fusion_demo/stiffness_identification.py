@@ -1,7 +1,7 @@
-"""Auxiliary log-stiffness inference from the frozen body density ratio.
+"""Auxiliary log-stiffness inference from the frozen hand-pose density ratio.
 
 The primary body law is never replaced by an equilibrium prediction.  All
-body mixture components and cross covariances enter the density ratio. The
+body mixture components and cross covariances enter hand propagation. The
 continuous auxiliary log-K density retains every new factor without sampling
 or a Gaussian projection. Finite numerical trials serve initial proposals only.
 """
@@ -385,6 +385,9 @@ class StiffnessIdentifier:
 
     def __init__(self, urdf_path, body_edge_ids, settings):
         self.settings = dict(settings)
+        self.matching_target = settings.get('matching_target', 'hand_pose')
+        if self.matching_target not in ('hand_pose', 'full_body_legacy'):
+            raise ValueError('matching_target must be hand_pose or full_body_legacy (historical comparison only).')
         self.stiffness_surprise_settings = _stiffness_surprise_settings(settings)
         self.body_edge_ids = tuple(body_edge_ids)
         self.robot = RobotArm(str(urdf_path), tip_link='tool0', base_link='base_link')
@@ -787,6 +790,46 @@ class StiffnessIdentifier:
                                          local_poses=physical['local_poses'])
         return value, jacobian, physical['theta'], physical['active']
 
+    def _hand_prediction(self, physical, state, hand_path):
+        """Compose the complete tool path and its analytic log-K derivative.
+
+        Only known attachment geometry and the auxiliary equilibrium enter.
+        Angular columns are right/body perturbations at the final hand frame.
+        No inferred intermediate-link discrepancy is scored here.
+        """
+        by_id = {item.edge_id: item for item in state.transforms}
+        body = {name: (pose, joint_index, axis) for
+            (name, _, _, joint_index, axis), pose in zip(self.edges, physical['local_poses'])}
+        size = physical['derivative'].shape[1]
+        position, rotation = np.zeros(3), np.eye(3)
+        dp, spatial_omega = np.zeros((3, size)), np.zeros((3, size))
+        for name, inverse in hand_path:
+            if inverse:
+                raise ValueError('The declared root-to-hand auxiliary path must be forward.')
+            if name in body:
+                (translation, local_rotation), joint_index, axis = body[name]
+                local_omega = np.outer(axis, physical['derivative'][joint_index])
+            else:
+                edge = by_id[name]
+                translation, local_rotation = edge.translation, quat_to_rotmat(edge.rotation_wxyz)
+                local_omega = np.zeros((3, size))
+            offset = rotation @ translation
+            dp = dp-skew(offset) @ spatial_omega
+            position = position+offset
+            rotation = rotation @ local_rotation
+            spatial_omega = spatial_omega+rotation @ local_omega
+        return position, rotation, dp, rotation.T @ spatial_omega
+
+    def _make_ratio(self, branches, posterior_branch, hand_path):
+        if getattr(self, 'matching_target', 'hand_pose') == 'full_body_legacy':
+            return ChartedBodyDensityRatio(branches, self.body_edge_ids,
+                                           posterior_branch=posterior_branch)
+        from .hand_stiffness import HandPoseDensityRatio
+        if not hand_path:
+            raise ValueError('Hand-pose stiffness inference requires the actual full root-to-tool-tip hand_path.')
+        return HandPoseDensityRatio(branches, self.body_edge_ids, hand_path,
+                                    posterior_branch=posterior_branch)
+
     def _body_chart(self, theta, derivative, state, *, local_poses=None):
         if local_poses is None:
             self.robot._fk_update(theta)
@@ -829,7 +872,7 @@ class StiffnessIdentifier:
         return self.update(result, batch_context=context,
                            event_body_ratios=event_body_ratios)
 
-    def _time_indexed_ratios(self, specifications, batch_record):
+    def _time_indexed_ratios(self, specifications, batch_record, hand_path=()):
         """Validate original acquisition identity and freeze each actual chart.
 
         A prefix prior Gaussian can have a nonzero mean and can differ from
@@ -864,9 +907,9 @@ class StiffnessIdentifier:
                        or child.distribution.covariance.shape != reference.covariance.shape
                        for child in branch.posterior_components):
                     raise ValueError('An acquisition stiffness ratio lost full joint Gaussian dimensions.')
-            ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids,
-                                           posterior_branch=projected)
+            ratio = self._make_ratio(branches, projected, hand_path)
             fingerprint = hashlib.sha256(repr((identity, stamp, command)).encode())
+            fingerprint.update(repr((getattr(self, 'matching_target', 'hand_pose'), hand_path)).encode())
             for branch in branches+(() if projected is None else (projected,)):
                 fingerprint.update(branch.reference_state.state_id.encode())
                 fingerprint.update(repr((branch.label, _log_weight(branch))).encode())
@@ -914,6 +957,9 @@ class StiffnessIdentifier:
                     prefix_source=provenance,
                     trial_stiffness_mechanics_evaluated_at_original_acquisition=True,
                     intermediate_body_projection_used=False)
+                item['matching_target'] = getattr(self, 'matching_target', 'hand_pose')
+                if hasattr(ratio, 'hand_path'):
+                    item['hand_marginal'] = ratio.record()
                 if not ratio.identity:
                     self._freeze_branch(source, item)
                     anchor = self._branch_anchor
@@ -925,11 +971,11 @@ class StiffnessIdentifier:
         properness = dict(verified=all(part.properness['verified'] for part in parts),
             log_factor_lower_bound=sum(part.properness['log_factor_lower_bound'] for part in parts),
             log_factor_upper_bound=sum(part.properness['log_factor_upper_bound'] for part in parts),
-            argument='sum of the retained bounded acquisition-specific body log-density ratios')
+            argument='sum of retained bounded acquisition-specific '+getattr(self, 'matching_target', 'hand_pose')+' log-density ratios')
         record['time_indexed_body_factors'] = diagnostics
         record['stiffness_batch_factorization'] = dict(
-            representation='product of all acquisition-specific full-body prefix density ratios',
-            log_factor='sum_i log[p_body_i_plus(h(K,q_i)) / p_body_i_minus(h(K,q_i))]',
+            representation='product of all acquisition-specific propagated hand-pose density ratios' if getattr(self, 'matching_target', 'hand_pose') == 'hand_pose' else 'historical full-body prefix density ratios',
+            log_factor='sum_i log[p_hand_i_plus(h_hand(K,q_i)) / p_hand_i_minus(h_hand(K,q_i))]' if getattr(self, 'matching_target', 'hand_pose') == 'hand_pose' else 'sum_i log[p_body_i_plus(h(K,q_i)) / p_body_i_minus(h(K,q_i))]',
             atomic_factor_count=len(parts), atomic_factor_ids=[part.factor_id for part in parts],
             all_acquisition_commands_requeried_for_each_trial_K=True,
             endpoint_body_ratio_used_as_K_factor=False,
@@ -947,6 +993,7 @@ class StiffnessIdentifier:
         an observation or replace its posterior by the preceding prior.
         """
         state = result.prior
+        hand_path = tuple(getattr(result, 'hand_path', ()))
         if (event_body_ratios is None and 'joint_batch' in result.records
                 and result.records.get('observation_ids')):
             raise ValueError('A production joint batch must supply every acquisition-specific stiffness ratio; endpoint-only fallback is forbidden.')
@@ -966,8 +1013,8 @@ class StiffnessIdentifier:
                     batch_id=None if batch_record is None else batch_record['batch_id'],
                     acquisition_count=(len(event_body_ratios)
                         if hasattr(event_body_ratios, '__len__') else None)):
-                time_indexed, time_indexed_id = self._time_indexed_ratios(event_body_ratios, batch_record)
-            batch_record.update(factor_semantics='product of acquisition-specific full-body prefix posterior/prior ratios; each trial K is evaluated by auxiliary equilibrium/FK at every original acquisition command',
+                time_indexed, time_indexed_id = self._time_indexed_ratios(event_body_ratios, batch_record, hand_path)
+            batch_record.update(factor_semantics='product of acquisition-specific posterior/prior ratios on the declared matching target; each trial K is evaluated by auxiliary equilibrium/FK at every original acquisition command',
                 time_indexed_atomic_factor_count=len(time_indexed),
                 time_indexed_atomic_factor_ids=[item[0] for item in time_indexed],
                 time_indexed_factorization_id=time_indexed_id,
@@ -985,6 +1032,7 @@ class StiffnessIdentifier:
         numerator_branches = branches if projected_numerator is None else (projected_numerator,)
         observation_ids = tuple(result.records.get('observation_ids', raw_posterior.observation_ids))
         digest = hashlib.sha256()
+        digest.update(repr((getattr(self, 'matching_target', 'hand_pose'), hand_path)).encode())
         for branch in branches:
             digest.update(branch.reference_state.state_id.encode())
             digest.update(repr((branch.label, _log_weight(branch))).encode())
@@ -1075,6 +1123,9 @@ class StiffnessIdentifier:
             if expected_id != item.state.state_id:
                 raise ValueError('Frozen posterior parameters do not reexpress to the displayed state.')
         metadata = dict(source_stamp=state.stamp, source_command=list(state.command),
+            matching_target=getattr(self, 'matching_target', 'hand_pose'),
+            hand_path=[list(step) for step in hand_path],
+            physical_truth_received=False,
             source_prior_state_id=state.state_id, source_prior_version=state.version,
             source_prior_state_ids=[branch.reference_state.state_id for branch in branches],
             source_prior_weights=[branch.weight for branch in branches],
@@ -1092,7 +1143,7 @@ class StiffnessIdentifier:
             auxiliary_model=self.model_source, feedback_to_body=False,
             feedback_to_body_or_control=False, feedback_to_control=None,
             proposal_approximation=None, proposal_status='not_computed', command_proposal=None,
-            approximation='specified Bingham-derived local Gaussian body proxies; no Gaussian projection of cumulative stiffness density',
+            approximation='hand-pose marginals of the specified Bingham-derived body laws; endpoint ratio is an information projection, not an exact sensor likelihood; no Gaussian projection of cumulative stiffness density' if getattr(self, 'matching_target', 'hand_pose') == 'hand_pose' else 'historical full-body Gaussian proxy ratio',
             support_regularization_added=False)
         if batch_record is not None:
             record['joint_batch'] = batch_record
@@ -1108,7 +1159,7 @@ class StiffnessIdentifier:
             if time_indexed is not None:
                 record['body_internal_approximation'].update(
                     role_for_stiffness='endpoint shared IK/display law diagnostic only; not the time-indexed K numerator',
-                    ratio_semantics='K uses unprojected acquisition-specific prefix body ratios, not this terminal projected body law')
+                    ratio_semantics='K uses hand-pose push-forwards of each acquisition-specific before/after law, not a ratio at the terminal batch command' if getattr(self, 'matching_target', 'hand_pose') == 'hand_pose' else 'historical unprojected acquisition-specific prefix body ratios')
         if len(set(observation_ids)) != len(observation_ids):
             raise ValueError('New stiffness evidence contains a duplicate observation ID.')
         repeated = self.observation_ids.intersection(observation_ids)
@@ -1130,9 +1181,10 @@ class StiffnessIdentifier:
         try:
             with _runtime_stage(self, 'stiffness.endpoint_body_ratio_diagnostic',
                     source_stamp=state.stamp, observation_count=len(observation_ids)):
-                ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids,
-                                               posterior_branch=projected_numerator)
+                ratio = self._make_ratio(branches, projected_numerator, hand_path)
                 record['body_marginal'] = dict(edge_ids=list(self.body_edge_ids), **ratio.record())
+                if hasattr(ratio, 'hand_path'):
+                    record['hand_marginal'] = record['body_marginal']
             identity = (ratio.identity if time_indexed is None else
                         all(item[2].identity for item in time_indexed))
             if time_indexed is not None:
@@ -1228,6 +1280,17 @@ class StiffnessIdentifier:
         translations of these URDF revolute joints are fixed. This proves
         integrability without pretending that global K moments were computed.
         """
+        if hasattr(ratio, 'hand_path'):
+            reference = ratio.branches[0].reference_state
+            by_id = {edge.edge_id: edge for edge in reference.transforms}
+            self.robot._fk_update(np.asarray(reference.command))
+            local_lengths = {name: np.linalg.norm((self.robot.data.oMf[parent].inverse()
+                *self.robot.data.oMf[child]).translation) for name, parent, child, _, _ in self.edges}
+            if any(inverse for _, inverse in ratio.hand_path):
+                raise ValueError('The declared root-to-hand auxiliary path must be forward.')
+            radius = sum(local_lengths[name] if name in local_lengths else
+                         np.linalg.norm(by_id[name].translation) for name, _ in ratio.hand_path)
+            return ratio.properness_bounds(radius)
         lower_minus, upper_minus, lower_plus, upper_plus = [], [], [], []
         self.robot._fk_update(np.asarray(ratio.branches[0].reference_state.command))
         translations = [(self.robot.data.oMf[parent].inverse()*self.robot.data.oMf[child]).translation.copy()
@@ -1275,7 +1338,8 @@ class StiffnessIdentifier:
             identity.update(factor.factor_id.encode())
         record = dict(density_id=identity.hexdigest(), factor_ids=[item.factor_id for item in factors],
             initial_components=initial_records,
-            representation='initial log-K Gaussian mixture times frozen body density-ratio factors',
+            representation='initial log-K Gaussian mixture times frozen '+getattr(self, 'matching_target', 'hand_pose')+' density-ratio factors',
+            matching_target=getattr(self, 'matching_target', 'hand_pose'),
             normalization_constant=None,
             normalization_definition='Z = integral initial_logK_density(x) * exp(sum_t ell_t(exp(x))) dx',
             global_moments=None,
@@ -1302,7 +1366,7 @@ class StiffnessIdentifier:
                 lower += factor.properness['log_factor_lower_bound']
                 upper += factor.properness['log_factor_upper_bound']
             record.update(density_id=bfs.density_id,
-                representation='continuous initial log-K law with every body-ratio factor and Keep/Reset logsumexp recurrence',
+                representation='continuous initial log-K law with every '+getattr(self, 'matching_target', 'hand_pose')+' ratio factor and Keep/Reset logsumexp recurrence',
                 normalization_definition='mass of the retained continuous recurrence; local evidence estimates set branch-relative scales only',
                 normalization_log_mass_estimate=bfs.log_mass,
                 normalization_estimate_is_exact=False,
@@ -1310,7 +1374,7 @@ class StiffnessIdentifier:
                 bayes_factor_configuration=dict(self.stiffness_surprise_settings),
                 properness=dict(verified=all(item.properness['verified'] for item in factors),
                     log_normalization_lower_bound=lower, log_normalization_upper_bound=upper,
-                    proof='bounded positive full-joint body ratio factors and finite branch-relative scales; no claim of exact Laplace normalization'))
+                    proof='bounded positive factors on the declared matching target and finite branch-relative scales; no claim of exact Laplace normalization'))
         return record
 
     def _prepare_physical_batch(self, factors, x):
@@ -1392,6 +1456,11 @@ class StiffnessIdentifier:
             saved = self._branch_anchor
             try:
                 self._branch_anchor = factor.branch_anchor
+                if hasattr(factor.ratio, 'hand_path'):
+                    physical = self._physical_prediction(np.asarray(x), factor.states[0])
+                    self.factor_cache[key] = factor.ratio.evaluate_pose(*self._hand_prediction(
+                        physical, factor.states[0], factor.ratio.hand_path))
+                    return self.factor_cache[key]
                 first = self._prediction(np.asarray(x), factor.states[0])
                 predictions = [first]
                 if len(factor.states) > 1:

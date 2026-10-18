@@ -1,4 +1,7 @@
-"""Explicit, process-local observation oracles for uncertainty diagnosis only.
+"""Withdrawn observation oracles retained as historical source.
+
+Both construction and installation are disabled by the 2026-10-19 user
+instruction; importing this module does not authorize a truth observation.
 
 Nothing imports this module on the production path.  The diagnostic runner
 records physical acquisition poses separately, then installs the patch in its
@@ -15,6 +18,8 @@ import json
 from pathlib import Path
 
 import numpy as np
+
+from uncertainty_ablation_policy import reject_truth_injection
 
 from prob_artag_detector.models import EstimationDiagnostics, PoseMixtureResult
 from probtf.distributions.bingham_orientation import BinghamOrientation
@@ -46,6 +51,7 @@ def prepare_oracle_marker_observation(
     decoded here; the caller decides whether baseline visibility is required.
     Acquisition metadata is copied into the returned board provenance.
     """
+    reject_truth_injection('oracle marker observation construction')
     stamp, capture_stamp = float(stamp), float(capture_stamp)
     if not np.isfinite(stamp) or stamp < 0. or capture_stamp != stamp:
         raise ValueError('Oracle truth and image must have the same original acquisition stamp.')
@@ -143,6 +149,7 @@ def install_oracle_marker_patch(output, *, translation_std_m=1e-4,
     remain available for audit.  Only an available central observation is
     replaced.  ``False`` is the separately declared no-loss intervention.
     """
+    reject_truth_injection('oracle marker inference patch')
     from probtf_observation_fusion_demo import sensors
 
     output = Path(output)

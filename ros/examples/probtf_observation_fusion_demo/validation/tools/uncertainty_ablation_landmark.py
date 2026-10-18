@@ -1,5 +1,7 @@
-"""Known root landmark prior for isolated inference-worker diagnostics only."""
+"""Withdrawn landmark truth patch, retained as historical source only."""
 import numpy as np
+
+from uncertainty_ablation_policy import reject_truth_injection
 
 
 def install_known_landmark_patch(marker_pose,translation_sd=1e-4,rotation_sd=1e-3):
@@ -11,6 +13,7 @@ def install_known_landmark_patch(marker_pose,translation_sd=1e-4,rotation_sd=1e-
     independent measurement. Caller must confine this monkeypatch to its own
     diagnostic worker process and retain its explicit truth provenance.
     """
+    reject_truth_injection('known-landmark inference prior patch')
     from probtf.geometry import rotmat_to_quat
     from probtf.spherical_law.first_order import BinghamTransform,bingham_from_rotation_coordinates
     from probtf_observation_fusion_demo.moving_inference import MovingInference

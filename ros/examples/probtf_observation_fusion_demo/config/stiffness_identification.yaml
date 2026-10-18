@@ -2,6 +2,9 @@
 # or constrain the primary transform-candidate distribution.
 prior_config_package: deflecomp_ros
 prior_config_file: config/estimator.yaml
+# Score only the complete hand/tool-tip pose push-forward. Intermediate links
+# contribute geometry/cross-covariance to propagation, never separate residuals.
+matching_target: hand_pose
 known_model_source: >-
   Generated shared robot URDF, including its supplied masses/inertias and
   known tool/camera attachments, with deflecomp gravity and linear joint spring

@@ -226,11 +226,16 @@ class SimpleMotionSession:
         self.control_counter = 0
         self.last_control_body_id = None
         self.plan = None
+        self.reach_stop = None
         self.source_hashes = {str(p.relative_to(self.package)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in (self.package/'src').rglob('*.py')}
         self.frame = self.scene.step(0., stamp=1792080000., command=self.command, render_camera=False)
         self.frames.append(self.frame)
-        self.scene.trajectory[-1].update(action_mode='waiting_for_goal', command_interval_mode='waiting_for_goal')
+        self._latch_reach()
+        mode = self._command_mode()
+        self.scene.trajectory[-1].update(action_mode=mode, command_interval_mode='waiting_for_goal')
+        if self.reach_stop is not None:
+            self.scene.trajectory[-1].update(reaching_phase='reached_hold', reaching_phase_source=None)
         _append(self.output/'physical_trajectory.jsonl', self.scene.trajectory[-1])
         self._acquire_due()
 
@@ -238,9 +243,31 @@ class SimpleMotionSession:
     def velocity(self):
         # Derived only for the raw command notification; never an independent
         # dynamical state, optimization variable or source of momentum.
-        if self.plan is None or self.frame.time >= self.plan['end_time']:
+        if self.reach_stop is not None or self.plan is None or self.frame.time >= self.plan['end_time']:
             return np.zeros_like(self.command)
         return (self.plan['target']-self.plan['start'])/self.plan['duration']
+
+    def _command_mode(self):
+        if self.reach_stop is not None:
+            return 'reached_hold'
+        return 'reaching' if self.plan is not None and self.plan['goal_observed'] else 'waiting_for_goal'
+
+    def _latch_reach(self):
+        """The physical task's completion notification ends command selection.
+
+        Only the existing boolean success signal crosses this boundary. No
+        physical pose, goal or stiffness is supplied to an inference worker.
+        Holding a position reference leaves physical inertia/damping intact.
+        """
+        if self.reach_stop is not None or not self.frame.reached:
+            return
+        self.reach_stop = dict(time=self.frame.time, stamp=self.frame.stamp,
+            command=self.command.tolist(), request_id=None if self.plan is None else self.plan['request_id'],
+            source=None if self.plan is None else self.plan['source'],
+            reason='physical_task_reached', signal='existing_physical_frame_reached',
+            policy='latch_actual_sent_position_without_resuming_command_selection')
+        self.plan = None
+        _append(self.output/'reach_stop.jsonl', self.reach_stop)
 
     @property
     def motion_finished(self):
@@ -348,7 +375,11 @@ class SimpleMotionSession:
             if message.get('failed'):
                 raise RuntimeError(message['traceback'])
             if message['kind'] == 'plan':
-                if message['selection_performed'] and not self.motion_finished:
+                if message['selection_performed'] and self.reach_stop is not None:
+                    _append(self.output/'simple_plan_dispositions.jsonl', dict(
+                        request_id=message['request_id'], receipt_stamp=self.frame.stamp,
+                        adopted=False, reason='reached_hold', reach_stop_stamp=self.reach_stop['stamp']))
+                elif message['selection_performed'] and not self.motion_finished:
                     if not np.array_equal(message['source_command'], self.command):
                         raise ValueError('A finite step must be selected at the held current command; its source command changed before adoption.')
                     if message['packet'] is not None:
@@ -379,7 +410,8 @@ class SimpleMotionSession:
         if self.plan is not None and self.frame.time < self.plan['end_time'] and not self.motion_finished:
             return
         identity = self.latest_body.stages[-1].components[0].state.state_id
-        if self.motion_finished and identity == self.last_control_body_id:
+        stopped = self.motion_finished or self.reach_stop is not None
+        if stopped and identity == self.last_control_body_id:
             return
         self.control_counter += 1
         self.control_requests.put(dict(result=self.latest_body, packet=self.latest_packet,
@@ -387,7 +419,7 @@ class SimpleMotionSession:
             index=len(self.frames)-1, stamp=self.frame.stamp,
             request_id=self.control_counter, capture_index=self.latest_body_index,
             goal_observed=self.latest_body.records['simple_inference']['goal_observed'],
-            select=not self.motion_finished))
+            select=not stopped))
         self.control_busy = True
         self.last_control_body_id = identity
 
@@ -397,8 +429,9 @@ class SimpleMotionSession:
         if self.started is not None and not self.motion_finished:
             elapsed = min(self.scene.duration, self.clock()-self.started)
             if elapsed-self.frame.time > 1e-6:
+                interval_mode = self._command_mode()
                 command = self.command.copy()
-                if self.plan is not None:
+                if self.reach_stop is None and self.plan is not None:
                     fraction = min(1., max(0., (elapsed-self.plan['start_time'])/self.plan['duration']))
                     command = self.plan['start']+fraction*(self.plan['target']-self.plan['start'])
                 if self.engine.packet is None:
@@ -420,10 +453,12 @@ class SimpleMotionSession:
                 self.actions.append(step)
                 self.command, self.frame = command, frame
                 self.frames.append(frame)
-                mode = ('reaching' if self.plan is not None and self.plan['goal_observed'] else 'waiting_for_goal')
-                self.scene.trajectory[-1].update(action_mode=mode, command_interval_mode=mode,
-                    reaching_phase='simple_reference',
-                    reaching_phase_source=None if self.plan is None else self.plan['source'])
+                self._latch_reach()
+                source = (self.reach_stop['source'] if self.reach_stop is not None else
+                    None if self.plan is None else self.plan['source'])
+                self.scene.trajectory[-1].update(action_mode=self._command_mode(), command_interval_mode=interval_mode,
+                    reaching_phase='reached_hold' if self.reach_stop is not None else 'simple_reference',
+                    reaching_phase_source=source)
                 _append(self.output/'physical_trajectory.jsonl', self.scene.trajectory[-1])
                 _append(self.output/'commands.jsonl', step.record())
                 self._acquire_due()
@@ -462,6 +497,8 @@ class SimpleMotionSession:
             resolved_scene_config_sha256=self.scene.resolved_config_sha256,
             body_bayes_factor_surprise=dict(self.inference_description.surprise_settings),
             K_bfs_enabled=False, K_evidence_enabled=False,
+            reach_stop=self.reach_stop, command_selection_stopped_on_reach=self.reach_stop is not None,
+            task_completion_signal='existing_physical_frame_reached; termination_only_not_estimation',
             cumulative_K_factor_reevaluation=False, independent_fresh_goal_enabled=False,
             running_gradient_enabled=False, view_factor_enabled=False,
             physical_truth_used_for_inference=False, monte_carlo_used=False,

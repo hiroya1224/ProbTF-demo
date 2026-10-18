@@ -11,6 +11,12 @@ roslaunch probtf_observation_fusion_demo imu_marker.launch marker_occlusion:=tru
 
 `marker_occlusion:=false` は無効、指定省略は [物理シーン設定](config/switch_press_scene.yaml) に従う。標準設定は無効であり、無効時は元のカメラクラスと同じ画像を使う。この起動オプションは既定の `execution_mode:=simple` に適用する。IMU取付、ロボット・ボード・スイッチの配置、カメラの較正と画像サイズは直前のIMU＋marker試行と同じである。
 
+## 制御目標の10 mm押込みと初期事前表示（10月19日追加）
+
+マーカー相対の制御目標は `[0,-0.24,0.035]` mとし、従来のz=0.045 mからパネル奥の−zへ10 mm移した。制御規準と目標TF・点群は同じ設定／同じ共同lawを参照する。物理ボタンの形状・位置、実到達判定位置 `[0,-0.24,0.045]` m、6 mmの許容距離、到達後の指令停止は変更しない。この押込みは課題側の取付関係の指定であり、物理真値から目標を補正するものではない。
+
+起動直後は、既存のframe 0のjoint通知一件だけから構成した観測ゼロの初期共同事前を表示する。`simple_reference.yaml` の `startup.prior_display_hold_s=3.0` 秒保持した後、物理時間と保留した観測の原取得順更新を開始する。ROSでは同じsnapshotの公開ACKから保持時間を数え、headlessではsnapshotの生成完了から数える。初期lawのmodal姿勢は剛体FKに一致し、同じlawが最初の観測の事前になる。ProbTFのO(P)補正平均を剛体FK位置へ再中心化せず、全共分散・交差も保持する。これ以前の実走値は押込みと表示holdの追加前に対応する。
+
 ## 到達時の指令保持（10月19日追加）
 
 ユーザーの追加指定により、最小参照版は物理側の既存到達判定（現在の干渉無効設定では棒先端とスイッチの距離6 mm以内）の成功通知を受けた最初の物理tickで、実送信済み関節位置を保持する。以後の新しい指令選定と後着planの採用は停止する。到達前区間は実際に動いた区間として記録し、次区間から `reached_hold` と零指令増分を記録する。通知時刻・指令・plan出自は `reach_stop.jsonl`、後着plan不採用は `simple_plan_dispositions.jsonl` に残す。

@@ -1,5 +1,8 @@
 # Active only for execution_mode=simple. Historical modes retain their config.
 # S(c) is the sole task score; these are finite numerical step settings.
+startup:
+  # Show the actual unobserved rigid-command prior before sensing/motion.
+  prior_display_hold_s: 3.0
 body_bayes_factor_surprise:
   enabled: true
   change_probability: 0.25

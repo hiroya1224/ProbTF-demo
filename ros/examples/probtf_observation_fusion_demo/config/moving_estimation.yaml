@@ -83,7 +83,9 @@ control:
     max_command_distance_rad: null
     max_snapshot_update_lag: null
   # Known task relation in marker coordinates, not the world's marker pose.
-  goal_offset: [0.0, -0.24, 0.045]
+  # Aim 10 mm farther into the panel (-marker z). Physical button and reach
+  # detection remain at their unchanged separately configured world positions.
+  goal_offset: [0.0, -0.24, 0.035]
   goal_orientation_wxyz: [0.5, -0.5, 0.5, 0.5]
   max_joint_velocity: 0.048
   max_joint_acceleration: 0.3

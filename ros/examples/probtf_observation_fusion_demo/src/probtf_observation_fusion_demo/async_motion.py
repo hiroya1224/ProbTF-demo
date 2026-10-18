@@ -49,6 +49,9 @@ class AsyncMotionLive:
         rospy.on_shutdown(self.close)
 
     def _start_publication(self):
+        require_prior = getattr(self.session, 'require_initial_prior_publication', None)
+        if require_prior is not None:
+            require_prior()
         context = self.session.context
         self.publication_requests, self.publication_replies = context.Queue(), context.Queue()
         self.publication_process = context.Process(target=publication_worker,
@@ -77,6 +80,9 @@ class AsyncMotionLive:
                 self.publication_status = message
                 self.published_control = message['published_control']
                 self.published_image = message['published_image']
+                notify_prior = getattr(self.session, 'notify_initial_prior_published', None)
+                if notify_prior is not None:
+                    notify_prior(self.published_control)
             else:
                 raise ValueError('Unknown independent publication reply.')
 

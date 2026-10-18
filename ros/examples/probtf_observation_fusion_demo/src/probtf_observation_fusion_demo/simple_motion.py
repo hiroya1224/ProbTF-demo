@@ -163,6 +163,11 @@ class SimpleMotionSession:
             body_surprise_enabled=body_surprise_enabled)
         self.body_surprise_enabled = self.inference_description.surprise_enabled
         self.settings = self.inference_description.settings
+        self.startup_prior_hold_s = float(self.settings.get('simple_startup', {}).get('prior_display_hold_s', 3.))
+        if not np.isfinite(self.startup_prior_hold_s) or self.startup_prior_hold_s < 0.:
+            raise ValueError('Initial prior display duration must be finite and nonnegative.')
+        self.initial_prior_display_wall = self.initial_prior_published_wall = None
+        self.initial_prior_publication_required = False
         self.options = self.settings.get('async_execution', {})
         self.period = 1./float(self.options.get('physics_hz', 120.))
         self.rates = {kind: float(self.options.get(kind+'_hz', rate))
@@ -281,9 +286,25 @@ class SimpleMotionSession:
 
     def start(self):
         if self.started is None and self.current_control is not None:
-            self.started = self.clock()
+            ready = (self.initial_prior_published_wall if self.initial_prior_publication_required
+                     else self.initial_prior_display_wall)
+            now = self.clock()
+            if ready is None or now-ready < self.startup_prior_hold_s:
+                return False
+            self.started = now
             return True
         return False
+
+    def require_initial_prior_publication(self):
+        """ROS motion waits for the actual initial-law publish acknowledgement."""
+        self.initial_prior_publication_required = True
+
+    def notify_initial_prior_published(self, published_control):
+        from .async_publication import control_key
+        if (self.started is None and self.initial_prior_published_wall is None
+                and self.current_display is not None
+                and published_control == control_key(self.current_display)):
+            self.initial_prior_published_wall = self.clock()
 
     def _submit(self):
         if self.inference_busy or self.selection_pending or self.ack_pending:
@@ -397,6 +418,8 @@ class SimpleMotionSession:
                         duration=duration, diagnostics=message['diagnostics'], work_seconds=message['work_seconds']))
             elif message['kind'] == 'display':
                 self.current_display = self.current_control = message
+                if self.started is None and self.initial_prior_display_wall is None:
+                    self.initial_prior_display_wall = self.clock()
                 self.control_busy = False
             else:
                 raise ValueError('Unexpected simple selection reply.')
@@ -482,6 +505,12 @@ class SimpleMotionSession:
             observation_age_s=None if display is None else self.frame.stamp-display['diagnostics']['original_observation_stamp'],
             duration=self.scene.duration, simulated_elapsed_s=self.frame.time, finished=self.motion_finished,
             startup_phase='initial_prior' if self.started is None else 'moving_or_draining',
+            initial_prior_display=dict(hold_s=self.startup_prior_hold_s,
+                display_ready_monotonic_s=self.initial_prior_display_wall,
+                publication_required=self.initial_prior_publication_required,
+                published_monotonic_s=self.initial_prior_published_wall,
+                motion_started_monotonic_s=self.started,
+                source='first frame-zero joint notification; no sensor likelihood; same retained law'),
             estimation_drained=self.estimation_finished, body_estimation_drained=self.estimation_finished,
             stiffness_estimation_drained=self.estimation_finished,
             acquisition_requests=self.acquisition_submitted, acquisition_archived=self.acquisition_completed,

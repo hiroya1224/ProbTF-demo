@@ -168,6 +168,9 @@ class SimpleMotionSession:
             raise ValueError('Initial prior display duration must be finite and nonnegative.')
         self.initial_prior_display_wall = self.initial_prior_published_wall = None
         self.initial_prior_publication_required = False
+        self.reach_confirmation_s = float(self.settings.get('simple_reach_hold', {}).get('confirmation_s', 2.))
+        if not np.isfinite(self.reach_confirmation_s) or self.reach_confirmation_s <= 0.:
+            raise ValueError('Reach confirmation duration must be finite and positive.')
         self.options = self.settings.get('async_execution', {})
         self.period = 1./float(self.options.get('physics_hz', 120.))
         self.rates = {kind: float(self.options.get(kind+'_hz', rate))
@@ -231,7 +234,8 @@ class SimpleMotionSession:
         self.control_counter = 0
         self.last_control_body_id = None
         self.plan = None
-        self.reach_stop = None
+        self.reach_stop = self.reach_trial = None
+        self.retired_control_through = 0
         self.source_hashes = {str(p.relative_to(self.package)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in (self.package/'src').rglob('*.py')}
         self.frame = self.scene.step(0., stamp=1792080000., command=self.command, render_camera=False)
@@ -239,8 +243,8 @@ class SimpleMotionSession:
         self._latch_reach()
         mode = self._command_mode()
         self.scene.trajectory[-1].update(action_mode=mode, command_interval_mode='waiting_for_goal')
-        if self.reach_stop is not None:
-            self.scene.trajectory[-1].update(reaching_phase='reached_hold', reaching_phase_source=None)
+        if self.reach_trial is not None:
+            self.scene.trajectory[-1].update(reaching_phase='reached_settling', reaching_phase_source=None)
         _append(self.output/'physical_trajectory.jsonl', self.scene.trajectory[-1])
         self._acquire_due()
 
@@ -248,31 +252,79 @@ class SimpleMotionSession:
     def velocity(self):
         # Derived only for the raw command notification; never an independent
         # dynamical state, optimization variable or source of momentum.
-        if self.reach_stop is not None or self.plan is None or self.frame.time >= self.plan['end_time']:
+        if self._holding_reach or self.plan is None or self.frame.time >= self.plan['end_time']:
             return np.zeros_like(self.command)
         return (self.plan['target']-self.plan['start'])/self.plan['duration']
+
+    @property
+    def _holding_reach(self):
+        return self.reach_trial is not None or self.reach_stop is not None
 
     def _command_mode(self):
         if self.reach_stop is not None:
             return 'reached_hold'
-        return 'reaching' if self.plan is not None and self.plan['goal_observed'] else 'waiting_for_goal'
+        if self.reach_trial is not None:
+            return 'reached_settling'
+        if self.plan is not None and self.plan['goal_observed']:
+            return 'reaching'
+        if self.latest_body is not None and self.latest_body.records['simple_inference']['goal_observed']:
+            return 'waiting_for_control'
+        return 'waiting_for_goal'
+
+    def _reaching_phase(self):
+        held = self.reach_stop if self.reach_stop is not None else self.reach_trial
+        if held is not None:
+            return self._command_mode(), held['source']
+        if self.plan is not None:
+            return 'simple_reference', self.plan['source']
+        return self._command_mode(), None
 
     def _latch_reach(self):
-        """The physical task's completion notification ends command selection.
+        """Confirm the task signal under a fixed command before final holding.
 
         Only the existing boolean success signal crosses this boundary. No
         physical pose, goal or stiffness is supplied to an inference worker.
         Holding a position reference leaves physical inertia/damping intact.
         """
-        if self.reach_stop is not None or not self.frame.reached:
+        if self.reach_stop is not None:
+            if not self.frame.reached:
+                _append(self.output/'reach_hold_events.jsonl', dict(kind='hold_released',
+                    time=self.frame.time, stamp=self.frame.stamp, reason='physical_success_signal_lost',
+                    held=self.reach_stop))
+                self.reach_stop = None
             return
-        self.reach_stop = dict(time=self.frame.time, stamp=self.frame.stamp,
+        if self.reach_trial is not None:
+            # Published metadata may still reference the preceding value.
+            trial = dict(self.reach_trial)
+            if not self.frame.reached:
+                trial['on_since_time'] = None
+            elif trial['on_since_time'] is None:
+                trial['on_since_time'] = self.frame.time
+            self.reach_trial = trial
+            if self.frame.time-trial['time'] < self.reach_confirmation_s:
+                return
+            if not self.frame.reached:
+                _append(self.output/'reach_hold_events.jsonl', dict(kind='trial_released',
+                    time=self.frame.time, stamp=self.frame.stamp, reason='success_lost_after_settling', held=trial))
+                self.reach_trial = None
+            elif self.frame.time-trial['on_since_time'] >= self.reach_confirmation_s:
+                self.reach_stop = dict(trial, confirmed_time=self.frame.time, confirmed_stamp=self.frame.stamp,
+                    continuous_on_s=self.frame.time-trial['on_since_time'],
+                    reason='physical_success_confirmed_under_held_command')
+                self.reach_trial = None
+                _append(self.output/'reach_stop.jsonl', self.reach_stop)
+                _append(self.output/'reach_hold_events.jsonl', dict(kind='confirmed', **self.reach_stop))
+            return
+        if not self.frame.reached:
+            return
+        self.reach_trial = dict(time=self.frame.time, stamp=self.frame.stamp,
             command=self.command.tolist(), request_id=None if self.plan is None else self.plan['request_id'],
             source=None if self.plan is None else self.plan['source'],
-            reason='physical_task_reached', signal='existing_physical_frame_reached',
-            policy='latch_actual_sent_position_without_resuming_command_selection')
+            on_since_time=self.frame.time, signal='existing_physical_frame_reached',
+            policy='hold_actual_sent_command_and_confirm_continuous_success')
+        self.retired_control_through = self.control_counter
         self.plan = None
-        _append(self.output/'reach_stop.jsonl', self.reach_stop)
+        _append(self.output/'reach_hold_events.jsonl', dict(kind='trial_started', **self.reach_trial))
 
     @property
     def motion_finished(self):
@@ -396,10 +448,14 @@ class SimpleMotionSession:
             if message.get('failed'):
                 raise RuntimeError(message['traceback'])
             if message['kind'] == 'plan':
-                if message['selection_performed'] and self.reach_stop is not None:
+                if message['selection_performed'] and (self._holding_reach
+                        or message['request_id'] <= self.retired_control_through):
+                    held = self.reach_stop if self.reach_stop is not None else self.reach_trial
                     _append(self.output/'simple_plan_dispositions.jsonl', dict(
                         request_id=message['request_id'], receipt_stamp=self.frame.stamp,
-                        adopted=False, reason='reached_hold', reach_stop_stamp=self.reach_stop['stamp']))
+                        adopted=False, reason='reach_hold_retired_plan',
+                        reach_stop_stamp=None if held is None else held['stamp'],
+                        retired_control_through=self.retired_control_through))
                 elif message['selection_performed'] and not self.motion_finished:
                     if not np.array_equal(message['source_command'], self.command):
                         raise ValueError('A finite step must be selected at the held current command; its source command changed before adoption.')
@@ -433,7 +489,7 @@ class SimpleMotionSession:
         if self.plan is not None and self.frame.time < self.plan['end_time'] and not self.motion_finished:
             return
         identity = self.latest_body.stages[-1].components[0].state.state_id
-        stopped = self.motion_finished or self.reach_stop is not None
+        stopped = self.motion_finished or self._holding_reach
         if stopped and identity == self.last_control_body_id:
             return
         self.control_counter += 1
@@ -454,7 +510,7 @@ class SimpleMotionSession:
             if elapsed-self.frame.time > 1e-6:
                 interval_mode = self._command_mode()
                 command = self.command.copy()
-                if self.reach_stop is None and self.plan is not None:
+                if not self._holding_reach and self.plan is not None:
                     fraction = min(1., max(0., (elapsed-self.plan['start_time'])/self.plan['duration']))
                     command = self.plan['start']+fraction*(self.plan['target']-self.plan['start'])
                 if self.engine.packet is None:
@@ -477,10 +533,9 @@ class SimpleMotionSession:
                 self.command, self.frame = command, frame
                 self.frames.append(frame)
                 self._latch_reach()
-                source = (self.reach_stop['source'] if self.reach_stop is not None else
-                    None if self.plan is None else self.plan['source'])
+                phase, source = self._reaching_phase()
                 self.scene.trajectory[-1].update(action_mode=self._command_mode(), command_interval_mode=interval_mode,
-                    reaching_phase='reached_hold' if self.reach_stop is not None else 'simple_reference',
+                    reaching_phase=phase,
                     reaching_phase_source=source)
                 _append(self.output/'physical_trajectory.jsonl', self.scene.trajectory[-1])
                 _append(self.output/'commands.jsonl', step.record())
@@ -527,7 +582,9 @@ class SimpleMotionSession:
             body_bayes_factor_surprise=dict(self.inference_description.surprise_settings),
             K_bfs_enabled=False, K_evidence_enabled=False,
             reach_stop=self.reach_stop, command_selection_stopped_on_reach=self.reach_stop is not None,
-            task_completion_signal='existing_physical_frame_reached; termination_only_not_estimation',
+            reach_trial=self.reach_trial, reach_confirmation_s=self.reach_confirmation_s,
+            command_selection_paused_for_reach=self._holding_reach,
+            task_completion_signal='existing physical boolean success; confirm under held command; resume if lost; no truth pose for estimation or IK',
             cumulative_K_factor_reevaluation=False, independent_fresh_goal_enabled=False,
             running_gradient_enabled=False, view_factor_enabled=False,
             physical_truth_used_for_inference=False, monte_carlo_used=False,

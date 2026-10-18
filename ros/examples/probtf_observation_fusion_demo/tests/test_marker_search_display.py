@@ -125,17 +125,19 @@ def test_actual_ros_wire_has_exact_executed_search_segments_and_no_boundary_blee
 
 
 @pytest.mark.parametrize('has_plan_source', [False, True])
-def test_reached_hold_status_and_executed_path_use_the_same_physical_record(recorded_search, has_plan_source):
+@pytest.mark.parametrize('phase,label', [('reached_hold', 'REACHED | COMMAND HOLD'),
+    ('reached_settling', 'REACHED | VERIFY SETTLED HOLD')])
+def test_reached_hold_status_and_executed_path_use_the_same_physical_record(recorded_search, has_plan_source, phase, label):
     scene, display, frames = recorded_search
     source = (dict(source_stamp=frames[-1].stamp, source_command=frames[-1].command.tolist(),
         source_version=2, body_source_state_ids=['retained_law'], goal_source_state_ids=['retained_law'])
         if has_plan_source else None)
-    scene.trajectory[-1].update(action_mode='reached_hold', command_interval_mode='reached_hold',
-        reaching_phase='reached_hold', reaching_phase_source=source)
+    scene.trajectory[-1].update(action_mode=phase, command_interval_mode=phase,
+        reaching_phase=phase, reaching_phase_source=source)
     message = _publish(display, frames, len(frames)-1)
     status = next(marker for marker in message.markers if marker.ns == 'status')
-    assert 'Phase: REACHED | COMMAND HOLD' in status.text
-    assert 'Action: REACHED | COMMAND HOLD' in status.text
+    assert 'Phase: '+label in status.text
+    assert 'Action: '+label in status.text
     assert scene.trajectory[-1]['reaching_phase_source'] == source
     path = _path(message)
     np.testing.assert_array_equal(_rgba(path.colors[-2:]), np.array([TEAL]*2, dtype=np.float32))

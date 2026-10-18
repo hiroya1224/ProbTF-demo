@@ -36,6 +36,7 @@ class SimpleInference(MovingInference):
         package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
         simple_settings = yaml.safe_load((package/'config/simple_reference.yaml').read_text())
         self.settings['simple_startup'] = dict(simple_settings.get('startup', {}))
+        self.settings['simple_reach_hold'] = dict(simple_settings.get('reach_hold', {}))
         self.settings['simple_reference'] = dict(simple_settings['selection'])
         self.settings['simple_stiffness'] = dict(simple_settings['stiffness'])
         self.settings['observation_update'].update(simple_settings.get('observation_update', {}))

@@ -28,6 +28,121 @@ def percentiles(values):
         median=float(np.median(values)), p95=float(np.percentile(values, 95)), maximum=float(max(values)))
 
 
+class BodySurpriseAudit:
+    """Inspect saved body-only change updates without changing their outcome."""
+    def __init__(self):
+        self.counts, self.checks, self.applied_by_kind = Counter(), Counter(), Counter()
+        self.diagnostics = {name: [] for name in ('rho_error', 'prior_odds_error',
+            'posterior_log_odds_residual', 'recorded_log_odds_residual_difference',
+            'posterior_log_normalization_residual', 'posterior_change_probability_error',
+            'transition_prior_log_normalization_residual', 'transition_prior_log_weight_residual')}
+        self.examples = []
+        self.posterior_change, self.log_bayes_factors = [], []
+        self.strongest_event = None
+
+    def observe(self, row, stiffness):
+        surprise = row.get('body_surprise')
+        if not isinstance(surprise, dict):
+            self.counts['records_absent'] += 1
+            return
+        self.counts['records_present'] += 1
+        enabled, applied = bool(surprise.get('enabled')), bool(surprise.get('applied'))
+        self.counts['enabled'] += enabled
+        self.counts['disabled'] += not enabled
+        self.counts['applied'] += applied
+        self.checks['applied_while_disabled'] += applied and not enabled
+        self.checks['applied_without_fused_observation'] += applied and not row['observation_ids']
+        self.checks['applied_to_unselected_observation'] += (
+            applied and 'observation_selected' in row and not row['observation_selected'])
+        if enabled:
+            values = (surprise.get('change_probability'), surprise.get('prior_change_odds'))
+            finite = all(value is not None and np.isfinite(value) for value in values)
+            self.checks['enabled_rho_or_prior_odds_nonfinite'] += not finite
+            if finite:
+                self.diagnostics['rho_error'].append(abs(values[0]-.25))
+                self.diagnostics['prior_odds_error'].append(abs(values[1]-1./3.))
+        if not applied:
+            return
+        self.applied_by_kind[row['kind']] += 1
+        self.checks['applied_observation_ID_mismatch'] += surprise.get('observation_ids') != row['observation_ids']
+        self.checks['applied_internal_state_ID_mismatch'] += surprise.get('internal_state_id') != row['body_state_ids'][0]
+        self.checks['applied_probability_unit_mismatch'] += surprise.get('probability_unit') != 'per_effective_sensor_event'
+        log_keep = surprise.get('posterior_keep_log_probability')
+        log_reset = surprise.get('posterior_change_log_probability')
+        log_bf, rho = surprise.get('log_bayes_factor'), surprise.get('change_probability')
+        values = (log_keep, log_reset, log_bf, rho, surprise.get('posterior_change_probability'))
+        finite = all(value is not None and np.isfinite(value) for value in values) and 0. < rho < 1.
+        self.checks['applied_odds_or_mass_nonfinite_or_undefined'] += not finite
+        if finite:
+            self.posterior_change.append(float(surprise['posterior_change_probability']))
+            self.log_bayes_factors.append(float(log_bf))
+            residual = log_reset-log_keep-(np.log(rho)-np.log1p(-rho)+log_bf)
+            self.diagnostics['posterior_log_odds_residual'].append(float(residual))
+            self.diagnostics['posterior_log_normalization_residual'].append(float(np.logaddexp(log_keep, log_reset)))
+            self.diagnostics['posterior_change_probability_error'].append(float(
+                surprise['posterior_change_probability']-np.exp(log_reset)))
+            saved = surprise.get('joint_evidence_log_odds_consistency', {}).get('residual')
+            self.checks['recorded_odds_residual_nonfinite_or_missing'] += saved is None or not np.isfinite(saved)
+            if saved is not None and np.isfinite(saved):
+                self.diagnostics['recorded_log_odds_residual_difference'].append(float(saved-residual))
+        source_event = dict(event_id=row['event_id'], sequence=row['sequence'],
+            original_stamp=row['acquisition_stamp'], original_command=row['acquisition_command'],
+            canonical_state_id=row['body_state_ids'][0], rho=rho,
+            prior_change_odds=surprise.get('prior_change_odds'),
+            log_bayes_factor=log_bf, posterior_change_probability=surprise.get('posterior_change_probability'))
+        if len(self.examples) < 3:
+            self.examples.append(source_event)
+        if finite and (self.strongest_event is None or
+                source_event['posterior_change_probability'] > self.strongest_event['posterior_change_probability']):
+            self.strongest_event = source_event
+        if stiffness is None:
+            self.checks['applied_without_K_update_record'] += 1
+            return
+        marginal = stiffness.get('body_marginal') or {}
+        branches = marginal.get('branches', ())
+        self.checks['applied_K_prior_branch_count_not_two'] += len(branches) != 2
+        self.checks['applied_K_BFS_or_evidence_enabled'] += bool(
+            stiffness.get('bayes_factor_surprise_enabled') or stiffness.get('evidence_computed'))
+        self.checks['applied_K_canonical_numerator_ID_mismatch'] += (
+            (stiffness.get('body_internal_approximation') or {}).get('internal_state_id')
+                != row['body_state_ids'][0]
+            or stiffness.get('body_posterior_state_ids') != row['body_state_ids'])
+        if len(branches) == 2:
+            self.checks['applied_K_prior_source_ID_mismatch'] += (
+                [branch['source_state_id'] for branch in branches] != surprise.get('prior_source_state_ids'))
+            self.checks['applied_K_prior_original_t_q_mismatch'] += any(
+                branch['source_stamp'] != row['acquisition_stamp']
+                or branch['source_command'] != row['acquisition_command'] for branch in branches)
+            self.checks['applied_K_projected_numerator_reference_mismatch'] += (
+                marginal.get('projected_numerator_source_state_id') != branches[0]['source_state_id'])
+            self.checks['applied_K_canonical_numerator_component_mismatch'] += (
+                len(branches[0]['components']) != 1 or len(branches[1]['components']) != 0
+                or branches[0]['components'][0]['label'] != row['body_component_id'])
+            if len(branches[0]['components']) == 1:
+                child = branches[0]['components'][0]
+                self.checks['applied_K_canonical_numerator_mass_mismatch'] += (
+                    child['weight'] != 1. or child['log_weight'] != 0.)
+            log_weights = [branch['log_weight'] for branch in branches]
+            self.checks['applied_K_prior_weights_mismatch'] += [branch['weight'] for branch in branches] != [.75, .25]
+            self.checks['applied_K_prior_log_weights_nonfinite'] += not np.all(np.isfinite(log_weights))
+            if np.all(np.isfinite(log_weights)):
+                self.diagnostics['transition_prior_log_normalization_residual'].append(float(np.logaddexp(*log_weights)))
+                self.diagnostics['transition_prior_log_weight_residual'].append(float(
+                    np.max(np.abs(np.asarray(log_weights)-np.log([.75, .25])))))
+
+    def record(self):
+        return dict(available=bool(self.counts['records_present']), counts=dict(self.counts),
+            checks=dict(self.checks), applied_sensor_counts=dict(self.applied_by_kind),
+            numerical_diagnostics={name: dict(count=len(values),
+                max_absolute=float(np.max(np.abs(values))) if values else None)
+                for name, values in self.diagnostics.items()},
+            source_event_examples=self.examples,
+            posterior_change_probability=percentiles(self.posterior_change),
+            log_bayes_factor=percentiles(self.log_bayes_factors),
+            highest_posterior_change_event=self.strongest_event,
+            interpretation='Saved body change updates only; K surprise remains disabled. Finite residuals are diagnostics, not update acceptance or stopping conditions. Missing legacy records are not invented as disabled updates. The projected numerator reference ID identifies its actual Keep chart; canonical identity is checked separately.')
+
+
 def source_coverage(stamps):
     if not stamps:
         return dict(count=0, original_time_range=None, maximum_gap_s=None)
@@ -283,6 +398,7 @@ def summarize(run):
     statuses, kinds, failures, K_skip_reasons = Counter(), Counter(), Counter(), Counter()
     body_seconds, K_seconds, environment_cross = [], [], []
     body_by_kind, K_by_kind = {}, {}
+    body_surprise_audit = BodySurpriseAudit()
     observation_coverage = {}
     first_K = last_K = previous_K = None
     last_K_stamp = None
@@ -341,6 +457,7 @@ def summarize(run):
         body_by_kind.setdefault(row['kind'], []).append(row['body_seconds'])
         K_by_kind.setdefault(row['kind'], []).append(row['K_seconds'])
         record = row.get('stiffness')
+        body_surprise_audit.observe(row, record)
         if record is None or record.get('matching_target') is None:
             counts['events_without_K_update_record'] += 1
             checks['informative_observation_without_K_update_record'] += bool(row['observation_ids'])
@@ -515,6 +632,7 @@ def summarize(run):
             claimed_batch_counts=dict(selection_counts),
             interpretation='Raw acquisition, context processing, selected observations and actually fused observations are counted separately; selection batches may still be in progress at this frontier.'),
         processed_sensor_kind_counts=dict(kinds), K_status_counts=dict(statuses),
+        body_bayes_factor_surprise=body_surprise_audit.record(),
         K_projection_failures=dict(failures), K_skipped_update_reasons=dict(K_skip_reasons),
         first_selected_K=first_K, last_selected_K=last_K,
         last_K_original_stamp=last_K_stamp, body_update_seconds=percentiles(body_seconds),
@@ -547,6 +665,7 @@ def summarize(run):
         latest_manifest=selected(manifest, ('finished', 'simulated_elapsed_s', 'duration', 'estimation_drained',
             'all_captured_sensor_data_archived', 'processed_events', 'acquisition_requests', 'acquisition_archived',
             'fused_observations', 'thinned_observations', 'observation_selection',
+            'body_bfs_enabled', 'body_bayes_factor_surprise', 'K_bfs_enabled', 'K_evidence_enabled',
             'actual_motion_hz', 'actual_camera_hz', 'actual_joint_hz', 'actual_imu_hz', 'failure')),
         shutdown=shutdowns[-1] if shutdowns else None,
         execution_failures=list(rows(run/'execution_failure.jsonl', frontiers, warnings)),
@@ -574,6 +693,7 @@ def compact_report(report, full_path):
             'maximum_known_local_translation_change_m', 'finite_reference_max_abs_error_rad',
             'latest_manifest', 'truth_flag_values', 'forbidden_truth_payload_key_counts',
             'source_hash_comparison', 'physical_goal_posthoc', 'camera_detection'))
+        row['body_bayes_factor_surprise'] = run.get('body_bayes_factor_surprise')
         row['execution_failures'] = run.get('execution_failures', [])
         row['observation_coverage_by_sensor_kind'] = {
             kind: dict(counts={name: data['count'] for name, data in coverage.items()},

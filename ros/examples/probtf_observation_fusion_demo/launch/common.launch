@@ -5,6 +5,7 @@
   <arg name="moving" default="true" />
   <arg name="execution_mode" default="simple" />
   <arg name="control_mode" default="" />
+  <arg name="body_surprise" default="" />
   <arg name="imu_target_link" default="" />
   <arg name="max_updates" default="0" />
   <arg name="entry" default="$(eval 'observation_fusion_motion.py' if arg('moving') else 'observation_fusion_demo.py')" />
@@ -24,6 +25,7 @@
     <param name="autostart" value="$(arg autostart)" />
     <param name="execution_mode" value="$(arg execution_mode)" />
     <param name="control_mode" value="$(arg control_mode)" />
+    <param name="body_surprise" value="$(arg body_surprise)" type="str" />
     <param name="imu_target_link" value="$(arg imu_target_link)" />
     <param name="max_updates" value="$(arg max_updates)" />
     <param name="stage_seconds" value="$(arg stage_seconds)" />

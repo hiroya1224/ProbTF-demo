@@ -52,7 +52,7 @@ def state(result):
 def test_initial_translation_Diracs_preserve_rotation_and_environment_priors(acquired):
     description, inputs, templates = acquired
     old = MovingInference(description, templates).prior_at(inputs.command, inputs.stamp, 0)
-    simple = SimpleInference(description, templates)
+    simple = SimpleInference(description, templates, body_surprise_enabled=False)
     assert simple.observation_update_settings['max_iterations'] == 160
     assert simple.settings['observation_update']['max_iterations'] == 160
     initial = simple.prior_at(inputs.command, inputs.stamp, 0)
@@ -72,7 +72,7 @@ def test_initial_translation_Diracs_preserve_rotation_and_environment_priors(acq
 
 
 def test_initial_joint_notification_has_no_goal_or_observation_update(acquired, events):
-    model = SimpleInference(acquired[0], acquired[2])
+    model = SimpleInference(acquired[0], acquired[2], body_surprise_enabled=False)
     result = model.update_sensor_event(events('joint:0', 'joint', frame_index=0))
     current = state(result)
     assert result.records['observation_ids'] == []
@@ -91,7 +91,7 @@ def test_real_marker_and_IMU_updates_keep_shared_environment_cross_without_cut(a
     monkeypatch.setattr(old_module, 'fresh_marker_goals', forbidden)
     monkeypatch.setattr(old_module, 'transition_priors', forbidden)
     monkeypatch.setattr(old_module, 'retain_goal_components', forbidden)
-    model = SimpleInference(acquired[0], acquired[2])
+    model = SimpleInference(acquired[0], acquired[2], body_surprise_enabled=False)
     image = model.update_sensor_event(events('image:0', 'image', frame_index=0))
     first = state(image)
     marker_index = first.edge_ids.index(model.marker.edge_id)
@@ -122,7 +122,7 @@ def test_real_marker_and_IMU_updates_keep_shared_environment_cross_without_cut(a
 
 
 def test_missing_image_and_duplicate_preserve_joint_law_and_observed_latch(acquired, events):
-    model = SimpleInference(acquired[0], acquired[2])
+    model = SimpleInference(acquired[0], acquired[2], body_surprise_enabled=False)
     first = model.update_sensor_event(events('image:0', 'image', frame_index=0))
     before = state(first)
     marker = before.edge_ids.index(model.marker.edge_id)
@@ -138,7 +138,7 @@ def test_missing_image_and_duplicate_preserve_joint_law_and_observed_latch(acqui
 
 
 def test_display_body_marker_and_switch_are_queries_of_the_same_joint_state(acquired, events):
-    model = SimpleInference(acquired[0], acquired[2])
+    model = SimpleInference(acquired[0], acquired[2], body_surprise_enabled=False)
     result = model.update_sensor_event(events('image:0', 'image', frame_index=0))
     current = state(result)
     settings = deepcopy(model.common['display'])
@@ -150,7 +150,7 @@ def test_display_body_marker_and_switch_are_queries_of_the_same_joint_state(acqu
 
 
 def test_preserve_original_sensor_ID_stamp_command_and_reject_truth_fields(acquired, events):
-    model = SimpleInference(acquired[0], acquired[2])
+    model = SimpleInference(acquired[0], acquired[2], body_surprise_enabled=False)
     event = events('imu:original', 'imu', stamp=1000.125, frame_index=7)
     result = model.update_sensor_event(event)
     assert result.records['observation_ids'] == [event.event_id]
@@ -166,7 +166,7 @@ def test_preserve_original_sensor_ID_stamp_command_and_reject_truth_fields(acqui
 
 def test_two_native_branches_merge_full_joint_within_between_and_environment_cross(acquired, events, monkeypatch):
     from test_body_projection import _result
-    model = SimpleInference(acquired[0], acquired[2])
+    model = SimpleInference(acquired[0], acquired[2], body_surprise_enabled=False)
     initial = model.update_sensor_event(events('joint:0', 'joint', frame_index=0))
     native = _result(initial.prior, weights=(.3, .7))
     children = native.frozen_body_branches[0].posterior_components

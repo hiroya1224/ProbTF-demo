@@ -1,5 +1,13 @@
 # 必須条件
 
+## 最小参照版の身体だけに選択可能なBFSを追加する（2026年10月19日・最新指定）
+
+ユーザーの「身体のほうだけ、rho = 0.25 のbayesian factor surprise、オプション切替」に従い、最小参照版の身体BFSを既定で有効にする。`config/simple_reference.yaml` の `body_bayes_factor_surprise.enabled` と、moving launchの `body_surprise:=true/false` で切り替える。launch未指定はYAMLを使い、明示falseを文字列の真値として解釈しない。全case wrapperの既定は `simple` とし、旧経路は明示指定した比較用に保つ。
+
+変化事前確率ρ=0.25、事前odds=1/3で、各新しい有効観測イベントに一度だけKeep／身体Resetのevidenceから事後質量を求める。25%の固定事後混合、無観測・未選択・重複イベントへの重複適用で代用しない。Reset kernelは身体だけを直接指定初期候補族から同じ取得指令で構成し、保持環境の周辺分布を再利用する。Reset枝内の身体・環境crossの零化だけをこのkernelとして宣言し、Keep枝と混合後の全crossを保持する。全枝を同じchartへ輸送しwithin／betweenを含めて単一共同lawに近似し、同じlawを推定・選定・表示へ渡す。
+
+K側BFS・K evidence・全履歴密度の再評価は追加しない。K比の分母は実際のKeep／Reset遷移事前の混合、分子は同じcanonical身体事後とし、Resetによる事前変更を観測情報として二重計上しない。原取得時刻・指令・ID、仮説evidence／事後質量と同じ分布の出自を保存する。詳細は [SIMPLE_REFERENCE.md](ros/examples/probtf_observation_fusion_demo/SIMPLE_REFERENCE.md)。本節は直下の「身体BFSを外す」を、選択可能な身体BFSの範囲だけで上書きする。core・RViz設定・真値禁止・モンテカルロ禁止・数値監査の規定は維持する。
+
 ## 最小参照実装へ切り替える（2026年10月19日・最新指定）
 
 ユーザー指定の [最小構成](ros/examples/probtf_observation_fusion_demo/SIMPLE_REFERENCE_REQUIREMENTS_20261019.md) を既定とする。共同身体・環境候補を一つ、log Kの単一Gaussian候補を一つ保持する。局所取付並進は既知Dirac、全リンク・環境crossと既存Bingham由来の観測Bayes更新を維持する。身体BFS・K-BFS・K evidence・全履歴Kの再評価・独立fresh goalを本経路から外す。共同方位の原取得t/qにおける観測後／前密度比を一度だけ使い、Kの逐次Gaussian近似は近似位置と式を明示する。

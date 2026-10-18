@@ -177,14 +177,15 @@ def test_unavailable_imu_attachment_is_rejected(tmp_path):
         MovingSwitchScene(tmp_path, imu_target_link='not_a_robot_link')
 
 
-def test_hand_launch_selects_async_motion_and_preserves_the_requested_rviz_file(tmp_path):
+def test_hand_launch_defaults_to_simple_motion_and_preserves_the_requested_rviz_file(tmp_path):
+    """The hand sensor uses the minimal loop without replacing the user's view."""
     custom_rviz = str(tmp_path/'unchanged_user_view.rviz')
     config = roslaunch.config.ROSLaunchConfig()
     roslaunch.xmlloader.XmlLoader().load(str(PACKAGE/'launch/imu_hand.launch'), config,
         argv=['rviz_config:='+custom_rviz], verbose=False)
     node = next(node for node in config.nodes if node.name == 'observation_fusion_demo')
     assert node.type == 'observation_fusion_motion.py'
-    assert config.params['/observation_fusion_demo/execution_mode'].value == 'async'
+    assert config.params['/observation_fusion_demo/execution_mode'].value == 'simple'
     assert config.params['/observation_fusion_demo/imu_target_link'].value == 'tool0'
     assert config.params['/observation_fusion_demo/observations_config'].value == str(
         PACKAGE/'config/imu_hand.yaml')

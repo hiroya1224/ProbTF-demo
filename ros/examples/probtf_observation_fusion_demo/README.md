@@ -1,10 +1,19 @@
 # 観測で身体候補を保持・更新するスイッチ到達デモ
 
-現在の既定は[最小参照実装](SIMPLE_REFERENCE.md)（`execution_mode:=simple`）。身体・環境の共同候補を一つ、log K Gaussianを一つ保持し、共同局所方位の密度比でKを更新する。指令選定は同じ共同lawからの手先・目標位置の二乗誤差期待値だけを使う。身体／K-BFS、K evidence、全K履歴の再評価、独立fresh goal、二階追従、視野因子、旧IK phaseは使用しない。
+現在の既定は[最小参照実装](SIMPLE_REFERENCE.md)（`execution_mode:=simple`）。身体・環境の共同候補を一つ、log K Gaussianを一つ保持し、共同局所方位の密度比でKを更新する。指令選定は同じ共同lawからの手先・目標位置の二乗誤差期待値だけを使う。最新の追加は身体側だけのBayes Factor Surpriseで、変化事前確率0.25・既定有効。K-BFS、K evidence、全K履歴の再評価、独立fresh goal、二階追従、視野因子、旧IK phaseは使用しない。
 
-最小版の設定は [simple_reference.yaml](config/simple_reference.yaml)。既存のMarker／IMU＋Marker launchはこの経路を既定にする。`execution_mode:=async` は下記の旧方式の明示的な比較用であり、最小版とは数理・近似が異なる。切替前のcommit `7cab05a` にはtag `joint-rotation-stiffness-20261019` を付けてpush済み。
+最小版の設定は [simple_reference.yaml](config/simple_reference.yaml)。Marker、IMU併用、IMU単独、手先IMU、no sensorのlaunchはすべてこの経路を既定にする。身体BFSは `body_surprise:=false` で無効、`body_surprise:=true` で有効にでき、省略時はYAMLに従う。この切替は `simple` 専用。`execution_mode:=async` は下記の旧方式の明示的な比較用であり、最小版とは数理・近似が異なる。切替前のcommit `7cab05a` にはtag `joint-rotation-stiffness-20261019` を付けてpush済み。
 
-最小版の[最終180秒実測](SIMPLE_REFERENCE.md#8-現行sourceの180秒検証)は両ケース完走・推定drain完了。Markerは最短42.75 mm・終端57.50 mmで未到達、IMU併用は一時3.54 mmへ到達したが終端10.81 mmだった。Kの補助モデルが第3関節を拘束して接近勾配を失う回帰と、native共分散の不要な監査停止は修正した。全raw保存と間引き後の融合件数、残る推定遅延・数値近似の限界も同書に記録し、到達保持やK同定の成功とは扱わない。
+```bash
+roslaunch probtf_observation_fusion_demo marker.launch
+roslaunch probtf_observation_fusion_demo imu_marker.launch body_surprise:=false
+```
+
+身体BFSは新しい有効観測ごとにKeepと身体Resetを比較する。Resetでも保持した環境周辺は初期化せず、全事後を一つの共同候補へ近似する。Kの分母には実際のKeep/Reset遷移事前を残し、分子には選定・表示と同じcanonical事後を使う。欠測・joint通知・間引き対象ではBFSを更新しない。
+
+身体BFSを追加する前の[180秒基準試行](SIMPLE_REFERENCE.md#8-身体bfs追加前の180秒基準試行)は両ケース完走・推定drain完了。Markerは最短42.75 mm・終端57.50 mmで未到達、IMU併用は一時3.54 mmへ到達したが終端10.81 mmだった。Kの補助モデルが第3関節を拘束して接近勾配を失う回帰と、native共分散の不要な監査停止は修正した。全raw保存と間引き後の融合件数、残る推定遅延・数値近似の限界も同書に記録する。これらはBFS無効sourceの測定であり、BFS有効版の到達改善・保持やK同定の成功とは扱わない。
+
+身体BFS有効の[新しい180秒試行](SIMPLE_REFERENCE.md#10-身体bfsを有効にした180秒試行)も両ケース完走・drain完了。Markerの最短／終端距離は9.52／13.40 mm、IMU併用は62.68／62.68 mmで両方未到達だった。身体だけへの適用・odds式・同じlawと原取得時刻／指令の対応は確認したが、到達性能の改善は両ケースでは得られていない。
 
 以下は、切替前の各実装・検証の履歴である。
 

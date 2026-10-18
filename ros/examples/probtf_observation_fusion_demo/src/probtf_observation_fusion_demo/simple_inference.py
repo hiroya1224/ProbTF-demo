@@ -2,8 +2,8 @@
 
 Observation likelihood construction and the existing variational Gaussian
 update are unchanged. Native observation modes are fused before one joint
-moment approximation. There is no body redraw, separate fresh task goal,
-Schmidt goal retention, or loss of the body/environment cross covariance.
+moment approximation. Optional body-only surprise uses the declared reset
+kernel; there is no separate fresh goal or Schmidt goal retention.
 """
 from copy import deepcopy
 from dataclasses import replace
@@ -15,6 +15,7 @@ import yaml
 import numpy as np
 
 from probtf.spherical_law.fusion import PosteriorComponent
+from .bayes_factor import projection_input
 from .body_projection import project_update
 from .model import FrozenBodyBranch, Stage, WeightedState, _joint_record
 from .moving_inference import MovingInference
@@ -23,7 +24,8 @@ from .moving_inference import MovingInference
 class SimpleInference(MovingInference):
     """MovingInference acquisition API with a single canonical joint state."""
 
-    def __init__(self, robot_description, observation_templates, config_path=None):
+    def __init__(self, robot_description, observation_templates, config_path=None, *,
+                 body_surprise_enabled=None):
         super().__init__(robot_description, observation_templates, config_path=config_path)
         self.law = deepcopy(self.law)
         for edge in self.law['edges']:
@@ -37,8 +39,20 @@ class SimpleInference(MovingInference):
         self.settings['simple_stiffness'] = dict(simple_settings['stiffness'])
         self.settings['observation_update'].update(simple_settings.get('observation_update', {}))
         self.settings['async_execution']['observation_selection'] = dict(simple_settings['observation_selection'])
-        self.surprise_settings = dict(enabled=False, change_probability=0.)
-        self.surprise_enabled, self.change_probability = False, 0.
+        self.surprise_settings = dict(enabled=True, change_probability=.25,
+            event_probability_unit='per_effective_sensor_event')
+        self.surprise_settings.update(simple_settings.get('body_bayes_factor_surprise', {}))
+        if body_surprise_enabled is not None:
+            if not isinstance(body_surprise_enabled, (bool, np.bool_)):
+                raise ValueError('body_surprise_enabled must be a boolean or None.')
+            self.surprise_settings['enabled'] = bool(body_surprise_enabled)
+        if not isinstance(self.surprise_settings['enabled'], (bool, np.bool_)):
+            raise ValueError('Body Bayes-factor enabled setting must be a boolean.')
+        self.surprise_enabled = bool(self.surprise_settings['enabled'])
+        self.change_probability = float(self.surprise_settings['change_probability'])
+        if not np.isfinite(self.change_probability) or not 0. <= self.change_probability < 1.:
+            raise ValueError('Body Bayes-factor change probability must lie in [0, 1).')
+        self.settings['body_bayes_factor_surprise'] = dict(self.surprise_settings)
         self.settings['bayes_factor_surprise'] = dict(self.surprise_settings)
         self.settings['control']['mode'] = 'simple_reference'
         self.settings['control']['visibility_factor']['enabled'] = False
@@ -59,8 +73,11 @@ class SimpleInference(MovingInference):
         # The environment is part of this same joint posterior.
         if predicted_goals:
             raise ValueError('The simple reference has one joint body/environment law, not independent goal laws.')
-        projection = project_update(result, construct_conditional_goals=False)
-        original = result.frozen_body_branches[0]
+        transition = bool(result.records.get('bayes_factor_surprise', {}).get('applied'))
+        native_branches = result.frozen_body_branches
+        projected_input = projection_input(result) if transition else result
+        projection = project_update(projected_input, construct_conditional_goals=False)
+        original = native_branches[0]
         raw_stage = result.stages[-1]
         internal = WeightedState(projection.state.component_id, 1., projection.state, 0.)
         canonical = Stage('fused', (internal,), raw_stage.sensor_ids, ())
@@ -69,8 +86,13 @@ class SimpleInference(MovingInference):
         frozen = replace(result.frozen_body_posterior, components=(child,))
         branch = FrozenBodyBranch(original.label, 1., original.reference_state,
                                   original.prior, (child,), 0.)
-        stages = result.stages[:-1]+(replace(raw_stage, label='fused_observation_candidates'), canonical)
+        stages = result.stages[:-1]+((
+            replace(raw_stage, label='fused_change_candidates'),
+            replace(projected_input.stages[-1], label='fused_observation_candidates'), canonical)
+            if transition else (replace(raw_stage, label='fused_observation_candidates'), canonical))
         records = result.records
+        if transition:
+            records['bayes_factor_transport'] = projected_input.records['bayes_factor_transport']
         records['internal_projection'] = dict(projection.record,
             goal_construction='query the environment variable of the same canonical joint body/environment law',
             goal_state_ids=[projection.state.state_id],
@@ -78,16 +100,21 @@ class SimpleInference(MovingInference):
             conditional_goal_diagnostics_used_for_task=False,
             separate_goal_law_constructed=False)
         records['mixture_policy'] = (
-            'all native observation likelihood components and masses enter the existing variational update; '
+            'all Keep/Reset and native observation likelihood components and masses enter the existing variational update; '
             'one full joint Gaussian/Bingham moment approximation, including environment and all cross blocks')
-        records['stages'][-1]['label'] = 'fused_observation_candidates'
+        records['stages'][-1]['label'] = 'fused_change_candidates' if transition else 'fused_observation_candidates'
+        if transition:
+            records['stages'].append(dict(label='fused_observation_candidates',
+                sensor_ids=list(raw_stage.sensor_ids), components=[_joint_record(
+                    item, self.paths, result.root_frame) for item in projected_input.stages[-1].components]))
         records['stages'].append(dict(label=canonical.label, sensor_ids=list(canonical.sensor_ids),
             components=[_joint_record(internal, self.paths, result.root_frame)], goal_components=[]))
         records['frozen_internal_charts'] = [dict(prior_label=branch.label,
             reference_state_id=branch.reference_state.state_id, posterior_labels=[child.label],
             approximation='one full joint Gaussian moment approximation after the native observation update')]
         return replace(result, stages=stages, frozen_body_posterior=frozen,
-            frozen_body_branches=(branch,), projected_body_numerator=None)
+            frozen_body_branches=native_branches if transition else (branch,),
+            projected_body_numerator=branch if transition else None)
 
     def _record_fixed_goal_memory(self, result):
         """Legacy display metadata only; no independently stored goal law."""
@@ -118,7 +145,7 @@ class SimpleInference(MovingInference):
             'joint_environment_retained' if self.goal_observed else 'unobserved_prior')
         result.records['simple_goal_observed'] = self.goal_observed
         result.records['simple_inference'] = dict(
-            goal_observed=self.goal_observed, body_BFS_enabled=False,
+            goal_observed=self.goal_observed, body_BFS_enabled=self.surprise_enabled,
             independent_fresh_goal=False, goal_components_independent=False,
             state_id=state.state_id, state_stamp=state.stamp, state_command=list(state.command),
             joint_body_environment_cross_retained=True, local_translations_known_Dirac=True,
@@ -127,7 +154,8 @@ class SimpleInference(MovingInference):
 
     def _record_candidate_measure(self, result):
         super()._record_candidate_measure(result)
-        result.records['candidate_measure'].pop('bayes_factor_hypothesis_scale', None)
+        if not result.records.get('bayes_factor_surprise', {}).get('applied'):
+            result.records['candidate_measure'].pop('bayes_factor_hypothesis_scale', None)
 
     def _update_common(self, *args, **kwargs):
         previous = self.last_result
@@ -136,10 +164,8 @@ class SimpleInference(MovingInference):
             return result
         result.records['moving_input_family']['temporal_policy'] = (
             'one joint body/environment posterior, transported by actual command increments; '
-            'all native observation branches enter each fixed-prior variational update')
-        # The disabled-branch record is kept for the existing display adapter;
-        # no alternative prior or Bayes-factor evidence was computed.
-        result.records['bayes_factor_surprise'] = dict(enabled=False, applied=False,
-            reason='removed in the simple reference', physical_truth_received=False,
-            monte_carlo_used=False)
+            'body-only Keep/Reset hypotheses on fresh valid observations when enabled; '
+            'all native observation branches enter each fixed-prior variational update; '
+            'reset keeps the current environment marginal and redraws only body variables')
+        result.records['bayes_factor_surprise']['scope'] = 'body-only; K Bayes-factor surprise remains disabled'
         return result

@@ -4,6 +4,7 @@
 旧共同方位版はcommit `7cab05a`、tag `joint-rotation-stiffness-20261019`として保存している。本書の最小参照経路と、旧版の実走結果・構成を区別する。
 
 既定の実行モードは `simple`。中心となる実装は `simple_inference.py`、`simple_stiffness.py`、`simple_control.py`、`simple_motion.py`、`simple_selection_worker.py`である。
+最新の追加は身体側だけのBayes Factor Surprise（BFS）であり、既定で有効、変化事前確率は0.25とする。K側のBFS・evidenceは有効にしない。
 
 ## 1. 一つの身体・環境候補
 
@@ -19,10 +20,24 @@
 これは厳密な非線形Bayes事後や大域最適解を保証する実装ではない。身体の変分計算には観測枝の重みに必要なevidence近似が残る。
 後述する「Kのevidence計算を外す」とは、この身体観測更新の正規化計算まで削る意味ではない。
 
-身体BFS、Keep/Resetの身体再描画、独立したfresh goal、固定目標だけを別に保持するcut更新は使わない。
+独立したfresh goal、固定目標だけを別に保持するcut更新は使わない。
 目標は、同じ $\mu_t$ の環境変数 $E$ と、既知のmarker→switch取付から照会する。
 有効なマーカー観測を一度得るまで `goal_observed=False` として接近を保留する。観測後は、このフラグを欠測で解除しない。
 画像欠測時には画像尤度を加えず、共同候補を保持する。IMU更新があれば、保持した身体・環境crossを通じて環境側も更新され得る。
+
+身体BFSを有効にすると、有効な新観測の直前にKeep事前 $\mu_{K,t}^-=\mu_t^-$ とReset事前 $\mu_{R,t}^-=R_{B,t}(dB\mid u_t)\otimes\mu_{E,t}^-(dE)$ を構成する。
+$R_{B,t}$ は、その原取得指令で評価した直接指定の初期身体法則である。物理姿勢や真のKは使わない。Resetでも既知の局所並進はDiracとし、保持した環境周辺は初期化しない。
+Keepは身体・環境crossをそのまま保持する。Resetだけはこの独立再描画kernelの定義によりcrossが零になる。観測後は環境も同じ共同Bayes更新を受けるので、環境事後を固定するcutではない。
+
+変化事前確率を $\rho=0.25$ とし、遷移事前を $\mu_t^{\mathrm{tr}}=(1-\rho)\mu_{K,t}^-+\rho\mu_{R,t}^-$ とする。
+各仮説で同じ原観測尤度を一度だけ使い、$Z_h=\int\ell_t(z_t\mid B,E)\mu_{h,t}^-(dB,dE)$ を既存のGaussian変分規準から近似する。
+Resetの事後質量は $\gamma_t=\rho Z_R/[(1-\rho)Z_K+\rho Z_R]$、事後oddsは $\gamma_t/(1-\gamma_t)=[\rho/(1-\rho)]Z_R/Z_K$ である。事前oddsは1/3だが、事後質量を25%に固定しない。
+全Keep/Reset・native枝の事後を共通の幾何chartへ輸送し、全within/betweenを含めて一つの共同候補へ近似する。Resetや混合事後をKeepの確率支持へ条件付けない。同じcanonical lawを次事前・K比・選定・表示へ渡す。
+判定単位は間引き後に実際に融合した一件の有効センサ観測である。joint通知、欠測、未選択観測、再表示ではResetやBFS evidenceを加えない。異なるセンサが同じ取得時刻でも原sequence順の別更新として扱う。
+
+設定は [simple_reference.yaml](config/simple_reference.yaml) の `body_bayes_factor_surprise.enabled: true`、`change_probability: 0.25`、`event_probability_unit: per_effective_sensor_event`。
+起動時に `roslaunch probtf_observation_fusion_demo marker.launch body_surprise:=false` で身体BFSを無効にでき、`body_surprise:=true` で有効にできる。指定省略・空文字列はYAMLの設定に従う。
+この上書きは `execution_mode:=simple` 専用である。Marker、IMU併用、IMU単独、手先IMU、no sensorのlaunchはすべて `simple` を既定とし、旧 `async` は明示した履歴比較用に残す。
 
 ## 2. 別に保持する剛性候補
 
@@ -36,7 +51,10 @@
 
 今回の一件の情報因子は $L_t(K)=p_{R,t}^+(Q(u_t,K))/p_{R,t}^-(Q(u_t,K))$ とする。
 更新後密度だけを毎回掛けると過去の情報も再投入してしまうため、観測前後の比を使う。
-前後は同じ取得指令・同じ凍結chartで評価する。同じ回転体積因子が相殺する単一chartの構成であり、Gaussian代理の近似という位置付けは維持する。
+前後は同じ取得指令で評価する。身体BFSが無効なら同じ凍結chartの回転体積因子が相殺する。
+身体BFSが有効なら、分母は実際の遷移事前の回転周辺 $p_{R,t}^{\mathrm{tr}}=(1-\rho)p_{R,K,t}^-+\rho p_{R,R,t}^-$ とし、分子は表示・選定と同じcanonical共同事後の回転周辺を使う。
+すなわち $L_t(K)=p_{R,t}^{+,\mathrm{canon}}(Q(u_t,K))/p_{R,t}^{\mathrm{tr}}(Q(u_t,K))$ である。分母をKeepだけにしたり、先に一つのGaussianへ縮約したりしない。分子もKeepの条件付き事後だけに置換しない。
+元のKeep/Reset chartとlog質量を保持し、同じ物理方位列を各chartへ写す。chartが異なるときは各回転体積補正をlog-sum-expの内側に入れる。Gaussian代理の密度比という近似の位置付けは維持する。
 
 Kの候補は $x=\log(K/(1\,\mathrm{N\,m/rad}))$ 上の単一Gaussian $q_t(x)=\mathcal N(x;m_t,P_t)$ として保持する。
 初期値は既存deflecomp設定の `kp_min=1, kp_max=500` から、各成分 $m_0=\tfrac12\log500$、$P_0=(\log500/4)^2I$ とする。初期代表は $\sqrt{500}\simeq22.36068$ N m/radであり、1〜500を支持のbox拘束とはしない。
@@ -126,9 +144,9 @@ $\alpha=1,1/2,\ldots,1/2^8$ の順に、同じlaw・KでSを再評価し、$S(c_
 `fixed_goal_memory`という既存adapter用の欄には観測元metadataだけを入れ、独立した目標PDFは保存しない。
 真値は画像・IMU生成と事後評価の物理側に限定し、通常推定・指令選定へ渡さない。モンテカルロ、core法則、RViz設定、画像・軸・粒子サイズは変更しない。
 
-## 8. 現行sourceの180秒検証
+## 8. 身体BFS追加前の180秒基準試行
 
-最終試行はV5（`/tmp/probtf_simple_reference_v5_rviz_20261019`）。最小構成、K探索の連成初期値、身体更新の最大160反復、native共分散の同値式修正を使った。両ケースとも物理180秒と、その後の取得済みデータの推定drainを完了した。物理動作はdrain中に延長していない。
+身体BFS無効の基準試行はV5（`/tmp/probtf_simple_reference_v5_rviz_20261019`）。最小構成、K探索の連成初期値、身体更新の最大160反復、native共分散の同値式修正を使った。両ケースとも物理180秒と、その後の取得済みデータの推定drainを完了した。物理動作はdrain中に延長していない。以下は身体BFS追加前のsourceに対する結果であり、最新のBFS有効版の到達改善を示さない。
 
 | 物理側の実測 | Marker | IMU＋Marker |
 |---|---:|---:|
@@ -147,7 +165,7 @@ Kの局所Gaussian曲率が正定値でなく近似を構成できなかった�
 
 K更新は全局所方位の情報比によるものであり、手先位置を直接適合する更新ではない。モデル手先と推定手先の絶対座標差には、共有するyaw等のゲージ自由度も含まれ得る。指令選定は絶対FKで身体を置換せず増分を作用させるため、絶対FKの不一致だけから、その増分作用の誤りまでは証明できない。相対位置規準・物理到達・局所方位への適合を別々に検証する。本試行から、全リンク方位へのK適合が手先位置予測にも十分だとは結論できない。
 
-最終sourceで関連テスト全1,439件が通過した（246.75秒、既存のhppfcl非推奨警告1件）。ビルド・テスト・最終hash比較と成否の要約は [verification.json](validation/simple_reference_20261019/verification.json)。テスト通過をMarkerの到達成功として扱わない。
+このBFS無効sourceで関連テスト全1,439件が通過した（246.75秒、既存のhppfcl非推奨警告1件）。ビルド・テスト・hash比較と成否の要約は [verification.json](validation/simple_reference_20261019/verification.json)。テスト通過をMarkerの到達成功やBFS追加後の検証として扱わない。
 
 ## 9. 改修中に切り分けた停止と推定誤差
 
@@ -207,3 +225,26 @@ Markerは一度接近してから離れたため、Kの拘束plateau解消だけ
 停止時のmanifestに `failure=None` が残る不具合も修正し、表示process停止後に実エラーを最終manifestへ保存する。この停止済みV4試行を、修正後の180秒試行として扱わない。
 
 最初に確かめる問題は、全リンク方位の共同候補から選んだKが、手先位置の予測にも有効かどうかである。方位適合と手先位置適合、モデル誤差と到達成功を同一視しない。
+
+## 10. 身体BFSを有効にした180秒試行
+
+`body_surprise:=true`、ρ=0.25でMarkerとIMU併用をRVizに配信し、各180物理秒と取得済みデータの推定drainを完了した。K-BFS・K evidenceは無効のままである。実行中の93ソースと5共有ライブラリを凍結し、既存coreと43個のRViz設定を含む保護対象214ファイルのhashが不変であることを確認した。
+
+| 身体BFS有効版の実測 | Marker | IMU＋Marker |
+|---|---:|---:|
+| 最短距離 | 9.520 mm | 62.676 mm |
+| 180秒終端距離 | 13.395 mm | 62.682 mm |
+| 6 mm以内への到達 | なし | なし |
+| 身体BFS適用イベント | 画像39件 | IMU121件＋画像31件 |
+| 処理済み／保存rawイベント | 14,615／14,615 | 14,564／14,564 |
+| 実物理／画像取得Hz | 117.21／11.92 | 115.96／11.90 |
+
+両ケースとも未到達である。前節のBFS無効基準試行に比べ、Markerの距離は小さくなったがIMU併用は悪化した。非同期処理によって融合する取得の集合も異なる一回ずつの試行であり、BFSの効果を一般化した比較ではない。全rawの処理・drain完了は、全取得の尤度融合や実時間推定の達成を意味しない。従来の時間均等間引きを保持し、画像の未融合件数は2,114／2,119、IMU併用のIMU未融合件数は5,216だった。融合画像の最大時間間隔は16.67／20.41秒であり、取得・物理更新のHzと推定の情報更新速度を区別する。
+
+有効・選択済み観測以外でのBFS適用は0件。原時刻・実指令・sequence・観測ID、canonical身体law、表示・選定law、K比の遷移事前2枝とcanonical分子の対応検査は全て不一致0件だった。事後odds式の最大残差は2.85×10⁻¹⁴未満で、25%の固定混合ではない。最大のReset事後質量はMarkerで0.691629（33.505秒の画像）、IMU併用で丸め後1.0（77.001秒の画像、log Bayes factor 62.6632）だった。KのGaussian曲率から近似を構成できなかった更新は0／13件で、理由と前回分布を保持して後続更新を続けた。
+
+実測と出自の検査は [runtime_180s.json](validation/body_surprise_20261019/runtime_180s.json)、実行sourceは [source_manifest.json](validation/body_surprise_20261019/source_manifest.json) に保存する。全raw・DB・全時系列は `/tmp/probtf_simple_body_surprise_rviz_20261019` に置き、Gitへ入れない。物理到達判定は既存の距離条件であり、干渉は未検査のままである。
+
+身体BFSとKの接続は、通常取得した2画像の凍結検算でも確認した。環境周辺を保持した0.75/0.25の実遷移事前2本と、単一canonical分子による比は、各chartのHaar補正を含む手計算LSEと約1.14×10⁻¹³で一致した。logK scoreの有限差分誤差は最大2.48×10⁻⁷（score最大約1953.54）だった。KのGaussian更新と代表取得は成功し、K-BFSとK evidenceは無効のままである。[検算記録](validation/body_surprise_20261019/stiffness_ratio_check.json) は閉ループの性能検証とは区別する。
+
+最新sourceの全1,466テストが通過した（258.10秒、既存のhppfcl非推奨警告1件）。Marker・IMU併用それぞれの有効／無効の実process、欠測・重複・間引き時の非適用、全cross、実指令ledger、同じlawの表示、旧実行モードの明示指定も含む。[検証要約](validation/body_surprise_20261019/verification.json) に記録する。テスト通過と両180秒試行の未到達は別の結果として扱う。

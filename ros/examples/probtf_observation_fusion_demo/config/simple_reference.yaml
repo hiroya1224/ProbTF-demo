@@ -1,5 +1,9 @@
 # Active only for execution_mode=simple. Historical modes retain their config.
 # S(c) is the sole task score; these are finite numerical step settings.
+body_bayes_factor_surprise:
+  enabled: true
+  change_probability: 0.25
+  event_probability_unit: per_effective_sensor_event
 observation_update:
   # Same fixed-prior variational objective. Frozen-image comparisons found
   # large residuals at 24 iterations; this budget is not a convergence claim.

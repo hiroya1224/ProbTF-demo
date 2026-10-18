@@ -26,14 +26,16 @@ from .moving_scene import MovingSwitchScene
 from .sensor_event_store import SensorEventStore
 
 
-def simple_worker(requests, replies, description, urdf, templates, output):
+def simple_worker(requests, replies, description, urdf, templates, output,
+                  body_surprise_enabled=None):
     """Own the two recursive laws; publish completed laws without batch waits."""
     import cv2
     from .simple_inference import SimpleInference
     from .simple_stiffness import SimpleStiffnessIdentifier
     cv2.setNumThreads(1)
     try:
-        inference = SimpleInference(description, templates)
+        inference = SimpleInference(description, templates,
+                                    body_surprise_enabled=body_surprise_enabled)
         package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
         settings = yaml.safe_load((package/'config/stiffness_identification.yaml').read_text())
         settings.update(inference.settings['simple_stiffness'])
@@ -108,6 +110,7 @@ def simple_worker(requests, replies, description, urdf, templates, output):
                             for edge in result.stages[-1].components[0].state.transforms],
                         body_covariance=result.stages[-1].components[0].state.covariance.tolist(),
                         stiffness=record, simple_inference=result.records.get('simple_inference'),
+                        body_surprise=result.records.get('bayes_factor_surprise'),
                         command_path=None if path is None else path.record(),
                         observation_ids=result.records.get('observation_ids', [])))
                     processed.append(dict(event_id=event.event_id,
@@ -121,6 +124,7 @@ def simple_worker(requests, replies, description, urdf, templates, output):
                     # not selection of a new raw observation or another Bayes update.
                     if event.kind in ('image', 'imu') or len(processed) == len(request['batch'].events):
                         keep = ('simple_inference', 'fixed_goal_memory', 'sensor_event',
+                            'bayes_factor_surprise',
                             'last_effective_observation_stamp', 'last_effective_observation_command')
                         records = {key: result.records[key] for key in keep if key in result.records}
                         records['observation_ids'] = list(result.records.get('observation_ids', ()))
@@ -144,7 +148,8 @@ class SimpleMotionSession:
     _accept_camera_preview = AsyncMotionSession._accept_camera_preview
 
     def __init__(self, observations_path, output, *, imu_target_link=None, duration=None,
-                 clock=time.monotonic, context=None, direct_camera_preview=False, **_unused):
+                 clock=time.monotonic, context=None, direct_camera_preview=False,
+                 body_surprise_enabled=None, **_unused):
         from .simple_inference import SimpleInference
         self.clock, self.output = clock, Path(output)
         self.output.mkdir(parents=True, exist_ok=False)
@@ -153,7 +158,9 @@ class SimpleMotionSession:
         self.scene = MovingSwitchScene(self.output, imu_target_link=imu_target_link)
         if duration is not None:
             self.scene.duration = float(duration)
-        self.inference_description = SimpleInference(self.scene.robot_description, self.templates)
+        self.inference_description = SimpleInference(self.scene.robot_description, self.templates,
+            body_surprise_enabled=body_surprise_enabled)
+        self.body_surprise_enabled = self.inference_description.surprise_enabled
         self.settings = self.inference_description.settings
         self.options = self.settings.get('async_execution', {})
         self.period = 1./float(self.options.get('physics_hz', 120.))
@@ -184,10 +191,11 @@ class SimpleMotionSession:
                       str(self.output/'observations.sqlite3'), str(self.output)), daemon=True),
             self.context.Process(target=simple_worker,
                 args=(self.requests, self.replies, self.scene.robot_description, str(self.scene.urdf),
-                      self.templates, str(self.output)), daemon=True),
+                      self.templates, str(self.output), self.body_surprise_enabled), daemon=True),
             self.context.Process(target=selection_worker,
                 args=(self.control_requests, self.control_replies, self.scene.robot_description,
-                      str(self.scene.urdf), self.templates, str(self.output)), daemon=True))
+                      str(self.scene.urdf), self.templates, str(self.output),
+                      self.body_surprise_enabled), daemon=True))
         for worker in self.workers:
             worker.start()
         self.command = self.scene.initial_command.copy()
@@ -438,7 +446,9 @@ class SimpleMotionSession:
             actual_camera_hz=hz(self.acquisition_times['image']), actual_joint_hz=hz(self.acquisition_times['joint']),
             actual_imu_hz=hz(self.acquisition_times['imu']),
             camera_preview_publication_route='acquisition_worker_direct_ros' if self.direct_camera_preview else 'publication_worker',
-            body_bfs_enabled=False, K_bfs_enabled=False, K_evidence_enabled=False,
+            body_bfs_enabled=self.body_surprise_enabled,
+            body_bayes_factor_surprise=dict(self.inference_description.surprise_settings),
+            K_bfs_enabled=False, K_evidence_enabled=False,
             cumulative_K_factor_reevaluation=False, independent_fresh_goal_enabled=False,
             running_gradient_enabled=False, view_factor_enabled=False,
             physical_truth_used_for_inference=False, monte_carlo_used=False,

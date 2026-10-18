@@ -18,7 +18,8 @@ from .async_state import predict_result
 from .async_stiffness import PhysicalActionEngine, reanchor_retained_stiffness
 
 
-def selection_worker(requests, replies, description, urdf, templates, output):
+def selection_worker(requests, replies, description, urdf, templates, output,
+                     body_surprise_enabled=None):
     """Reply with the finite plan first, then its identical-law display wire.
 
     Each request supplies ``result``, ``packet``, ``steps``, ``index``,
@@ -35,7 +36,8 @@ def selection_worker(requests, replies, description, urdf, templates, output):
 
     cv2.setNumThreads(1)
     try:
-        inference = SimpleInference(description, templates)
+        inference = SimpleInference(description, templates,
+                                    body_surprise_enabled=body_surprise_enabled)
         package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
         settings = yaml.safe_load((package/'config/stiffness_identification.yaml').read_text())
         settings.update(inference.settings['simple_stiffness'])

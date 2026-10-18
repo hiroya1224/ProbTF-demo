@@ -1,6 +1,7 @@
 """Posthoc deserialization preserves the exact saved canonical chart."""
 
 import importlib
+from copy import deepcopy
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,6 +12,7 @@ import pytest
 from probtf_observation_fusion_demo.simple_control import joint_reach_score
 from probtf_observation_fusion_demo.simple_inference import SimpleInference
 from probtf_observation_fusion_demo.sensor_event_store import SensorEventStore
+from probtf_observation_fusion_demo.joint_rotation_stiffness import JointRotationDensityRatio
 from test_simple_inference import acquired, events
 
 
@@ -100,6 +102,71 @@ def test_uninformative_records_without_K_do_not_create_fake_K_source_metadata(
     assert coverage['processed']['original_time_range'] == [1000., 1000.1]
     assert coverage['eligible']['count'] == coverage['selected']['count'] == coverage['fused']['count'] == 0
     assert report['source_law_and_control_checks']['fused_observation_not_selected'] == 0
+    assert not report['body_bayes_factor_surprise']['available']
+    assert report['body_bayes_factor_surprise']['counts']['records_absent'] == 2
+
+
+def test_saved_body_change_audit_checks_actual_odds_transition_priors_and_canonical_K_numerator(
+        acquired, events, monkeypatch):
+    tools = Path(__file__).resolve().parents[1]/'validation/tools'
+    monkeypatch.syspath_prepend(str(tools))
+    summary = importlib.import_module('summarize_simple_reference')
+    inference = SimpleInference(acquired[0], acquired[2], body_surprise_enabled=True)
+    event = events('image:body_change_audit', 'image', frame_index=0)
+    result = inference.update_sensor_event(event, event_index=0)
+    state = result.stages[-1].components[0].state
+    assert result.records['bayes_factor_surprise']['applied']
+    ratio = JointRotationDensityRatio(result.frozen_body_branches, inference.body_ids,
+        posterior_branch=result.projected_body_numerator)
+    row = dict(event_id=event.event_id, sequence=event.sequence, kind='image',
+        acquisition_stamp=event.stamp, acquisition_command=list(event.command),
+        observation_ids=result.records['observation_ids'], observation_selected=True,
+        body_state_ids=[state.state_id], body_component_id=state.component_id,
+        body_surprise=result.records['bayes_factor_surprise'])
+    stiffness = dict(body_marginal=ratio.record(), bayes_factor_surprise_enabled=False,
+        evidence_computed=False, body_posterior_state_ids=[state.state_id],
+        body_internal_approximation=result.records['internal_projection'])
+    auditor = summary.BodySurpriseAudit()
+    auditor.observe(row, stiffness)
+    valid = auditor.record()
+    assert valid['counts']['enabled'] == valid['counts']['applied'] == 1
+    assert all(value == 0 for value in valid['checks'].values())
+    diagnostics = valid['numerical_diagnostics']
+    assert diagnostics['rho_error']['max_absolute'] == 0.
+    assert diagnostics['prior_odds_error']['max_absolute'] == 0.
+    assert diagnostics['posterior_log_odds_residual']['max_absolute'] < 2.e-9
+    assert diagnostics['posterior_log_normalization_residual']['max_absolute'] < 2.e-12
+    assert valid['source_event_examples'][0]['canonical_state_id'] == state.state_id
+
+    wrong = deepcopy(row)
+    wrong['observation_ids'] = []
+    wrong['observation_selected'] = False
+    wrong['body_surprise']['change_probability'] = .5
+    wrong['body_surprise']['posterior_keep_log_probability'] = np.log(.4)
+    wrong['body_surprise']['posterior_change_log_probability'] = np.log(.4)
+    wrong_stiffness = deepcopy(stiffness)
+    wrong_stiffness['body_internal_approximation']['internal_state_id'] = 'foreign_canonical_law'
+    wrong_stiffness['bayes_factor_surprise_enabled'] = True
+    bad = summary.BodySurpriseAudit()
+    bad.observe(wrong, wrong_stiffness)
+    diagnostic = bad.record()
+    assert diagnostic['checks']['applied_without_fused_observation'] == 1
+    assert diagnostic['checks']['applied_to_unselected_observation'] == 1
+    assert diagnostic['checks']['applied_K_canonical_numerator_ID_mismatch'] == 1
+    assert diagnostic['checks']['applied_K_BFS_or_evidence_enabled'] == 1
+    # Finite inconsistency is reported as a residual; this read-only audit
+    # never turns a numerical tolerance into an inference stopping gate.
+    assert diagnostic['numerical_diagnostics']['rho_error']['max_absolute'] == .25
+    assert diagnostic['numerical_diagnostics']['posterior_log_normalization_residual']['max_absolute'] > .2
+
+    no_change = summary.BodySurpriseAudit()
+    for enabled in (False, True):
+        skipped = dict(row, observation_ids=[], body_surprise=dict(enabled=enabled,
+            applied=False, change_probability=.25, prior_change_odds=1./3.))
+        no_change.observe(skipped, None)
+    skipped = no_change.record()
+    assert skipped['counts']['applied'] == 0
+    assert all(value == 0 for value in skipped['checks'].values())
 
 
 def test_plan_response_separates_mean_covariance_descent_and_actual_motion(monkeypatch):

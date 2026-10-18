@@ -1,0 +1,66 @@
+{
+  "raw_source": "two ordinary archived V3 images under a held original command; no physical pose/K received",
+  "observation_id": "image:00000011",
+  "stamp": 1792080000.089948,
+  "command": [
+    -0.15,
+    -1.85,
+    2.35,
+    0.0,
+    -0.95,
+    0.0
+  ],
+  "sequence": 9,
+  "transition_prior_branch_weights": [
+    0.75,
+    0.25
+  ],
+  "transition_reset_environment_mean_unchanged": true,
+  "transition_reset_environment_covariance_unchanged": true,
+  "keep_cross_norm": 0.0011013522480985527,
+  "reset_cross_norm": 0.0,
+  "common_rotation_chart": false,
+  "denominator_branches": 2,
+  "canonical_numerator_components": 1,
+  "canonical_goal_components": 0,
+  "numerator_source_matches_projection": true,
+  "factor_value": -889.5174725130017,
+  "manual_transition_mixture_ratio": -889.5174725130016,
+  "manual_value_error": 1.1368683772161603e-13,
+  "analytic_score": [
+    0.0,
+    1953.543257006069,
+    -2.5196886694116714,
+    0.0032465609002475066,
+    172.32361733398307,
+    -0.429623644334804
+  ],
+  "finite_difference_score": [
+    0.0,
+    1953.543256757939,
+    -2.519688649726959,
+    0.0032466175525769354,
+    172.32361730634693,
+    -0.42962365682797093
+  ],
+  "score_max_error": 2.4813016352709383e-07,
+  "K_status": "updated_single_gaussian",
+  "K_BFS_enabled": false,
+  "K_evidence_computed": false,
+  "proposal_available": true,
+  "K_denominator_semantics": "native weighted transition-prior mixture in its actual charts",
+  "physical_truth_received": false,
+  "monte_carlo_used": false,
+  "actual_SimpleInference_toggle_path": {
+    "body_BFS_applied": true,
+    "rho": 0.25,
+    "denominator_branches": 2,
+    "canonical_numerator_components": 1,
+    "canonical_goal_components": 0,
+    "canonical_state_id_matches_independent_manual_construction": true,
+    "K_status": "updated_single_gaussian",
+    "K_BFS_enabled": false,
+    "K_evidence_computed": false,
+    "proposal_available": true
+  }
+}

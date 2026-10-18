@@ -1,10 +1,10 @@
-"""Prevent the motion launches from silently selecting the old static demo."""
+"""Motion wrappers default to the minimal loop and retain explicit legacy modes."""
 from pathlib import Path
 
 import roslaunch
 
 
-def test_motion_and_static_entry_selection_uses_roslaunch_boolean_arguments():
+def test_motion_and_static_entry_selection_preserves_simple_default_and_rviz_arguments():
     launch = Path(__file__).resolve().parents[1] / 'launch/imu_marker.launch'
     for enabled, expected in ((True, 'observation_fusion_motion.py'),
                               (False, 'observation_fusion_demo.py')):
@@ -16,13 +16,15 @@ def test_motion_and_static_entry_selection_uses_roslaunch_boolean_arguments():
         view = next(node for node in config.nodes if node.name == 'observation_fusion_rviz')
         assert ('observation_fusion_motion.rviz' in view.args) == enabled
         assert ('/observation_fusion/robot_description' in config.params) == enabled
-        assert config.params['/observation_fusion_demo/execution_mode'].value == 'async'
+        assert config.params['/observation_fusion_demo/execution_mode'].value == 'simple'
 
 
-def test_each_motion_entry_defaults_to_async_and_diagnostics_require_explicit_selection():
+def test_motion_entries_default_to_simple_and_keep_explicit_other_execution_modes():
     package = Path(__file__).resolve().parents[1]
-    for case in ('no_sensors', 'imu', 'marker', 'imu_marker'):
-        for args, expected in (([], 'async'), (['execution_mode:=live'], 'live'), (['execution_mode:=prepared_playback'], 'prepared_playback')):
+    for case in ('no_sensors', 'imu', 'marker', 'imu_marker', 'imu_hand'):
+        for args, expected in (([], 'simple'), (['execution_mode:=async'], 'async'),
+                (['execution_mode:=live'], 'live'),
+                (['execution_mode:=prepared_playback'], 'prepared_playback')):
             config = roslaunch.config.ROSLaunchConfig()
             roslaunch.xmlloader.XmlLoader().load(str(package/'launch'/(case+'.launch')),
                                                 config, argv=args, verbose=False)

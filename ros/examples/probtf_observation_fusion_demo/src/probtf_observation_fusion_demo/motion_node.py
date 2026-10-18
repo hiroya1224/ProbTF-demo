@@ -2,6 +2,7 @@
 from dataclasses import dataclass, replace
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from functools import partial
 import hashlib
 import json
 from pathlib import Path
@@ -580,6 +581,17 @@ class MotionLive:
         return TriggerResponse(True, 'Starting a fresh sequential experiment from the common initial prior.')
 
 
+def optional_body_surprise(value):
+    """An empty launch option uses YAML; explicit false must stay false."""
+    if value is None or value == '':
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.strip().lower() in ('true', 'false'):
+        return value.strip().lower() == 'true'
+    raise ValueError('body_surprise must be true, false, or empty to use the YAML setting.')
+
+
 def main():
     rospy.init_node('observation_fusion_demo')
     package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
@@ -589,6 +601,9 @@ def main():
     autostart = bool(rospy.get_param('~autostart', True))
     imu_target_link = rospy.get_param('~imu_target_link', '') or None
     max_updates = int(rospy.get_param('~max_updates', 0))
+    body_surprise = optional_body_surprise(rospy.get_param('~body_surprise', ''))
+    if body_surprise is not None and mode != 'simple':
+        raise ValueError('body_surprise applies to execution_mode=simple.')
     if mode in ('simple', 'async'):
         from .async_motion import AsyncMotionLive
         from .simple_motion import SimpleMotionSession
@@ -599,7 +614,8 @@ def main():
             running_gradient_options=rospy.get_param('~running_gradient_options', None),
             visibility_factor_options=rospy.get_param('~visibility_factor_options', None),
             observation_selection_options=rospy.get_param('~observation_selection_options', None),
-            session_factory=SimpleMotionSession if mode == 'simple' else None)
+            session_factory=(partial(SimpleMotionSession, body_surprise_enabled=body_surprise)
+                             if mode == 'simple' else None))
         rospy.loginfo('Asynchronous wall-clock motion; inference and %s run in separate processes.',
                       playback.session.control_mode)
     elif mode == 'live':

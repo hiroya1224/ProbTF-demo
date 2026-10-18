@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import yaml
 
-from probtf.spherical_law.first_order import point_query
+from probtf_observation_fusion_demo.body_native import point_query
 from probtf_observation_fusion_demo.async_state import ActionStep, RecordedCommandPath, predict_result
 from probtf_observation_fusion_demo.moving_inference import MovingInference
 from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene

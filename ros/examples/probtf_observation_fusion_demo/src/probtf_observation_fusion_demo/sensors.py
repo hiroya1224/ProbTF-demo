@@ -19,8 +19,9 @@ from probtf.geometry import (
     right_perturbation_vec_rotation_jacobian, skew, tangent_basis,
 )
 from probtf.spherical_law.first_order import (
-    bingham_rotation_coordinates, direction_query, linear_query, pose_query,
+    bingham_rotation_coordinates, linear_query,
 )
+from .body_native import direction_query, pose_query
 from probtf.spherical_law.fusion import (
     Gaussian, PosteriorComponent, SensorPosterior, condition_gaussian, freeze_query,
 )

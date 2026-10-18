@@ -388,6 +388,8 @@ def predict_result(result, steps, target_stamp, frame_index, body_ids, actions,
         # including batches containing only command notifications. Its last
         # effective observation clock must never become the prediction clock.
         records['joint_batch_source'] = deepcopy(result.records['joint_batch_source'])
+    if 'sequential_source' in result.records:
+        records['sequential_source'] = deepcopy(result.records['sequential_source'])
     if result.records.get('candidate_measure') is not None:
         measure = deepcopy(result.records['candidate_measure'])
         expected_source = [item.state.state_id for item in body]

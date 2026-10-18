@@ -1,7 +1,8 @@
 """Persistent second-order tracking driven by immutable asynchronous gradients.
 
-The ordinary path integrates du/dt=v, dv/dt=-gamma*v-eta*g exactly for a
-constant input g on each physical interval. There is no endpoint, servo,
+The local quadratic path evaluates g_s+H_s(u-u_s) in a frozen affine model.
+Missing/zero curvature preserves the former constant-gradient exact path.
+There is no endpoint, servo,
 velocity/acceleration clipping, objective evaluation, or probabilistic sampling
 here. Explicit stops are exceptional fail-safe events, not the tracking law.
 """
@@ -86,6 +87,9 @@ class GradientPacket:
     reason: object = None
     packet_id: object = None
     selection_factors: object = None
+    curvature: object = None
+    local_model_method: object = None
+    local_model_diagnostics: object = None
 
     def __post_init__(self):
         for name in self.__dataclass_fields__:
@@ -156,10 +160,10 @@ class RunningGradientStep:
 
 
 class RunningGradientTracker:
-    """Own persistent u/v and sample-and-hold the last accepted finite packet.
+    """Own persistent u/v and the last accepted frozen local gradient model.
 
-    Stale thresholds are disabled by default. When supplied, they reject newly
-    arrived stale packets and explicitly stop if the held input becomes stale.
+    Age/distance thresholds are disabled by default and remain diagnostics
+    when supplied. They do not stop or reject a finite update.
     A fail-safe preserves the last safe position, records the prior velocity and
     the rejected proposal, then announces a stop with velocity zero. It cannot
     silently resume or turn a failed gradient evaluation into a zero gradient.
@@ -183,6 +187,7 @@ class RunningGradientTracker:
         self.max_command_distance = self._threshold(max_command_distance, 'command distance')
         self.max_snapshot_update_lag = self._threshold(max_snapshot_update_lag, 'snapshot update lag')
         self.last_packet = None
+        self._local_model = None
         self.accepted_gradient_count = self.rejected_gradient_count = 0
         self.halted = False
         self.stop_notification = None
@@ -207,7 +212,10 @@ class RunningGradientTracker:
 
     @property
     def gradient(self):
-        return None if self.last_packet is None else np.asarray(self.last_packet.gradient, float).copy()
+        if self.last_packet is None:
+            return None
+        return (np.asarray(self.last_packet.gradient, float).copy() if self._local_model is None
+                else self._local_model.gradient_at(self._position))
 
     def _metrics(self, packet, stamp, snapshot_update_count):
         source = np.asarray(packet.source_command, float)
@@ -233,14 +241,14 @@ class RunningGradientTracker:
         return None
 
     def accept(self, packet, adoption_stamp, snapshot_update_count=None):
-        """Replace only g/provenance after validation; never reset u or v."""
+        """Replace only the captured g/H/source after validation, preserving u/v."""
         if not isinstance(packet, GradientPacket):
             raise TypeError('An immutable GradientPacket is required.')
         adoption_stamp = float(adoption_stamp)
         record = dict(event='gradient_result', accepted=False, adoption_stamp=adoption_stamp,
                       packet=packet.as_dict(), position=self._position.tolist(),
                       velocity=self._velocity.tolist())
-        reason, metrics = None, {}
+        reason, metrics, local_model = None, {}, None
         try:
             _vector(packet.source_command, 'packet source command', self._position.shape)
             if packet.status != 'ok':
@@ -258,6 +266,19 @@ class RunningGradientTracker:
                         raise ValueError('Selected K must be positive.')
                 if int(packet.snapshot_update_count) != packet.snapshot_update_count or packet.snapshot_update_count < 0:
                     raise ValueError('Snapshot update count must be a nonnegative integer.')
+                if packet.curvature is not None:
+                    if isinstance(packet.local_model_diagnostics, Mapping):
+                        for name in ('source_stamp', 'source_command', 'body_state_ids',
+                                     'goal_state_ids', 'parameter_density_id', 'selected_K'):
+                            if (name in packet.local_model_diagnostics and
+                                    _thaw(packet.local_model_diagnostics[name]) != _thaw(getattr(packet, name))):
+                                raise ValueError('Local curvature source differs from gradient packet: '+name)
+                    from .local_quadratic_tracking import FrozenLocalQuadraticModel
+                    model = FrozenLocalQuadraticModel(packet.source_command, packet.gradient,
+                                                       packet.curvature)
+                    if not model.is_zero:
+                        local_model = model
+                    record['model_gradient_at_adoption'] = model.gradient_at(self._position).tolist()
                 metrics = self._metrics(packet, adoption_stamp, snapshot_update_count)
                 if metrics['gradient_source_age_s'] < 0.:
                     reason = 'source_time_is_in_future'
@@ -265,7 +286,7 @@ class RunningGradientTracker:
                       and metrics['gradient_snapshot_update_lag'] < 0):
                     reason = 'source_snapshot_is_in_future'
                 record['numerical_diagnostic_warning']=self._stale_reason(metrics)
-        except (TypeError, ValueError, OverflowError) as error:
+        except (TypeError, ValueError, OverflowError, FloatingPointError) as error:
             reason = 'invalid_packet'
             record['validation_error'] = str(error)
         if self.halted:
@@ -274,6 +295,7 @@ class RunningGradientTracker:
         record['reason'] = reason
         if reason is None:
             self.last_packet = packet
+            self._local_model = local_model
             self.accepted_gradient_count += 1
             record['accepted'] = True
         else:
@@ -341,10 +363,18 @@ class RunningGradientTracker:
         record['numerical_diagnostic_warning']=self._stale_reason(metrics)
         record['numerical_quality_is_stop_gate']=False
         try:
-            command, velocity = step_running_gradient(self._position, self._velocity,
-                self.last_packet.gradient, dt, self.eta, self.gamma)
-            extrema = self._interval_extrema(np.asarray(self.last_packet.gradient), dt, velocity)
-        except (ValueError, FloatingPointError, OverflowError) as error:
+            gradient_at_start = self.gradient
+            if self._local_model is None:
+                command, velocity = step_running_gradient(self._position, self._velocity,
+                    self.last_packet.gradient, dt, self.eta, self.gamma)
+                extrema = self._interval_extrema(np.asarray(self.last_packet.gradient), dt, velocity)
+                gradient_at_end = np.asarray(self.last_packet.gradient)
+            else:
+                command, velocity = self._local_model.advance(self._position, self._velocity,
+                    dt, self.eta, self.gamma)
+                gradient_at_end = self._local_model.gradient_at(command)
+                extrema = []
+        except (ValueError, FloatingPointError, OverflowError, np.linalg.LinAlgError) as error:
             record['integration_error'] = str(error)
             return self._stop('nonfinite_or_invalid_integration', record)
         if np.any(command < self.lower) or np.any(command > self.upper):
@@ -353,9 +383,25 @@ class RunningGradientTracker:
             if point[joint] < self.lower[joint] or point[joint] > self.upper[joint]:
                 record.update(violating_joint=joint, violating_interval_offset_s=turning_time)
                 return self._stop('joint_position_out_of_range_inside_interval', record, proposal=point)
+        if self._local_model is not None:
+            try:
+                interval = self._local_model.check_joint_interval(self._position, self._velocity,
+                    dt, self.eta, self.gamma, self.lower, self.upper, endpoint=(command, velocity))
+            except (ValueError, FloatingPointError, OverflowError, np.linalg.LinAlgError) as error:
+                record['integration_error'] = str(error)
+                return self._stop('nonfinite_or_invalid_integration', record)
+            record['local_model_joint_interval_check'] = interval.record()
+            if interval.violation is not None:
+                joint, offset, point = interval.violation
+                record.update(violating_joint=joint, violating_interval_offset_s=offset)
+                return self._stop('joint_position_out_of_range_inside_interval', record, proposal=point)
         self._position, self._velocity, self.stamp = command, velocity, next_stamp
         record.update(self._metrics(self.last_packet, next_stamp, snapshot_update_count))
         record['gradient_distance_evaluated_at_command'] = command.tolist()
-        record.update(status='tracking', gradient=list(self.last_packet.gradient),
-                      acceleration=(-self.gamma*velocity-self.eta*np.asarray(self.last_packet.gradient)).tolist())
+        record.update(status='tracking', gradient=gradient_at_end.tolist(),
+                      source_gradient=list(self.last_packet.gradient),
+                      gradient_at_interval_start=gradient_at_start.tolist(),
+                      execution_gradient_model=('held_gradient' if self._local_model is None else 'local_quadratic'),
+                      local_model_method=self.last_packet.local_model_method,
+                      acceleration=(-self.gamma*velocity-self.eta*gradient_at_end).tolist())
         return self._result(record)

@@ -18,12 +18,19 @@ from probtf_observation_fusion_demo.selection_gradient import selection_gradient
 from probtf_observation_fusion_demo.visibility_factor import VisibilityFactor
 from probtf_observation_fusion_demo.async_state import ActionStep, predict_result
 
-from test_visual_approach_integration import problems, controller, forbid_sampling
+from test_visual_approach_integration import problems, controller as _controller, forbid_sampling
+
+
+def controller(problem):
+    current = _controller(problem)
+    current.local_quadratic_model_settings = {'enabled': False}
+    return current
 
 
 def _factor(*, enabled=True, weight=2e6, minimum_norm_m=1e-9):
     return VisibilityFactor(dict(enabled=enabled, weight=weight,
-                                 minimum_norm_m=minimum_norm_m))
+                                 minimum_norm_m=minimum_norm_m,
+                                 penalty_mode='always_center'))
 
 
 def _packet(record):

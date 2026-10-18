@@ -114,6 +114,15 @@ def _complete_estimate(current, previous_result, identifier, *, acknowledge=True
 def _complete_control(current):
     """The actual control worker owns its separate mechanics and serialization."""
     request = current.control_requests.get_nowait()
+    if request.get('packet') is None and request.get('parameter_packet_id') is not None:
+        # The production worker retains registrations across requests; this
+        # helper starts a fresh worker for each synchronous diagnostic call.
+        request=dict(request,packet=current.parameter_packets[request['parameter_packet_id']])
+    if request.get('action_packet_ref') is not None:
+        from probtf_observation_fusion_demo.async_artifacts import restore_action_packet
+        reference=request['action_packet_ref']
+        request=dict(request,action_packet=restore_action_packet(reference,
+            current.parameter_packets[reference['estimated_packet_id']]),action_packet_ref=None)
     if 'ledger_delta' in request:
         ledger = getattr(current, '_test_control_ledger', [])
         for step in request['ledger_delta']:

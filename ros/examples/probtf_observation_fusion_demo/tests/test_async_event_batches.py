@@ -1,4 +1,4 @@
-"""Whole-frontier scheduling and an actual numerical batch handoff."""
+"""Whole-frontier scheduling with chronological, per-observation updates."""
 
 from pathlib import Path
 import json
@@ -16,11 +16,12 @@ from test_async_execution import Context, LocalQueue, _complete_acquisitions, _c
 PACKAGE = Path(__file__).resolve().parents[1]
 
 
-def _session(tmp_path,case='imu_marker'):
+def _session(tmp_path,case='imu_marker', *, joint_body_batch=False):
     clock = [100.]
     current = AsyncMotionSession(PACKAGE/('config/'+case+'.yaml'), tmp_path/'run',
         clock=lambda: clock[0], context=Context(), duration=.1,
-        control_mode='running_gradient')
+        control_mode='running_gradient', joint_body_batch=joint_body_batch,
+        observation_selection_options={'mode':'all'})
     _complete_acquisitions(current)
     return current, clock
 
@@ -40,7 +41,7 @@ def _dispatch(current):
     ('imu',['imu:00000000'],'waiting_for_goal')])
 def test_initial_prior_is_the_estimator_law_until_start_then_every_raw_observation_fuses(
         tmp_path,case,observation_ids,status):
-    from probtf.spherical_law.first_order import point_query
+    from probtf_observation_fusion_demo.body_native import point_query
     import numpy as np
     current,_=_session(tmp_path,case)
     requests=LocalQueue()
@@ -96,7 +97,20 @@ def test_initial_prior_is_the_estimator_law_until_start_then_every_raw_observati
         finish(second)
         assert current.completed_batches==2
         assert current.store.stats()['counts']=={'completed':3}
-        assert current.latest_result.records['observation_ids']==observation_ids
+        # A scheduling frontier is not one joint observation. The final
+        # canonical law contains the chronological earlier updates, while its
+        # own observation IDs name only the final effective sensor event.
+        assert current.latest_result.records['observation_ids']==observation_ids[-1:]
+        assert current.last_completed_batch['evaluated_event_ids']==observation_ids
+        saved=[json.loads(line) for line in (current.output/'estimation.jsonl').read_text().splitlines()]
+        effective=[record for record in saved if record['observation_ids']]
+        assert [record['observation_ids'] for record in effective]==[[identity] for identity in observation_ids]
+        for record in effective:
+            assert record['sensor_event']['chronological_separate_sensor_update']
+            assert record['bayes_factor_surprise']['change_probability']==.25
+            assert record['bayes_factor_surprise']['probability_unit']=='per_effective_sensor_event'
+            assert record['sensor_event']['acquisition_stamp']==second['batch'].events[0].stamp
+            assert record['sensor_event']['sent_command']==list(second['batch'].events[0].command)
         assert current.latest_packet is not None
         after=control()
         assert after['gradient_evaluation']['status']==status
@@ -107,7 +121,9 @@ def test_initial_prior_is_the_estimator_law_until_start_then_every_raw_observati
         for event in second['batch'].events:
             timing=current.store.get(event.event_id).result_metadata
             if event.event_id in observation_ids:
-                assert timing['inference_seconds'] is None and timing['batch_work_seconds']>0.
+                assert timing['inference_seconds']>0. and timing['body_update_seconds']>0.
+                assert timing['processing_time_scope']=='this original sensor event only'
+                assert 'batch_work_seconds' not in timing
             else:
                 assert not timing['observation_fused']
                 assert timing['reason']=='sensor not enabled in this comparison case'
@@ -167,7 +183,7 @@ def test_changed_claimed_sensor_kind_is_rejected_without_completing_or_dropping_
             current.scene.robot_description,str(current.scene.urdf),
             tuple(item for item in current.templates if item['sensor']=='marker'),
             str(current.output),'per_effective_sensor_event')
-        with pytest.raises(RuntimeError,match='immutable joint-batch acquisition changed'):
+        with pytest.raises(RuntimeError,match='immutable replay observation changed'):
             current.poll()
         assert current.latest_result is None
         assert current.store.get(original.event_id).status == 'failed'
@@ -179,7 +195,7 @@ def test_changed_claimed_sensor_kind_is_rejected_without_completing_or_dropping_
         current.close()
 
 
-def test_required_stiffness_failure_preserves_input_and_actual_arithmetic_reason(tmp_path,monkeypatch):
+def test_legacy_joint_comparison_stiffness_failure_preserves_input_and_actual_arithmetic_reason(tmp_path,monkeypatch):
     from probtf_observation_fusion_demo.stiffness_identification import StiffnessIdentifier
     reason='required evidence Hessian Cholesky is not positive definite'
     failure=dict(stiffness_posterior_defined=False,failure_reason=reason,
@@ -187,7 +203,10 @@ def test_required_stiffness_failure_preserves_input_and_actual_arithmetic_reason
         evidence=dict(operation='Cholesky',input_logK=[1.,2.,3.,4.,5.,6.]))
     monkeypatch.setattr(StiffnessIdentifier,'update_batch',lambda *args,**kwargs:failure)
     monkeypatch.setattr(StiffnessIdentifier,'command_proposal',lambda *args:None)
-    current,_=_session(tmp_path)
+    # This explicit legacy comparison executes K synchronously. The normal
+    # deferred worker path instead preserves its ready body and a failed FIFO
+    # K job; that behavior is covered by test_async_ready_workers.
+    current,_=_session(tmp_path,joint_body_batch=True)
     try:
         request=_dispatch(current)
         requests=LocalQueue(); requests.put(request); requests.put(None)

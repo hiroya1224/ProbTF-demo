@@ -18,6 +18,14 @@ async_execution:
   image_hz: 12.0
   ik_horizon_s: 0.5
   observation_scheduling: all_acquired_events_in_timestamp_order
+  joint_body_batch: false
+  observation_selection:
+    # Full-data C++ replay measured 6.16 images/s (12 Hz input), and 13.55
+    # combined events/s (42 Hz input). Cap only a backlogged frontier, with
+    # selections spread over its complete per-sensor acquisition time range.
+    # mode: all remains available for complete-data processing/replay.
+    mode: uniform_time
+    max_events_per_sensor: {imu: 8, image: 2}
 marker_prior:
   edge_id: marker
   translation: [1.16, -0.04, 0.72]
@@ -52,7 +60,14 @@ control:
     # Initial task/view gradient calibration gives comparable norms near 2e6.
     # This is a fixed experimental weight, not a detection probability.
     weight: 2000000.0
+    penalty_mode: tolerance_cone
+    tolerance_angle_deg: 10.0
     minimum_norm_m: 0.000000001
+  local_quadratic_model:
+    enabled: true
+    method: mixture_gaussian_bingham_tangent_fisher
+    regularization_absolute: 100000.0
+    regularization_relative: 0.000001
   running_gradient:
     # Experimental fixed gains; no gradient normalization or hidden clipping.
     eta: 0.000001

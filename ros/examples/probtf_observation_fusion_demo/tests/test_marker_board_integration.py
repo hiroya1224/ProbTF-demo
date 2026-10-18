@@ -14,8 +14,9 @@ from visualization_msgs.msg import MarkerArray
 
 from probtf.geometry import quat_to_rotmat
 from probtf.spherical_law.first_order import (
-    MAX_FIRST_ORDER_ROTATION_VARIANCE, bingham_rotation_coordinates, point_query,
+    MAX_FIRST_ORDER_ROTATION_VARIANCE, bingham_rotation_coordinates,
 )
+from probtf_observation_fusion_demo.body_native import point_query
 from probtf_observation_fusion_demo import model, sensors
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
 from probtf_observation_fusion_demo.marker_search import marker_observed

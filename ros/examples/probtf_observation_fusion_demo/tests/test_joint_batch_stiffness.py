@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from probtf.spherical_law.first_order import reexpress_state
+from probtf_observation_fusion_demo.body_native import reexpress_state
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent, FusedMixture, condition_gaussian
 from probtf_observation_fusion_demo.joint_batch_stiffness import (
     aggregate_event_hazard, make_joint_batch_stiffness_context,

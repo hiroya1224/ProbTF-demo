@@ -88,7 +88,10 @@ def capture_direct_stiffness_action(engine, result, estimated_packet, previous=N
         raise TypeError('A direct action needs an original estimated K packet.')
     if previous is not None and not isinstance(previous, FrozenActionKPacket):
         raise TypeError('A direct action continues a captured direct-action packet.')
-    estimate = estimated_packet.record
+    # Only this engine owns the decoded record. No full-density JSON copy is
+    # needed to read immutable source scalars or the captured K representative.
+    estimate = engine._validated_estimated_record(estimated_packet)
+    proposal = estimate['command_proposal']
     if float(estimate['source_stamp']) > result.prior.stamp:
         raise ValueError('A direct action cannot use an estimate from the future.')
     if previous is not None and previous.action['anchor_stamp'] > result.prior.stamp:
@@ -104,13 +107,13 @@ def capture_direct_stiffness_action(engine, result, estimated_packet, previous=N
         engine.set(previous)
     initial = engine._evaluate(command)[0]
     initial_K = engine.stiffness.tolist()
-    stiffness = np.asarray(estimated_packet.proposal['selected_K'], dtype=float)
+    stiffness = np.asarray(proposal['selected_K'], dtype=float)
     theta, _, _, active = engine.identifier._refine_equilibrium(initial, command, stiffness)
     action = dict(
         estimated_packet_id=estimated_packet.packet_id,
-        estimated_density_id=estimated_packet.proposal['density_id'],
+        estimated_density_id=proposal['density_id'],
         estimated_source_stamp=estimate['source_stamp'],
-        selected_K=estimated_packet.proposal['selected_K'],
+        selected_K=list(proposal['selected_K']),
         anchor_command=command.tolist(), anchor_stamp=result.prior.stamp,
         auxiliary_equilibrium=theta.tolist(),
         auxiliary_active_joint_limits=np.asarray(active, dtype=bool).tolist(),
@@ -267,7 +270,36 @@ class PhysicalActionEngine:
         self.identifier = StiffnessIdentifier(urdf_path, body_edge_ids, settings)
         self.packet = None
         self._cache = {}
+        self._estimated_record_cache = {}
         self.equilibrium_evaluation_count = 0
+
+    def _validated_estimated_record(self, estimated):
+        """Private hash-checked record, never returned through a public view.
+
+        Reusing an ID is permitted only for the exact same immutable JSON
+        text. A different packet object cannot bypass validation by copying
+        an already cached ID. Public ``FrozenKPacket.record`` keeps producing
+        independent copies; consumers exposing a record must still use it.
+        """
+        if not isinstance(estimated, FrozenKPacket):
+            raise TypeError('An execution packet must reference an original estimated K packet.')
+        cached = self._estimated_record_cache.get(estimated.packet_id)
+        if cached is not None:
+            encoded, record = cached
+            if encoded != estimated.record_json:
+                raise ValueError('A retained K packet hash does not match its captured record.')
+        else:
+            if hashlib.sha256(estimated.record_json.encode()).hexdigest() != estimated.packet_id:
+                raise ValueError('A retained K packet hash does not match its captured record.')
+            record = estimated.record
+            self._estimated_record_cache[estimated.packet_id] = (estimated.record_json, record)
+        # This is the identical existing immutable small-proposal memo. Seed
+        # it from the already decoded private record, avoiding another full
+        # history decode on the first public proposal read.
+        if getattr(estimated, '_proposal_json', None) is None and 'command_proposal' in record:
+            object.__setattr__(estimated, '_proposal_json', json.dumps(
+                record['command_proposal'], separators=(',', ':')))
+        return record
 
     def set(self, packet):
         if not isinstance(packet, (FrozenKPacket, FrozenActionKPacket, FrozenExecutionKPacket)):
@@ -276,8 +308,7 @@ class PhysicalActionEngine:
                      if isinstance(packet, (FrozenActionKPacket, FrozenExecutionKPacket)) else packet)
         if not isinstance(estimated, FrozenKPacket):
             raise TypeError('An execution packet must reference an original estimated K packet.')
-        if hashlib.sha256(estimated.record_json.encode()).hexdigest() != estimated.packet_id:
-            raise ValueError('A retained K packet hash does not match its captured record.')
+        record = self._validated_estimated_record(estimated)
         execution = packet.execution if isinstance(packet, FrozenExecutionKPacket) else None
         if execution is not None and packet.packet_id != _execution_packet_id(estimated, packet.execution_json):
             raise ValueError('An execution K packet hash does not match its captured control value.')
@@ -286,7 +317,6 @@ class PhysicalActionEngine:
             raise ValueError('An action K packet hash does not match its captured anchor.')
         if self.packet is not None and packet.packet_id == self.packet.packet_id:
             return
-        record = packet.record
         proposal = record.get('command_proposal')
         density = record.get('posterior') or record.get('retained_prior')
         if (proposal is None or density is None or proposal.get('density_id') != density.get('density_id')

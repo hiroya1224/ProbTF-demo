@@ -10,13 +10,21 @@ Laplace laws, not an exact product of all native combinations on SE(3).
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.special import logsumexp
 
 from prob_artag_detector.models import EstimationDiagnostics, PoseMixtureResult
-from probtf.bingham import bingham_second_moment, match_bingham_to_second_moment
+from probtf.bingham import (
+    bingham_second_moment as _python_bingham_second_moment,
+    match_bingham_to_second_moment as _python_match_bingham_to_second_moment,
+)
+from .marker_board_native import (
+    bingham_second_moment, match_bingham_to_second_moment, backend_record,
+    diagonal_second_moment,
+)
 from probtf.distributions.bingham_orientation import BinghamOrientation
 from probtf.distributions.conditional_translation import ConditionalGaussianTranslation
 from probtf.distributions.stamped import TransformDistributionStamped
@@ -76,7 +84,7 @@ def _query_record(query):
             'mode', 'mean', 'covariance', 'jacobian', 'cross_covariance', 'within', 'between')})
 
 
-def _native_to_center(detected, marker):
+def _native_to_center(detected, marker, arithmetic_backend='native'):
     # Lazy import permits sensors.prepare_marker_observation to use this
     # helper, while sharing precisely its existing native-Hessian adapter.
     from .sensors import _marker_mode_chart
@@ -102,7 +110,10 @@ def _native_to_center(detected, marker):
             marker.marker_to_center_translation, rotation_wxyz=marker.rotation_wxyz)
         state = JointTransformState((original, attachment), covariance,
             stamp=detected.record.stamp, component_id=component.component_id)
-        query = pose_query(state, (('image_marker', False), ('known_marker_to_center', False)),
+        query_function = pose_query
+        if arithmetic_backend == 'native':
+            from .body_native import pose_query as query_function
+        query = query_function(state, (('image_marker', False), ('known_marker_to_center', False)),
             query_id='marker_board:{}:{}'.format(marker.marker_id, component.component_id),
             frame=detected.record.parent_frame_id)
         # Reexpress only this derived central branch at its corrected mean.
@@ -154,7 +165,11 @@ def _in_chart(mode, reference):
     return Gaussian(np.concatenate((mode['translation'], coordinate)), covariance), float(volume), chart
 
 
-def _project_central(branches, reference, integration_steps):
+def _project_central(branches, reference, integration_steps, arithmetic_backend='native'):
+    moment_function = (bingham_second_moment if arithmetic_backend == 'native'
+                       else _python_bingham_second_moment)
+    fit_function = (match_bingham_to_second_moment if arithmetic_backend == 'native'
+                   else _python_match_bingham_to_second_moment)
     logs = np.asarray([item['log_mass'] for item in branches])
     log_evidence = float(logsumexp(logs))
     log_weights = logs-log_evidence
@@ -173,7 +188,7 @@ def _project_central(branches, reference, integration_steps):
         omega = chart @ law.covariance[3:, 3:] @ chart.T
         parameter = bingham_from_rotation_coordinates(quaternion, omega)
         parameters.append(parameter)
-        moments.append(bingham_second_moment(parameter, integration_steps=integration_steps))
+        moments.append(moment_function(parameter, integration_steps=integration_steps))
     target = sum(weight*moment for weight, moment in zip(weights, moments))
     fit_method = 'single branch Bingham preserved exactly'
     refinement_evaluations = 0
@@ -191,10 +206,10 @@ def _project_central(branches, reference, integration_steps):
         # gap. Initialize from all target moments instead; this separation
         # changes only optimization initialization, never the target law.
         initial = np.r_[-.5/moment_eigenvalues[:3]*np.array([1.02, 1., .98]), 0.]
-        parameter = match_bingham_to_second_moment(target,
+        parameter = fit_function(target,
             integration_steps=integration_steps, initial_eigenvalues=initial)
         core_fit_max_error = float(np.max(np.abs(
-            bingham_second_moment(parameter, integration_steps=integration_steps)-target)))
+            moment_function(parameter, integration_steps=integration_steps)-target)))
         fit_method = 'existing core quaternion second-moment fit'
         if core_fit_max_error > 5e-8:
             # Refine the same moment equation using relative residuals. The
@@ -207,8 +222,12 @@ def _project_central(branches, reference, integration_steps):
                 raise ValueError('The initial central Bingham fit has invalid concentrations.')
             def residual(log_concentrations):
                 diagonal = np.r_[-np.exp(log_concentrations), 0.]
-                moment = bingham_second_moment(np.diag(diagonal), integration_steps=integration_steps)
-                return np.log(np.diag(moment)[:3]/eigenvalues[:3])
+                if arithmetic_backend == 'native':
+                    diagonal_moment = diagonal_second_moment(diagonal, integration_steps)
+                else:
+                    diagonal_moment = np.diag(moment_function(
+                        np.diag(diagonal), integration_steps=integration_steps))
+                return np.log(diagonal_moment[:3]/eigenvalues[:3])
             refined = least_squares(residual, np.log(concentrations),
                 ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=100)
             diagonal = np.r_[-np.exp(refined.x), 0.]
@@ -216,7 +235,7 @@ def _project_central(branches, reference, integration_steps):
             parameter = .5*(parameter+parameter.T)
             refinement_evaluations = int(refined.nfev)
             fit_method += '; deterministic relative-moment concentration refinement'
-    fitted = bingham_second_moment(parameter, integration_steps=integration_steps)
+    fitted = moment_function(parameter, integration_steps=integration_steps)
     if not all(np.all(np.isfinite(item)) for item in (parameter, target, fitted)):
         raise ValueError('The central Bingham fit contains nonfinite parameters or moments.')
     fit_error = float(np.max(np.abs(fitted-target)))
@@ -269,7 +288,8 @@ def _project_central(branches, reference, integration_steps):
                 bingham=parameter), record
 
 
-def fuse_marker_board(detections, settings, *, stamp=None, integration_steps=120):
+def fuse_marker_board(detections, settings, *, stamp=None, integration_steps=120,
+                      arithmetic_backend=None):
     """Fuse decoded tag mixtures into an explicitly approximated central law.
 
     Image corner likelihoods are conditionally independent given the board
@@ -278,6 +298,14 @@ def fuse_marker_board(detections, settings, *, stamp=None, integration_steps=120
     through its camera/body law once. ADF never changes the retained native
     observations, even if a float component weight underflows.
     """
+    backend = arithmetic_backend
+    if backend is None:
+        backend = os.environ.get('PROBTF_MARKER_BOARD_BACKEND',
+            settings.get('arithmetic_backend', 'native'))
+    if backend == 'python_reference':
+        backend = 'python'
+    if backend not in ('native', 'python'):
+        raise ValueError('Marker-board arithmetic backend must be native or python.')
     layout = {item.marker_id: item for item in board_layout(settings)}
     detected_by_id = dict(detections)
     if any(marker_id not in layout for marker_id in detected_by_id):
@@ -308,7 +336,8 @@ def fuse_marker_board(detections, settings, *, stamp=None, integration_steps=120
         likelihood_chart_rule='each normalized native Gaussian is a scalar image likelihood; multiply by the common-chart |det J| before overlap weighting',
         central_position_orientation_product_approximation=True,
         monte_carlo_used=False, physical_truth_received=False, covariance_regularization_added=False,
-        integration_steps=integration_steps)
+        integration_steps=integration_steps, arithmetic_backend=backend,
+        arithmetic_backend_source=backend_record(backend))
     proxy = None
     prior_branches = ()
     reference = None
@@ -316,7 +345,7 @@ def fuse_marker_board(detections, settings, *, stamp=None, integration_steps=120
     record['maximum_live_branch_count'] = 0
     for marker_id in ordered:
         native = detected_by_id[marker_id]
-        modes, native_records = _native_to_center(native, layout[marker_id])
+        modes, native_records = _native_to_center(native, layout[marker_id], backend)
         record['raw_observations'].append(dict(marker_id=marker_id,
             parent_frame_id=native.record.parent_frame_id, child_frame_id=native.record.child_frame_id,
             edge_id=native.record.edge_id, authority=native.record.authority, stamp=native.record.stamp,
@@ -345,7 +374,7 @@ def fuse_marker_board(detections, settings, *, stamp=None, integration_steps=120
                     common_chart_full_covariance=law.covariance.tolist(),
                     prior_overlap_log_evidence=float(overlap), product_log_mass=log_mass,
                     product_mean=posterior.mean.tolist(), product_full_covariance=posterior.covariance.tolist()))
-        proxy, projection = _project_central(branches, reference, integration_steps)
+        proxy, projection = _project_central(branches, reference, integration_steps, backend)
         record['maximum_live_branch_count'] = max(record['maximum_live_branch_count'], len(branches))
         record['steps'].append(dict(marker_id=marker_id, central_prior_used=bool(prior_branches),
             prior_branch_count=len(prior_branches),

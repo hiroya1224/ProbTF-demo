@@ -8,7 +8,7 @@ import pytest
 import roslaunch
 import yaml
 
-from probtf.spherical_law.first_order import point_query, reexpress_state
+from probtf_observation_fusion_demo.body_native import reexpress_state, point_query
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
 from probtf_observation_fusion_demo.moving_inference import MovingInference
 from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene

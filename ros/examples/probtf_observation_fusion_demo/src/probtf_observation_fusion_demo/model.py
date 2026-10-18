@@ -11,8 +11,8 @@ from scipy.special import logsumexp
 
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, MAX_FIRST_ORDER_ROTATION_VARIANCE,
-    point_query,
 )
+from .body_native import point_query
 from probtf.spherical_law.fusion import (
     Gaussian, LabelledPrior, PosteriorComponent, fuse_labelled_sensor_posteriors,
     gaussian_reference_product, lift_sensor_posterior,

@@ -8,7 +8,7 @@ from threading import RLock
 
 import numpy as np
 
-from probtf.spherical_law.first_order import reexpress_state as _core_reexpress_state
+from .body_native import reexpress_state as _core_reexpress_state, _native
 
 
 class ReexpressionCache:
@@ -37,7 +37,7 @@ class ReexpressionCache:
         # metadata. Include separately stored local marginals and zero-chart
         # mean too, so even tolerated marginal roundoff cannot share a key.
         source_marginals = tuple(edge.translation_covariance.tobytes() for edge in state.transforms)
-        key = (state.state_id, state.mean.tobytes(), source_marginals,
+        key = (_native(), state.state_id, state.mean.tobytes(), source_marginals,
                mean.shape, mean.tobytes(), covariance.shape,
                covariance.tobytes(), state.version+1 if version is None else int(version),
                state.component_id if component_id is None else str(component_id))

@@ -1,0 +1,873 @@
+{
+  "scope": "read-only actual repeated sequential body updates; no K-evidence or live execution; nonlinear initial-observation diagnostic does not replace likelihoods",
+  "comparison_path": "/tmp/probtf_cpp_seq_compare/comparison.json",
+  "cases": {
+    "marker": {
+      "event_count": 81,
+      "source_unchanged": true,
+      "error": null,
+      "per_link": {
+        "link_1": {
+          "all_mode_displacement_m": {
+            "value": 9.854673634869491e-05,
+            "event_id": "image:00000247",
+            "stamp": 1792080002.2537544,
+            "elapsed_s": 2.2537543773651123,
+            "reset_probability": 0.3993882710334998,
+            "reset_log_probability": -0.9178212248975748,
+            "keep_log_probability": -0.5098065948748389
+          },
+          "all_mean_displacement_m": {
+            "value": 9.854673634869491e-05,
+            "event_id": "image:00000247",
+            "stamp": 1792080002.2537544,
+            "elapsed_s": 2.2537543773651123,
+            "reset_probability": 0.3993882710334998,
+            "reset_log_probability": -0.9178212248975748,
+            "keep_log_probability": -0.5098065948748389
+          },
+          "all_modal_angle_rad": {
+            "value": 0.05627512644113846,
+            "event_id": "image:00000303",
+            "stamp": 1792080002.8605976,
+            "elapsed_s": 2.860597610473633,
+            "reset_probability": 0.00011558949724016223,
+            "reset_log_probability": -9.065465460177357,
+            "keep_log_probability": -0.0001155961782210202
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 9.854673634869491e-05,
+            "event_id": "image:00000247",
+            "stamp": 1792080002.2537544,
+            "elapsed_s": 2.2537543773651123,
+            "reset_probability": 0.3993882710334998,
+            "reset_log_probability": -0.9178212248975748,
+            "keep_log_probability": -0.5098065948748389
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 9.854673634869491e-05,
+            "event_id": "image:00000247",
+            "stamp": 1792080002.2537544,
+            "elapsed_s": 2.2537543773651123,
+            "reset_probability": 0.3993882710334998,
+            "reset_log_probability": -0.9178212248975748,
+            "keep_log_probability": -0.5098065948748389
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.05627512644113846,
+            "event_id": "image:00000303",
+            "stamp": 1792080002.8605976,
+            "elapsed_s": 2.860597610473633,
+            "reset_probability": 0.00011558949724016223,
+            "reset_log_probability": -9.065465460177357,
+            "keep_log_probability": -0.0001155961782210202
+          }
+        },
+        "link_2": {
+          "all_mode_displacement_m": {
+            "value": 0.009338079204656667,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_mean_displacement_m": {
+            "value": 0.009329548309434447,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_modal_angle_rad": {
+            "value": 0.10588496956809255,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.008146919599355679,
+            "event_id": "image:00000303",
+            "stamp": 1792080002.8605976,
+            "elapsed_s": 2.860597610473633,
+            "reset_probability": 0.00011558949724016223,
+            "reset_log_probability": -9.065465460177357,
+            "keep_log_probability": -0.0001155961782210202
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.008144901571087871,
+            "event_id": "image:00000303",
+            "stamp": 1792080002.8605976,
+            "elapsed_s": 2.860597610473633,
+            "reset_probability": 0.00011558949724016223,
+            "reset_log_probability": -9.065465460177357,
+            "keep_log_probability": -0.0001155961782210202
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.04659854245891462,
+            "event_id": "image:00000255",
+            "stamp": 1792080002.34007,
+            "elapsed_s": 2.3400700092315674,
+            "reset_probability": 6.290314910121902e-05,
+            "reset_log_probability": -9.67391433030889,
+            "keep_log_probability": -6.290512758717034e-05
+          }
+        },
+        "link_3": {
+          "all_mode_displacement_m": {
+            "value": 0.047182459526536935,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_mean_displacement_m": {
+            "value": 0.047102933913417695,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_modal_angle_rad": {
+            "value": 0.1623468770430559,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.016786435529825432,
+            "event_id": "image:00000255",
+            "stamp": 1792080002.34007,
+            "elapsed_s": 2.3400700092315674,
+            "reset_probability": 6.290314910121902e-05,
+            "reset_log_probability": -9.67391433030889,
+            "keep_log_probability": -6.290512758717034e-05
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.016721216245225965,
+            "event_id": "image:00000255",
+            "stamp": 1792080002.34007,
+            "elapsed_s": 2.3400700092315674,
+            "reset_probability": 6.290314910121902e-05,
+            "reset_log_probability": -9.67391433030889,
+            "keep_log_probability": -6.290512758717034e-05
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.08204551335670424,
+            "event_id": "image:00000255",
+            "stamp": 1792080002.34007,
+            "elapsed_s": 2.3400700092315674,
+            "reset_probability": 6.290314910121902e-05,
+            "reset_log_probability": -9.67391433030889,
+            "keep_log_probability": -6.290512758717034e-05
+          }
+        },
+        "link_4": {
+          "all_mode_displacement_m": {
+            "value": 0.037899807663132244,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_mean_displacement_m": {
+            "value": 0.03796273941303816,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_modal_angle_rad": {
+            "value": 0.21986201915506431,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.010672562793951058,
+            "event_id": "image:00000227",
+            "stamp": 1792080002.0870562,
+            "elapsed_s": 2.0870561599731445,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -90.9444320908932
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.010637182654567414,
+            "event_id": "image:00000227",
+            "stamp": 1792080002.0870562,
+            "elapsed_s": 2.0870561599731445,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -90.9444320908932
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.08087291337048279,
+            "event_id": "image:00000255",
+            "stamp": 1792080002.34007,
+            "elapsed_s": 2.3400700092315674,
+            "reset_probability": 6.290314910121902e-05,
+            "reset_log_probability": -9.67391433030889,
+            "keep_log_probability": -6.290512758717034e-05
+          }
+        },
+        "link_5": {
+          "all_mode_displacement_m": {
+            "value": 0.05758141078629357,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_mean_displacement_m": {
+            "value": 0.05757403966116784,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_modal_angle_rad": {
+            "value": 0.2831488264379191,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.01301230391188128,
+            "event_id": "image:00000227",
+            "stamp": 1792080002.0870562,
+            "elapsed_s": 2.0870561599731445,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -90.9444320908932
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.01295124982455347,
+            "event_id": "image:00000227",
+            "stamp": 1792080002.0870562,
+            "elapsed_s": 2.0870561599731445,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -90.9444320908932
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.08761437255810599,
+            "event_id": "image:00000272",
+            "stamp": 1792080002.505199,
+            "elapsed_s": 2.5051989555358887,
+            "reset_probability": 0.0001414441958015146,
+            "reset_log_probability": -8.86360529462866,
+            "keep_log_probability": -0.00014145419997521703
+          }
+        },
+        "link_6": {
+          "all_mode_displacement_m": {
+            "value": 0.09063630614470966,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_mean_displacement_m": {
+            "value": 0.09044556834518111,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_modal_angle_rad": {
+            "value": 0.351040252861653,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.01469947958197052,
+            "event_id": "image:00000272",
+            "stamp": 1792080002.505199,
+            "elapsed_s": 2.5051989555358887,
+            "reset_probability": 0.0001414441958015146,
+            "reset_log_probability": -8.86360529462866,
+            "keep_log_probability": -0.00014145419997521703
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.014718169033809438,
+            "event_id": "image:00000272",
+            "stamp": 1792080002.505199,
+            "elapsed_s": 2.5051989555358887,
+            "reset_probability": 0.0001414441958015146,
+            "reset_log_probability": -8.86360529462866,
+            "keep_log_probability": -0.00014145419997521703
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.042926345731220734,
+            "event_id": "image:00000227",
+            "stamp": 1792080002.0870562,
+            "elapsed_s": 2.0870561599731445,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -90.9444320908932
+          }
+        },
+        "tool0": {
+          "all_mode_displacement_m": {
+            "value": 0.12527836114429095,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_mean_displacement_m": {
+            "value": 0.12486015435725588,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "all_modal_angle_rad": {
+            "value": 0.351040252861653,
+            "event_id": "image:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.25,
+            "reset_log_probability": -1.3862943611198906,
+            "keep_log_probability": -0.28768207245178085
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.015541349811257326,
+            "event_id": "image:00000272",
+            "stamp": 1792080002.505199,
+            "elapsed_s": 2.5051989555358887,
+            "reset_probability": 0.0001414441958015146,
+            "reset_log_probability": -8.86360529462866,
+            "keep_log_probability": -0.00014145419997521703
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.015555890964306724,
+            "event_id": "image:00000272",
+            "stamp": 1792080002.505199,
+            "elapsed_s": 2.5051989555358887,
+            "reset_probability": 0.0001414441958015146,
+            "reset_log_probability": -8.86360529462866,
+            "keep_log_probability": -0.00014145419997521703
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.042926345731220734,
+            "event_id": "image:00000227",
+            "stamp": 1792080002.0870562,
+            "elapsed_s": 2.0870561599731445,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -90.9444320908932
+          }
+        }
+      },
+      "over_one_meter_count": 0,
+      "over_100mm_after_initial_time_count": 0,
+      "initial_observation_nonlinear_consistency": {
+        "event_id": "image:00000000",
+        "original_stamp": 1792080000.0,
+        "original_command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+        "state_arrays_archive_sha256": "731894bdb9514c73f3a61ef7d681677980d857f4b4070e25babf455fccc3103c",
+        "sensor": "image",
+        "native_central_component_count": 1,
+        "modes": [
+          {
+            "log_weight": 0.0,
+            "prior_whitened_residual_sq": 12374687.144818565,
+            "posterior_whitened_residual_sq": 67217.71661624871,
+            "prior_translation_residual_m": 0.4207364461021534,
+            "posterior_translation_residual_m": 0.07881841792388777,
+            "prior_rotation_residual_rad": 0.3647837482261403,
+            "posterior_rotation_residual_rad": 0.0016895767622105474
+          }
+        ],
+        "prior_nonlinear_log_likelihood": -6187306.742580498,
+        "posterior_nonlinear_log_likelihood": -33572.02847933927,
+        "diagnostic_approximation": "Evaluate exact modal orientation composition and existing O(P) query correction in the original frozen observation chart; no inference relinearization."
+      }
+    },
+    "imu_marker": {
+      "event_count": 121,
+      "source_unchanged": true,
+      "error": null,
+      "per_link": {
+        "link_1": {
+          "all_mode_displacement_m": {
+            "value": 9.522389926144358e-05,
+            "event_id": "image:00000118",
+            "stamp": 1792080001.0014508,
+            "elapsed_s": 1.001450777053833,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -476.83622087386055
+          },
+          "all_mean_displacement_m": {
+            "value": 9.522389926144358e-05,
+            "event_id": "image:00000118",
+            "stamp": 1792080001.0014508,
+            "elapsed_s": 1.001450777053833,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -476.83622087386055
+          },
+          "all_modal_angle_rad": {
+            "value": 0.08268403176971253,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 9.522389926144358e-05,
+            "event_id": "image:00000118",
+            "stamp": 1792080001.0014508,
+            "elapsed_s": 1.001450777053833,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -476.83622087386055
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 9.522389926144358e-05,
+            "event_id": "image:00000118",
+            "stamp": 1792080001.0014508,
+            "elapsed_s": 1.001450777053833,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -476.83622087386055
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.07881724507439833,
+            "event_id": "image:00000148",
+            "stamp": 1792080001.251444,
+            "elapsed_s": 1.2514441013336182,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -49.391694061420736
+          }
+        },
+        "link_2": {
+          "all_mode_displacement_m": {
+            "value": 0.014878886468002051,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_mean_displacement_m": {
+            "value": 0.014866214253160752,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_modal_angle_rad": {
+            "value": 0.17455517818050822,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.014181546818126894,
+            "event_id": "image:00000148",
+            "stamp": 1792080001.251444,
+            "elapsed_s": 1.2514441013336182,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -49.391694061420736
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.014173001454665633,
+            "event_id": "image:00000148",
+            "stamp": 1792080001.251444,
+            "elapsed_s": 1.2514441013336182,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -49.391694061420736
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.13767048945040145,
+            "event_id": "image:00000148",
+            "stamp": 1792080001.251444,
+            "elapsed_s": 1.2514441013336182,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -49.391694061420736
+          }
+        },
+        "link_3": {
+          "all_mode_displacement_m": {
+            "value": 0.07731170448655289,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_mean_displacement_m": {
+            "value": 0.07721329775063428,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_modal_angle_rad": {
+            "value": 0.27791021789265696,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.06298899523182006,
+            "event_id": "image:00000148",
+            "stamp": 1792080001.251444,
+            "elapsed_s": 1.2514441013336182,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -49.391694061420736
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.06294088646083092,
+            "event_id": "image:00000148",
+            "stamp": 1792080001.251444,
+            "elapsed_s": 1.2514441013336182,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -49.391694061420736
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.18545850336887798,
+            "event_id": "image:00000230",
+            "stamp": 1792080002.0842977,
+            "elapsed_s": 2.0842976570129395,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -40.41250735107886
+          }
+        },
+        "link_4": {
+          "all_mode_displacement_m": {
+            "value": 0.06153980367388364,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_mean_displacement_m": {
+            "value": 0.0616316648727567,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_modal_angle_rad": {
+            "value": 0.27791021789265696,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.05300459202323602,
+            "event_id": "image:00000088",
+            "stamp": 1792080000.7565477,
+            "elapsed_s": 0.7565476894378662,
+            "reset_probability": 0.9965802945414255,
+            "reset_log_probability": -0.003425566016021052,
+            "keep_log_probability": -5.678200854840211
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.0528889036420765,
+            "event_id": "image:00000088",
+            "stamp": 1792080000.7565477,
+            "elapsed_s": 0.7565476894378662,
+            "reset_probability": 0.9965802945414255,
+            "reset_log_probability": -0.003425566016021052,
+            "keep_log_probability": -5.678200854840211
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.11733422134537172,
+            "event_id": "image:00000230",
+            "stamp": 1792080002.0842977,
+            "elapsed_s": 2.0842976570129395,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -40.41250735107886
+          }
+        },
+        "link_5": {
+          "all_mode_displacement_m": {
+            "value": 0.08654876755223077,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_mean_displacement_m": {
+            "value": 0.08662449639500032,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_modal_angle_rad": {
+            "value": 0.2779102178926522,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.05938147414552864,
+            "event_id": "image:00000245",
+            "stamp": 1792080002.2542462,
+            "elapsed_s": 2.254246234893799,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -103.28939123435694
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.059362147595275805,
+            "event_id": "image:00000245",
+            "stamp": 1792080002.2542462,
+            "elapsed_s": 2.254246234893799,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -103.28939123435694
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.05822715081494354,
+            "event_id": "image:00000240",
+            "stamp": 1792080002.1675768,
+            "elapsed_s": 2.167576789855957,
+            "reset_probability": 0.9999999926011162,
+            "reset_log_probability": -7.398883922588836e-09,
+            "keep_log_probability": -18.7219366613513
+          }
+        },
+        "link_6": {
+          "all_mode_displacement_m": {
+            "value": 0.11892886807923567,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_mean_displacement_m": {
+            "value": 0.11877654592038393,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_modal_angle_rad": {
+            "value": 0.2779102178926522,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.0609329005163521,
+            "event_id": "image:00000245",
+            "stamp": 1792080002.2542462,
+            "elapsed_s": 2.254246234893799,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -103.28939123435694
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.06090219019745838,
+            "event_id": "image:00000245",
+            "stamp": 1792080002.2542462,
+            "elapsed_s": 2.254246234893799,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -103.28939123435694
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.09248104864537661,
+            "event_id": "image:00000148",
+            "stamp": 1792080001.251444,
+            "elapsed_s": 1.2514441013336182,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -49.391694061420736
+          }
+        },
+        "tool0": {
+          "all_mode_displacement_m": {
+            "value": 0.14620608928106799,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_mean_displacement_m": {
+            "value": 0.14580733444152263,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "all_modal_angle_rad": {
+            "value": 0.2779102178926522,
+            "event_id": "imu:00000000",
+            "stamp": 1792080000.0,
+            "elapsed_s": 0.0,
+            "reset_probability": 0.2500000000000001,
+            "reset_log_probability": -1.3862943611198901,
+            "keep_log_probability": -0.287682072451781
+          },
+          "after_initial_time_mode_displacement_m": {
+            "value": 0.05538272621096454,
+            "event_id": "image:00000230",
+            "stamp": 1792080002.0842977,
+            "elapsed_s": 2.0842976570129395,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -40.41250735107886
+          },
+          "after_initial_time_mean_displacement_m": {
+            "value": 0.05561245120720691,
+            "event_id": "image:00000230",
+            "stamp": 1792080002.0842977,
+            "elapsed_s": 2.0842976570129395,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -40.41250735107886
+          },
+          "after_initial_time_modal_angle_rad": {
+            "value": 0.09248104864537661,
+            "event_id": "image:00000148",
+            "stamp": 1792080001.251444,
+            "elapsed_s": 1.2514441013336182,
+            "reset_probability": 1.0,
+            "reset_log_probability": 0.0,
+            "keep_log_probability": -49.391694061420736
+          }
+        }
+      },
+      "over_one_meter_count": 0,
+      "over_100mm_after_initial_time_count": 0,
+      "initial_observation_nonlinear_consistency": {
+        "event_id": "imu:00000000",
+        "original_stamp": 1792080000.0,
+        "original_command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+        "state_arrays_archive_sha256": "c81b5ec54b50163a72602e787656c444d1c3e11cff67051d8dad23377598e8f6",
+        "sensor": "imu",
+        "target_link": "link_3",
+        "observed_direction": [
+          0.706013483277297,
+          -0.005795629970420448,
+          -0.7081746762656118
+        ],
+        "prior_direction": [
+          0.47942553860420306,
+          0.0,
+          -0.8775825618903731
+        ],
+        "posterior_direction": [
+          0.7017406964076006,
+          -0.0056760172185551065,
+          -0.7124098383893298
+        ],
+        "prior_angle_rad": 0.28392750318655857,
+        "posterior_angle_rad": 0.006017285293868098,
+        "prior_nonlinear_projected_residual_sq": 541.2854841320542,
+        "posterior_nonlinear_projected_residual_sq": 0.26907418290974094
+      }
+    }
+  }
+}

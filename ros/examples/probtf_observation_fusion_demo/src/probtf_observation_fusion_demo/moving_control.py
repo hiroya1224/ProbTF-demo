@@ -26,8 +26,8 @@ from probtf.geometry import (
 )
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, bingham_from_rotation_coordinates,
-    point_query, pose_query,
 )
+from .body_native import point_query, pose_query
 from probtf.spherical_law.support import covariance_support, require_in_support
 from .joint_batch_fusion import add_log_evidence_parts, log_evidence_parts_difference
 
@@ -330,6 +330,7 @@ class MovingController:
         self.velocity = np.zeros(len(joints))
         self.visual_approach_settings = dict(motion.get('visual_approach', {}))
         self.visual_approach_policy = None
+        self.local_quadratic_model_settings = dict(motion.get('local_quadratic_model', {}))
 
     def reaching_step(self, result, dt, *, command_map=None):
         """Use the complete IK throughout; centering only proposes a start."""
@@ -428,7 +429,7 @@ class MovingController:
         return objective, branches
 
     def gradient_at_command(self, result, source_command=None, *, command_map=None,
-                            evaluation_observer=None):
+                            evaluation_observer=None, evaluation_details_observer=None):
         """Differentiate full J at the snapshot's sent command, not an IK endpoint.
 
         Each side is restricted only by physical joint positions and the
@@ -437,6 +438,8 @@ class MovingController:
         side gives an explicitly reported first-order difference. If a joint
         has no evaluable side the whole result fails, without zero filling.
         The same immutable source and stable-branch action serve all probes.
+        The optional details observer receives the already computed states,
+        queries and branches; it must not mutate them or cause another push.
         """
         started = perf_counter()
         record = dict(gradient=None, source_command=None,
@@ -480,17 +483,21 @@ class MovingController:
                     attempt = dict(command=list(key), status='failed', reason=None)
                     diagnostics['evaluations'].append(attempt)
                     try:
-                        if evaluation_observer is None:
+                        if evaluation_observer is None and evaluation_details_observer is None:
                             log_density, branches, _ = self._evaluate_command_objective(
                                 components, np.asarray(candidate), command_map)
                         else:
                             states=[]
-                            log_density, branches, _ = self._evaluate_command_objective(
+                            log_density, branches, queries = self._evaluate_command_objective(
                                 components, np.asarray(candidate), command_map,trial_states=states)
                             # Selection-layer observers receive the exact
                             # already-transported laws, never an independent
                             # copy or an alternative task objective.
-                            evaluation_observer(np.asarray(candidate),components,tuple(states))
+                            if evaluation_observer is not None:
+                                evaluation_observer(np.asarray(candidate),components,tuple(states))
+                            if evaluation_details_observer is not None:
+                                evaluation_details_observer(np.asarray(candidate), components,
+                                    tuple(states), queries, tuple(branches))
                         objective = -log_density
                         if not np.isfinite(objective):
                             raise ValueError('The complete relative objective is not finite.')

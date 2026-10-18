@@ -23,7 +23,7 @@ class AsyncMotionLive:
     """Keep physics on its timer; send immutable sources to the ROS process."""
     def __init__(self, observations_path, output, case, autostart, *, imu_target_link=None,
                  max_updates=0, duration=None, control_mode=None, running_gradient_options=None,
-                 visibility_factor_options=None):
+                 visibility_factor_options=None, observation_selection_options=None):
         if max_updates:
             raise ValueError('max_updates is a synchronous audit limit; use async_duration_s for async runs.')
         self.lock, self.publication_lock, self.case = RLock(), RLock(), case
@@ -31,13 +31,15 @@ class AsyncMotionLive:
         self.imu_target_link, self.duration = imu_target_link, duration
         self.control_mode,self.running_gradient_options=control_mode,running_gradient_options
         self.visibility_factor_options=visibility_factor_options
+        self.observation_selection_options=observation_selection_options
         self.autostart, self.replays = bool(autostart), 0
         self.closed = False
         self.failure_publisher = None
         cv2.setNumThreads(1)
         self.session = AsyncMotionSession(observations_path, output,
             imu_target_link=imu_target_link, duration=duration,control_mode=control_mode,
-            running_gradient_options=running_gradient_options,visibility_factor_options=visibility_factor_options)
+            running_gradient_options=running_gradient_options,visibility_factor_options=visibility_factor_options,
+            observation_selection_options=observation_selection_options)
         self._start_publication()
         self.service = rospy.Service('/observation_fusion/replay', Trigger, self.replay)
         self.physics_timer = rospy.Timer(rospy.Duration(self.session.period), self.advance)
@@ -87,7 +89,7 @@ class AsyncMotionLive:
     def _enqueue_publication(self):
         """Capture references only; serialization/drawing occurs in the child."""
         session = self.session
-        current, frame = session.current_control, session.frame
+        current, frame = getattr(session,'current_display',session.current_control), session.frame
         rows = tuple(session.scene.trajectory[self.trajectory_transmitted:])
         events = tuple(session.raw_publications)
         key = None if current is None else control_key(current)
@@ -213,7 +215,8 @@ class AsyncMotionLive:
             self.session = AsyncMotionSession(self.observations_path, path,
                 imu_target_link=self.imu_target_link, duration=self.duration,
                 control_mode=self.control_mode,running_gradient_options=self.running_gradient_options,
-                visibility_factor_options=self.visibility_factor_options)
+                visibility_factor_options=self.visibility_factor_options,
+                observation_selection_options=self.observation_selection_options)
             self._start_publication()
             self.autostart = True
             return TriggerResponse(True, 'Starting a fresh asynchronous experiment.')

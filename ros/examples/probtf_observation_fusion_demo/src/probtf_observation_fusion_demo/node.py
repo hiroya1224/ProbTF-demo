@@ -15,7 +15,7 @@ from std_msgs.msg import String
 from std_srvs.srv import Trigger, TriggerResponse
 from visualization_msgs.msg import MarkerArray
 
-from probtf.spherical_law.first_order import point_query
+from .body_native import point_query
 from .display import (
     DisplayPoint, DisplaySnapshot, make_markers, save_snapshot, snapshot_record,
     verify_measure_identity,

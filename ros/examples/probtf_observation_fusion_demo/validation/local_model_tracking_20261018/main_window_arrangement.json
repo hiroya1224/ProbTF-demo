@@ -1,0 +1,19 @@
+{
+  "wall_s": 1792297629.8188298,
+  "window_ids": [
+    "0x4a0000e",
+    "0x520000e"
+  ],
+  "positions": [
+    [
+      20,
+      60
+    ],
+    [
+      1940,
+      60
+    ]
+  ],
+  "sizes_changed": false,
+  "timing": "after_physical_90s; original screenshots preserved"
+}

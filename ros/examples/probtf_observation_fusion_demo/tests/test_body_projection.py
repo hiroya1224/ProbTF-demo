@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from probtf.spherical_law.first_order import reexpress_state
+from probtf_observation_fusion_demo.body_native import reexpress_state
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent
 from probtf.spherical_law.support import covariance_support
 from probtf_observation_fusion_demo.body_projection import project_update, retain_goal_components

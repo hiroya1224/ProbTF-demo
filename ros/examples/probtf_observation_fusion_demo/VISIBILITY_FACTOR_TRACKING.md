@@ -1,5 +1,7 @@
 # Running Gradient Trackingへの視野因子（2026年10月18日）
 
+2026年10月18日追加訂正: 新しい既定のview因子は10度の中央許容円錐内で零になる `tolerance_cone` とした。旧常時中央化は `always_center` の比較用として残す。weight=2e6、task J、身体/目標lawは保持する。局所曲率と新しい実測は [LOCAL_MODEL_TRACKING.md](LOCAL_MODEL_TRACKING.md) を参照する。以下の旧因子の実測を新しいsourceの到達性能と混同しない。
+
 指定された[指示書原文](VISIBILITY_FACTOR_INSTRUCTIONS_20261018.md)を保存した。変更前は`a8f1bac5acac3323e1a1e4fb948d8f712594b22b`。今回の追加は指令選定だけに作用する。[従来方式の説明と実測](RUNNING_GRADIENT_TRACKING.md)は、視野因子追加前の履歴として残す。
 
 共通30秒の実測では、検出時間率がmarkerで25.36%→96.06%、IMU併用で23.12%→96.10%になった。ただし到達は未達で、IMU版は剛性evidenceの数値判定で途中停止した。視野維持の効果と、未解決の推定遅延・停止を分けて以下へ記録する。

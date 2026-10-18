@@ -8,7 +8,10 @@ import pytest
 from scipy.special import logsumexp
 import yaml
 
-from probtf.spherical_law.first_order import BinghamTransform, JointTransformState, linear_query, point_query, reexpress_state
+from probtf.spherical_law.first_order import (
+    BinghamTransform, JointTransformState, linear_query, point_query,
+)
+from probtf_observation_fusion_demo.body_native import reexpress_state
 from probtf.spherical_law.fusion import PosteriorComponent, SensorPosterior, condition_gaussian, freeze_query
 from probtf_observation_fusion_demo.model import WeightedState, component_log_weight, run
 from probtf_observation_fusion_demo.moving_control import MovingController, command_state

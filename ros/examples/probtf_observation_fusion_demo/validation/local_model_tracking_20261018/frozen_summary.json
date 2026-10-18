@@ -1,0 +1,1531 @@
+{
+  "schema": "probtf_frozen_local_model_comparison_v1",
+  "scope": "Offline command-model trajectories on two fixed candidate laws derived from initial real rendered sensor inputs. No physical reaching experiment, observation update, stiffness update, or gradient refresh occurs during these 30 seconds.",
+  "fixture": "Rendered marker/IMU initial simultaneous compatibility fixture; stiffness Bayes-factor change recurrence explicitly disabled only for this fixture.",
+  "final_method": "mixture_gaussian_bingham_tangent_fisher",
+  "settings": {
+    "eta": 1e-06,
+    "gamma": 8.0,
+    "visibility_weight": 2000000.0,
+    "penalty_mode": "tolerance_cone",
+    "tolerance_angle_deg": 10.0,
+    "regularization_absolute": 100000.0,
+    "regularization_relative": 1e-06,
+    "integration_dt_s": 0.005,
+    "diagnostic_sample_period_s": 0.5,
+    "requested_duration_s": 30.0
+  },
+  "interpretation": {
+    "relative_position_rms": "sqrt(sum native_goal_weight*(norm(relative_position_mean-goal_offset)^2+trace(relative_position_covariance))); estimated candidate quantity, not physical tip error",
+    "objective": "Complete original frozen-law task J plus lambda times the complete native-mixture view penalty V, independently re-evaluated along the trajectory.",
+    "curvature": "Fixed source Fisher/GN approximation plus declared ridge; its stable stationary point is not an optimum of the nonlinear full criterion.",
+    "constraint_stop": "A proposed joint position outside the actual URDF box ends that trial. The proposed command is not executed or clipped; its last safe position and velocity are recorded.",
+    "covariance_law": "No candidate covariance, native mixture, body/goal cross block, or parameter density changes between the two execution models.",
+    "diagnostic_queries": "H reuses the 13 existing full-J source/probe evaluations. Further exact J/V queries are evaluation only and do not refresh the packet.",
+    "trajectory_after_stop": "The final CSV sample at the last safe model time contains the tracker halted velocity (zero). The motion velocity immediately before the stop is separately recorded in actual_stop.last_safe_velocity."
+  },
+  "limitations": [
+    "The two local-model trials stay within the joint box for these 30 seconds; this does not guarantee another law, delayed packet switch, or live physical motion will do so.",
+    "The exact nonlinear selected objective is not monotone: it rises again after its early minimum even with the stable fixed SPD model.",
+    "The IMU+marker local-model estimated relative RMS increases from its initial value by 30 seconds.",
+    "No claim of physical arrival, live stability, collision safety, or updated-source performance follows from this fixed-law fixture.",
+    "The residual-GN design alternative was compared but is not implemented as an additional production method."
+  ],
+  "source_code_sha256": {
+    "moving_control.py": "cef417cd56e72cd5966ec39357d074a2a5a0797722ed1e87f98699c39aa2c4bc",
+    "visibility_factor.py": "318a6e8cba19ed5fda220eaffeec831985461014ed14bccaccea326f26665495",
+    "selection_gradient.py": "70897f53ee12b71a1e84f47fbc7634237e6d5df955a3e10e6be0deb26c9878dd",
+    "local_curvature.py": "0d504115dd98f13d43354beb3e12a3925eeb2a0e1d4ecec250afb7f51e9ddb88",
+    "running_gradient.py": "be0edb08d460d952844087c7c5d2300053f5db97eee18665f8b0e0db4de9ecae"
+  },
+  "cases": {
+    "marker": {
+      "source": {
+        "source_stamp": 1792080000.0,
+        "source_command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "body_state_ids": [
+          "ee499c1070a9f6286816fc96b2951adfc1ec893dba942f8ba99a388cd1b270ae"
+        ],
+        "goal_state_ids": [
+          "a3c66814dfbff574c4462aba0b7e5e2455c1c03a0751159cc851bc789d048458"
+        ],
+        "parameter_density_id": "fe01b690880c5f76292389e819228b1bb4b8646e2144d362275eee571a93babd",
+        "selected_K": [
+          104.09105922304327,
+          90.48184792536931,
+          95.39158617848587,
+          104.09792358691497,
+          101.01376251598218,
+          104.04663251319766
+        ]
+      },
+      "source_gradient": [
+        -107889.9340621404,
+        144335.4570654274,
+        307208.19877630466,
+        36520.98619659166,
+        155692.5464825024,
+        -26570.190769232653
+      ],
+      "source_curvature": [
+        [
+          313898.2224530638,
+          -64426.75183296837,
+          -123204.78569090662,
+          52342.20151857444,
+          -36601.702187433504,
+          222660.72453430662
+        ],
+        [
+          -64426.75183296837,
+          611960.3074065197,
+          539621.7406203768,
+          204754.53187341685,
+          378946.5050746899,
+          233003.00610540554
+        ],
+        [
+          -123204.78569090662,
+          539621.7406203768,
+          733359.5112626564,
+          172502.7543097012,
+          399652.168294108,
+          150225.9930044939
+        ],
+        [
+          52342.20151857444,
+          204754.53187341685,
+          172502.7543097012,
+          508354.66350893653,
+          173601.65244644883,
+          575755.3351926948
+        ],
+        [
+          -36601.702187433504,
+          378946.5050746899,
+          399652.168294108,
+          173601.65244644883,
+          385508.3247723947,
+          209636.87949869357
+        ],
+        [
+          222660.72453430662,
+          233003.00610540554,
+          150225.9930044939,
+          575755.3351926948,
+          209636.87949869357,
+          1021080.202076248
+        ]
+      ],
+      "joint_lower": [
+        -3.1416,
+        -2.3562,
+        -2.7925,
+        -3.1416,
+        -2.3562,
+        -3.1416
+      ],
+      "joint_upper": [
+        3.1416,
+        2.3562,
+        2.7925,
+        3.1416,
+        2.3562,
+        3.1416
+      ],
+      "probe_reuse": {
+        "task_probe_count": 13,
+        "additional_command_pushes": 0,
+        "additional_core_queries": 0,
+        "monte_carlo_used": false
+      },
+      "task_objective_and_gradient_bitwise_identical_between_execution_models": true,
+      "source_model_diagnostics": {
+        "eigenvalues": [
+          100630.58732773944,
+          102058.23706760234,
+          124744.32340898237,
+          256811.1760672566,
+          1087605.0041109475,
+          1902311.9034972896
+        ],
+        "regularization_absolute": 100000.0,
+        "regularization_relative": 1e-06,
+        "regularization_scale_trace_over_dimension": 495693.042886927,
+        "regularization_added": 100000.49569304289,
+        "unconstrained_equilibrium_command": [
+          -0.0076039000128478584,
+          -1.4254414081356845,
+          1.7456664759270464,
+          -0.047584888216782015,
+          -1.138284713128169,
+          0.05248953063296107
+        ],
+        "unconstrained_equilibrium_within_joint_positions": true
+      },
+      "modal_envelope_time_constants_s": [
+        79.37349416214505,
+        78.26141761013484,
+        64.0059301253579,
+        31.025786604358434,
+        7.228411967125803,
+        4.076454970718788
+      ],
+      "trajectory_csv": "frozen_marker.csv",
+      "models": {
+        "constant": {
+          "completed_requested_model_duration": false,
+          "elapsed_model_time_s": 28.18,
+          "actual_stop": {
+            "attempted_model_time_s": 28.185000000000002,
+            "last_safe_model_time_s": 28.18,
+            "reason": "joint_position_out_of_range",
+            "status": "fail_safe_stop",
+            "proposed_command": [
+              0.228423943722969,
+              -2.3562566156567906,
+              1.2724672427921524,
+              -0.12809735908455153,
+              -1.4960916067864383,
+              0.09319494412308384
+            ],
+            "last_safe_command": [
+              0.22835651251418015,
+              -2.3561664059961247,
+              1.2726592479163876,
+              -0.12807453346817865,
+              -1.495994298944887,
+              0.09317833775385306
+            ],
+            "last_safe_velocity": [
+              0.013486241757767527,
+              -0.018041932133178357,
+              -0.03840102484703799,
+              -0.004565123274573947,
+              -0.01946156831031273,
+              0.0033212738461540782
+            ],
+            "outside_joint_indices_zero_based": [
+              1
+            ],
+            "numerical_quality_is_stop_gate": false
+          },
+          "command_min": [
+            -0.15,
+            -2.3561664059961247,
+            1.2726592479163876,
+            -0.12807453346817865,
+            -1.495994298944887,
+            0.0
+          ],
+          "command_max": [
+            0.22835651251418015,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.09317833775385306
+          ],
+          "maximum_velocity_norm": 0.048914748212785145,
+          "initial": {
+            "time": 0.0,
+            "command": [
+              -0.15,
+              -1.85,
+              2.35,
+              0.0,
+              -0.95,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "exact_frozen_J": 93052.89943734377,
+            "exact_frozen_V": 0.0,
+            "exact_frozen_selected_objective": 93052.89943734377,
+            "estimated_relative_position_rms_m": 0.3679042550032935,
+            "local_model_equilibrium_distance": 0.7785989090322603
+          },
+          "at_5_s": {
+            "time": 5.0,
+            "command": [
+              -0.08425457143088402,
+              -1.9379544191491833,
+              2.162795003870718,
+              -0.02225497596354798,
+              -1.044875145512712,
+              0.016191210000001097
+            ],
+            "velocity": [
+              0.013486241757767527,
+              -0.018041932133178357,
+              -0.03840102484703799,
+              -0.004565123274573947,
+              -0.01946156831031273,
+              0.0033212738461540782
+            ],
+            "exact_frozen_J": 4483.759126379352,
+            "exact_frozen_V": 0.015413705718050988,
+            "exact_frozen_selected_objective": 35311.170562481326,
+            "estimated_relative_position_rms_m": 0.4029348672872235,
+            "local_model_equilibrium_distance": 0.673220350679515
+          },
+          "at_30_s": null,
+          "last_sample": {
+            "time": 28.18,
+            "command": [
+              0.22835651251418015,
+              -2.3561664059961247,
+              1.2726592479163876,
+              -0.12807453346817865,
+              -1.495994298944887,
+              0.09317833775385306
+            ],
+            "velocity": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "exact_frozen_J": 20212.07537426605,
+            "exact_frozen_V": 1.9193538568157762,
+            "exact_frozen_selected_objective": 3858919.7890058183,
+            "estimated_relative_position_rms_m": 1.8392251041160903,
+            "local_model_equilibrium_distance": 1.132145081460567
+          },
+          "minimum_sampled_selected_objective": {
+            "time": 3.0,
+            "value": 11681.831149282225
+          }
+        },
+        "local_fisher": {
+          "completed_requested_model_duration": true,
+          "elapsed_model_time_s": 30.0,
+          "actual_stop": null,
+          "command_min": [
+            -0.15,
+            -1.897572675355367,
+            2.0093219712426933,
+            -0.022441925422915995,
+            -1.0638759888697555,
+            0.0
+          ],
+          "command_max": [
+            -0.015266165290523227,
+            -1.7887594385695411,
+            2.35,
+            0.0,
+            -0.95,
+            0.06880801126746756
+          ],
+          "maximum_velocity_norm": 0.045825741127312136,
+          "initial": {
+            "time": 0.0,
+            "command": [
+              -0.15,
+              -1.85,
+              2.35,
+              0.0,
+              -0.95,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "exact_frozen_J": 93052.89943734377,
+            "exact_frozen_V": 0.0,
+            "exact_frozen_selected_objective": 93052.89943734377,
+            "estimated_relative_position_rms_m": 0.3679042550032935,
+            "local_model_equilibrium_distance": 0.7785989090322603
+          },
+          "at_5_s": {
+            "time": 5.0,
+            "command": [
+              -0.097903538011419,
+              -1.8954094753072583,
+              2.21443703927806,
+              -0.010027894000293597,
+              -1.012748547316288,
+              0.02333078617620714
+            ],
+            "velocity": [
+              0.008221894497062836,
+              -0.002689324643907584,
+              -0.019503240378705797,
+              -0.0005366716448445235,
+              -0.007848864988547059,
+              0.0051504867608385685
+            ],
+            "exact_frozen_J": 6465.3839010054,
+            "exact_frozen_V": 0.0027781885139681927,
+            "exact_frozen_selected_objective": 12021.760928941785,
+            "estimated_relative_position_rms_m": 0.3523820981374017,
+            "local_model_equilibrium_distance": 0.6832202711920251
+          },
+          "at_30_s": {
+            "time": 30.0,
+            "command": [
+              -0.015266165290523227,
+              -1.7887594385695411,
+              2.0093219712426933,
+              -0.022441925422915995,
+              -1.0638759888697555,
+              0.06880801126746756
+            ],
+            "velocity": [
+              0.001165511230589002,
+              0.005309832751389747,
+              -0.004359233057990732,
+              -0.0007239428101625928,
+              -0.0005572675140862888,
+              6.878789952668924e-06
+            ],
+            "exact_frozen_J": 2743.5700480405794,
+            "exact_frozen_V": 0.010696296107857977,
+            "exact_frozen_selected_objective": 24136.162263756534,
+            "estimated_relative_position_rms_m": 0.3250332556047491,
+            "local_model_equilibrium_distance": 0.45607898591329377
+          },
+          "last_sample": {
+            "time": 30.0,
+            "command": [
+              -0.015266165290523227,
+              -1.7887594385695411,
+              2.0093219712426933,
+              -0.022441925422915995,
+              -1.0638759888697555,
+              0.06880801126746756
+            ],
+            "velocity": [
+              0.001165511230589002,
+              0.005309832751389747,
+              -0.004359233057990732,
+              -0.0007239428101625928,
+              -0.0005572675140862888,
+              6.878789952668924e-06
+            ],
+            "exact_frozen_J": 2743.5700480405794,
+            "exact_frozen_V": 0.010696296107857977,
+            "exact_frozen_selected_objective": 24136.162263756534,
+            "estimated_relative_position_rms_m": 0.3250332556047491,
+            "local_model_equilibrium_distance": 0.45607898591329377
+          },
+          "minimum_sampled_selected_objective": {
+            "time": 4.5,
+            "value": 11623.652332167883
+          }
+        }
+      },
+      "ridge_selection_trials": {
+        "tolerance_cone": [
+          {
+            "absolute": 1e-06,
+            "regularization_added": 0.495694042886927,
+            "eigenvalues": [
+              630.5873287397343,
+              2058.2370686025174,
+              24744.323409982342,
+              156811.1760682567,
+              987605.0041119475,
+              1802311.90349829
+            ],
+            "equilibrium_command": [
+              -1.7584981055359528,
+              9.578761267151718,
+              0.848381749215392,
+              -3.129150028220825,
+              -15.016623321330469,
+              2.929032391902242
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 18.75365057646843,
+            "slowest_mode_time_constant_s": 12686.460401599827,
+            "fastest_mode_envelope_time_constant_s": 4.310009799622073
+          },
+          {
+            "absolute": 1000.0,
+            "regularization_added": 1000.495693042887,
+            "eigenvalues": [
+              1630.587327739589,
+              3058.237067602338,
+              25744.323408982305,
+              157811.17606725654,
+              988605.004110947,
+              1803311.9034972903
+            ],
+            "equilibrium_command": [
+              -0.6087212378357475,
+              6.269405541074697,
+              0.6563210223594644,
+              -0.9995997931633984,
+              -10.105354842994576,
+              1.0694547318900578
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 12.44858126313903,
+            "slowest_mode_time_constant_s": 4906.082633722252,
+            "fastest_mode_envelope_time_constant_s": 4.307546160831137
+          },
+          {
+            "absolute": 10000.0,
+            "regularization_added": 10000.495693042887,
+            "eigenvalues": [
+              10630.587327739802,
+              12058.237067602353,
+              34744.323408982535,
+              166811.1760672566,
+              997605.004110947,
+              1812311.90349729
+            ],
+            "equilibrium_command": [
+              -0.1353927627167035,
+              0.9442653464837458,
+              0.7331220085947727,
+              -0.13417725297057567,
+              -2.864135005622054,
+              0.1006026844300095
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 3.756922130163011,
+            "slowest_mode_time_constant_s": 752.4204175358425,
+            "fastest_mode_envelope_time_constant_s": 4.285495640715153
+          },
+          {
+            "absolute": 100000.0,
+            "regularization_added": 100000.49569304289,
+            "eigenvalues": [
+              100630.58732773944,
+              102058.23706760234,
+              124744.32340898237,
+              256811.1760672566,
+              1087605.0041109475,
+              1902311.9034972896
+            ],
+            "equilibrium_command": [
+              -0.0076039000128478584,
+              -1.4254414081356845,
+              1.7456664759270464,
+              -0.047584888216782015,
+              -1.138284713128169,
+              0.05248953063296107
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.7785989090322603,
+            "slowest_mode_time_constant_s": 79.37349416214505,
+            "fastest_mode_envelope_time_constant_s": 4.076454970718788
+          },
+          {
+            "absolute": 500000.0,
+            "regularization_added": 500000.4956930429,
+            "eigenvalues": [
+              500630.58732773975,
+              502058.2370676025,
+              524744.3234089832,
+              656811.1760672566,
+              1487605.0041109475,
+              2302311.903497291
+            ],
+            "equilibrium_command": [
+              -0.056797133300675304,
+              -1.8319707493192396,
+              2.1079017026832982,
+              -0.0161476347336998,
+              -1.0381680747254518,
+              0.04627925099749824
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.27892568613504076,
+            "slowest_mode_time_constant_s": 15.853853225162055,
+            "fastest_mode_envelope_time_constant_s": 3.3449155062094396
+          },
+          {
+            "absolute": 1000000.0,
+            "regularization_added": 1000000.4956930429,
+            "eigenvalues": [
+              1000630.5873277397,
+              1002058.2370676023,
+              1024744.3234089824,
+              1156811.1760672568,
+              1987605.0041109468,
+              2802311.90349729
+            ],
+            "equilibrium_command": [
+              -0.08613032887476824,
+              -1.8719630171176642,
+              2.188374187997153,
+              -0.010228695765401995,
+              -1.0164171671610496,
+              0.03204420325440508
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.19033472985534017,
+            "slowest_mode_time_constant_s": 7.867940513294764,
+            "fastest_mode_envelope_time_constant_s": 2.723773265999182
+          }
+        ],
+        "always_center": [
+          {
+            "absolute": 1e-06,
+            "regularization_added": 3.922372897547197,
+            "eigenvalues": [
+              679.6837783751533,
+              2123.143893810279,
+              132284.7827088366,
+              1223011.081115348,
+              8019780.456311489,
+              14156375.771712724
+            ],
+            "equilibrium_command": [
+              -2.0045325172086854,
+              9.355020062035283,
+              1.4080169784746293,
+              -3.81930450626247,
+              -15.673252463384312,
+              3.534605633024741
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 19.33219554147844,
+            "slowest_mode_time_constant_s": 11770.05438874815,
+            "fastest_mode_envelope_time_constant_s": 0.3784726637744102
+          },
+          {
+            "absolute": 1000.0,
+            "regularization_added": 1003.9223718975472,
+            "eigenvalues": [
+              1679.6837773739448,
+              3123.143892809092,
+              133284.78270783648,
+              1224011.0811143473,
+              8020780.456310491,
+              14157375.77171172
+            ],
+            "equilibrium_command": [
+              -0.6418997222789344,
+              5.880787510604064,
+              1.3746697866779005,
+              -1.3592352568222186,
+              -10.80600973132841,
+              1.4428611247362522
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 12.729045778400394,
+            "slowest_mode_time_constant_s": 4762.676250004727,
+            "fastest_mode_envelope_time_constant_s": 0.37841991635635575
+          },
+          {
+            "absolute": 10000.0,
+            "regularization_added": 10003.922371897546,
+            "eigenvalues": [
+              10679.683777371998,
+              12123.143892808632,
+              142284.782707835,
+              1233011.0811143469,
+              8029780.456310487,
+              14166375.771711715
+            ],
+            "equilibrium_command": [
+              -0.08503301522370993,
+              0.5196351608073955,
+              1.2537100725349513,
+              -0.16992379090689733,
+              -3.240990348623372,
+              0.22034115083222008
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 3.4852982949036964,
+            "slowest_mode_time_constant_s": 748.9608291245484,
+            "fastest_mode_envelope_time_constant_s": 0.3779452065138993
+          },
+          {
+            "absolute": 100000.0,
+            "regularization_added": 100003.92237189754,
+            "eigenvalues": [
+              100679.68377737413,
+              102123.1438928092,
+              232284.78270783587,
+              1323011.0811143483,
+              8119780.45631049,
+              14256375.771711713
+            ],
+            "equilibrium_command": [
+              -0.0705449572349233,
+              -1.303179346680269,
+              1.6400177167646066,
+              -0.020490369696149244,
+              -1.0553155965804344,
+              0.022921144915297773
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.9063318278884208,
+            "slowest_mode_time_constant_s": 79.33472652736778,
+            "fastest_mode_envelope_time_constant_s": 0.37319889196299916
+          },
+          {
+            "absolute": 500000.0,
+            "regularization_added": 500003.92237189756,
+            "eigenvalues": [
+              500679.6837773747,
+              502123.143892811,
+              632284.7827078362,
+              1723011.0811143487,
+              8519780.456310488,
+              14656375.771711715
+            ],
+            "equilibrium_command": [
+              -0.10254790849383508,
+              -1.6823324026719202,
+              2.0902565055721425,
+              -0.009697413410215135,
+              -0.9351728228465743,
+              0.011480202194505249
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.3134908086870961,
+            "slowest_mode_time_constant_s": 15.852286148807796,
+            "fastest_mode_envelope_time_constant_s": 0.35200708154435584
+          },
+          {
+            "absolute": 1000000.0,
+            "regularization_added": 1000003.9223718975,
+            "eigenvalues": [
+              1000679.6837773748,
+              1002123.1438928102,
+              1132284.7827078365,
+              2223011.081114347,
+              9019780.45631049,
+              15156375.771711718
+            ],
+            "equilibrium_command": [
+              -0.1139098015958916,
+              -1.7573113767393804,
+              2.2065091373188985,
+              -0.0091836455192128,
+              -0.9366469174561943,
+              0.008350876727752784
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.17554398957620312,
+            "slowest_mode_time_constant_s": 7.867548153567349,
+            "fastest_mode_envelope_time_constant_s": 0.32451624739496426
+          }
+        ]
+      },
+      "rejected_residual_GN_design_comparison": {
+        "adopted": false,
+        "note": "Weak-ridge stationary commands were inside the joint box in all four initial fixtures, but this did not demonstrate superior reaching or selected-objective performance. The production method remains Fisher.",
+        "cone_weak_ridge_stationary": {
+          "absolute": 1e-06,
+          "regularization_added": 3.7943093573342064,
+          "eigenvalues": [
+            823.8981989796501,
+            4008.8564600133486,
+            282397.5429027089,
+            1291326.683456106,
+            7988871.862907837,
+            13198444.065935742
+          ],
+          "equilibrium_command": [
+            -0.23442752261823832,
+            -1.8094708039974918,
+            1.4334818597712746,
+            -0.33374594282340647,
+            -0.312449695062878,
+            0.24970519903820482
+          ],
+          "equilibrium_within_joint_positions": true,
+          "equilibrium_increment_norm": 1.1954018386197989,
+          "slowest_mode_time_constant_s": 9709.812475991212,
+          "fastest_mode_envelope_time_constant_s": 0.4298828622813329
+        },
+        "cone_5s_selected_objective_weak_ridge": 31781.263548614435
+      }
+    },
+    "imu_marker": {
+      "source": {
+        "source_stamp": 1792080000.0,
+        "source_command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "body_state_ids": [
+          "c620552c7bc18ad8dd6b0a55df13b08e19a4278fbf36466cdcaa5daf03061943"
+        ],
+        "goal_state_ids": [
+          "250b4aca9563f84e7d76fa56a8d4637a330c1ce2f4359791e47624953e55aa7f"
+        ],
+        "parameter_density_id": "6bc8c5b94634a69d0962261090b2f3b01b2627b0862f25d9dc71b72b5c4cb554",
+        "selected_K": [
+          105.30897432692309,
+          79.85873756538311,
+          81.72322500537705,
+          105.27793956189144,
+          98.08035171927419,
+          105.25089322302884
+        ]
+      },
+      "source_gradient": [
+        -105438.7572998883,
+        198316.22134939223,
+        301618.65465956344,
+        47834.42526432084,
+        163744.82291023427,
+        -26596.638395682417
+      ],
+      "source_curvature": [
+        [
+          304827.37639547547,
+          -64505.67344457681,
+          -121407.78157280968,
+          43649.563654011174,
+          -40689.64227902614,
+          202005.31263079622
+        ],
+        [
+          -64505.67344457681,
+          587074.7366618891,
+          495306.9997571891,
+          204746.36957563655,
+          367037.1184217833,
+          233484.0012937798
+        ],
+        [
+          -121407.78157280968,
+          495306.9997571891,
+          672561.4108569775,
+          162571.39529702518,
+          376123.2484909615,
+          139406.96099676788
+        ],
+        [
+          43649.563654011174,
+          204746.36957563655,
+          162571.39529702518,
+          522884.09998450417,
+          174736.9719183788,
+          588545.0467234363
+        ],
+        [
+          -40689.64227902614,
+          367037.1184217833,
+          376123.2484909615,
+          174736.9719183788,
+          381638.3405299495,
+          208708.06519164436
+        ],
+        [
+          202005.31263079622,
+          233484.0012937798,
+          139406.96099676788,
+          588545.0467234363,
+          208708.06519164436,
+          1020932.0895557232
+        ]
+      ],
+      "joint_lower": [
+        -3.1416,
+        -2.3562,
+        -2.7925,
+        -3.1416,
+        -2.3562,
+        -3.1416
+      ],
+      "joint_upper": [
+        3.1416,
+        2.3562,
+        2.7925,
+        3.1416,
+        2.3562,
+        3.1416
+      ],
+      "probe_reuse": {
+        "task_probe_count": 13,
+        "additional_command_pushes": 0,
+        "additional_core_queries": 0,
+        "monte_carlo_used": false
+      },
+      "task_objective_and_gradient_bitwise_identical_between_execution_models": true,
+      "source_model_diagnostics": {
+        "eigenvalues": [
+          100599.92982810829,
+          102071.07225146421,
+          126277.43573243052,
+          256151.02366051357,
+          1049105.9319859848,
+          1855712.6605260167
+        ],
+        "regularization_absolute": 100000.0,
+        "regularization_relative": 1e-06,
+        "regularization_scale_trace_over_dimension": 481652.5273448925,
+        "regularization_added": 100000.48165252735,
+        "unconstrained_equilibrium_command": [
+          -0.04237126980313945,
+          -1.7536775217717606,
+          1.895733848211326,
+          -0.11102509797445066,
+          -1.0301191697533245,
+          0.12513854629833784
+        ],
+        "unconstrained_equilibrium_within_joint_positions": true
+      },
+      "modal_envelope_time_constants_s": [
+        79.39772118860532,
+        78.25156066240244,
+        63.22732170002857,
+        31.10607102371121,
+        7.49842161863991,
+        4.182161028383866
+      ],
+      "trajectory_csv": "frozen_imu_marker.csv",
+      "models": {
+        "constant": {
+          "completed_requested_model_duration": false,
+          "elapsed_model_time_s": 20.54,
+          "actual_stop": {
+            "attempted_model_time_s": 20.545,
+            "last_safe_model_time_s": 20.54,
+            "reason": "joint_position_out_of_range",
+            "status": "fail_safe_stop",
+            "proposed_command": [
+              0.11913242800796708,
+              -2.3562021549952896,
+              1.5801183839814037,
+              -0.12209737048718111,
+              -1.3679586604780187,
+              0.06788791950498112
+            ],
+            "last_safe_command": [
+              0.11906652878465465,
+              -2.356078207356946,
+              1.580306895640566,
+              -0.12206747397139091,
+              -1.3678563199637,
+              0.06787129660598382
+            ],
+            "last_safe_velocity": [
+              0.01317984466248602,
+              -0.024789527668673948,
+              -0.037702331832445285,
+              -0.005979303158040089,
+              -0.020468102863779203,
+              0.0033245797994602903
+            ],
+            "outside_joint_indices_zero_based": [
+              1
+            ],
+            "numerical_quality_is_stop_gate": false
+          },
+          "command_min": [
+            -0.15,
+            -2.356078207356946,
+            1.580306895640566,
+            -0.12206747397139091,
+            -1.3678563199637,
+            0.0
+          ],
+          "command_max": [
+            0.11906652878465465,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.06787129660598382
+          ],
+          "maximum_velocity_norm": 0.05172468409674441,
+          "initial": {
+            "time": 0.0,
+            "command": [
+              -0.15,
+              -1.85,
+              2.35,
+              0.0,
+              -0.95,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "exact_frozen_J": 93141.13560043485,
+            "exact_frozen_V": 0.0,
+            "exact_frozen_selected_objective": 93141.13560043485,
+            "estimated_relative_position_rms_m": 0.36797212827284825,
+            "local_model_equilibrium_distance": 0.5114929222858989
+          },
+          "at_5_s": {
+            "time": 5.0,
+            "command": [
+              -0.08574825727037569,
+              -1.9708489473848754,
+              2.166201132316768,
+              -0.02914910289544532,
+              -1.0497820014609058,
+              0.016207326522368944
+            ],
+            "velocity": [
+              0.01317984466248602,
+              -0.024789527668673948,
+              -0.037702331832445285,
+              -0.005979303158040089,
+              -0.020468102863779203,
+              0.0033245797994602903
+            ],
+            "exact_frozen_J": 5747.530694869479,
+            "exact_frozen_V": 0.021598766339872844,
+            "exact_frozen_selected_objective": 48945.063374615165,
+            "estimated_relative_position_rms_m": 0.43105815626007193,
+            "local_model_equilibrium_distance": 0.3757044837086159
+          },
+          "at_30_s": null,
+          "last_sample": {
+            "time": 20.54,
+            "command": [
+              0.11906652878465465,
+              -2.356078207356946,
+              1.580306895640566,
+              -0.12206747397139091,
+              -1.3678563199637,
+              0.06787129660598382
+            ],
+            "velocity": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "exact_frozen_J": 24260.091547439002,
+            "exact_frozen_V": 1.5959280797080138,
+            "exact_frozen_selected_objective": 3216116.2509634662,
+            "estimated_relative_position_rms_m": 1.5906987178612797,
+            "local_model_equilibrium_distance": 0.7784027015636964
+          },
+          "minimum_sampled_selected_objective": {
+            "time": 3.0,
+            "value": 13597.054839767927
+          }
+        },
+        "local_fisher": {
+          "completed_requested_model_duration": true,
+          "elapsed_model_time_s": 30.0,
+          "actual_stop": null,
+          "command_min": [
+            -0.15,
+            -1.9495124960953347,
+            2.0506334044013026,
+            -0.03806999268062844,
+            -1.0514425550635043,
+            0.0
+          ],
+          "command_max": [
+            -0.027865275420459107,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.09479481565444996
+          ],
+          "maximum_velocity_norm": 0.04847339534031026,
+          "initial": {
+            "time": 0.0,
+            "command": [
+              -0.15,
+              -1.85,
+              2.35,
+              0.0,
+              -0.95,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "exact_frozen_J": 93141.13560043485,
+            "exact_frozen_V": 0.0,
+            "exact_frozen_selected_objective": 93141.13560043485,
+            "estimated_relative_position_rms_m": 0.36797212827284825,
+            "local_model_equilibrium_distance": 0.5114929222858989
+          },
+          "at_5_s": {
+            "time": 5.0,
+            "command": [
+              -0.09955456678355538,
+              -1.9255986065151152,
+              2.218203477183598,
+              -0.01482073980425105,
+              -1.0154388860555625,
+              0.02591404656960593
+            ],
+            "velocity": [
+              0.007847542680304414,
+              -0.008311440353709247,
+              -0.018567859155862402,
+              -0.00119661730816027,
+              -0.007974900730647697,
+              0.0060555976768026645
+            ],
+            "exact_frozen_J": 6470.322308907814,
+            "exact_frozen_V": 0.004573965560496135,
+            "exact_frozen_selected_objective": 15618.253429900084,
+            "estimated_relative_position_rms_m": 0.37123868286515094,
+            "local_model_equilibrium_distance": 0.39513256136289354
+          },
+          "at_30_s": {
+            "time": 30.0,
+            "command": [
+              -0.027865275420459107,
+              -1.916982158451906,
+              2.0506334044013026,
+              -0.03806999268062844,
+              -1.0491189691928817,
+              0.09479481565444996
+            ],
+            "velocity": [
+              0.0007604866068942709,
+              0.0024016182484101643,
+              -0.0027632251459862576,
+              -0.00116924386188246,
+              0.0003864001766073334,
+              0.0007085065993052193
+            ],
+            "exact_frozen_J": 4032.306352878377,
+            "exact_frozen_V": 0.031660747770022,
+            "exact_frozen_selected_objective": 67353.80189292238,
+            "estimated_relative_position_rms_m": 0.41925960816495095,
+            "local_model_equilibrium_distance": 0.2397433679972843
+          },
+          "last_sample": {
+            "time": 30.0,
+            "command": [
+              -0.027865275420459107,
+              -1.916982158451906,
+              2.0506334044013026,
+              -0.03806999268062844,
+              -1.0491189691928817,
+              0.09479481565444996
+            ],
+            "velocity": [
+              0.0007604866068942709,
+              0.0024016182484101643,
+              -0.0027632251459862576,
+              -0.00116924386188246,
+              0.0003864001766073334,
+              0.0007085065993052193
+            ],
+            "exact_frozen_J": 4032.306352878377,
+            "exact_frozen_V": 0.031660747770022,
+            "exact_frozen_selected_objective": 67353.80189292238,
+            "estimated_relative_position_rms_m": 0.41925960816495095,
+            "local_model_equilibrium_distance": 0.2397433679972843
+          },
+          "minimum_sampled_selected_objective": {
+            "time": 3.5,
+            "value": 13277.099087935607
+          }
+        }
+      },
+      "ridge_selection_trials": {
+        "tolerance_cone": [
+          {
+            "absolute": 1e-06,
+            "regularization_added": 0.4816535273448924,
+            "eigenvalues": [
+              599.929829108753,
+              2071.072252464273,
+              26277.435733430557,
+              156151.02366151346,
+              949105.9319869846,
+              1755712.660527017
+            ],
+            "equilibrium_command": [
+              -7.956241601908825,
+              1.4945407542076419,
+              0.966131743298813,
+              -14.331742432768877,
+              -4.474262485423142,
+              11.060469239539819
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 20.351700154533244,
+            "slowest_mode_time_constant_s": 13334.767867690396,
+            "fastest_mode_envelope_time_constant_s": 4.427923005966809
+          },
+          {
+            "absolute": 1000.0,
+            "regularization_added": 1000.4816525273449,
+            "eigenvalues": [
+              1599.9298281087774,
+              3071.072251464172,
+              27277.43573243071,
+              157151.02366051343,
+              950105.9319859847,
+              1756712.6605260172
+            ],
+            "equilibrium_command": [
+              -2.9900168471517734,
+              0.4809749883612948,
+              1.0794540285864254,
+              -5.3436306293766265,
+              -3.0231230515296934,
+              4.133512215882491
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 8.065455838499936,
+            "slowest_mode_time_constant_s": 5000.094293652845,
+            "fastest_mode_envelope_time_constant_s": 4.425327017890739
+          },
+          {
+            "absolute": 10000.0,
+            "regularization_added": 10000.481652527345,
+            "eigenvalues": [
+              10599.929828108656,
+              12071.072251464195,
+              36277.43573243046,
+              166151.02366051343,
+              959105.9319859844,
+              1765712.6605260172
+            ],
+            "equilibrium_command": [
+              -0.46920772988154535,
+              -0.9243836753429286,
+              1.2904389642651721,
+              -0.8251172331848445,
+              -1.3082627774427027,
+              0.6263215917809577
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 1.8118438526169582,
+            "slowest_mode_time_constant_s": 754.5969566739809,
+            "fastest_mode_envelope_time_constant_s": 4.402095326524979
+          },
+          {
+            "absolute": 100000.0,
+            "regularization_added": 100000.48165252735,
+            "eigenvalues": [
+              100599.92982810829,
+              102071.07225146421,
+              126277.43573243052,
+              256151.02366051357,
+              1049105.9319859848,
+              1855712.6605260167
+            ],
+            "equilibrium_command": [
+              -0.04237126980313945,
+              -1.7536775217717606,
+              1.895733848211326,
+              -0.11102509797445066,
+              -1.0301191697533245,
+              0.12513854629833784
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.5114929222858989,
+            "slowest_mode_time_constant_s": 79.39772118860532,
+            "fastest_mode_envelope_time_constant_s": 4.182161028383866
+          },
+          {
+            "absolute": 500000.0,
+            "regularization_added": 500000.48165252735,
+            "eigenvalues": [
+              500599.9298281086,
+              502071.072251464,
+              526277.4357324309,
+              656151.0236605132,
+              1449105.9319859836,
+              2255712.6605260177
+            ],
+            "equilibrium_command": [
+              -0.06440449931054698,
+              -1.915530945202994,
+              2.132979475838288,
+              -0.027261441506145304,
+              -1.030207204479552,
+              0.06168132103676561
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.2640071393602044,
+            "slowest_mode_time_constant_s": 15.854831917035213,
+            "fastest_mode_envelope_time_constant_s": 3.416804366713017
+          },
+          {
+            "absolute": 1000000.0,
+            "regularization_added": 1000000.4816525273,
+            "eigenvalues": [
+              1000599.9298281091,
+              1002071.072251464,
+              1026277.4357324305,
+              1156151.0236605133,
+              1949105.9319859839,
+              2755712.6605260177
+            ],
+            "equilibrium_command": [
+              -0.08957000607712229,
+              -1.9177549231192068,
+              2.1982349511267074,
+              -0.01637878604474904,
+              -1.0160077624777792,
+              0.03893019414175834
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.19343214104036371,
+            "slowest_mode_time_constant_s": 7.868185535629295,
+            "fastest_mode_envelope_time_constant_s": 2.772157734439999
+          }
+        ],
+        "always_center": [
+          {
+            "absolute": 1e-06,
+            "regularization_added": 3.8597210759926592,
+            "eigenvalues": [
+              647.348933867725,
+              2141.3713800165274,
+              135117.646950884,
+              1212118.9531605127,
+              8066138.867981943,
+              13742179.42587519
+            ],
+            "equilibrium_command": [
+              -7.722576963287576,
+              1.5690456075041364,
+              0.8368036874508522,
+              -13.392477695672785,
+              -4.47800631525551,
+              10.418961893492789
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 19.279097804073974,
+            "slowest_mode_time_constant_s": 12357.970581286881,
+            "fastest_mode_envelope_time_constant_s": 0.40041717010132216
+          },
+          {
+            "absolute": 1000.0,
+            "regularization_added": 1003.8597200759926,
+            "eigenvalues": [
+              1647.3489328680705,
+              3141.371379017274,
+              136117.64694988672,
+              1213118.9531595132,
+              8067138.867980942,
+              13743179.425874196
+            ],
+            "equilibrium_command": [
+              -3.0170875049184964,
+              0.44745103196013813,
+              1.1477468447584462,
+              -5.224665214495162,
+              -3.1486169516105234,
+              4.09381075407342
+            ],
+            "equilibrium_within_joint_positions": false,
+            "equilibrium_increment_norm": 7.989631671612582,
+            "slowest_mode_time_constant_s": 4856.1624780701395,
+            "fastest_mode_envelope_time_constant_s": 0.4003638193054889
+          },
+          {
+            "absolute": 10000.0,
+            "regularization_added": 10003.859720075992,
+            "eigenvalues": [
+              10647.348932866962,
+              12141.371379015705,
+              145117.64694988553,
+              1222118.9531595116,
+              8076138.867980944,
+              13752179.425874192
+            ],
+            "equilibrium_command": [
+              -0.4948481382352502,
+              -0.9390875230477861,
+              1.298893674049778,
+              -0.8026696730373659,
+              -1.3260878310868685,
+              0.6255659210731596
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 1.7973757731419875,
+            "slowest_mode_time_constant_s": 751.2357217110456,
+            "fastest_mode_envelope_time_constant_s": 0.39988376957579275
+          },
+          {
+            "absolute": 100000.0,
+            "regularization_added": 100003.859720076,
+            "eigenvalues": [
+              100647.3489328665,
+              102141.37137901678,
+              235117.6469498872,
+              1312118.9531595116,
+              8166138.867980944,
+              13842179.425874194
+            ],
+            "equilibrium_command": [
+              -0.11988315380831374,
+              -1.5049937526134807,
+              1.6997056507824138,
+              -0.09002851330627265,
+              -0.8728807512260378,
+              0.06589868345811666
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.7491423256002139,
+            "slowest_mode_time_constant_s": 79.36025457856874,
+            "fastest_mode_envelope_time_constant_s": 0.3950932894701775
+          },
+          {
+            "absolute": 500000.0,
+            "regularization_added": 500003.85972007597,
+            "eigenvalues": [
+              500647.3489328672,
+              502141.37137901643,
+              635117.6469498839,
+              1712118.9531595116,
+              8566138.867980942,
+              14242179.425874189
+            ],
+            "equilibrium_command": [
+              -0.11374473440415897,
+              -1.7295969372295297,
+              2.1109137635641524,
+              -0.024587031446716832,
+              -0.9077178086594238,
+              0.018811987435910633
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.2751722496041428,
+            "slowest_mode_time_constant_s": 15.85331818827843,
+            "fastest_mode_envelope_time_constant_s": 0.37394756100244164
+          },
+          {
+            "absolute": 1000000.0,
+            "regularization_added": 1000003.859720076,
+            "eigenvalues": [
+              1000647.348932868,
+              1002141.371379016,
+              1135117.6469498854,
+              2212118.953159514,
+              9066138.867980946,
+              14742179.425874198
+            ],
+            "equilibrium_command": [
+              -0.11971879224306306,
+              -1.782439683094844,
+              2.2173334102264706,
+              -0.017003313610975065,
+              -0.9246086947242753,
+              0.011350765930910892
+            ],
+            "equilibrium_within_joint_positions": true,
+            "equilibrium_increment_norm": 0.155384822136071,
+            "slowest_mode_time_constant_s": 7.867806556739333,
+            "fastest_mode_envelope_time_constant_s": 0.3474062996032174
+          }
+        ]
+      },
+      "rejected_residual_GN_design_comparison": {
+        "adopted": false,
+        "note": "Weak-ridge stationary commands were inside the joint box in all four initial fixtures, but this did not demonstrate superior reaching or selected-objective performance. The production method remains Fisher.",
+        "cone_weak_ridge_stationary": {
+          "absolute": 1e-06,
+          "regularization_added": 3.902939381582798,
+          "eigenvalues": [
+            695.8275564162724,
+            4712.875446329517,
+            249405.63917416637,
+            1294191.0086398057,
+            8268567.908588353,
+            13600080.447728004
+          ],
+          "equilibrium_command": [
+            -0.25027737732291794,
+            -1.8452635665299217,
+            1.4313499234130154,
+            -0.3617359392033362,
+            -0.3159717999729059,
+            0.27397476698957096
+          ],
+          "equilibrium_within_joint_positions": true,
+          "equilibrium_increment_norm": 1.2090917130250949,
+          "slowest_mode_time_constant_s": 11496.976437397512,
+          "fastest_mode_envelope_time_constant_s": 0.4080245992074147
+        },
+        "cone_5s_selected_objective_weak_ridge": 37469.087479722984
+      }
+    }
+  },
+  "reproduction": {
+    "script": "../tools/compare_frozen_candidate_tracking.py",
+    "arguments": "--output-dir OUTPUT_DIRECTORY",
+    "default_duration_s": 30.0,
+    "default_dt_s": 0.005,
+    "default_diagnostic_period_s": 0.5,
+    "raw_scene_full_json_and_csv_destination": "Only the explicit user-selected output directory; full comparison JSON is not included in this repository summary.",
+    "source_ids_command_K_gradient_curvature_exactly_reproduced": true,
+    "reproduced_sample_maximum_absolute_differences": {
+      "marker": {
+        "constant": {
+          "command": 0.0,
+          "velocity": 0.0,
+          "exact_frozen_J": 0.0,
+          "exact_frozen_V": 0.0,
+          "exact_frozen_selected_objective": 0.0,
+          "estimated_relative_position_rms_m": 0.0
+        },
+        "local_fisher": {
+          "command": 1.734723475976807e-18,
+          "velocity": 8.673617379884035e-19,
+          "exact_frozen_J": 2.546585164964199e-11,
+          "exact_frozen_V": 3.2959746043559335e-17,
+          "exact_frozen_selected_objective": 4.001776687800884e-11,
+          "estimated_relative_position_rms_m": 1.6653345369377348e-16
+        }
+      },
+      "imu_marker": {
+        "constant": {
+          "command": 0.0,
+          "velocity": 0.0,
+          "exact_frozen_J": 0.0,
+          "exact_frozen_V": 0.0,
+          "exact_frozen_selected_objective": 0.0,
+          "estimated_relative_position_rms_m": 0.0
+        },
+        "local_fisher": {
+          "command": 4.440892098500626e-16,
+          "velocity": 1.0842021724855044e-19,
+          "exact_frozen_J": 1.000444171950221e-11,
+          "exact_frozen_V": 1.1102230246251565e-16,
+          "exact_frozen_selected_objective": 2.3283064365386963e-10,
+          "estimated_relative_position_rms_m": 3.3306690738754696e-16
+        }
+      }
+    },
+    "rounding_note": "The generalized tool uses the remaining interval for its final partial step; floating subtraction can change the final default step by about 1e-15 seconds. Reported differences are float64 arithmetic, not a different law or gain."
+  }
+}

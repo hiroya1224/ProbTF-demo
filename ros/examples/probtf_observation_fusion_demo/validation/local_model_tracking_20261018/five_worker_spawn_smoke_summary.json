@@ -1,0 +1,191 @@
+{
+  "schema": "probtf_5worker_spawn_smoke_compact_v1",
+  "scope": "Actual spawned five-worker 3-second headless integration smoke; not a frozen-source performance, estimation accuracy, or reaching test.",
+  "raw_output_retained_in_tmp": "/tmp/probtf_5worker_spawn_smoke_20261018_132048",
+  "termination": "validation_drain_observation_window_ended",
+  "exception": null,
+  "initial_prior": {
+    "raw_observation_ids": [],
+    "gradient_packet_present": false,
+    "body_state_id": "b6c7f51b076a53e9595b9a5144afb69c2eab16d6a10eb05db4cd2247cca475df",
+    "display_candidate_id": "1d37cf010eca61dee3b813bbd457d324ec205265dd0e3861a2d4555388b29ac7",
+    "ready_candidate_id": "1d37cf010eca61dee3b813bbd457d324ec205265dd0e3861a2d4555388b29ac7",
+    "worker_count": 5,
+    "worker_pids": [
+      52,
+      53,
+      54,
+      55,
+      56
+    ],
+    "source_stamp": 1792080000.0
+  },
+  "physical_duration_s": 3.0,
+  "body_inference": {
+    "completed_batches": 5,
+    "database": {
+      "counts": {
+        "completed": 239
+      },
+      "total": 239,
+      "claimed_through_stamp": 1792080003.0,
+      "earliest_unfinished": null,
+      "ordering": "acquisition stamp, then immutable insertion sequence",
+      "latest_only_selection": false
+    },
+    "body_estimation_drained": true,
+    "all_body_records_did_not_wait_for_K": true,
+    "first_body_physical_stamp": 1792080000.4077594,
+    "first_observation_K_physical_stamp": 1792080000.7586198,
+    "body_ready_before_first_observation_K": true,
+    "body_ready_before_first_K_includes_initialization_job_zero": true,
+    "first_observation_K_definition": "job_sequence > 0 and parameter_packet_id present"
+  },
+  "stiffness": {
+    "submitted": 5,
+    "completed": 4,
+    "pending_sequences": [
+      4
+    ],
+    "failure": null,
+    "estimation_drained": false
+  },
+  "numerical_checks": {
+    "counts": {
+      "control_candidates": 30,
+      "artifacts_received": 30,
+      "wire_candidates_verified": 30,
+      "wire_bytes_verified": 6334578,
+      "core_queries_verified": 1320,
+      "ready_display_identities_verified": 30
+    },
+    "wire_errors": [],
+    "all_body_records_did_not_wait_for_K": true,
+    "accepted_gradient_count": 16,
+    "accepted_gradient_states_unchanged": true,
+    "actually_used_gradient_packets": 12,
+    "executed_gradient_intervals": 233,
+    "maximum_command_equation_residual": 0.0,
+    "maximum_velocity_equation_residual": 0.0,
+    "nonretroactive_errors": [],
+    "clock_comparison_tolerance_s": 1.9073486328125e-06,
+    "body_ready_before_first_observation_K": true,
+    "body_ready_before_first_K_includes_initialization_job_zero": true,
+    "first_observation_K_definition": "job_sequence > 0 and parameter_packet_id present"
+  },
+  "original_metric_with_initialization": {
+    "name": "body_ready_before_first_K",
+    "value": false,
+    "initialization_job0_physical_stamp": 1792080000.0,
+    "interpretation": "False compares observation body against initial no-observation job0; it does not test waiting for observation-derived stiffness."
+  },
+  "source": {
+    "start_sha256": {
+      "sensor_event_batch.py": "069d759da58f4b09a390f68da6152ece488af076dda1f5550d90bc2c4db2dc9f",
+      "runtime_monitor.py": "cd99cfc520ce6b850d964e1ec14dfdb67cebc19424afbea5863e322ac44445ee",
+      "visibility_factor.py": "318a6e8cba19ed5fda220eaffeec831985461014ed14bccaccea326f26665495",
+      "short_command.py": "76130898f16aae163d8d2901f506f323981263303aff3bebf44b742a487b1c2f",
+      "running_gradient.py": "be0edb08d460d952844087c7c5d2300053f5db97eee18665f8b0e0db4de9ecae",
+      "visual_approach.py": "28179146c09500898e1ea71933d2e87cb21e60bb4ae5221f23f837bda02c3b3a",
+      "execution_stiffness.py": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98",
+      "body_projection.py": "9bd190400abbdf35e8a7b47e0ae2355608af14c7ef57709a71b51bacb46747f9",
+      "async_workers.py": "086f480eae2daebb94a5faca2bcf31c3277a6716cfce89f22b248bf89dffb42c",
+      "async_publication.py": "6c76cba17abdf8ecba12142ed10a12047073813aa5fe211f08fa859274a42b84",
+      "motion_node.py": "13eb5af71acd75015e441af453993564b99d0f103552f837d050362250b14fea",
+      "local_curvature.py": "0d504115dd98f13d43354beb3e12a3925eeb2a0e1d4ecec250afb7f51e9ddb88",
+      "stiffness_bayes_factor.py": "69778d4f64d17b376a93b2a592724fa50b34951b32a6de428577b106095b23bc",
+      "moving_control.py": "cef417cd56e72cd5966ec39357d074a2a5a0797722ed1e87f98699c39aa2c4bc",
+      "async_motion.py": "d04dc05ba3b9799aa7cc8f5104b8dd2c942067bbf23966218439592c3f2a7d4e",
+      "async_state.py": "81210f5da8ecad1e09ebc8e8860e877aa34de199f7aa03023812a439e16e52bb",
+      "marker_search.py": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb",
+      "moving_inference.py": "0a5ef7dd61311f39996bbf6f185c7b77d796410de2ed6602a983de47b68b4ba9",
+      "event_motion.py": "4bd5330d030fbe93e8222e5cadf56fc1d2fc4e3f991a7a4f4333f4fd5f51e598",
+      "immutable_body_cache.py": "0bbd8cb85080c4869bbad43bf20f1e1b29218f7e0b57fd6e440a89ca4da27b82",
+      "scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+      "fresh_goal.py": "4ceb0c264716e92122a4ed53fbbf17ca478b042f6a4a33a3376c6cd2630cf8e5",
+      "node.py": "cd50d6468379939d8745bfb83c28261bd8cdd0fc8818b6be7fb1d1af7c39a0b3",
+      "batch_observation_factors.py": "f54aafad3a68fd1e1986fd3651badf4de9f0bacb1a47aec8d5876f9b97929f2d",
+      "moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29",
+      "async_artifacts.py": "44087f3035b99bfd6de30f30863dc8351a0a7ab7e04db34064ccc1ab0926f92d",
+      "marker_board.py": "83465e96b1545319a0832f30fe55ca04eebd1007a409ef16dcab8ef070a83c4c",
+      "sensor_event_store.py": "5f1e4c55f370265c4c8e1b65587ad000c860a5235f1fa490485cbade3edfd9d1",
+      "time_resolved_body_ratios.py": "8176498eb2ef7e2b13664d7283799594740b110c28c9518d876ec69b09aa941d",
+      "board_camera.py": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778",
+      "dynamic_physics.py": "cd13840c9b8604f8e651e7c9fa68bdd1a226020fe62908f66123529203593e0d",
+      "bayes_factor.py": "e2ba7f68ca04eec0bbe0e5cc16654a54b9f715e9d1bb607ac40ca07cab2865ad",
+      "joint_batch_stiffness.py": "1c9ab4faab1336629e9d45cd634e7f31fc7f8a56c108019f64ecc8f38d60340a",
+      "__init__.py": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f",
+      "joint_batch_inference.py": "05f1f587dfdf781a99af9a5c2fb89345599f94f952135f75027422fc946123af",
+      "model.py": "c1082415d4c60829efc38f13782f8cf80546a9093b321dcf5591c1d9ae3a4780",
+      "motion_display.py": "41290da87f05c1bf317cf7aeb96769cf115ffdad753c2ecd398ac5fdaac9298f",
+      "sensors.py": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d",
+      "selection_gradient.py": "70897f53ee12b71a1e84f47fbc7634237e6d5df955a3e10e6be0deb26c9878dd",
+      "stiffness_command.py": "0c9589fe460812a4bc4efe13b4a440bdf200c9d1ed2013c9e61e0b61d57d691c",
+      "async_stiffness.py": "1037c9691f32363cf085d81ca06a7cd93b58a3b88ccc38ad529e2984148b7884",
+      "display.py": "e28cbee3305ffc29f6541fcae7ae05ff9fcc7045574a38fd724107ef4ec5134c",
+      "local_quadratic_tracking.py": "04a1688a9d2067a719d5c7e0c18714f869b1d628a0e0c8f35dee30d82f25d142",
+      "stiffness_identification.py": "f97e887571a9e3f7e68616cc0628897ec5edbe168e49f25489483df2bbec778b",
+      "auxiliary_equilibrium_native.py": "281fd42ae8f775a8d0df96f6795a680f16820c3df40489c80b3937f26bc2af1b",
+      "joint_batch_fusion.py": "b561f18bcf0240608a3c9dac70d29dd800ac583a769f6c22790df271d9bab49d"
+    },
+    "original_smoke_script_sha256": "c4a19fc727c984046d6262c229802a5f08ddeca54fa529c031ac49ec06fe97f5",
+    "changes_observed": [
+      "event_motion.py"
+    ],
+    "event_motion_current_at_summary_sha256": "e8697e0487ae047ae7fab958f774b4102cebe7336ea20057dcc9078c72e231a9",
+    "fixed_source_during_smoke": false,
+    "verifier_sha256": "274994632fbcdd4f3faf4d72b772d9f00614146b95dbd040430921c71928f48c"
+  },
+  "shutdown": {
+    "closed_wall_stamp": 1792297291.98024,
+    "motion_finished": true,
+    "estimation_drained": false,
+    "sensor_event_database": {
+      "counts": {
+        "completed": 239
+      },
+      "total": 239,
+      "claimed_through_stamp": 1792080003.0,
+      "earliest_unfinished": null,
+      "ordering": "acquisition stamp, then immutable insertion sequence",
+      "latest_only_selection": false
+    },
+    "acquisition_submitted": 239,
+    "acquisition_acknowledged": 239,
+    "acquisition_recovery_journal": "acquisition_requests.jsonl",
+    "interrupted_inference_event": null,
+    "interrupted_inference_batch": null,
+    "selected_but_not_dispatched_event": null,
+    "interrupted_control_request": null,
+    "pending_control_activation_candidates": [],
+    "pending_stiffness_jobs": [
+      4
+    ],
+    "stiffness_inputs_archived_under": "stiffness_jobs",
+    "workers": [
+      {
+        "exitcode": 0
+      },
+      {
+        "exitcode": 0
+      },
+      {
+        "exitcode": 0
+      },
+      {
+        "exitcode": -15
+      },
+      {
+        "exitcode": 0
+      }
+    ]
+  },
+  "limitations": [
+    "The repository event_motion.py changed during this smoke; source hash mismatch is retained, and timing is not a frozen-source benchmark.",
+    "A 35-second post-physical observation window ended with one K job pending; the K worker was terminated only during explicit session shutdown, with its original input retained.",
+    "Body completion is separate from stiffness-density completion; all raw events were retained and body-processed, but not all K jobs completed.",
+    "No reaching, estimation accuracy, real-time throughput, or improved closed-loop stability claim is made.",
+    "Existing ready-to-artifact validation used actual in-memory frozen candidates and actual serialized MarkerArray wire; no new inference or Monte Carlo sampling was introduced."
+  ],
+  "raw_or_full_manifest_added_to_git": false
+}

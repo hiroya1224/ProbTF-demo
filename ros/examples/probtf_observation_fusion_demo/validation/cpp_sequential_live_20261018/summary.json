@@ -1,0 +1,304 @@
+{
+  "schema": "cpp_sequential_live_validation_summary_v1",
+  "run": "/tmp/probtf_cpp_sequential_live_20261018",
+  "replay_request_wall_s": 1792302931.7652607,
+  "physical_duration_s": 90.0,
+  "physical_end_capture_wall_s": 1792303023.3848825,
+  "post_motion_drain_budget_s": 60.0,
+  "actual_post_motion_drain_s": 60.27796863904223,
+  "all_K_processed": false,
+  "raw_and_large_artifacts_kept_out_of_git": true,
+  "source": {
+    "git_HEAD": "7790a0674bd7f31b39f516514b177544dc899503",
+    "frozen_files": 352,
+    "source_config_native_core_rviz_unchanged": true,
+    "native_backends": {
+      "physical_dynamics": {
+        "abi": 2,
+        "sha256": "c5a70015d262e0ed78d9834970094f59673ae896b9a3ceef9e5f488a42ab5be0",
+        "bytes": 452600
+      },
+      "auxiliary_equilibrium": {
+        "abi": 2,
+        "sha256": "b59e0eb874236eb15532cf351e86cd24e00e5625ff787d3fc62aff8098c5e97e",
+        "bytes": 178008
+      },
+      "body_law": {
+        "abi": 1,
+        "sha256": "3879a1845062ab2e3ebfd998eecf941b0b0f1cc292586f5397e90ff95dae6cef",
+        "bytes": 180216
+      },
+      "marker_board_math": {
+        "abi": 1,
+        "sha256": "2b1bbd62d46511a89db87a12659eabe9d00dd125fecb658079866938216f8f30",
+        "bytes": 27440
+      }
+    },
+    "protected_counts": {
+      "core": 142,
+      "rviz": 43,
+      "core_rviz_overlap": 1,
+      "other": 30
+    }
+  },
+  "cases": {
+    "marker": {
+      "physical_end_snapshot": {
+        "simulated_elapsed_s": 90.0,
+        "finished": true,
+        "reached": false,
+        "final_physical_error_m": 0.23365592690317177,
+        "actual_motion_hz": 45.57118704377123,
+        "actual_camera_hz": 10.349784904933992,
+        "actual_control_hz": 5.035274997672562,
+        "actual_joint_hz": 27.31843823840052,
+        "actual_imu_hz": 22.987893558030418,
+        "estimate_stamp": 1792080087.1737797,
+        "observation_age_s": 2.8262202739715576,
+        "displayed_prediction_age_s": 0.0,
+        "pending_display_artifact_count": 0,
+        "stiffness_jobs_completed": 58,
+        "stiffness_jobs_submitted": 204
+      },
+      "final_body_handling": {
+        "raw": 5465,
+        "handled": 5465,
+        "raw_payload_SHA_verified": 5465,
+        "blob_bytes_hashed": 644939304,
+        "effective_fused": 205,
+        "accounting": {
+          "evaluated_no_effective_observation": 54,
+          "sensor not enabled in this comparison case": 2071,
+          "effective_fused": 205,
+          "command notification": 2460,
+          "temporal_thinning": 675
+        },
+        "body_drained": true,
+        "all_selected_body_observations_processed": true,
+        "effective_without_K_archive": 0
+      },
+      "shutdown_K": {
+        "archived_jobs": 206,
+        "completed_jobs": 72,
+        "pending_jobs": 134,
+        "counts_include_one_initial_no_observation_job": true,
+        "pending_all_archived": true
+      },
+      "source_correspondence_audit": "passed",
+      "same_command_law_audit": "passed",
+      "wire_identity_audit": "passed",
+      "wire_groups": {
+        "through_physical_end": {
+          "saved_artifacts": 459,
+          "wire_bytes": 97146236,
+          "exact_wire_matches": 459,
+          "complete_numeric_candidate_identity_matches": 459,
+          "adopted_gradient_packet_matches": 459,
+          "display_adopted": 459,
+          "publication_acknowledged": 458
+        },
+        "after_physical_end": {
+          "saved_artifacts": 2,
+          "wire_bytes": 423310,
+          "exact_wire_matches": 2,
+          "complete_numeric_candidate_identity_matches": 2,
+          "adopted_gradient_packet_matches": 2,
+          "display_adopted": 2,
+          "publication_acknowledged": 2
+        },
+        "artifact_finish_stamp_missing": {
+          "saved_artifacts": 0,
+          "wire_bytes": 0,
+          "exact_wire_matches": 0,
+          "complete_numeric_candidate_identity_matches": 0,
+          "adopted_gradient_packet_matches": 0,
+          "display_adopted": 0,
+          "publication_acknowledged": 0
+        }
+      },
+      "ready_without_artifact": 0,
+      "artifact_without_saved_record": 0,
+      "largest_noninitial_same_command_link_change": {
+        "job_sequence": 147,
+        "event_id": "image:00002954",
+        "sequence": 3077,
+        "stamp": 1792080047.9338343,
+        "command": [
+          0.09583573664865258,
+          -1.6844068343824972,
+          1.7687309812099148,
+          -0.06530746801250566,
+          -0.8304641517493339,
+          -0.0031133929765713086
+        ],
+        "frame": "link_6",
+        "mode_origin_change_m": 0.1749275495669276,
+        "mean_origin_change_m": 0.17483868519143408,
+        "max_modal_axis_change_deg": 13.170102582615295,
+        "position_covariance_change_fro": 4.773420032826758e-05,
+        "prior_state_id": "be0266d901fa43603b971ade6a4a40818c241ced269d63214d5fa5e5b55c3f80",
+        "posterior_state_id": "3ea4b55dd600aeb3dc89a0588050d6dee5d03b285562822071b797a4f4e32c10",
+        "prior_full_covariance_sha256": "c4d16d373c55303807dc31b70416b40602bcc1364d200965c2a0af176388396a",
+        "posterior_full_covariance_sha256": "f7ebca3317061cfa536a53375e36569749c598de809898e715ff36db96857497",
+        "posterior_reset_probability": 1.0,
+        "source_candidate_id": "3ef4361cc5d7e2f404418309f8636453b8e20462ada2c905199d173f4ae99d4a",
+        "archive_sha256": "c42df54abb7cba727b4677a5aec700bdbebdd6d2406e6b75ac8821beaf5935b0"
+      },
+      "hand_same_command_update_stats": {
+        "mode_origin_change_m": {
+          "count": 206,
+          "median": 0.008291674242168702,
+          "p95": 0.059782271985624996,
+          "maximum": 0.23833944759646059
+        },
+        "mean_origin_change_m": {
+          "count": 206,
+          "median": 0.008310814984081198,
+          "p95": 0.05961462441148419,
+          "maximum": 0.2372315509832413
+        },
+        "max_modal_axis_change_deg": {
+          "count": 206,
+          "median": 0.9380983449990191,
+          "p95": 8.19905969816656,
+          "maximum": 20.101483892877777
+        }
+      }
+    },
+    "imu_marker": {
+      "physical_end_snapshot": {
+        "simulated_elapsed_s": 90.0,
+        "finished": true,
+        "reached": false,
+        "final_physical_error_m": 0.16572911195520465,
+        "actual_motion_hz": 38.597395600333186,
+        "actual_camera_hz": 9.589332409535283,
+        "actual_control_hz": 4.524068707333886,
+        "actual_joint_hz": 23.656218940423365,
+        "actual_imu_hz": 20.189248860733056,
+        "estimate_stamp": 1792080087.7564583,
+        "observation_age_s": 2.243541717529297,
+        "displayed_prediction_age_s": 0.8614904880523682,
+        "pending_display_artifact_count": 1,
+        "stiffness_jobs_completed": 63,
+        "stiffness_jobs_submitted": 677
+      },
+      "final_body_handling": {
+        "raw": 4873,
+        "handled": 4873,
+        "raw_payload_SHA_verified": 4873,
+        "blob_bytes_hashed": 604844184,
+        "effective_fused": 691,
+        "accounting": {
+          "evaluated_no_effective_observation": 7,
+          "effective_fused": 691,
+          "command notification": 2156,
+          "temporal_thinning": 2019
+        },
+        "body_drained": true,
+        "all_selected_body_observations_processed": true,
+        "effective_without_K_archive": 0
+      },
+      "shutdown_K": {
+        "archived_jobs": 692,
+        "completed_jobs": 81,
+        "pending_jobs": 611,
+        "counts_include_one_initial_no_observation_job": true,
+        "pending_all_archived": true
+      },
+      "source_correspondence_audit": "passed",
+      "same_command_law_audit": "passed",
+      "wire_identity_audit": "passed",
+      "wire_groups": {
+        "through_physical_end": {
+          "saved_artifacts": 407,
+          "wire_bytes": 86137433,
+          "exact_wire_matches": 407,
+          "complete_numeric_candidate_identity_matches": 407,
+          "adopted_gradient_packet_matches": 407,
+          "display_adopted": 407,
+          "publication_acknowledged": 407
+        },
+        "after_physical_end": {
+          "saved_artifacts": 7,
+          "wire_bytes": 1481639,
+          "exact_wire_matches": 7,
+          "complete_numeric_candidate_identity_matches": 7,
+          "adopted_gradient_packet_matches": 7,
+          "display_adopted": 7,
+          "publication_acknowledged": 7
+        },
+        "artifact_finish_stamp_missing": {
+          "saved_artifacts": 0,
+          "wire_bytes": 0,
+          "exact_wire_matches": 0,
+          "complete_numeric_candidate_identity_matches": 0,
+          "adopted_gradient_packet_matches": 0,
+          "display_adopted": 0,
+          "publication_acknowledged": 0
+        }
+      },
+      "ready_without_artifact": 0,
+      "artifact_without_saved_record": 0,
+      "largest_noninitial_same_command_link_change": {
+        "job_sequence": 487,
+        "event_id": "image:00002698",
+        "sequence": 3181,
+        "stamp": 1792080056.7551444,
+        "command": [
+          -0.2452861473036815,
+          -1.6639355142974352,
+          1.8452691236709864,
+          0.07329874236533739,
+          -0.9442109933138909,
+          -0.04604025510528898
+        ],
+        "frame": "link_5",
+        "mode_origin_change_m": 0.06893905798116175,
+        "mean_origin_change_m": 0.06886643900038227,
+        "max_modal_axis_change_deg": 6.019826637741271,
+        "position_covariance_change_fro": 0.0002430997050544052,
+        "prior_state_id": "4a9b8dcc365e66a3c8d975a8349b66ecc5023232dc284698f3b36deb08edab3d",
+        "posterior_state_id": "89d2d4e8cfb68209a848840d3fb3d8ed30b24c965020393af6824feaffc20deb",
+        "prior_full_covariance_sha256": "60ad9d187ab8c1433e024fc4a890df7a9359c5f3c6cb4c61240b7622662fd878",
+        "posterior_full_covariance_sha256": "fbfe135566b05536aaa932ce4a6cc668ec7bd138af5b60777053a17ebfec8523",
+        "posterior_reset_probability": 1.0,
+        "source_candidate_id": "72bcb002ffc24f09290a6f05518f7d23d1dddcf390a01912614d37f9a168cf86",
+        "archive_sha256": "543baac5ca58eac359e08dc234b112332f1252aaebdb98b785a58a331a7d354f"
+      },
+      "hand_same_command_update_stats": {
+        "mode_origin_change_m": {
+          "count": 692,
+          "median": 0.0009514755380470789,
+          "p95": 0.011969885208754477,
+          "maximum": 0.23553447095008664
+        },
+        "mean_origin_change_m": {
+          "count": 692,
+          "median": 0.0009721547296074323,
+          "p95": 0.012234008121947179,
+          "maximum": 0.23433475379815205
+        },
+        "max_modal_axis_change_deg": {
+          "count": 692,
+          "median": 0.08139798289455218,
+          "p95": 0.9705335882844178,
+          "maximum": 15.922433618557774
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Motion targets are not achieved; this source is not claimed to solve reaching or estimated-link jumps.",
+    "Native/reference arithmetic agreement was measured separately; same-run candidate and saved-wire identity is exact.",
+    "Observed posterior jumps remain, including Reset-dominated noninitial updates. No artificial smoothing/pruning or numerical-quality gate was introduced.",
+    "Physical-end manifest metadata can include a result received just after the last motion interval; use actual command intervals for performance/source-age attribution.",
+    "All raw events are saved, but only the explicitly selected effective observations are fused. DB completed includes handled command, disabled sensor, missing image, and time-thinned events.",
+    "All body work drained, but K FIFO did not. Shutdown preserves all pending jobs, not a resumed stiffness checkpoint.",
+    "Report screenshots were captured after motion/drain and worker shutdown; they are not labelled as exact physical-end paint times.",
+    "The full desktop initial-prior screenshots stay in /tmp and are not copied into the report.",
+    "No subscriber wire capture or GPU-paint completion measurement is available.",
+    "Raw acquisition contains no body-law snapshot already available online at capture; later sequential replay uses the preceding canonical posterior transported to original acquisition time/command.",
+    "Camera exposure is rendered over a short history but assigned one endpoint pose likelihood."
+  ]
+}

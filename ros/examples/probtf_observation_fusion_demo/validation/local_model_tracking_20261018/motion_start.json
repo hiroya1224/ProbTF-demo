@@ -1,0 +1,24 @@
+{
+  "cases": [
+    {
+      "case": "marker",
+      "port": 11871,
+      "requested_wall_time_s": 1792297478.9107816,
+      "returned_wall_time_s": 1792297479.7903905,
+      "reply": "success: True\nmessage: \"Starting asynchronous motion.\""
+    },
+    {
+      "case": "imu_marker",
+      "port": 11872,
+      "requested_wall_time_s": 1792297479.7906137,
+      "returned_wall_time_s": 1792297480.6900885,
+      "reply": "success: True\nmessage: \"Starting asynchronous motion.\""
+    }
+  ],
+  "observer_pid": 3900732,
+  "windows": {
+    "imu_marker": 88080385,
+    "marker": 79691777
+  },
+  "window_sizes_changed": false
+}

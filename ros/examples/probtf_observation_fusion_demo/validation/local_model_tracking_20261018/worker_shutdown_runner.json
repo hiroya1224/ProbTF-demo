@@ -1,0 +1,24 @@
+{
+  "wall_time_s": 1792297748.052589,
+  "reason": "Physical 90s completed; bounded post-end drain observed. Pending raw/body/K work is archived, not declared complete. RViz/master nodes remain.",
+  "results": [
+    {
+      "case": "marker",
+      "wall_time_s": 1792297727.7491243,
+      "returncode": 0,
+      "stdout": "killing /observation_fusion_demo\nkilled\n",
+      "stderr": ""
+    },
+    {
+      "case": "imu_marker",
+      "wall_time_s": 1792297728.032199,
+      "returncode": 0,
+      "stdout": "killing /observation_fusion_demo\nkilled\n",
+      "stderr": ""
+    }
+  ],
+  "shutdown_records": {
+    "marker": true,
+    "imu_marker": true
+  }
+}

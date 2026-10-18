@@ -13,8 +13,8 @@ from scipy.stats import multivariate_normal
 
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, bingham_from_rotation_coordinates,
-    reexpress_state,
 )
+from probtf_observation_fusion_demo.body_native import reexpress_state
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent
 from probtf_observation_fusion_demo.model import FrozenBodyBranch, WeightedState, Stage
 from probtf_observation_fusion_demo.moving_inference import MovingInference

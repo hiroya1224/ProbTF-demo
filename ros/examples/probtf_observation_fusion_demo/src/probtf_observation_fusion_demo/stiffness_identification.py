@@ -27,7 +27,7 @@ from deflecomp_core.model.sensitivity import SensitivityCalculator
 from deflecomp_core.model.spring import LinearSpringModel
 from deflecomp_core.robot.pinocchio_robot import RobotArm
 from probtf.geometry import quat_to_rotmat, skew
-from probtf.spherical_law.first_order import reexpress_state
+from .body_native import reexpress_state
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent
 from probtf.spherical_law.support import (
     require_in_support, require_same_support,

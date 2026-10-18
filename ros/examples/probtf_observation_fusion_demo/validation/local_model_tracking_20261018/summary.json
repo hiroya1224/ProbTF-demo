@@ -1,0 +1,743 @@
+{
+  "schema": "local_model_actual_live_audit_v1",
+  "base": "/tmp/probtf_local_model_live_20261018",
+  "physical_end_cutoff_wall_s": 1792297572.0389135,
+  "source_head": "7790a0674bd7f31b39f516514b177544dc899503",
+  "cases": {
+    "marker": {
+      "physical_end_manifest": {
+        "finished": true,
+        "simulated_elapsed_s": 90.0,
+        "actual_motion_hz": 72.63181247642427,
+        "actual_control_hz": 3.984143734346424,
+        "actual_camera_hz": 10.854136936528437,
+        "actual_joint_hz": 31.84091516428176,
+        "actual_imu_hz": 24.975166452544748,
+        "target_physics_hz": 120.0,
+        "actual_estimate_hz": 0.08497038502677787,
+        "estimate_stamp": 1792080027.4742785,
+        "displayed_prediction_stamp": 1792080071.0301437,
+        "displayed_prediction_age_s": 18.96985626220703,
+        "observation_age_s": 62.52572154998779,
+        "active_control_candidate_id": "fd69eaa532709cb173f59766ebc61b9b2c5806a3e61fa963ab14468c8a4508ee",
+        "displayed_candidate_id": "17d4b480f03fe670054d20ebaf7b2fe80a9cf6e98e78cbf1021de06fb2962446",
+        "pending_display_artifact_count": 47,
+        "stiffness_jobs_submitted": 7,
+        "stiffness_jobs_completed": 6,
+        "pending_stiffness_job_sequences": [
+          6
+        ],
+        "stiffness_failure": null,
+        "artifact_failure": null,
+        "sensor_event_database": {
+          "counts": {
+            "completed": 1990,
+            "pending": 1548,
+            "processing": 2556
+          },
+          "total": 6094,
+          "claimed_through_stamp": 1792080064.4430015,
+          "earliest_unfinished": {
+            "event_id": "joint:00002546",
+            "stamp": 1792080027.4841456,
+            "sequence": 1991,
+            "status": "processing"
+          },
+          "ordering": "acquisition stamp, then immutable insertion sequence",
+          "latest_only_selection": false
+        },
+        "all_captured_sensor_data_archived": true,
+        "all_enabled_observations_processed": false,
+        "body_estimation_drained": false,
+        "stiffness_estimation_drained": false,
+        "final_physical_error_m": 0.4623231294506529,
+        "reached": false,
+        "collision_checking_enabled": false,
+        "collided": null,
+        "implementation_unchanged_during_execution": true
+      },
+      "accepted_during_physical_motion": 347,
+      "accepted_after_motion_end": 4,
+      "used_gradient_packet_count": 347,
+      "actual_used_gradient_source_age_s": {
+        "count": 6483,
+        "min": 0.15179944038391113,
+        "median": 0.33968496322631836,
+        "p95": 0.6633259773254392,
+        "max": 2.6678876876831055
+      },
+      "actual_used_gradient_command_distance_l2_rad": {
+        "count": 6483,
+        "min": 0.00016104551928242597,
+        "median": 0.00238936483154777,
+        "p95": 0.00912797762664525,
+        "max": 0.049678406995255935
+      },
+      "actual_used_gradient_norm": {
+        "count": 6483,
+        "min": 7086.295289749213,
+        "median": 51402.34880422006,
+        "p95": 182092.20995067892,
+        "max": 1425957.3411906145
+      },
+      "actual_command_velocity_norm_rad_s": {
+        "count": 6483,
+        "min": 0.0008910472144880142,
+        "median": 0.0064618480388178344,
+        "p95": 0.022444075479386937,
+        "max": 0.1715296192198112
+      },
+      "tracking_intervals": 6483,
+      "velocity_sign_changes_per_joint": [
+        6,
+        3,
+        1,
+        4,
+        3,
+        6
+      ],
+      "velocity_sign_changes_inside_same_K_segment_per_joint": [
+        6,
+        3,
+        1,
+        4,
+        3,
+        6
+      ],
+      "constant_K_execution_segments": [
+        {
+          "K": null,
+          "start_elapsed_s": 0.45594072341918945,
+          "end_elapsed_s": 0.7755589485168457,
+          "intervals": 36,
+          "max_gradient_norm": 454800.9189217524,
+          "max_velocity_norm_rad_s": 0.05101524595406288
+        },
+        {
+          "K": [
+            104.09105922304336,
+            90.4818479253694,
+            95.3915861784857,
+            104.09792358691507,
+            101.01376251598218,
+            104.04663251319776
+          ],
+          "start_elapsed_s": 0.7755589485168457,
+          "end_elapsed_s": 2.2537543773651123,
+          "intervals": 156,
+          "max_gradient_norm": 1425957.3411906145,
+          "max_velocity_norm_rad_s": 0.1715296192198112
+        },
+        {
+          "K": [
+            102.26009826549044,
+            103.7455559581644,
+            153.82481163237995,
+            102.2728866239967,
+            97.50167177606946,
+            102.16411905161401
+          ],
+          "start_elapsed_s": 2.2537543773651123,
+          "end_elapsed_s": 8.113829135894775,
+          "intervals": 559,
+          "max_gradient_norm": 62885.96106084532,
+          "max_velocity_norm_rad_s": 0.007707673058653014
+        },
+        {
+          "K": [
+            22.36067977499789,
+            101.61921978945753,
+            22.36067977499789,
+            22.45490134218454,
+            105.67467008282614,
+            22.016959486581957
+          ],
+          "start_elapsed_s": 8.113829135894775,
+          "end_elapsed_s": 45.99356985092163,
+          "intervals": 3280,
+          "max_gradient_norm": 196986.01939607377,
+          "max_velocity_norm_rad_s": 0.02445626403011864
+        },
+        {
+          "K": [
+            22.36067977499789,
+            362.86174008224936,
+            22.36067977499789,
+            18.33943786967915,
+            249.1086101870434,
+            19.288290502700402
+          ],
+          "start_elapsed_s": 45.99356985092163,
+          "end_elapsed_s": 83.97480463981628,
+          "intervals": 2292,
+          "max_gradient_norm": 191332.31312977555,
+          "max_velocity_norm_rad_s": 0.022987381457050662
+        },
+        {
+          "K": [
+            105.72902381442286,
+            362.7108518182788,
+            254.21024544307033,
+            107.65244710559197,
+            150.49452767831366,
+            106.04872071906104
+          ],
+          "start_elapsed_s": 83.97480463981628,
+          "end_elapsed_s": 90.0,
+          "intervals": 160,
+          "max_gradient_norm": 34496.84939286991,
+          "max_velocity_norm_rad_s": 0.004289087602387511
+        }
+      ],
+      "clock_and_integration": {
+        "method": "independent scipy.linalg.expm augmented affine ODE reference for each logged actual interval; no frozen-model implementation calls",
+        "max_position_error_rad": 4.440892098500626e-16,
+        "max_velocity_error_rad_s": 2.7755575615628914e-17,
+        "max_affine_gradient_absolute_error": 0.0,
+        "max_interval_boundary_stamp_difference_s": 0.0,
+        "negative_intervals": [],
+        "packet_used_before_adoption_interval_indices": [],
+        "max_command_boundary_jump_rad": 0.0,
+        "max_velocity_boundary_jump_rad_s": 0.0,
+        "max_adoption_command_or_velocity_jump": 0.0,
+        "stop_records": []
+      },
+      "artifact_flow": {
+        "ready_control_receipts": 365,
+        "saved_artifacts_before_physical_end_cutoff": 317,
+        "saved_artifacts_after_physical_end_cutoff": 48,
+        "same_candidate_identity_errors": [],
+        "gradient_ready_to_artifact_ready_s": {
+          "count": 365,
+          "min": 0.0894780158996582,
+          "median": 3.7025489807128906,
+          "p95": 25.911337184906007,
+          "max": 32.2776939868927
+        },
+        "gradient_ready_before_or_equal_artifact_count": 365,
+        "cutoff_pending_artifacts": 47,
+        "current_active_and_displayed_equal_at_cutoff": false
+      },
+      "body_K_handoffs": [
+        {
+          "job_sequence": 1,
+          "body_physical_elapsed_s": 0.32252979278564453,
+          "K_physical_elapsed_s": 0.5332915782928467,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": true
+        },
+        {
+          "job_sequence": 2,
+          "body_physical_elapsed_s": 1.391646385192871,
+          "K_physical_elapsed_s": 2.0073812007904053,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": true
+        },
+        {
+          "job_sequence": 3,
+          "body_physical_elapsed_s": 3.866068124771118,
+          "K_physical_elapsed_s": 7.728672742843628,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": true
+        },
+        {
+          "job_sequence": 4,
+          "body_physical_elapsed_s": 9.962402105331421,
+          "K_physical_elapsed_s": 45.44967603683472,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": true
+        },
+        {
+          "job_sequence": 5,
+          "body_physical_elapsed_s": 25.133735418319702,
+          "K_physical_elapsed_s": 82.89575147628784,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": true
+        },
+        {
+          "job_sequence": 6,
+          "body_physical_elapsed_s": 59.16133642196655,
+          "K_physical_elapsed_s": null,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": false
+        },
+        {
+          "job_sequence": 7,
+          "body_physical_elapsed_s": 90.0,
+          "K_physical_elapsed_s": null,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": false,
+          "K_adopted_during_physical_motion": false
+        },
+        {
+          "job_sequence": 8,
+          "body_physical_elapsed_s": 90.0,
+          "K_physical_elapsed_s": null,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": false,
+          "K_adopted_during_physical_motion": false
+        }
+      ],
+      "physical_error_m": {
+        "count": 6539,
+        "min": 0.3590340313358177,
+        "median": 0.44066626678589854,
+        "p95": 0.45744468088924584,
+        "max": 0.4623231294506529
+      },
+      "final_physical_error_m": 0.4623231294506529,
+      "shutdown": {
+        "closed_wall_stamp": 1792297726.7840497,
+        "motion_finished": true,
+        "estimation_drained": false,
+        "sensor_event_database": {
+          "counts": {
+            "completed": 4727,
+            "processing": 1367
+          },
+          "total": 6094,
+          "claimed_through_stamp": 1792080090.0,
+          "earliest_unfinished": {
+            "event_id": "image:00005561",
+            "stamp": 1792080068.0841575,
+            "sequence": 4728,
+            "status": "processing"
+          },
+          "ordering": "acquisition stamp, then immutable insertion sequence",
+          "latest_only_selection": false
+        },
+        "acquisition_submitted": 6094,
+        "acquisition_acknowledged": 6094,
+        "acquisition_recovery_journal": "acquisition_requests.jsonl",
+        "interrupted_inference_event": null,
+        "interrupted_inference_batch": {
+          "batch_id": "00e027b4f08400ee1eb9cf43b90407b4c72e8899620deb20b7cca370e0c0bf99",
+          "completed_checkpoint_count": 0,
+          "frontier_stamp": 1792080090.0,
+          "reserved_event_count": 1548,
+          "reserved_event_ids_sha256": "bce4bade7af04da93500ab04c4a4611398ece84902acf4f748ce2ac7cfab0f2d"
+        },
+        "selected_but_not_dispatched_event": null,
+        "interrupted_control_request": null,
+        "pending_control_activation_candidates": [],
+        "pending_stiffness_jobs": [
+          6,
+          7,
+          8
+        ],
+        "stiffness_inputs_archived_under": "stiffness_jobs",
+        "workers": [
+          {
+            "exitcode": -15
+          },
+          {
+            "exitcode": 0
+          },
+          {
+            "exitcode": 0
+          },
+          {
+            "exitcode": -15
+          },
+          {
+            "exitcode": 0
+          }
+        ]
+      },
+      "body_K_handoffs_after_motion_end_included_and_labelled": true,
+      "display_identity_policy_note": "True means same numeric-law checksum as a previously accepted control candidate. It does not mean current active control candidate equals the currently displayed older candidate."
+    },
+    "imu_marker": {
+      "physical_end_manifest": {
+        "finished": true,
+        "simulated_elapsed_s": 90.0,
+        "actual_motion_hz": 71.56067567135418,
+        "actual_control_hz": 4.4565122186084185,
+        "actual_camera_hz": 11.00562563584282,
+        "actual_joint_hz": 32.084532318730105,
+        "actual_imu_hz": 25.59911493672576,
+        "target_physics_hz": 120.0,
+        "actual_estimate_hz": 0.06489484502641821,
+        "estimate_stamp": 1792080019.9354212,
+        "displayed_prediction_stamp": 1792080086.5752144,
+        "displayed_prediction_age_s": 3.424785614013672,
+        "observation_age_s": 70.06457877159119,
+        "active_control_candidate_id": "2bca8ec3aa66b250df86e96ce8883ae42e43711eea2471cd954665e07e22a56f",
+        "displayed_candidate_id": "09cd4349a2a7b379a0540bd5ed0568b5ce6140776b4ec6af294137dc89224c43",
+        "pending_display_artifact_count": 14,
+        "stiffness_jobs_submitted": 6,
+        "stiffness_jobs_completed": 4,
+        "pending_stiffness_job_sequences": [
+          4,
+          5
+        ],
+        "stiffness_failure": null,
+        "artifact_failure": null,
+        "sensor_event_database": {
+          "counts": {
+            "completed": 1470,
+            "pending": 1428,
+            "processing": 3290
+          },
+          "total": 6188,
+          "claimed_through_stamp": 1792080067.6847105,
+          "earliest_unfinished": {
+            "event_id": "joint:00001898",
+            "stamp": 1792080019.986701,
+            "sequence": 1471,
+            "status": "processing"
+          },
+          "ordering": "acquisition stamp, then immutable insertion sequence",
+          "latest_only_selection": false
+        },
+        "all_captured_sensor_data_archived": true,
+        "all_enabled_observations_processed": false,
+        "body_estimation_drained": false,
+        "stiffness_estimation_drained": false,
+        "final_physical_error_m": 0.39263234732759655,
+        "reached": false,
+        "collision_checking_enabled": false,
+        "collided": null,
+        "implementation_unchanged_during_execution": true
+      },
+      "accepted_during_physical_motion": 386,
+      "accepted_after_motion_end": 3,
+      "used_gradient_packet_count": 386,
+      "actual_used_gradient_source_age_s": {
+        "count": 6385,
+        "min": 0.1521768569946289,
+        "median": 0.3212764263153076,
+        "p95": 0.5095216751098631,
+        "max": 1.7066419124603271
+      },
+      "actual_used_gradient_command_distance_l2_rad": {
+        "count": 6385,
+        "min": 0.0001635436707595361,
+        "median": 0.0008889166116410953,
+        "p95": 0.010955690476498959,
+        "max": 0.04514981785932445
+      },
+      "actual_used_gradient_norm": {
+        "count": 6385,
+        "min": 6682.218194109,
+        "median": 21500.55315417863,
+        "p95": 263750.24983453884,
+        "max": 1326079.3095700585
+      },
+      "actual_command_velocity_norm_rad_s": {
+        "count": 6385,
+        "min": 0.0008448812239329763,
+        "median": 0.0027148490757776763,
+        "p95": 0.03523812603198882,
+        "max": 0.15425331278402232
+      },
+      "tracking_intervals": 6385,
+      "velocity_sign_changes_per_joint": [
+        3,
+        1,
+        2,
+        5,
+        1,
+        4
+      ],
+      "velocity_sign_changes_inside_same_K_segment_per_joint": [
+        3,
+        1,
+        2,
+        5,
+        1,
+        4
+      ],
+      "constant_K_execution_segments": [
+        {
+          "K": null,
+          "start_elapsed_s": 0.484940767288208,
+          "end_elapsed_s": 0.8015139102935791,
+          "intervals": 35,
+          "max_gradient_norm": 502206.9439043448,
+          "max_velocity_norm_rad_s": 0.056171894247007574
+        },
+        {
+          "K": [
+            95.96440837291773,
+            90.56062557692363,
+            121.62978853218665,
+            96.00277990807658,
+            79.88638664680532,
+            95.71169223243606
+          ],
+          "start_elapsed_s": 0.8015139102935791,
+          "end_elapsed_s": 3.2184834480285645,
+          "intervals": 249,
+          "max_gradient_norm": 1326079.3095700585,
+          "max_velocity_norm_rad_s": 0.15425331278402232
+        },
+        {
+          "K": [
+            95.93946255507673,
+            92.30250242130109,
+            123.47228075546334,
+            95.97787667120575,
+            79.8617837897443,
+            95.68592617940708
+          ],
+          "start_elapsed_s": 3.2184834480285645,
+          "end_elapsed_s": 18.320691347122192,
+          "intervals": 1417,
+          "max_gradient_norm": 76564.94170070699,
+          "max_velocity_norm_rad_s": 0.00954258883399872
+        },
+        {
+          "K": [
+            105.72464970979891,
+            94.87537405153131,
+            49.97229140972324,
+            105.89271648800494,
+            125.72415604736581,
+            105.63847708945407
+          ],
+          "start_elapsed_s": 18.320691347122192,
+          "end_elapsed_s": 90.0,
+          "intervals": 4684,
+          "max_gradient_norm": 449937.95234590943,
+          "max_velocity_norm_rad_s": 0.05326492092173072
+        }
+      ],
+      "clock_and_integration": {
+        "method": "independent scipy.linalg.expm augmented affine ODE reference for each logged actual interval; no frozen-model implementation calls",
+        "max_position_error_rad": 4.440892098500626e-16,
+        "max_velocity_error_rad_s": 2.7755575615628914e-17,
+        "max_affine_gradient_absolute_error": 0.0,
+        "max_interval_boundary_stamp_difference_s": 0.0,
+        "negative_intervals": [],
+        "packet_used_before_adoption_interval_indices": [],
+        "max_command_boundary_jump_rad": 0.0,
+        "max_velocity_boundary_jump_rad_s": 0.0,
+        "max_adoption_command_or_velocity_jump": 0.0,
+        "stop_records": []
+      },
+      "artifact_flow": {
+        "ready_control_receipts": 405,
+        "saved_artifacts_before_physical_end_cutoff": 391,
+        "saved_artifacts_after_physical_end_cutoff": 14,
+        "same_candidate_identity_errors": [],
+        "gradient_ready_to_artifact_ready_s": {
+          "count": 405,
+          "min": 0.08995485305786133,
+          "median": 4.087296724319458,
+          "p95": 6.206811094284057,
+          "max": 6.476137638092041
+        },
+        "gradient_ready_before_or_equal_artifact_count": 405,
+        "cutoff_pending_artifacts": 14,
+        "current_active_and_displayed_equal_at_cutoff": false
+      },
+      "body_K_handoffs": [
+        {
+          "job_sequence": 1,
+          "body_physical_elapsed_s": 0.34331846237182617,
+          "K_physical_elapsed_s": 0.5932683944702148,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": true
+        },
+        {
+          "job_sequence": 2,
+          "body_physical_elapsed_s": 1.556525707244873,
+          "K_physical_elapsed_s": 2.903381586074829,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": true
+        },
+        {
+          "job_sequence": 3,
+          "body_physical_elapsed_s": 5.481412649154663,
+          "K_physical_elapsed_s": 18.004233598709106,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": true
+        },
+        {
+          "job_sequence": 4,
+          "body_physical_elapsed_s": 18.320691347122192,
+          "K_physical_elapsed_s": 90.0,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": false
+        },
+        {
+          "job_sequence": 5,
+          "body_physical_elapsed_s": 61.97308588027954,
+          "K_physical_elapsed_s": null,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": true,
+          "K_adopted_during_physical_motion": false
+        },
+        {
+          "job_sequence": 6,
+          "body_physical_elapsed_s": 90.0,
+          "K_physical_elapsed_s": null,
+          "body_waited_for_K_evidence": false,
+          "body_adopted_during_physical_motion": false,
+          "K_adopted_during_physical_motion": false
+        }
+      ],
+      "physical_error_m": {
+        "count": 6445,
+        "min": 0.3247922740312665,
+        "median": 0.3428652592957326,
+        "p95": 0.3853541860176315,
+        "max": 0.39263234732759655
+      },
+      "final_physical_error_m": 0.39263234732759655,
+      "shutdown": {
+        "closed_wall_stamp": 1792297727.0735066,
+        "motion_finished": true,
+        "estimation_drained": false,
+        "sensor_event_database": {
+          "counts": {
+            "completed": 1470,
+            "pending": 1428,
+            "processing": 3290
+          },
+          "total": 6188,
+          "claimed_through_stamp": 1792080067.6847105,
+          "earliest_unfinished": {
+            "event_id": "joint:00001898",
+            "stamp": 1792080019.986701,
+            "sequence": 1471,
+            "status": "processing"
+          },
+          "ordering": "acquisition stamp, then immutable insertion sequence",
+          "latest_only_selection": false
+        },
+        "acquisition_submitted": 6188,
+        "acquisition_acknowledged": 6188,
+        "acquisition_recovery_journal": "acquisition_requests.jsonl",
+        "interrupted_inference_event": null,
+        "interrupted_inference_batch": {
+          "batch_id": "e4b729e744b19df50d4b14cbd6b49ae9195279fcb08c33f6e5e21d241a3fcca9",
+          "completed_checkpoint_count": 0,
+          "frontier_stamp": 1792080067.6847105,
+          "reserved_event_count": 3290,
+          "reserved_event_ids_sha256": "3fcfeec492b7c509c8f78572ff86a4f4d28cb0040c786ec800997c41a8c6bb34"
+        },
+        "selected_but_not_dispatched_event": null,
+        "interrupted_control_request": null,
+        "pending_control_activation_candidates": [],
+        "pending_stiffness_jobs": [
+          5,
+          6
+        ],
+        "stiffness_inputs_archived_under": "stiffness_jobs",
+        "workers": [
+          {
+            "exitcode": -15
+          },
+          {
+            "exitcode": 0
+          },
+          {
+            "exitcode": 0
+          },
+          {
+            "exitcode": -15
+          },
+          {
+            "exitcode": 0
+          }
+        ]
+      },
+      "body_K_handoffs_after_motion_end_included_and_labelled": true,
+      "display_identity_policy_note": "True means same numeric-law checksum as a previously accepted control candidate. It does not mean current active control candidate equals the currently displayed older candidate."
+    }
+  },
+  "conditions": {
+    "two_live_cases_in_parallel": true,
+    "root_tests_concurrent": true,
+    "isolated_performance_benchmark": false,
+    "physical_duration_s": 90,
+    "post_end_work_not_motion_cause": true,
+    "raw_and_intermediates_excluded_from_repository": true
+  },
+  "capture_metadata_keys": [
+    "created_wall",
+    "ports",
+    "viewer_sha256",
+    "duration_physical_s",
+    "video_requested",
+    "source_commit",
+    "source_hashes",
+    "concurrent_root_tests",
+    "configuration_changes"
+  ],
+  "source_sha256_checks": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensor_event_batch.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/runtime_monitor.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visibility_factor.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/short_command.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/running_gradient.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_publication.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/local_curvature.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_bayes_factor.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/immutable_body_cache.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/batch_observation_factors.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_artifacts.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensor_event_store.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/time_resolved_body_ratios.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/dynamic_physics.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/joint_batch_stiffness.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/joint_batch_inference.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/selection_gradient.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/local_quadratic_tracking.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/auxiliary_equilibrium_native.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/joint_batch_fusion.py": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/common.yaml": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu.yaml": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/marker.yaml": true,
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml": true
+  },
+  "viewer_sha256": {
+    "marker": "b76838c3adefecfa2eaec00118af0a6c7c8ae2a713d3cbad386d5b39ca66bde1",
+    "imu_marker": "b76838c3adefecfa2eaec00118af0a6c7c8ae2a713d3cbad386d5b39ca66bde1"
+  },
+  "viewer_window_note": "Qt 10x10 helper windows were inadvertently targeted by initial position helper. Original 20/60/90s screenshots show overlapping main windows. post90_both_windows.png is a separately timestamped later capture after moving only the two actual main windows; baseline files and 1840x1200 main-window sizes are unchanged.",
+  "source_identifier_note": "source_head is HEAD at capture; actual frozen working-tree runtime files are identified by capture_metadata.json source_hashes. Do not identify uncommitted runtime solely by HEAD."
+}

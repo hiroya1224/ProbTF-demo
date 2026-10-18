@@ -14,8 +14,9 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 from probtf.geometry import axis_angle_to_quat, quat_to_rotmat
 from probtf.spherical_law.first_order import (
-    BinghamTransform, JointTransformState, bingham_from_rotation_coordinates, point_query,
+    BinghamTransform, JointTransformState, bingham_from_rotation_coordinates,
 )
+from probtf_observation_fusion_demo.body_native import point_query
 from probtf_observation_fusion_demo.display import (
     make_markers, serialized_marker_array, snapshot_record, verify_wire_identity,
 )
@@ -186,7 +187,7 @@ def test_stage_without_separate_goals_keeps_the_existing_snapshot_and_wire_path(
 
 @pytest.mark.parametrize('case', ['marker', 'imu_marker'])
 def test_change_weighted_projected_body_and_all_goal_modes_match_controller_and_ros_wire(case, tmp_path):
-    from probtf.spherical_law.first_order import reexpress_state
+    from probtf_observation_fusion_demo.body_native import reexpress_state
     from probtf_observation_fusion_demo.moving_inference import MovingInference
     from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
     scene = MovingSwitchScene(tmp_path/case)

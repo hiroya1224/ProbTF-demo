@@ -1,0 +1,1792 @@
+{
+  "marker": {
+    "before": {
+      "job_sequence": 4,
+      "archive_sha256": "3c775a732bb64fc41cf56966d10b79221fb6eb19c20f909b9283d272353c7058",
+      "state_id": "ba3173c0dd5c601ec78204dc98bf3482c3683172d097d1700c00dc1254a7140a",
+      "stamp": 1792080004.279485,
+      "command": [
+        -0.16227466355151043,
+        -1.9443678650047604,
+        2.274963756391701,
+        0.006088453882884151,
+        -0.9711815018597194,
+        0.0006013410841177111
+      ],
+      "mean": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "covariance_sha256": "0ff3064f05f488bc4114a2b23f94999d5615178a1003dd4f16876d31dee140e4",
+      "links": {
+        "link_1": {
+          "mean": [
+            0.000991419165380982,
+            -0.0008032185221010284,
+            0.12052634876621494
+          ],
+          "mode": [
+            0.000991419165380982,
+            -0.0008032185221010284,
+            0.12052634876621494
+          ],
+          "covariance": [
+            [
+              2.495837854007398e-07,
+              2.145076876133984e-11,
+              -5.782483088938507e-11
+            ],
+            [
+              2.145076876133984e-11,
+              2.49766154867957e-07,
+              -1.901482247614712e-11
+            ],
+            [
+              -5.782483088938507e-11,
+              -1.901482247614712e-11,
+              2.495939292586636e-07
+            ]
+          ]
+        },
+        "link_2": {
+          "mean": [
+            0.11416319530697794,
+            0.13973572284045463,
+            0.13071002240164056
+          ],
+          "mode": [
+            0.11420626412325578,
+            0.13978921492043392,
+            0.13071377627492398
+          ],
+          "covariance": [
+            [
+              7.575962253485934e-06,
+              -5.699215542948235e-06,
+              -1.1179095527517523e-07
+            ],
+            [
+              -5.699215542948234e-06,
+              5.1520435057826065e-06,
+              -8.264218459981737e-07
+            ],
+            [
+              -1.1179095527517313e-07,
+              -8.264218459981741e-07,
+              1.3580537479504206e-05
+            ]
+          ]
+        },
+        "link_3": {
+          "mean": [
+            -0.1869554423500007,
+            0.23562786575002218,
+            0.30472068672424485
+          ],
+          "mode": [
+            -0.18699765944466626,
+            0.23571240851786962,
+            0.3047826349047344
+          ],
+          "covariance": [
+            [
+              2.93593705566317e-05,
+              9.72529311731055e-06,
+              1.3401180549462682e-05
+            ],
+            [
+              9.72529311731055e-06,
+              4.157979543313366e-05,
+              -1.014645782022301e-05
+            ],
+            [
+              1.3401180549462685e-05,
+              -1.0146457820223007e-05,
+              2.4803375651965622e-05
+            ]
+          ]
+        },
+        "link_4": {
+          "mean": [
+            -0.19727322100187816,
+            0.39713509328342234,
+            0.05855419854930479
+          ],
+          "mode": [
+            -0.1973497946969833,
+            0.3972633773108045,
+            0.05851589499255775
+          ],
+          "covariance": [
+            [
+              4.7393229266702437e-05,
+              2.2012109689022265e-05,
+              1.961108077549698e-06
+            ],
+            [
+              2.2012109689022268e-05,
+              4.89124943480148e-05,
+              1.506084332528768e-05
+            ],
+            [
+              1.961108077549706e-06,
+              1.5060843325287683e-05,
+              5.697719775006767e-05
+            ]
+          ]
+        },
+        "link_5": {
+          "mean": [
+            -0.1046704892502536,
+            0.4064485689362558,
+            -0.039944516387295965
+          ],
+          "mode": [
+            -0.1046771220974769,
+            0.4065901256904945,
+            -0.04007837380012409
+          ],
+          "covariance": [
+            [
+              4.601148155023894e-05,
+              1.3927820206990966e-05,
+              8.736617507197171e-06
+            ],
+            [
+              1.3927820206990963e-05,
+              4.9154732525351694e-05,
+              3.119671363342257e-05
+            ],
+            [
+              8.736617507197174e-06,
+              3.119671363342257e-05,
+              7.57890821984042e-05
+            ]
+          ]
+        },
+        "link_6": {
+          "mean": [
+            0.004956056873891451,
+            0.41094437656712646,
+            -0.003522504053911367
+          ],
+          "mode": [
+            0.005033699390459572,
+            0.41111451424028583,
+            -0.0036207954345438276
+          ],
+          "covariance": [
+            [
+              4.6628099172782225e-05,
+              2.3997915004684045e-06,
+              1.8938052578323313e-06
+            ],
+            [
+              2.399791500468403e-06,
+              4.0485992183783276e-05,
+              3.702621970678335e-05
+            ],
+            [
+              1.893805257832338e-06,
+              3.702621970678334e-05,
+              0.00011221236148911055
+            ]
+          ]
+        },
+        "tool0": {
+          "mean": [
+            -0.055628226891753334,
+            0.4904137591893706,
+            -0.004578225838451141
+          ],
+          "mode": [
+            -0.05559106399282107,
+            0.4906343603073973,
+            -0.004730816238017507
+          ],
+          "covariance": [
+            [
+              6.198119269421073e-05,
+              7.891058118890954e-06,
+              -3.345294180800213e-06
+            ],
+            [
+              7.891058118890955e-06,
+              4.0112516632439444e-05,
+              3.9519135554041074e-05
+            ],
+            [
+              -3.3452941808002247e-06,
+              3.951913555404106e-05,
+              0.00013174567590088158
+            ]
+          ]
+        },
+        "hand": {
+          "mean": [
+            -0.2525113383969593,
+            0.7487421577083953,
+            -0.008014160742995621
+          ],
+          "mode": [
+            -0.2526215449884834,
+            0.7490738600255096,
+            -0.008338383849307032
+          ],
+          "covariance": [
+            [
+              0.00015042719215878263,
+              5.51250185689632e-05,
+              -2.0474457328680982e-05
+            ],
+            [
+              5.512501856896319e-05,
+              6.131937412121483e-05,
+              4.877974339062736e-05
+            ],
+            [
+              -2.0474457328681002e-05,
+              4.877974339062734e-05,
+              0.00028380689632974274
+            ]
+          ]
+        }
+      },
+      "record_keys": [
+        "root_frame",
+        "observation_ids",
+        "valid_observation_count",
+        "bayes_factor_surprise",
+        "joint_observation_evidence",
+        "stages",
+        "sensor_estimates",
+        "joint_batch",
+        "bayes_factor_goal_retention",
+        "bayes_factor_transport",
+        "internal_projection",
+        "mixture_policy",
+        "frozen_internal_charts",
+        "fresh_goal_construction",
+        "fixed_goal_memory",
+        "fixed_goal_memory_event",
+        "joint_batch_source",
+        "sensor_event",
+        "prediction_command_correction",
+        "moving_input_family",
+        "candidate_measure",
+        "stiffness",
+        "async_estimation"
+      ],
+      "surprise": {
+        "enabled": true,
+        "applied": true,
+        "change_probability": 0.9995766943047822,
+        "per_event_change_probability": 0.25,
+        "probability_unit": "one joint batch with effective-event survival aggregation",
+        "effective_event_count": 27,
+        "transition": {
+          "change_probability": 0.9995766943047822,
+          "change_prior_odds": null,
+          "retained_source_state_id": "da95637d34ad97c593b83c9bc669e2336bde470af39529e7e10b5d2ce3ff9817",
+          "direct_family_state_id": "2c8b5404c2b17bad13cd436ab362c20a677ab4ee590ac6b9ce04f48c01f93139",
+          "retained_label": "internal:510",
+          "reset_label": "reset:1321",
+          "reset_state_id": "283efb41fdde6e185be80937d66281fd57daeeedf03eebbda0ede06a15509f37",
+          "version": 1321,
+          "stamp": 1792080001.4572988,
+          "command": [
+            -0.14993747731958337,
+            -1.914526443254971,
+            2.2963905268694385,
+            0.004840756553541348,
+            -0.9782422121506341,
+            0.0024118176450227645
+          ],
+          "marker_edge_id": "marker",
+          "marker_marginal_reused": true,
+          "reset_kernel": "independent redraw of the supplied command-dependent body law; retain the environment marginal",
+          "reset_body_environment_cross_covariance": "zero by the specified independent redraw kernel",
+          "retained_body_environment_cross_covariance_preserved": true,
+          "physical_truth_received": false,
+          "sampling_used": false,
+          "per_event_change_probability": 0.25,
+          "effective_event_count": 27,
+          "log_keep_prior_probability": -7.767415956198084,
+          "log_change_prior_odds": 7.766992560883718,
+          "reset_location": "batch start; explicit approximation to unknown within-batch change time"
+        },
+        "log_keep_evidence": -23972.549768733086,
+        "log_reset_evidence": -24074.98802347468,
+        "log_observation_evidence": -23980.317184689284,
+        "posterior_change_probability": 7.669962491173224e-42,
+        "approximation": "one batch-start redraw; no enumeration of within-batch change times",
+        "monte_carlo_used": false,
+        "physical_truth_received": false
+      },
+      "joint_batch_likelihood": null,
+      "candidate_measure": {
+        "log_total_mass": -28823.627045110872,
+        "observation_evidence": {
+          "log_evidence": -23980.317184689284,
+          "log_evidence_parts": [
+            -23980.317184689284,
+            4.384131946366665e-13
+          ],
+          "parents": [
+            {
+              "label": "internal:510",
+              "log_evidence": -23972.549768733086,
+              "log_evidence_parts": [
+                -23972.549768733086,
+                1.0121764537629474e-12
+              ]
+            },
+            {
+              "label": "reset:1321",
+              "log_evidence": -24074.98802347468,
+              "log_evidence_parts": [
+                -24074.98802347468,
+                4.600972380863766e-13
+              ]
+            }
+          ]
+        },
+        "approximation": "same analytic joint moment proxy; not exact raw-pixel Bayesian evidence"
+      },
+      "joint_batch_summary": {
+        "batch_id": "a038a219c4513198be9fbeb2eeb176c355fe3c5b30e1acfdb26f12fceb74e5eb",
+        "source_stamp": 1792080001.4572988,
+        "endpoint_stamp": 1792080004.279485,
+        "sensor_posterior_views": "original acquisition likelihood posteriors pulled into START factor charts; final frozen body branches use END charts",
+        "intermediate_projection_count": 0,
+        "terminal_projection_count": 1,
+        "approximation": "frozen acquisition likelihoods in one common start chart; one terminal analytic moment/Bingham projection",
+        "old_per_event_recursion_equivalent": false,
+        "monte_carlo_used": false
+      }
+    },
+    "after": {
+      "job_sequence": 5,
+      "archive_sha256": "f89650654cee44553771db28d37cffec5e2d0fcce05953467609ee903e2ed457",
+      "state_id": "9fcdae405176a94e49b09bef5d389049d04dbec4d7124f556e6bc9532cf2aa2f",
+      "stamp": 1792080010.7134523,
+      "command": [
+        -0.16161274849379184,
+        -1.9421502602178877,
+        2.2754861834243445,
+        0.0026645804121048678,
+        -0.9673100354178648,
+        0.002364038532853876
+      ],
+      "mean": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "covariance_sha256": "e3188d20abea11bec125458505688ec8402fad7693db97d973dc973f203f5439",
+      "links": {
+        "link_1": {
+          "mean": [
+            0.000582180858076163,
+            0.0007838356030654977,
+            0.12037595020080771
+          ],
+          "mode": [
+            0.000582180858076163,
+            0.0007838356030654977,
+            0.12037595020080771
+          ],
+          "covariance": [
+            [
+              2.4993093599284323e-07,
+              -8.96422539502807e-12,
+              4.578712390836967e-12
+            ],
+            [
+              -8.96422539502807e-12,
+              2.49764827313699e-07,
+              -6.625571072522957e-11
+            ],
+            [
+              4.578712390836967e-12,
+              -6.625571072522957e-11,
+              2.498449206947244e-07
+            ]
+          ]
+        },
+        "link_2": {
+          "mean": [
+            0.09550715591110234,
+            0.07767666387855812,
+            0.2529753819406291
+          ],
+          "mode": [
+            0.09555199247897625,
+            0.07771296353569257,
+            0.2530380080342708
+          ],
+          "covariance": [
+            [
+              1.2296315062155802e-05,
+              -3.5734144568575254e-06,
+              -6.372888178028927e-06
+            ],
+            [
+              -3.5734144568575263e-06,
+              1.2290007802965497e-05,
+              -4.284043617313659e-06
+            ],
+            [
+              -6.372888178028926e-06,
+              -4.284043617313659e-06,
+              7.548634486313377e-06
+            ]
+          ]
+        },
+        "link_3": {
+          "mean": [
+            0.15130568562909583,
+            0.3228274736734334,
+            0.5104993546787435
+          ],
+          "mode": [
+            0.15139437039585837,
+            0.3230499161107588,
+            0.510718415987196
+          ],
+          "covariance": [
+            [
+              0.00016885917169734522,
+              -3.419877711550956e-05,
+              -2.136946156686683e-05
+            ],
+            [
+              -3.419877711550956e-05,
+              5.22041303863248e-05,
+              -2.9766981314912795e-05
+            ],
+            [
+              -2.1369461566866825e-05,
+              -2.97669813149128e-05,
+              3.214754699312088e-05
+            ]
+          ]
+        },
+        "link_4": {
+          "mean": [
+            0.24974248869482668,
+            0.6020321191737555,
+            0.4616270610656144
+          ],
+          "mode": [
+            0.24981168238508558,
+            0.6024853877622,
+            0.46176766238637884
+          ],
+          "covariance": [
+            [
+              0.000275274761531739,
+              -4.6216820506861096e-05,
+              -1.7754448273193023e-05
+            ],
+            [
+              -4.621682050686111e-05,
+              4.1131216865984815e-05,
+              -3.9900232639460824e-05
+            ],
+            [
+              -1.7754448273193e-05,
+              -3.990023263946082e-05,
+              0.00014546989092405527
+            ]
+          ]
+        },
+        "link_5": {
+          "mean": [
+            0.3055887488725938,
+            0.7291344985122188,
+            0.4804236850957945
+          ],
+          "mode": [
+            0.305665304510242,
+            0.7297725464798387,
+            0.4806488398128113
+          ],
+          "covariance": [
+            [
+              0.0003719536972510357,
+              -8.181657657963246e-05,
+              1.7491165266154134e-05
+            ],
+            [
+              -8.181657657963243e-05,
+              5.436142410665808e-05,
+              -6.177925517308117e-05
+            ],
+            [
+              1.749116526615415e-05,
+              -6.177925517308114e-05,
+              0.00021703930499348637
+            ]
+          ]
+        },
+        "link_6": {
+          "mean": [
+            0.41622087338274183,
+            0.735446058540703,
+            0.5267112936230981
+          ],
+          "mode": [
+            0.4165281685232888,
+            0.736135806110726,
+            0.5270296109795511
+          ],
+          "covariance": [
+            [
+              0.0003774623545860095,
+              -0.00013776546340047715,
+              5.09418103195573e-07
+            ],
+            [
+              -0.00013776546340047715,
+              0.0001212360095636653,
+              -8.51955142536911e-05
+            ],
+            [
+              5.094181031955899e-07,
+              -8.519551425369106e-05,
+              0.0003098782603792586
+            ]
+          ]
+        },
+        "tool0": {
+          "mean": [
+            0.5132439078165907,
+            0.7321304238398769,
+            0.5500749704379676
+          ],
+          "mode": [
+            0.5136972593293276,
+            0.7328279514771036,
+            0.5504224707801526
+          ],
+          "covariance": [
+            [
+              0.00037952791791359046,
+              -0.0001886393371646699,
+              -2.2463329565366318e-05
+            ],
+            [
+              -0.00018863933716466993,
+              0.00021164012979333117,
+              -9.886883908118393e-05
+            ],
+            [
+              -2.2463329565366383e-05,
+              -9.886883908118393e-05,
+              0.0003996494731227381
+            ]
+          ]
+        },
+        "hand": {
+          "mean": [
+            0.8285595754472806,
+            0.721365357638385,
+            0.6260026444459865
+          ],
+          "mode": [
+            0.8294968044489545,
+            0.7220774239178305,
+            0.6264492651321071
+          ],
+          "covariance": [
+            [
+              0.00039780295883030264,
+              -0.0003506669929762124,
+              -0.00014468235230238557
+            ],
+            [
+              -0.00035066699297621234,
+              0.0007146227378827895,
+              -0.0001274888491286379
+            ],
+            [
+              -0.00014468235230238557,
+              -0.00012748884912863802,
+              0.0008911870749892915
+            ]
+          ]
+        }
+      },
+      "record_keys": [
+        "root_frame",
+        "observation_ids",
+        "valid_observation_count",
+        "bayes_factor_surprise",
+        "joint_observation_evidence",
+        "stages",
+        "sensor_estimates",
+        "joint_batch",
+        "bayes_factor_goal_retention",
+        "bayes_factor_transport",
+        "internal_projection",
+        "mixture_policy",
+        "frozen_internal_charts",
+        "fresh_goal_construction",
+        "fixed_goal_memory",
+        "fixed_goal_memory_event",
+        "joint_batch_source",
+        "sensor_event",
+        "prediction_command_correction",
+        "moving_input_family",
+        "candidate_measure",
+        "stiffness",
+        "async_estimation"
+      ],
+      "surprise": {
+        "enabled": true,
+        "applied": true,
+        "change_probability": 0.9999999992423437,
+        "per_event_change_probability": 0.25,
+        "probability_unit": "one joint batch with effective-event survival aggregation",
+        "effective_event_count": 73,
+        "transition": {
+          "change_probability": 0.9999999992423437,
+          "change_prior_odds": null,
+          "retained_source_state_id": "eab6ad32098ef5d1b8d07a4127167d3b78f141673f4ab2f063c4fc5bf4c68c7d",
+          "direct_family_state_id": "4871b7e450f3ec55bf108909083c5bd486bb7eed0c7b4d65d07b0b8ec60c716f",
+          "retained_label": "internal:1323",
+          "reset_label": "reset:3139",
+          "reset_state_id": "c3ab79c3f93d0350f9984912d39eef5c8767ffd0263d4810ccf5a2d8dc792589",
+          "version": 3139,
+          "stamp": 1792080004.279485,
+          "command": [
+            -0.16227466355151043,
+            -1.9443678650047604,
+            2.274963756391701,
+            0.006088453882884151,
+            -0.9711815018597194,
+            0.0006013410841177111
+          ],
+          "marker_edge_id": "marker",
+          "marker_marginal_reused": true,
+          "reset_kernel": "independent redraw of the supplied command-dependent body law; retain the environment marginal",
+          "reset_body_environment_cross_covariance": "zero by the specified independent redraw kernel",
+          "retained_body_environment_cross_covariance_preserved": true,
+          "physical_truth_received": false,
+          "sampling_used": false,
+          "per_event_change_probability": 0.25,
+          "effective_event_count": 73,
+          "log_keep_prior_probability": -21.000791288980007,
+          "log_change_prior_odds": 21.000791288222352,
+          "reset_location": "batch start; explicit approximation to unknown within-batch change time"
+        },
+        "log_keep_evidence": -75247.57442981921,
+        "log_reset_evidence": -1650.4807479061033,
+        "log_observation_evidence": -1650.4807479068609,
+        "posterior_change_probability": 1.0,
+        "approximation": "one batch-start redraw; no enumeration of within-batch change times",
+        "monte_carlo_used": false,
+        "physical_truth_received": false
+      },
+      "joint_batch_likelihood": null,
+      "candidate_measure": {
+        "log_total_mass": -30474.107793017734,
+        "observation_evidence": {
+          "log_evidence": -1650.4807479068609,
+          "log_evidence_parts": [
+            -1650.4807479068609,
+            -1.0402818442891676e-13
+          ],
+          "parents": [
+            {
+              "label": "internal:1323",
+              "log_evidence": -75247.57442981921,
+              "log_evidence_parts": [
+                -75247.57442981921,
+                -5.53233847622181e-12
+              ]
+            },
+            {
+              "label": "reset:3139",
+              "log_evidence": -1650.4807479061033,
+              "log_evidence_parts": [
+                -1650.4807479061033,
+                -5.684341886080802e-14
+              ]
+            }
+          ]
+        },
+        "approximation": "same analytic joint moment proxy; not exact raw-pixel Bayesian evidence"
+      },
+      "joint_batch_summary": {
+        "batch_id": "f07dc91a103bf7afff8ae0f21bcb0c0a4e621a3ee3e59a911f87ea63ad4d96d9",
+        "source_stamp": 1792080004.279485,
+        "endpoint_stamp": 1792080010.7134523,
+        "sensor_posterior_views": "original acquisition likelihood posteriors pulled into START factor charts; final frozen body branches use END charts",
+        "intermediate_projection_count": 0,
+        "terminal_projection_count": 1,
+        "approximation": "frozen acquisition likelihoods in one common start chart; one terminal analytic moment/Bingham projection",
+        "old_per_event_recursion_equivalent": false,
+        "monte_carlo_used": false
+      }
+    },
+    "original_acquisition_command_distance_rad": 0.005953746449835272,
+    "canonical_native_acquisition_changes": {
+      "link_1": {
+        "mode_origin_m": 0.0016458543425377453,
+        "mean_origin_m": 0.0016458543425377453
+      },
+      "link_2": {
+        "mode_origin_m": 0.13843648548007337,
+        "mean_origin_m": 0.13837699501136286
+      },
+      "link_3": {
+        "mode_origin_m": 0.4056433803504897,
+        "mean_origin_m": 0.4054247433356963
+      },
+      "link_4": {
+        "mode_origin_m": 0.6361457757984177,
+        "mean_origin_m": 0.6358251083682088
+      },
+      "link_5": {
+        "mode_origin_m": 0.7375531270211411,
+        "mean_origin_m": 0.7370358992112859
+      },
+      "link_6": {
+        "mode_origin_m": 0.746027071977608,
+        "mean_origin_m": 0.745377737191501
+      },
+      "tool0": {
+        "mode_origin_m": 0.8312292720794312,
+        "mean_origin_m": 0.8304713238619628
+      },
+      "hand": {
+        "mode_origin_m": 1.2548562822295914,
+        "mean_origin_m": 1.2535713458771052
+      }
+    }
+  },
+  "imu_marker": {
+    "before": {
+      "job_sequence": 2,
+      "archive_sha256": "b466b0d2c03d483ebf929dc69733a8eafb37398ab2b5a567570f5be33ad14fb0",
+      "state_id": "ec497a78785b1d3e10756820aa48b88d3d488eac6efab2a453a3420f641cabc7",
+      "stamp": 1792080000.3766594,
+      "command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "mean": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "covariance_sha256": "80973879a41981510359517e0e987feef27f43744129a15ae3800e84482c311d",
+      "links": {
+        "link_1": {
+          "mean": [
+            -1.9252529655491064e-06,
+            -2.429859293501947e-07,
+            0.12000017429855139
+          ],
+          "mode": [
+            -1.9252529655491064e-06,
+            -2.429859293501947e-07,
+            0.12000017429855139
+          ],
+          "covariance": [
+            [
+              2.4979891058256813e-07,
+              1.7615750905744368e-11,
+              7.120610540874057e-11
+            ],
+            [
+              1.7615750905744368e-11,
+              2.499251802558652e-07,
+              -1.035446335041111e-11
+            ],
+            [
+              7.120610540874057e-11,
+              -1.035446335041111e-11,
+              2.495625116682564e-07
+            ]
+          ]
+        },
+        "link_2": {
+          "mean": [
+            0.015501143386897419,
+            -0.0021682109281461024,
+            0.29921688875521424
+          ],
+          "mode": [
+            0.01550979571549654,
+            -0.0021694207021620737,
+            0.29931761330520523
+          ],
+          "covariance": [
+            [
+              1.6608918657520918e-05,
+              5.435361689713276e-07,
+              -1.3857104126036683e-06
+            ],
+            [
+              5.435361689713275e-07,
+              2.056609292042114e-05,
+              1.9565357658200265e-07
+            ],
+            [
+              -1.3857104126036685e-06,
+              1.9565357658200262e-07,
+              6.203986693198928e-07
+            ]
+          ]
+        },
+        "link_3": {
+          "mean": [
+            -0.017719194706382058,
+            0.0034089679945321105,
+            0.6574263907860987
+          ],
+          "mode": [
+            -0.017739060212838182,
+            0.0034125350107231077,
+            0.6577361486970025
+          ],
+          "covariance": [
+            [
+              8.733868015411181e-05,
+              9.303445910879241e-06,
+              3.796210058764588e-06
+            ],
+            [
+              9.303445910879241e-06,
+              0.00015318011669226633,
+              -8.169538668449168e-07
+            ],
+            [
+              3.796210058764588e-06,
+              -8.169538668449168e-07,
+              1.243471888736738e-06
+            ]
+          ]
+        },
+        "link_4": {
+          "mean": [
+            0.1891358059780505,
+            -0.027285825305730017,
+            0.4424869454553126
+          ],
+          "mode": [
+            0.1891822589092402,
+            -0.02729142234198881,
+            0.442701729769593
+          ],
+          "covariance": [
+            [
+              8.583852186471475e-05,
+              4.879720276192145e-06,
+              3.6669322292424203e-06
+            ],
+            [
+              4.879720276192146e-06,
+              0.00012403577296026032,
+              -9.146199899149601e-07
+            ],
+            [
+              3.6669322292424186e-06,
+              -9.146199899149605e-07,
+              1.9947670653514583e-06
+            ]
+          ]
+        },
+        "link_5": {
+          "mean": [
+            0.2844406182154809,
+            -0.04074222515361172,
+            0.3410327405246318
+          ],
+          "mode": [
+            0.2845709372158059,
+            -0.04075926192378464,
+            0.3411185859435454
+          ],
+          "covariance": [
+            [
+              8.931751430121139e-05,
+              8.409818945086855e-06,
+              8.824649096910779e-06
+            ],
+            [
+              8.409818945086855e-06,
+              0.00015253131422437015,
+              -1.7955070962790613e-06
+            ],
+            [
+              8.8246490969108e-06,
+              -1.7955070962790613e-06,
+              9.427322562749883e-06
+            ]
+          ]
+        },
+        "link_6": {
+          "mean": [
+            0.4021754369766738,
+            -0.0574034492359899,
+            0.35588532246618404
+          ],
+          "mode": [
+            0.4024737135611458,
+            -0.05744458047613972,
+            0.3559560429976112
+          ],
+          "covariance": [
+            [
+              8.899275059100715e-05,
+              1.3935311296318919e-05,
+              1.1854166069637287e-05
+            ],
+            [
+              1.3935311296318915e-05,
+              0.00018755625390724624,
+              -2.427906474709588e-06
+            ],
+            [
+              1.1854166069637295e-05,
+              -2.427906474709585e-06,
+              3.3764923897611225e-05
+            ]
+          ]
+        },
+        "tool0": {
+          "mean": [
+            0.5005874117050929,
+            -0.07110365901245391,
+            0.3664941679544532
+          ],
+          "mode": [
+            0.5009618048405946,
+            -0.07115554376761968,
+            0.3665440249465336
+          ],
+          "covariance": [
+            [
+              8.932329415918959e-05,
+              1.759196073735156e-05,
+              1.2191446590602932e-05
+            ],
+            [
+              1.7591960737351553e-05,
+              0.00020771088302673556,
+              -2.7078830120933563e-06
+            ],
+            [
+              1.2191446590602971e-05,
+              -2.707883012093356e-06,
+              5.245983501099644e-05
+            ]
+          ]
+        },
+        "hand": {
+          "mean": [
+            0.8204257956690788,
+            -0.11562936674535253,
+            0.40096389483405737
+          ],
+          "mode": [
+            0.8210481014988024,
+            -0.11571617446492935,
+            0.4009549662805315
+          ],
+          "covariance": [
+            [
+              9.341596373133539e-05,
+              4.371478629332373e-05,
+              3.6492984216326214e-06
+            ],
+            [
+              4.37147862933237e-05,
+              0.0003770820834518223,
+              -1.5592958302252044e-06
+            ],
+            [
+              3.649298421632647e-06,
+              -1.5592958302252087e-06,
+              0.00020553833539367465
+            ]
+          ]
+        }
+      },
+      "record_keys": [
+        "root_frame",
+        "observation_ids",
+        "valid_observation_count",
+        "bayes_factor_surprise",
+        "joint_observation_evidence",
+        "stages",
+        "sensor_estimates",
+        "joint_batch",
+        "bayes_factor_goal_retention",
+        "bayes_factor_transport",
+        "internal_projection",
+        "mixture_policy",
+        "frozen_internal_charts",
+        "fresh_goal_construction",
+        "fixed_goal_memory",
+        "fixed_goal_memory_event",
+        "joint_batch_source",
+        "sensor_event",
+        "prediction_command_correction",
+        "moving_input_family",
+        "candidate_measure",
+        "stiffness",
+        "async_estimation"
+      ],
+      "surprise": {
+        "enabled": true,
+        "applied": true,
+        "change_probability": 0.9866365389898419,
+        "per_event_change_probability": 0.25,
+        "probability_unit": "one joint batch with effective-event survival aggregation",
+        "effective_event_count": 15,
+        "transition": {
+          "change_probability": 0.9866365389898419,
+          "change_prior_odds": null,
+          "retained_source_state_id": "902fe1810c2c1df3c0219e21c29c6d50b95f74b96cff383b97f754d6a0d4d49e",
+          "direct_family_state_id": "03492bfdcdfb16c2c6313ef2d51448da18b75867cce412a5a9628b713a907f6b",
+          "retained_label": "internal:3",
+          "reset_label": "reset:139",
+          "reset_state_id": "57736c85d6ee2687808da2f2feaccb3517d39b61036b1bc6f009a3957c10df9d",
+          "version": 139,
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "marker_edge_id": "marker",
+          "marker_marginal_reused": true,
+          "reset_kernel": "independent redraw of the supplied command-dependent body law; retain the environment marginal",
+          "reset_body_environment_cross_covariance": "zero by the specified independent redraw kernel",
+          "retained_body_environment_cross_covariance_preserved": true,
+          "physical_truth_received": false,
+          "sampling_used": false,
+          "per_event_change_probability": 0.25,
+          "effective_event_count": 15,
+          "log_keep_prior_probability": -4.315231086776714,
+          "log_change_prior_odds": 4.301777531170783,
+          "reset_location": "batch start; explicit approximation to unknown within-batch change time"
+        },
+        "log_keep_evidence": 30.535527268065465,
+        "log_reset_evidence": 167.36198572203799,
+        "log_observation_evidence": 167.34853216643208,
+        "posterior_change_probability": 1.0,
+        "approximation": "one batch-start redraw; no enumeration of within-batch change times",
+        "monte_carlo_used": false,
+        "physical_truth_received": false
+      },
+      "joint_batch_likelihood": null,
+      "candidate_measure": {
+        "log_total_mass": 169.17220914806802,
+        "observation_evidence": {
+          "log_evidence": 167.34853216643208,
+          "log_evidence_parts": [
+            167.34853216643208,
+            -1.0373646386341306e-14
+          ],
+          "parents": [
+            {
+              "label": "internal:3",
+              "log_evidence": 30.535527268065465,
+              "log_evidence_parts": [
+                30.535527268065465,
+                1.3135613304265503e-15
+              ]
+            },
+            {
+              "label": "reset:139",
+              "log_evidence": 167.36198572203799,
+              "log_evidence_parts": [
+                167.36198572203799,
+                1.3340023530261647e-14
+              ]
+            }
+          ]
+        },
+        "approximation": "same analytic joint moment proxy; not exact raw-pixel Bayesian evidence"
+      },
+      "joint_batch_summary": {
+        "batch_id": "eca3fbae3e9d69c1fab39d35152a6e3f69f87d7e77a4030f9219272f84124fcd",
+        "source_stamp": 1792080000.0,
+        "endpoint_stamp": 1792080000.3766594,
+        "sensor_posterior_views": "original acquisition likelihood posteriors pulled into START factor charts; final frozen body branches use END charts",
+        "intermediate_projection_count": 0,
+        "terminal_projection_count": 1,
+        "approximation": "frozen acquisition likelihoods in one common start chart; one terminal analytic moment/Bingham projection",
+        "old_per_event_recursion_equivalent": false,
+        "monte_carlo_used": false
+      }
+    },
+    "after": {
+      "job_sequence": 3,
+      "archive_sha256": "d8502c29bd0f84f37c244b1c9ac3e9ebf5802d57a867c6ed2ab60dea68a214bc",
+      "state_id": "d223d0292f892e9dcbde08b7e7adb26022d29daa9f00092ff408d3ae79b2e459",
+      "stamp": 1792080001.677214,
+      "command": [
+        -0.17105136491546497,
+        -1.9277522369833395,
+        2.295381064110325,
+        0.006762769272493261,
+        -0.9818894762481242,
+        0.002517164337920683
+      ],
+      "mean": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "covariance_sha256": "14aeef2a26c5b07ada51fe824c26dfa2a0171c36bc1f2aebdef3d68b77c94b07",
+      "links": {
+        "link_1": {
+          "mean": [
+            0.0008229542644423079,
+            4.8640792798943724e-05,
+            0.12125866295456592
+          ],
+          "mode": [
+            0.0008229542644423079,
+            4.8640792798943724e-05,
+            0.12125866295456592
+          ],
+          "covariance": [
+            [
+              2.4966431037532765e-07,
+              1.4440761455619548e-11,
+              8.10370786629688e-11
+            ],
+            [
+              1.4440761455619548e-11,
+              2.498626148830329e-07,
+              -3.4372656065025574e-11
+            ],
+            [
+              8.10370786629688e-11,
+              -3.4372656065025574e-11,
+              2.4912300322060326e-07
+            ]
+          ]
+        },
+        "link_2": {
+          "mean": [
+            0.05771248078779851,
+            0.13628214859452437,
+            0.22628388048587758
+          ],
+          "mode": [
+            0.05773761162240403,
+            0.13634242588302442,
+            0.22633019232679802
+          ],
+          "covariance": [
+            [
+              1.365490826658216e-05,
+              -3.4574501985988374e-06,
+              -2.6420818834741205e-06
+            ],
+            [
+              -3.457450198598838e-06,
+              6.723699272873269e-06,
+              -6.2282580626949175e-06
+            ],
+            [
+              -2.6420818834741213e-06,
+              -6.228258062694917e-06,
+              1.0040296568374383e-05
+            ]
+          ]
+        },
+        "link_3": {
+          "mean": [
+            -0.2150444973934685,
+            0.3088302562391103,
+            0.386514254419469
+          ],
+          "mode": [
+            -0.21514524763723214,
+            0.30898804969716454,
+            0.38659682738421197
+          ],
+          "covariance": [
+            [
+              4.332259699871792e-05,
+              2.9675655482743607e-05,
+              3.015391867320055e-06
+            ],
+            [
+              2.9675655482743614e-05,
+              6.17351598435492e-05,
+              -2.9294485504484842e-05
+            ],
+            [
+              3.015391867320054e-06,
+              -2.9294485504484842e-05,
+              5.181102215834339e-05
+            ]
+          ]
+        },
+        "link_4": {
+          "mean": [
+            0.004998785730637455,
+            0.16578839792822447,
+            0.24571141711920047
+          ],
+          "mode": [
+            0.004979923112115793,
+            0.1659095085578278,
+            0.24577562717171209
+          ],
+          "covariance": [
+            [
+              3.664801699784949e-05,
+              1.6087907666953764e-05,
+              9.019263733899069e-06
+            ],
+            [
+              1.608790766695376e-05,
+              3.9079410714071046e-05,
+              -1.4438914423989103e-05
+            ],
+            [
+              9.019263733899069e-06,
+              -1.4438914423989106e-05,
+              3.782108734852889e-05
+            ]
+          ]
+        },
+        "link_5": {
+          "mean": [
+            0.04854447212807117,
+            0.11378927514815787,
+            0.1257492001255601
+          ],
+          "mode": [
+            0.04856936443076028,
+            0.11389719228370399,
+            0.12569438396062368
+          ],
+          "covariance": [
+            [
+              5.116350962911623e-05,
+              1.724628681332021e-05,
+              9.679022439401184e-06
+            ],
+            [
+              1.72462868133202e-05,
+              4.4696825794538044e-05,
+              -1.5423395171573217e-05
+            ],
+            [
+              9.67902243940119e-06,
+              -1.5423395171573217e-05,
+              3.705115567225809e-05
+            ]
+          ]
+        },
+        "link_6": {
+          "mean": [
+            0.08069378896343798,
+            0.08956058664696222,
+            0.23428661651182534
+          ],
+          "mode": [
+            0.08072075729043696,
+            0.08961542048341566,
+            0.234354666249804
+          ],
+          "covariance": [
+            [
+              4.295243588235826e-05,
+              1.861348941601962e-05,
+              5.583169481786883e-06
+            ],
+            [
+              1.861348941601963e-05,
+              5.016353841787988e-05,
+              -1.0995996748998372e-05
+            ],
+            [
+              5.5831694817868884e-06,
+              -1.099599674899838e-05,
+              4.1794762225713794e-05
+            ]
+          ]
+        },
+        "tool0": {
+          "mean": [
+            0.019955491254826596,
+            0.14565527321838204,
+            0.29033139210544956
+          ],
+          "mode": [
+            0.019842276162107594,
+            0.14576589516435137,
+            0.2903987090073822
+          ],
+          "covariance": [
+            [
+              4.1325476451838007e-05,
+              2.269277134180315e-05,
+              -5.254186422710401e-07
+            ],
+            [
+              2.2692771341803152e-05,
+              6.189488363770958e-05,
+              -1.3971601446130234e-05
+            ],
+            [
+              -5.254186422710359e-07,
+              -1.3971601446130237e-05,
+              3.350919798598203e-05
+            ]
+          ]
+        },
+        "hand": {
+          "mean": [
+            -0.17743707589790664,
+            0.32794708502552333,
+            0.4724435740987594
+          ],
+          "mode": [
+            -0.1780127875049629,
+            0.3282549378773924,
+            0.4725418479695115
+          ],
+          "covariance": [
+            [
+              0.0001225029765259884,
+              0.00014642487923233796,
+              -3.7138849513658646e-05
+            ],
+            [
+              0.00014642487923233796,
+              0.00029672654895533684,
+              -0.00010071654434096881
+            ],
+            [
+              -3.7138849513658646e-05,
+              -0.0001007165443409688,
+              6.559540611303205e-05
+            ]
+          ]
+        }
+      },
+      "record_keys": [
+        "root_frame",
+        "observation_ids",
+        "valid_observation_count",
+        "bayes_factor_surprise",
+        "joint_observation_evidence",
+        "stages",
+        "sensor_estimates",
+        "joint_batch",
+        "bayes_factor_goal_retention",
+        "bayes_factor_transport",
+        "internal_projection",
+        "mixture_policy",
+        "frozen_internal_charts",
+        "fresh_goal_construction",
+        "fixed_goal_memory",
+        "fixed_goal_memory_event",
+        "joint_batch_source",
+        "sensor_event",
+        "prediction_command_correction",
+        "moving_input_family",
+        "candidate_measure",
+        "stiffness",
+        "async_estimation"
+      ],
+      "surprise": {
+        "enabled": true,
+        "applied": true,
+        "change_probability": 0.9999992449044581,
+        "per_event_change_probability": 0.25,
+        "probability_unit": "one joint batch with effective-event survival aggregation",
+        "effective_event_count": 49,
+        "transition": {
+          "change_probability": 0.9999992449044581,
+          "change_prior_odds": null,
+          "retained_source_state_id": "c4931c0a48275d8a4c16455469a435338a8f1efe2cf576c80925bf595f0d69bf",
+          "direct_family_state_id": "b5b1dd343175a920ff49efa44069ef75fc8cf4672fe48b5c59399c7b9233fbbe",
+          "retained_label": "internal:141",
+          "reset_label": "reset:571",
+          "reset_state_id": "3d9c977bee4d8fd8e56e584efac7020be07bd5a731bcd457d26b552e2026023e",
+          "version": 571,
+          "stamp": 1792080000.3766594,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "marker_edge_id": "marker",
+          "marker_marginal_reused": true,
+          "reset_kernel": "independent redraw of the supplied command-dependent body law; retain the environment marginal",
+          "reset_body_environment_cross_covariance": "zero by the specified independent redraw kernel",
+          "retained_body_environment_cross_covariance_preserved": true,
+          "physical_truth_received": false,
+          "sampling_used": false,
+          "per_event_change_probability": 0.25,
+          "effective_event_count": 49,
+          "log_keep_prior_probability": -14.096421550137265,
+          "log_change_prior_odds": 14.096420795041437,
+          "reset_location": "batch start; explicit approximation to unknown within-batch change time"
+        },
+        "log_keep_evidence": -30648.117566368368,
+        "log_reset_evidence": -8649.358195041952,
+        "log_observation_evidence": -8649.35819579705,
+        "posterior_change_probability": 1.0,
+        "approximation": "one batch-start redraw; no enumeration of within-batch change times",
+        "monte_carlo_used": false,
+        "physical_truth_received": false
+      },
+      "joint_batch_likelihood": null,
+      "candidate_measure": {
+        "log_total_mass": -8480.185986648981,
+        "observation_evidence": {
+          "log_evidence": -8649.35819579705,
+          "log_evidence_parts": [
+            -8649.35819579705,
+            3.564836134820732e-13
+          ],
+          "parents": [
+            {
+              "label": "internal:141",
+              "log_evidence": -30648.117566368368,
+              "log_evidence_parts": [
+                -30648.117566368368,
+                4.738371524884819e-13
+              ]
+            },
+            {
+              "label": "reset:571",
+              "log_evidence": -8649.358195041952,
+              "log_evidence_parts": [
+                -8649.358195041952,
+                -8.78771014289903e-13
+              ]
+            }
+          ]
+        },
+        "approximation": "same analytic joint moment proxy; not exact raw-pixel Bayesian evidence"
+      },
+      "joint_batch_summary": {
+        "batch_id": "c754c859379ad0ee31c015704bbf1b00cc706b7dfa75f7dbfbc183ec9640f046",
+        "source_stamp": 1792080000.3766594,
+        "endpoint_stamp": 1792080001.677214,
+        "sensor_posterior_views": "original acquisition likelihood posteriors pulled into START factor charts; final frozen body branches use END charts",
+        "intermediate_projection_count": 0,
+        "terminal_projection_count": 1,
+        "approximation": "frozen acquisition likelihoods in one common start chart; one terminal analytic moment/Bingham projection",
+        "old_per_event_recursion_equivalent": false,
+        "monte_carlo_used": false
+      }
+    },
+    "original_acquisition_command_distance_rad": 0.10266843886197279,
+    "canonical_native_acquisition_changes": {
+      "link_1": {
+        "mode_origin_m": 0.0015055263330075017,
+        "mean_origin_m": 0.0015055263330075017
+      },
+      "link_2": {
+        "mode_origin_m": 0.16216005581457213,
+        "mean_origin_m": 0.1620787547840387
+      },
+      "link_3": {
+        "mode_origin_m": 0.45372032087099556,
+        "mean_origin_m": 0.45344550281622525
+      },
+      "link_4": {
+        "mode_origin_m": 0.3317182390192969,
+        "mean_origin_m": 0.3315187874841291
+      },
+      "link_5": {
+        "mode_origin_m": 0.35499710982630106,
+        "mean_origin_m": 0.35478723073296636
+      },
+      "link_6": {
+        "mode_origin_m": 0.37408355160061135,
+        "mean_origin_m": 0.3738116145093492
+      },
+      "tool0": {
+        "mode_origin_m": 0.5332251125777926,
+        "mean_origin_m": 0.5327215464786353
+      },
+      "hand": {
+        "mode_origin_m": 1.0956083653210322,
+        "mean_origin_m": 1.0943489953234
+      }
+    }
+  }
+}

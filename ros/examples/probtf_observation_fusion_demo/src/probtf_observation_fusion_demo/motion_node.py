@@ -596,7 +596,8 @@ def main():
             imu_target_link=imu_target_link, max_updates=max_updates, duration=duration,
             control_mode=rospy.get_param('~control_mode', None) or None,
             running_gradient_options=rospy.get_param('~running_gradient_options', None),
-            visibility_factor_options=rospy.get_param('~visibility_factor_options', None))
+            visibility_factor_options=rospy.get_param('~visibility_factor_options', None),
+            observation_selection_options=rospy.get_param('~observation_selection_options', None))
         rospy.loginfo('Asynchronous wall-clock motion; inference and %s run in separate processes.',
                       playback.session.control_mode)
     elif mode == 'live':

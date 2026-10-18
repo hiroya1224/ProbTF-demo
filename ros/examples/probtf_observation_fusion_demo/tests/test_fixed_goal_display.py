@@ -9,7 +9,7 @@ from std_msgs.msg import String
 from visualization_msgs.msg import Marker, MarkerArray
 
 from probtf.geometry import quat_to_rotmat
-from probtf.spherical_law.first_order import point_query
+from probtf_observation_fusion_demo.body_native import point_query
 from probtf_observation_fusion_demo.display import (
     make_markers, snapshot_record, verify_wire_identity,
 )

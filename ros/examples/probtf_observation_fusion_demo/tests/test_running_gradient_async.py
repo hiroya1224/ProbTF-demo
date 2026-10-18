@@ -10,6 +10,7 @@ from probtf_observation_fusion_demo.display import verify_wire_identity
 from probtf_observation_fusion_demo.motion_display import MotionDisplay
 from probtf_observation_fusion_demo.moving_control import MovingController
 from probtf_observation_fusion_demo.running_gradient import step_running_gradient
+from probtf_observation_fusion_demo.local_quadratic_tracking import FrozenLocalQuadraticModel
 from probtf_observation_fusion_demo.event_motion import _gradient_identity
 
 from test_async_execution import (
@@ -74,22 +75,43 @@ def test_no_observed_goal_is_a_declared_hold_not_a_fabricated_J(tmp_path, monkey
 
 
 @pytest.mark.parametrize('case',['marker','imu_marker'])
-def test_retained_goal_runs_during_image_loss_and_busy_workers_with_exact_dynamics(tmp_path, monkeypatch, case):
+@pytest.mark.parametrize('local_enabled', [True, False])
+def test_retained_goal_runs_during_image_loss_and_busy_workers_with_exact_dynamics(
+        tmp_path, monkeypatch, case, local_enabled):
+    if not local_enabled:
+        initialize = MovingController.__init__
+        def explicit_legacy(self, *args, **kwargs):
+            initialize(self, *args, **kwargs)
+            self.local_quadratic_model_settings = dict(
+                self.local_quadratic_model_settings, enabled=False)
+        monkeypatch.setattr(MovingController, '__init__', explicit_legacy)
     current,clock,_,_,reply=_observed_marker_session(tmp_path,monkeypatch,case)
     try:
         source=current.command.copy()
+        initial_velocity=current.velocity.copy()
+        initial_time=current.frame.time
         packet=current.gradient_tracker.last_packet
         current.marker_preview_visible=False
         current.latest_marker_observed=False
         _advance_ticks(current,clock,12)
-        expected_u,expected_v=step_running_gradient(source,np.zeros(6),packet.gradient,
-            current.frame.time,current.gradient_tracker.eta,current.gradient_tracker.gamma)
+        duration=current.frame.time-initial_time
+        if packet.curvature is None:
+            assert not local_enabled
+            expected_u,expected_v=step_running_gradient(source,initial_velocity,packet.gradient,
+                duration,current.gradient_tracker.eta,current.gradient_tracker.gamma)
+        else:
+            assert local_enabled
+            model=FrozenLocalQuadraticModel(packet.source_command,packet.gradient,packet.curvature)
+            expected_u,expected_v=model.advance(source,initial_velocity,duration,
+                current.gradient_tracker.eta,current.gradient_tracker.gamma)
         np.testing.assert_allclose(current.command,expected_u,atol=1e-14,rtol=0.)
         np.testing.assert_allclose(current.velocity,expected_v,atol=1e-14,rtol=0.)
         assert np.linalg.norm(current.command-source)>0.
         assert current.control_busy and (current.inference_busy or current.database_selection_pending)
         assert all(row['behavior']['mode']=='reaching' for row in _jsonlines(current.output/'commands.jsonl'))
         assert current.gradient_tracker.last_packet is packet
+        assert current.last_gradient_tick['execution_gradient_model']==(
+            'local_quadratic' if local_enabled else 'held_gradient')
         assert current.engine.packet is reply['packet']
         for action in current.actions:
             np.testing.assert_array_equal(action.selected_K,packet.selected_K)
@@ -184,6 +206,11 @@ def test_IMU_only_update_and_new_K_drive_the_held_image_goal_without_sensor_sync
         assert current.last_action_mode=='reaching'
         assert current.actions[-1].density_id==new_K.proposal['density_id']
         assert current.current_control is fresh
+        packet=current.gradient_tracker.last_packet
+        assert packet.curvature==tuple(tuple(row) for row in evaluation['curvature'])
+        np.testing.assert_allclose(current.gradient_tracker.gradient,
+            np.asarray(packet.gradient)+np.asarray(packet.curvature) @
+                (current.command-np.asarray(packet.source_command)),atol=0.,rtol=0.)
     finally:
         current.close()
 

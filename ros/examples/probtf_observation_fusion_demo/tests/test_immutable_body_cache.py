@@ -9,8 +9,8 @@ import pytest
 
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, bingham_from_rotation_coordinates,
-    reexpress_state as core_reexpress_state,
 )
+from probtf_observation_fusion_demo.body_native import reexpress_state as core_reexpress_state
 from probtf_observation_fusion_demo.immutable_body_cache import ReexpressionCache, freeze_json_record
 
 
@@ -115,3 +115,15 @@ def test_immutable_record_detaches_inputs_and_preserves_JSON_deepcopy_and_pickle
         with pytest.raises(TypeError, match='immutable'): value['modes'][0]['covariance'][0][0] = 3.
         with pytest.raises(TypeError, match='immutable'): value.update(stamp=2.)
         with pytest.raises(TypeError, match='immutable'): value['command'].__imul__(2)
+
+
+def test_explicit_backend_switch_does_not_reuse_another_arithmetic_result(monkeypatch):
+    state=_state();cache=ReexpressionCache(3)
+    monkeypatch.setenv('PROBTF_BODY_BACKEND','native')
+    native=cache.reexpress(state,state.mean,state.covariance)
+    monkeypatch.setenv('PROBTF_BODY_BACKEND','python_reference')
+    reference=cache.reexpress(state,state.mean,state.covariance)
+    assert reference is not native and cache.statistics()['misses']==2
+    np.testing.assert_allclose(native.covariance,reference.covariance,atol=1e-14)
+    monkeypatch.setenv('PROBTF_BODY_BACKEND','native')
+    assert cache.reexpress(state,state.mean,state.covariance) is native

@@ -15,8 +15,8 @@ from probtf.distributions.transform_distribution import TransformDistribution
 from probtf.geometry import axis_angle_to_quat, quat_to_rotmat
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, bingham_from_rotation_coordinates,
-    point_query, pose_query,
 )
+from probtf_observation_fusion_demo.body_native import point_query, pose_query
 from probtf.spherical_law.support import covariance_support
 from probtf_observation_fusion_demo.fresh_goal import fresh_marker_goals
 from probtf_observation_fusion_demo.model import Stage

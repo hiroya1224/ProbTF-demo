@@ -1,0 +1,34 @@
+{
+  "report_files": {
+    "OBSERVATIONS.md": {
+      "bytes": 3473,
+      "sha256": "d4661c9a5292ec1ebe8301e8959c8c188883d563ecc0002efb98526b84dcd453"
+    },
+    "independent_same_command_wire_audit.json": {
+      "bytes": 81325,
+      "sha256": "53c38c886957b3e223508429ba9e491b424db82039d8d44a81144f183536afda"
+    },
+    "independent_raw_chronology.json": {
+      "bytes": 19681,
+      "sha256": "e59c43b5bdbf6104a9b91130dd1cfabbab3e8ef68bce8f700bfac430ff48ff1a"
+    },
+    "post_drain_marker.png": {
+      "bytes": 440329,
+      "sha256": "b54a4572df9964299c33b6fb214d32f462c343deaf2e8c524dbf7cac0b14d0ce"
+    },
+    "summary.json": {
+      "bytes": 12228,
+      "sha256": "03a2b493bd166dc4926194f0e3bc8ac94979a8fbb53c64af9d5920ec4e85658a"
+    },
+    "post_drain_window_captures.json": {
+      "bytes": 1083,
+      "sha256": "91c5a586bdbea568fa144ca54d8351ff51f30e8ea56f1c69516a6ac97e390d04"
+    },
+    "post_drain_imu_marker.png": {
+      "bytes": 427714,
+      "sha256": "cd6df6bcd25f5ee82adbe535e9d06c28aa463ad3442021af3334d13235e7284b"
+    }
+  },
+  "total_bytes": 985833,
+  "raw_or_large_intermediate_files_copied": false
+}

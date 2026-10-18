@@ -11,18 +11,24 @@ from time import perf_counter
 
 import numpy as np
 
-from probtf.spherical_law.first_order import pose_query
+from .body_native import pose_query
 from .moving_control import GradientEvaluation
+from .local_curvature import METHOD as CURVATURE_METHOD, build_local_curvature
 
 
 def selection_gradient_at_command(controller, result, visibility_factor,
                                   source_command=None, *, command_map=None):
     started=perf_counter()
     active=visibility_factor.enabled and visibility_factor.weight>0.
+    local_settings=dict(getattr(controller,'local_quadratic_model_settings',{}))
+    local_active=bool(local_settings.get('enabled',False))
+    task_probes={}
     action=None if command_map is None else command_map.record()
     body=tuple(result.stages[-1].components)
     observation=result.records.get('async_prediction',{}).get('observation_source')
-    if 'joint_batch_source' in result.records:
+    if 'sequential_source' in result.records:
+        body_stamp=result.records['sequential_source'].get('last_effective_observation_stamp')
+    elif 'joint_batch_source' in result.records:
         body_stamp=result.records['joint_batch_source'].get('last_effective_observation_stamp')
     elif observation is not None:
         body_stamp=observation['stamp'] if observation.get('observation_ids') else None
@@ -58,8 +64,18 @@ def selection_gradient_at_command(controller, result, visibility_factor,
         probes[identity]=record
         view_seconds.append(perf_counter()-view_started)
 
-    task=controller.gradient_at_command(result,source_command,command_map=command_map,
-        **({'evaluation_observer':observe} if active else {})).record
+    def observe_details(command,components,states,queries,branches):
+        # These are the task's actual existing query results, not a second
+        # command push or a separately reconstructed body distribution.
+        task_probes[tuple(float(value) for value in command)]=dict(
+            queries=queries,branches=branches)
+
+    observers={}
+    if active:
+        observers['evaluation_observer']=observe
+    if local_active:
+        observers['evaluation_details_observer']=observe_details
+    task=controller.gradient_at_command(result,source_command,command_map=command_map,**observers).record
     source_ids.update(body_state_ids=task.get('body_state_ids',[]),
         goal_state_ids=task.get('goal_state_ids',[]))
     record=dict(task,body_observation_source_stamp=body_stamp,
@@ -83,6 +99,9 @@ def selection_gradient_at_command(controller, result, visibility_factor,
         selected_gradient_definition='dJ/dc + visibility_factor.weight * dV/dc',
         selection_failure_policy='retain last accepted gradient; hold initially if none',
         task_candidate_law_changed=False,view_factor_is_observation=False,
+        curvature=None,local_model_method=None,
+        local_model_diagnostics=dict(enabled=local_active,
+            reason=None if local_active else 'explicit legacy constant-gradient execution'),
         visibility_finite_difference_diagnostics=dict(evaluations=[
             dict(command=list(command),view_factor=value) for command,value in probes.items()],coordinates=[]))
     try:
@@ -131,16 +150,29 @@ def selection_gradient_at_command(controller, result, visibility_factor,
                 record['visibility_finite_difference_diagnostics']['coordinates'].append(dict(
                     joint_index=index,method=coordinate['method'],derivative=float(derivative)))
             weighted=(visibility_factor.weight*np.asarray(view_gradient)).tolist()
-            selected=(np.asarray(task_gradient)+np.asarray(weighted)).tolist()
+            selected=(list(task_gradient) if visibility_factor.penalty_mode=='tolerance_cone'
+                and np.all(np.asarray(weighted)==0.) else
+                (np.asarray(task_gradient)+np.asarray(weighted)).tolist())
             record.update(view_gradient=view_gradient,weighted_view_gradient=weighted,
                 log_select_factor=record['log_task_factor']+view['log_factor'],
                 selected_objective_at_source=task_objective+view['weighted_penalty'])
         if not np.all(np.isfinite(selected)):
             raise ValueError('Nonfinite selected task/view gradient.')
         record.update(gradient=selected,selected_gradient=selected,status='ok',reason=None)
+        if local_active:
+            curvature_started=perf_counter()
+            curvature,model_diagnostics=build_local_curvature(record,task_probes,probes,
+                visibility_factor,local_settings,lower=controller.lower,upper=controller.upper)
+            record.update(curvature=curvature.tolist(),local_model_method=CURVATURE_METHOD,
+                local_model_diagnostics=model_diagnostics,
+                local_model_construction_seconds=perf_counter()-curvature_started)
     except Exception as error:
         record.update(gradient=None,selected_gradient=None,status='failed',
             reason=type(error).__name__+': '+str(error))
+        if local_active:
+            record.update(curvature=None,local_model_method=CURVATURE_METHOD,
+                local_model_diagnostics=dict(enabled=True,status='failed',
+                    reason=record['reason'],candidate_law_modified=False))
     record['selection_factors']=dict(
         task_gradient=record['task_gradient'],view_gradient=record['view_gradient'],
         weighted_view_gradient=record['weighted_view_gradient'],

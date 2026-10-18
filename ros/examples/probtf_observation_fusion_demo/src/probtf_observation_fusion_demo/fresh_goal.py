@@ -17,9 +17,9 @@ from probtf.geometry import (
     rotation_vector_to_quaternion,
 )
 from probtf.spherical_law.first_order import (
-    BinghamTransform, JointTransformState, _right_jacobian,
-    bingham_from_rotation_coordinates, pose_query,
+    BinghamTransform, JointTransformState, _right_jacobian, bingham_from_rotation_coordinates,
 )
+from .body_native import pose_query
 from probtf.spherical_law.support import covariance_support
 
 from .model import WeightedState

@@ -1,0 +1,78 @@
+{
+  "schema": "local_model_all_saved_artifact_wire_audit_v1",
+  "physical_end_cutoff_wall_s": 1792297572.0389135,
+  "cases": {
+    "marker": {
+      "status": "passed",
+      "groups": {
+        "through_physical_end_cutoff": {
+          "artifacts": 317,
+          "wire_bytes": 67079275,
+          "core_point_queries": 13948,
+          "axis_markers": 4438,
+          "gaussian_points": 2561360,
+          "ready_identity_matches": 317,
+          "adopted_packet_matches": 317,
+          "published": 317,
+          "ordered_digest_sha256": "ec1e8c6e6bcc39686fdc84b409d51c76718a95f5870eb40cbcd5679847892f99"
+        },
+        "after_physical_end_cutoff": {
+          "artifacts": 48,
+          "wire_bytes": 10159443,
+          "core_point_queries": 2112,
+          "axis_markers": 672,
+          "gaussian_points": 387840,
+          "ready_identity_matches": 48,
+          "adopted_packet_matches": 48,
+          "published": 48,
+          "ordered_digest_sha256": "4e070b943dfa1a4125cbe3dcba3502ed6010b8752dee677a6538bab2f9e0d014"
+        }
+      },
+      "ready_without_artifacts": [],
+      "artifact_ready_without_record": [],
+      "saved_record_count": 365,
+      "errors": [],
+      "elapsed_s": 70.49225378036499,
+      "source_files_closed_after_worker_shutdown": true
+    },
+    "imu_marker": {
+      "status": "passed",
+      "groups": {
+        "through_physical_end_cutoff": {
+          "artifacts": 391,
+          "wire_bytes": 82745597,
+          "core_point_queries": 17204,
+          "axis_markers": 5474,
+          "gaussian_points": 3159280,
+          "ready_identity_matches": 391,
+          "adopted_packet_matches": 391,
+          "published": 391,
+          "ordered_digest_sha256": "01e9ce41e5b862e2806d86336997c317ae44538a8cef9c7a7def9820fa138431"
+        },
+        "after_physical_end_cutoff": {
+          "artifacts": 14,
+          "wire_bytes": 2963499,
+          "core_point_queries": 616,
+          "axis_markers": 196,
+          "gaussian_points": 113120,
+          "ready_identity_matches": 14,
+          "adopted_packet_matches": 14,
+          "published": 14,
+          "ordered_digest_sha256": "000218a884cc5ecad36d6a4f622997fc7b801162ae2c492e3d08f0b198abad13"
+        }
+      },
+      "ready_without_artifacts": [],
+      "artifact_ready_without_record": [],
+      "saved_record_count": 405,
+      "errors": [],
+      "elapsed_s": 50.82952570915222,
+      "source_files_closed_after_worker_shutdown": true
+    }
+  },
+  "proof_scope": "Every completed saved snapshot point-query mean/covariance/weight recreates exact MarkerArray bytes. Full numeric-law candidate checksum matches immediate ready candidate and later display adoption; adopted g/H/source/K packet matches its artifact record. Saved full point queries match sidecar/control record.",
+  "limitations": [
+    "ROS publication journal confirms which prepared control wires were published; no subscriber packet capture or GPU rendering completion is available.",
+    "Point-query sidecars do not contain the full joint transform covariance, so this audit does not independently rerun raw inference/core propagation or reconstruct the numeric-law checksum from point marginals.",
+    "Post-end artifacts are separated by actual artifact completion wall time and are not attributed as motion causes."
+  ]
+}

@@ -17,7 +17,7 @@ import rospkg
 import yaml
 
 from .async_state import ActionStep
-from .async_stiffness import PhysicalActionEngine
+from .async_stiffness import PhysicalActionEngine, FrozenActionKPacket
 from .async_workers import (_append, _freeze_arrays, acquisition_worker,
                             control_worker, event_inference_worker)
 from .marker_search import MarkerSearchPolicy
@@ -51,7 +51,7 @@ class AsyncMotionSession:
     def __init__(self, observations_path, output, *, imu_target_link=None,
                  duration=None, clock=time.monotonic, context=None, control_mode=None,
                  running_gradient_options=None, visibility_factor_options=None,
-                 event_batching=None, joint_body_batch=None):
+                 event_batching=None, joint_body_batch=None, observation_selection_options=None):
         self.clock, self.output = clock, Path(output)
         self.output.mkdir(parents=True, exist_ok=False)
         from .runtime_monitor import RuntimeMonitor
@@ -66,8 +66,12 @@ class AsyncMotionSession:
         self.options = dict(self.settings.get('async_execution', {}))
         self.event_batching = (bool(self.options.get('event_batching', True))
                                if event_batching is None else bool(event_batching))
-        self.joint_body_batch = (bool(self.options.get('joint_body_batch', True))
+        self.joint_body_batch = (bool(self.options.get('joint_body_batch', False))
                                 if joint_body_batch is None else bool(joint_body_batch))
+        self.observation_selection_options = dict(self.options.get('observation_selection', {}))
+        if observation_selection_options is not None:
+            self.observation_selection_options.update(observation_selection_options)
+        self.last_observation_selection = None
         self.period = 1./float(self.options.get('physics_hz', 120.))
         self.rates = {kind: float(self.options.get(kind+'_hz', rate))
                       for kind, rate in (('joint',40.),('imu',30.),('image',12.))}
@@ -89,6 +93,11 @@ class AsyncMotionSession:
         self.engine = PhysicalActionEngine(self.scene.urdf,
             tuple(self.inference_description.body_ids), parameter)
         self.enabled_sensors = {item['sensor'] for item in self.templates}
+        from .body_native import backend_record
+        self.inference_numeric_backend = dict(body=backend_record())
+        if 'marker' in self.enabled_sensors and self.settings.get('marker_board', {}).get('enabled'):
+            from .marker_board_native import backend_record as marker_backend_record
+            self.inference_numeric_backend['marker_board'] = marker_backend_record()
         self.behavior = MarkerSearchPolicy(control.get('marker_search', {}),
             marker_enabled='marker' in self.enabled_sensors,
             exposure_time=self.scene.config['camera']['exposure_time'])
@@ -97,6 +106,9 @@ class AsyncMotionSession:
         self.estimate_requests, self.estimate_replies = self.context.Queue(), self.context.Queue()
         self.control_requests, self.control_replies = self.context.Queue(), self.context.Queue()
         self.acquisition_requests, self.acquisition_replies = self.context.Queue(), self.context.Queue()
+        self.stiffness_requests, self.stiffness_replies = self.context.Queue(), self.context.Queue()
+        self.artifact_requests, self.artifact_replies = self.context.Queue(), self.context.Queue()
+        from .async_workers import stiffness_worker, artifact_worker
         common = (self.scene.robot_description, str(self.scene.urdf), self.templates, str(self.output))
         board = self.scene.config.get('marker_board', {})
         ids = (tuple(int(i) for row in board['ids'] for i in row)
@@ -106,13 +118,19 @@ class AsyncMotionSession:
             marker_size=self.scene.config['marker']['size'], marker_ids=ids)
         self.workers = (
             self.context.Process(target=event_inference_worker,
-                args=(self.estimate_requests,self.estimate_replies)+common+(self.probability_unit,),daemon=True),
+                args=(self.estimate_requests,self.estimate_replies)+common+(
+                    self.probability_unit,self.stiffness_requests),daemon=True),
             self.context.Process(target=control_worker,
                 args=(self.control_requests,self.control_replies)+common+(
-                    self.horizon,self.control_mode,self.visibility_options),daemon=True),
+                    self.horizon,self.control_mode,self.visibility_options,
+                    self.artifact_requests if self.control_mode=='running_gradient' else None),daemon=True),
             self.context.Process(target=acquisition_worker,
                 args=(self.acquisition_requests,self.acquisition_replies,specification,
-                      str(self.output/'observations.sqlite3'),str(self.output)),daemon=True))
+                      str(self.output/'observations.sqlite3'),str(self.output)),daemon=True),
+            self.context.Process(target=stiffness_worker,
+                args=(self.stiffness_requests,self.stiffness_replies)+common,daemon=True),
+            self.context.Process(target=artifact_worker,
+                args=(self.artifact_requests,self.artifact_replies)+common,daemon=True))
         for worker in self.workers:
             worker.start()
         self.command = self.scene.initial_command.copy()
@@ -133,6 +151,19 @@ class AsyncMotionSession:
         self.desired_velocity = self.velocity.copy()
         self.actions, self.frames, self.capture_indices, self.assimilated = [], [], [], []
         self.latest_result = self.latest_packet = self.current_control = None
+        self.current_display = None
+        self.parameter_packets = {}
+        self.control_parameter_packets_sent = set()
+        self.control_candidates = {}
+        self.control_artifacts = {}
+        self.pending_control_activations = []
+        self.last_adopted_body_candidate = None
+        self.stiffness_jobs_submitted = set()
+        self.stiffness_jobs_completed = set()
+        self.stiffness_failure = None
+        self.stiffness_worker_failed = False
+        self.artifact_failure = None
+        self.stiffness_times = []
         self.latest_marker_observed = False
         self.inference_busy = self.control_busy = False
         self.control_request_counter = 0
@@ -187,6 +218,14 @@ class AsyncMotionSession:
 
     @property
     def estimation_finished(self):
+        return self.body_estimation_finished and not self.pending_stiffness_jobs
+
+    @property
+    def pending_stiffness_jobs(self):
+        return self.stiffness_jobs_submitted-self.stiffness_jobs_completed
+
+    @property
+    def body_estimation_finished(self):
         stats = self.store.stats()
         return (self.motion_finished and not self.inference_busy
             and not self.database_selection_pending and self.database_ack_pending is None
@@ -196,6 +235,8 @@ class AsyncMotionSession:
 
     def start(self):
         if self.started is None and self.latest_result is not None:
+            if self.event_batching and self.current_display is None:
+                return False
             self.started = self.clock()
             for values in (self.publish_times,self.capture_wall_times,*self.acquisition_times.values()):
                 values.clear()
@@ -324,8 +365,14 @@ class AsyncMotionSession:
             ledger_start=(int(batch.events[0].payload_metadata['frame_index'])
                           if source_index is None else source_index)
             steps=self._steps_since(ledger_start,final_index)
+            from .observation_selection import select_observations
+            selection = (None if self.joint_body_batch else
+                select_observations(batch.events, self.enabled_sensors,
+                                    self.observation_selection_options))
+            self.last_observation_selection = selection
             self.estimate_requests.put(dict(kind='sensor_event_batch',batch=batch,
                 joint_body_batch=self.joint_body_batch,
+                observation_selection=selection,
                 database=str(self.output/'observations.sqlite3'),ledger_steps=steps,
                 ledger_source_index=source_index,ledger_target_index=final_index))
             self.pending_inference_batch=batch
@@ -335,6 +382,7 @@ class AsyncMotionSession:
             self.last_submitted_capture=final_index
             _append(self.output/'assimilation_batches.jsonl',dict(batch.record(),
                 ledger_source_index=source_index,ledger_target_index=final_index,
+                observation_selection=selection,
                 command_interval_count=len(steps),all_ready_ordered_prefix_events_claimed=True))
             return
         event=self.selected_sensor_event
@@ -362,7 +410,7 @@ class AsyncMotionSession:
         self.last_submitted_capture,self.inference_busy=index,True
 
     def submit_control(self):
-        if self.control_busy or self.latest_result is None:
+        if self.control_busy or self.latest_result is None or self.pending_control_activations:
             return
         index = len(self.frames)-1
         if self.current_control is not None and index == self.current_control['index'] and (
@@ -370,23 +418,250 @@ class AsyncMotionSession:
             return
         self.control_request_counter += 1
         self.pending_control_request = self.control_request_counter
-        self.control_requests.put(dict(result=self.latest_result,packet=self.latest_packet,
+        packet_id=None if self.latest_packet is None else self.latest_packet.packet_id
+        if self.latest_packet is not None:
+            self.parameter_packets[packet_id]=self.latest_packet
+        transfer=(self.latest_packet if packet_id not in self.control_parameter_packets_sent else None)
+        previous=None if self.current_control is None else self.current_control.get('packet')
+        previous_ref=(dict(estimated_packet_id=previous.estimated_packet.packet_id,
+                          action_json=previous.action_json,packet_id=previous.packet_id)
+                      if isinstance(previous,FrozenActionKPacket) else None)
+        self.control_requests.put(dict(result=self.latest_result,packet=transfer,
+            parameter_packet_id=packet_id,
             request_id=self.pending_control_request,
-            action_packet=None if self.current_control is None else self.current_control['packet'],
+            action_packet=None if previous_ref is not None else previous,
+            action_packet_ref=previous_ref,
             event_id=self.last_assimilated_event,capture_index=self.last_assimilated_capture,
             index=index,stamp=self.frame.stamp,
             ledger_delta=tuple(self.actions[self.control_ledger_transmitted:index]),
             ledger_source_index=self.last_assimilated_capture,ledger_target_index=index,
             velocity=self.velocity.copy(),snapshot_update_count=len(self.assimilated)))
+        if packet_id is not None:
+            self.control_parameter_packets_sent.add(packet_id)
         self.control_ledger_transmitted=index
         self.control_busy = True
+
+    def _adopt_control_message(self, message):
+        """Activate at a completed physical boundary, never over past motion."""
+        monitor = getattr(self, 'runtime_monitor', None)
+        adopt = True
+        if self.control_mode=='running_gradient':
+            self.gradient_evaluations_completed += 1
+            evaluation=message['gradient_evaluation']
+            fields=GradientPacket.__dataclass_fields__
+            packet_fields={name:evaluation[name] for name in fields if name in evaluation}
+            packet_fields['packet_id']=hashlib.sha256(json.dumps(_gradient_identity(evaluation),
+                sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+            gradient_packet=GradientPacket(**packet_fields)
+            before_command=self.gradient_tracker.position.tolist()
+            before_velocity=self.gradient_tracker.velocity.tolist()
+            adoption=self.gradient_tracker.accept(gradient_packet,
+                adoption_stamp=self.frame.stamp,snapshot_update_count=len(self.assimilated))
+            adoption.update(request_id=message.get('request_id'),
+                candidate_id=message.get('candidate_id'),
+                received_monotonic_s=message.get('control_received_monotonic_s'),
+                physical_stamp_at_receipt=message.get('control_received_physical_stamp'),
+                received_motion_elapsed_s=message.get('control_received_motion_elapsed_s'),
+                activation_after_motion_end=message.get('activation_after_motion_end',False),
+                activation_policy='next completed physical tick; preceding interval used old packet',
+                state_before=dict(command=before_command,velocity=before_velocity),
+                state_after=dict(command=self.gradient_tracker.position.tolist(),
+                                 velocity=self.gradient_tracker.velocity.tolist()),
+                evaluation_status=evaluation['status'],evaluation_reason=evaluation.get('reason'),
+                gradient_packet=gradient_packet.as_dict(),
+                source_action_packet_id=(None if message.get('packet') is None else message['packet'].packet_id))
+            self.last_gradient_adoption=adoption
+            _append(self.output/'gradient_adoptions.jsonl',adoption)
+            if monitor is not None:
+                monitor.mark('gradient_adopted', request_id=message.get('request_id'),
+                    physical_stamp=self.frame.stamp, source_stamp=evaluation.get('source_stamp'),
+                    accepted=adoption['accepted'], status=evaluation['status'],
+                    density_id=evaluation.get('parameter_density_id'))
+            adopt=adoption['accepted']
+            # Before the first valid input, publish the waiting-law
+            # snapshot with an explicit hold status, never as a gradient.
+            if (not adopt and self.gradient_tracker.last_packet is None and 'snapshot' in message
+                    and evaluation['status']=='waiting_for_goal'):
+                self.current_control=_freeze_arrays(message)
+        if adopt:
+            self.current_control=_freeze_arrays(message)
+            if self.control_mode!='running_gradient':
+                self.desired_velocity=np.array(message['velocity'],copy=True)
+            if message['packet'] is not None:
+                self.engine.set(message['packet'])
+            else:
+                # A captured unselected-K action remains explicit.
+                self.engine.packet=None
+
+
+        candidate_id=message.get('candidate_id')
+        eligible=adopt or (self.gradient_tracker is not None
+            and self.gradient_tracker.last_packet is None
+            and message.get('gradient_evaluation',{}).get('status')=='waiting_for_goal')
+        if eligible and not adopt:
+            self.current_control=_freeze_arrays(message)
+        if candidate_id is not None:
+            self.control_candidates[candidate_id]['eligible_for_display']=eligible
+            if candidate_id in self.control_artifacts:
+                self._accept_control_artifacts(self.control_artifacts[candidate_id])
+        elif eligible and 'snapshot' in message:
+            self.current_display=_freeze_arrays(message)
+
+    def _receive_control_message(self, message):
+        if (not self.control_busy
+                or message.get('request_id') != self.pending_control_request):
+            raise ValueError('IK reply does not match the outstanding frozen-law request.')
+        self.control_busy=False
+        self.pending_control_request=None
+
+        reference=message.get('action_packet_ref')
+        if reference is not None:
+            from .async_workers import restore_action_packet
+            captured=self.parameter_packets[reference['estimated_packet_id']]
+            message['packet']=restore_action_packet(reference,captured)
+        else:
+            message.setdefault('packet',None)
+        received=self.clock()
+        received_elapsed=(None if self.started is None else received-self.started)
+        message.update(control_received_monotonic_s=received,
+            control_received_physical_stamp=self.frame.stamp,
+            control_received_motion_elapsed_s=received_elapsed)
+        candidate_id=message.get('candidate_id')
+        if candidate_id is not None:
+            if candidate_id in self.control_candidates:
+                raise ValueError('Duplicate immediate control candidate.')
+            self.control_candidates[candidate_id]=dict(message=message,eligible_for_display=False)
+        self.control_times.append(received)
+        # During initial hold or an externally frozen diagnostic clock no
+        # unexecuted wall interval exists. Otherwise stage for a future tick.
+        if self.started is None or received_elapsed <= self.frame.time+1e-9:
+            self._adopt_control_message(message)
+        else:
+            self.pending_control_activations.append(message)
+        _append(self.output/'control_ready_receipts.jsonl',dict(
+            request_id=message.get('request_id'),candidate_id=candidate_id,
+            received_monotonic_s=received,physical_stamp_at_receipt=self.frame.stamp,
+            received_motion_elapsed_s=received_elapsed,
+            display_saving_is_not_control_barrier=True))
+
+    def _activate_pending_controls(self):
+        pending=self.pending_control_activations
+        self.pending_control_activations=[]
+        for message in pending:
+            received=message['control_received_motion_elapsed_s']
+            if not self.motion_finished and self.frame.time+1e-9 < received:
+                self.pending_control_activations.append(message)
+                continue
+            message.update(activation_physical_stamp=self.frame.stamp,
+                activation_after_motion_end=self.motion_finished)
+            self._adopt_control_message(message)
+
+    def _accept_control_artifacts(self, message):
+        identity=message['candidate_id']
+        if identity not in self.control_candidates:
+            # Independent Queue feeder threads may expose the artifact pipe
+            # before its earlier, smaller ready message becomes readable.
+            self.control_artifacts[identity]=message
+            return
+        ready=self.control_candidates[identity]
+        original=ready['message']
+        if original['candidate_identity'] != message['candidate_identity']:
+            raise ValueError('Display and immediate control candidate content/source differ.')
+        self.control_artifacts[identity]=message
+        if ready['eligible_for_display']:
+            old=-1 if self.current_display is None else self.current_display.get('request_id',-1)
+            if message['request_id'] >= old:
+                merged=dict(original,**message)
+                merged['packet']=original['packet']
+                self.current_display=_freeze_arrays(merged)
+                _append(self.output/'display_candidate_adoptions.jsonl',dict(
+                    candidate_id=identity,request_id=message['request_id'],
+                    physical_stamp=self.frame.stamp,source_stamp=message['snapshot'].stamp,
+                    same_immediate_candidate_identity=True))
+
+    def _adopt_body_ready(self, message):
+        batch=self.pending_inference_batch
+        if (not self.inference_busy or batch is None
+                or message['batch_id'] != self.pending_inference_batch_id):
+            raise ValueError('A body-ready candidate is outside the claimed raw batch.')
+        evaluated = message.get('assimilated_event_ids')
+        if evaluated is None:
+            evaluated=[event.event_id for event in batch.events
+                if {'imu':'imu','image':'marker'}.get(event.kind) in self.enabled_sensors]
+        if not set(evaluated).issubset(batch.event_ids):
+            raise ValueError('A body-ready candidate names acquisitions outside its batch.')
+        if not self.joint_body_batch:
+            expected = batch.events[self.batch_progress_count]
+            result = message['result']
+            selected = None if self.last_observation_selection is None else set(
+                self.last_observation_selection['selected_event_ids'])
+            if (tuple(evaluated) != (expected.event_id,)
+                    or message['event_id'] != expected.event_id
+                    or message['event_sequence'] != expected.sequence
+                    or message['sensor_kind'] != expected.kind
+                    or message['capture_stamp'] != expected.stamp
+                    or message['capture_index'] != expected.payload_metadata['frame_index']
+                    or result.prior.stamp != expected.stamp
+                    or tuple(result.prior.command) != expected.command
+                    or expected.event_id == self.last_assimilated_event
+                    or selected is not None and expected.event_id not in selected):
+                raise ValueError('A sequential body-ready candidate differs from its selected acquisition.')
+        self.latest_result=_freeze_arrays(message['result'])
+        self.last_assimilated_capture=message['capture_index']
+        self.last_assimilated_event=message['event_id']
+        self.last_adopted_body_candidate=message['body_candidate_id']
+        job_sequence = message.get('stiffness_job_sequence')
+        if job_sequence is not None:
+            self.stiffness_jobs_submitted.add(job_sequence)
+        self.assimilated.extend(evaluated)
+        self.estimate_times.append(self.clock())
+        if (message.get('sensor_kind') == 'image' or self.joint_body_batch and
+                any(event.kind=='image' for event in batch.events)) and 'marker' in self.enabled_sensors:
+            self.latest_marker_observed=message['marker_observed']
+        _append(self.output/'body_ready_adoptions.jsonl',dict(
+            batch_id=message['batch_id'],candidate_id=message['body_candidate_id'],
+            body_source_stamp=self.latest_result.prior.stamp,
+            physical_stamp=self.frame.stamp,stiffness_job_sequence=job_sequence,
+            assimilated_event_ids=list(evaluated),
+            body_update_seconds=message.get('body_update_seconds'),
+            retained_K_packet_id=None if self.latest_packet is None else self.latest_packet.packet_id,
+            body_waited_for_K_evidence=False))
+
+    def _receive_stiffness_message(self, message):
+        sequence=message.get('job_sequence')
+        if sequence is not None:
+            self.stiffness_jobs_submitted.add(sequence)
+        kind=message.get('kind')
+        if message.get('failed') or kind in ('stiffness_failed','stiffness_blocked'):
+            self.stiffness_failure=message
+            _append(self.output/'stiffness_pending_failures.jsonl',dict(message,
+                physical_stamp=self.frame.stamp,old_K_retained=True,
+                body_and_control_updates_can_continue=True))
+            return
+        if kind != 'stiffness_ready' or sequence != len(self.stiffness_jobs_completed):
+            raise ValueError('K completion is outside its original FIFO job sequence.')
+        self.stiffness_jobs_completed.add(sequence)
+        packet=message['packet']
+        if packet is not None:
+            self.parameter_packets[packet.packet_id]=packet
+            self.latest_packet=packet
+        self.stiffness_times.append(self.clock())
+        _append(self.output/'stiffness_ready_adoptions.jsonl',dict(
+            job_sequence=sequence,batch_id=message['batch_id'],
+            source_candidate_id=message['source_candidate_id'],
+            source_stamp=message['source_stamp'],physical_stamp=self.frame.stamp,
+            parameter_packet_id=None if packet is None else packet.packet_id,
+            density_id=None if packet is None else packet.proposal['density_id'],
+            body_candidate_not_replaced=True))
 
     def poll(self):
         changed=False
         self.collect_archives()
         def messages():
-            for kind,queue in (('inference',self.estimate_replies),('control',self.control_replies)):
-                while True:
+            for kind,queue in (('control',self.control_replies),('artifacts',self.artifact_replies),
+                               ('stiffness',self.stiffness_replies),('inference',self.estimate_replies)):
+                # Bounded coordinator work retains every message in its queue.
+                for _ in range(64 if kind=='inference' else 1):
                     try:
                         message=queue.get_nowait()
                     except Empty:
@@ -401,6 +676,15 @@ class AsyncMotionSession:
                     message_kind=message.get('kind'), request_id=message.get('request_id'),
                     batch_id=message.get('batch_id'), physical_stamp=self.frame.stamp,
                     worker_work_seconds=message.get('work_seconds'))
+            if kind=='stiffness':
+                self._receive_stiffness_message(message)
+                changed=True
+                continue
+            if kind=='artifacts' and message.get('failed'):
+                self.artifact_failure=message
+                _append(self.output/'artifact_pending_failures.jsonl',dict(message,
+                    physical_stamp=self.frame.stamp,control_can_continue=True))
+                continue
             if message.get('failed'):
                 self.failure=message
                 _append(self.output/'execution_failure.jsonl',message)
@@ -408,7 +692,15 @@ class AsyncMotionSession:
                     self.acquisition_requests.put(dict(kind='database_operation',operation='fail',
                         event_id=self.pending_inference_event,error=message['traceback']))
                 raise RuntimeError(kind+' worker failed: '+message['traceback'])
+            if kind=='artifacts':
+                self._accept_control_artifacts(message)
+                changed=True
+                continue
             if kind == 'inference':
+                if message.get('kind')=='inference_body_ready':
+                    self._adopt_body_ready(message)
+                    changed=True
+                    continue
                 if message.get('kind')=='inference_batch_progress':
                     batch=self.pending_inference_batch
                     if (not self.inference_busy or batch is None or message['batch_id']!=self.pending_inference_batch_id
@@ -430,9 +722,16 @@ class AsyncMotionSession:
                     self.completed_batches += 1
                     self.last_completed_batch=message['batch_record']
                     final=message['final_message']
-                    if final is not None:
+                    sequences = message['batch_record'].get('stiffness_job_sequences', ())
+                    self.stiffness_jobs_submitted.update(value for value in sequences if value is not None)
+                    sequence = message['batch_record'].get('stiffness_job_sequence')
+                    if sequence is not None:
+                        self.stiffness_jobs_submitted.add(sequence)
+                    if final is not None and not message['batch_record'].get('body_ready_already_handed_off',False):
                         self.latest_result=_freeze_arrays(final['result'])
                         self.latest_packet=final['packet']
+                        if self.latest_packet is not None:
+                            self.parameter_packets[self.latest_packet.packet_id]=self.latest_packet
                         self.last_assimilated_capture=final['capture_index']
                         self.last_assimilated_event=final['event_id']
                         self.assimilated.extend(message['batch_record']['evaluated_event_ids'])
@@ -465,56 +764,16 @@ class AsyncMotionSession:
                     inference_seconds=message['work_seconds'])))
                 self.estimate_times.append(self.clock())
             else:
-                if (not self.control_busy
-                        or message.get('request_id') != self.pending_control_request):
-                    raise ValueError('IK reply does not match the outstanding frozen-law request.')
-                self.control_busy=False
-                self.pending_control_request=None
-                adopt = True
-                if self.control_mode=='running_gradient':
-                    self.gradient_evaluations_completed += 1
-                    evaluation=message['gradient_evaluation']
-                    fields=GradientPacket.__dataclass_fields__
-                    packet_fields={name:evaluation[name] for name in fields if name in evaluation}
-                    packet_fields['packet_id']=hashlib.sha256(json.dumps(_gradient_identity(evaluation),
-                        sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
-                    gradient_packet=GradientPacket(**packet_fields)
-                    before_command=self.gradient_tracker.position.tolist()
-                    before_velocity=self.gradient_tracker.velocity.tolist()
-                    adoption=self.gradient_tracker.accept(gradient_packet,
-                        adoption_stamp=self.frame.stamp,snapshot_update_count=len(self.assimilated))
-                    adoption.update(request_id=message.get('request_id'),
-                        state_before=dict(command=before_command,velocity=before_velocity),
-                        state_after=dict(command=self.gradient_tracker.position.tolist(),
-                                         velocity=self.gradient_tracker.velocity.tolist()),
-                        evaluation_status=evaluation['status'],evaluation_reason=evaluation.get('reason'),
-                        gradient_packet=gradient_packet.as_dict(),
-                        source_action_packet_id=(None if message.get('packet') is None else message['packet'].packet_id))
-                    self.last_gradient_adoption=adoption
-                    _append(self.output/'gradient_adoptions.jsonl',adoption)
-                    if monitor is not None:
-                        monitor.mark('gradient_adopted', request_id=message.get('request_id'),
-                            physical_stamp=self.frame.stamp, source_stamp=evaluation.get('source_stamp'),
-                            accepted=adoption['accepted'], status=evaluation['status'],
-                            density_id=evaluation.get('parameter_density_id'))
-                    adopt=adoption['accepted']
-                    # Before the first valid input, publish the waiting-law
-                    # snapshot with an explicit hold status, never as a gradient.
-                    if (not adopt and self.gradient_tracker.last_packet is None and 'snapshot' in message
-                            and evaluation['status']=='waiting_for_goal'):
-                        self.current_control=_freeze_arrays(message)
-                if adopt:
-                    self.current_control=_freeze_arrays(message)
-                    if self.control_mode!='running_gradient':
-                        self.desired_velocity=np.array(message['velocity'],copy=True)
-                    if message['packet'] is not None:
-                        self.engine.set(message['packet'])
-                    else:
-                        # A captured unselected-K action remains explicit.
-                        self.engine.packet=None
-                self.control_times.append(self.clock())
+                self._receive_control_message(message)
             changed=True
-        for kind,worker in zip(('inference','control','acquisition'),self.workers):
+        for kind,worker in zip(('inference','control','acquisition','stiffness','artifacts'),self.workers):
+            if kind=='stiffness' and not worker.is_alive() and worker.exitcode is not None:
+                self.stiffness_worker_failed=True
+                continue
+            if kind=='artifacts' and not worker.is_alive() and worker.exitcode is not None:
+                if self.artifact_failure is None:
+                    self.artifact_failure=dict(worker='artifacts',exitcode=worker.exitcode)
+                continue
             if not worker.is_alive() and worker.exitcode is not None and self.failure is None:
                 raise RuntimeError(kind+' worker exited unexpectedly: '+str(worker.exitcode))
         return changed
@@ -551,7 +810,9 @@ class AsyncMotionSession:
             source_stamp=None if packet is None else packet['source_stamp'],
             parameter_density_id=None if packet is None else packet['parameter_density_id'],
             selected_K=None if packet is None else packet['selected_K'],
-            method='exact held-gradient damped second-order command trajectory',
+            method=('exact affine-local-model damped second-order command trajectory'
+                if packet is not None and packet.get('curvature') is not None else
+                'exact held-gradient damped second-order command trajectory'),
             control_mode='running_gradient',
             velocity_clipping_enabled=False,acceleration_clipping_enabled=False,
             endpoint_selection_performed=False,physical_truth_received=False)
@@ -567,8 +828,7 @@ class AsyncMotionSession:
         behavior=dict(mode=mode,event=('waiting_for_valid_goal_and_gradient' if mode=='waiting_for_goal'
             else 'tracking_retained_goal'),marker_detected=self.marker_preview_visible,
             marker_observed=self.latest_marker_observed,
-            goal_available=bool(self.current_control is not None and
-                (self.current_control['snapshot'].goal_memory or {}).get('available',False)),
+            goal_available=(self.gradient_tracker.last_packet is not None),
             marker_acquisition_state=('never_acquired' if not goal_acquired else
                 'acquired_visible' if self.marker_preview_visible else 'acquired_missing'),
             observation_loss_policy='continue against retained valid goal; no fresh-since-stop gate',
@@ -579,7 +839,6 @@ class AsyncMotionSession:
     def advance(self):
         started=self.clock()
         timings={}
-        self.poll()
         if self.started is not None and not self.motion_finished:
             elapsed=min(self.scene.duration,self.clock()-self.started)
             dt=elapsed-self.frame.time
@@ -662,6 +921,11 @@ class AsyncMotionSession:
                 self.last_action_mode=plan.mode
                 self.publish_times.append(self.clock())
                 self._acquire_due()
+        # The interval just integrated used the previously active law/K/model.
+        # Only results received before this boundary can become active here.
+        # Newly received packets below wait until a subsequent physical tick.
+        self._activate_pending_controls()
+        self.poll()
         self.submit_estimate()
         self.submit_control()
         self.last_tick_timings=dict(timings,coordinator_s=self.clock()-started)
@@ -688,7 +952,7 @@ class AsyncMotionSession:
                 p.name:hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in sorted(Path(__file__).parent.glob('*.py'))}
             self.source_integrity_checked_at=checked_at
-        snapshot=None if self.current_control is None else self.current_control['snapshot']
+        snapshot=None if self.current_display is None else self.current_display['snapshot']
         row=self.scene.trajectory[-1]
         planned_phase,planned_source=self.reaching_phase()
         gradient=None if self.gradient_tracker is None else self.gradient_tracker.last_packet
@@ -698,6 +962,10 @@ class AsyncMotionSession:
             startup_phase=startup_phase,observation_updates_enabled=self.started is not None,
             inference_batching=self.event_batching,
             joint_body_batch=self.joint_body_batch,
+            inference_update_operator=('joint_frozen_start' if self.joint_body_batch else
+                'chronological_sequential_recurrence'),
+            inference_numeric_backend=self.inference_numeric_backend,
+            observation_selection=self.last_observation_selection,
             completed_inference_batches=self.completed_batches,
             pending_inference_batch_id=self.pending_inference_batch_id,
             pending_batch_completed_events=self.batch_progress_count if self.inference_busy else 0,
@@ -711,6 +979,22 @@ class AsyncMotionSession:
             offline_precomputation=False,sample_index=len(self.frames)-1,estimate_index=self.last_assimilated_capture,
             simulated_elapsed_s=self.frame.time,duration=self.scene.duration,finished=self.motion_finished,
             estimation_drained=self.estimation_finished,physical_stamp=self.frame.stamp,command=self.command.tolist(),
+            body_estimation_drained=self.body_estimation_finished,
+            stiffness_estimation_drained=not self.pending_stiffness_jobs,
+            stiffness_jobs_submitted=len(self.stiffness_jobs_submitted),
+            stiffness_jobs_completed=len(self.stiffness_jobs_completed),
+            pending_stiffness_job_sequences=sorted(self.pending_stiffness_jobs),
+            stiffness_failure=self.stiffness_failure,
+            stiffness_worker_failed=self.stiffness_worker_failed,
+            artifact_failure=self.artifact_failure,
+            pending_display_artifact_count=sum(value['message'].get('artifacts_pending',False)
+                and identity not in self.control_artifacts
+                for identity,value in self.control_candidates.items()),
+            last_body_candidate_id=self.last_adopted_body_candidate,
+            active_control_candidate_id=None if self.current_control is None else self.current_control.get('candidate_id'),
+            displayed_candidate_id=None if self.current_display is None else self.current_display.get('candidate_id'),
+            display_follows_same_frozen_control_candidate=True,
+            pending_control_activation_count=len(self.pending_control_activations),
             estimate_stamp=None if self.latest_result is None else self.latest_result.prior.stamp,
             displayed_prediction_stamp=None if snapshot is None else snapshot.stamp,
             displayed_prediction_command=None if snapshot is None else list(snapshot.command),
@@ -752,7 +1036,7 @@ class AsyncMotionSession:
             gradient_source_command_distance_rad=None if gradient is None else
                 float(np.linalg.norm(self.command-np.asarray(gradient.source_command))),
             gradient_evaluations_completed=self.gradient_evaluations_completed,
-            gradient_input_policy='sample_and_hold_last_accepted; age, distance and lag diagnostics never stop finite updates',
+            gradient_input_policy='current-position affine local model from last accepted packet; constant-gradient comparison when curvature absent',
             running_gradient_gains=None if self.gradient_tracker is None else dict(
                 eta=self.gradient_tracker.eta,gamma=self.gradient_tracker.gamma),
             running_gradient_stale_thresholds=None if self.gradient_tracker is None else dict(
@@ -785,7 +1069,8 @@ class AsyncMotionSession:
         if self.closed:
             return
         self.closed=True
-        for queue in (self.acquisition_requests,self.estimate_requests,self.control_requests):
+        for queue in (self.acquisition_requests,self.estimate_requests,self.control_requests,
+                      self.stiffness_requests,self.artifact_requests):
             queue.put(None)
         # Drain camera replies while joining: a multiprocessing Queue feeder
         # otherwise waits forever on a pipe full of the final raw image.
@@ -819,9 +1104,14 @@ class AsyncMotionSession:
             selected_but_not_dispatched_event=(None if self.selected_sensor_event is None
                                               else self.selected_sensor_event.event_id),
             interrupted_control_request=self.pending_control_request,
+            pending_control_activation_candidates=[item.get('candidate_id') for item in self.pending_control_activations],
+            pending_stiffness_jobs=sorted(self.pending_stiffness_jobs),
+            stiffness_inputs_archived_under='stiffness_jobs',
             workers=[dict(exitcode=worker.exitcode) for worker in self.workers]))
         for queue in (self.estimate_requests,self.estimate_replies,self.control_requests,
-                      self.control_replies,self.acquisition_requests,self.acquisition_replies):
+                      self.control_replies,self.acquisition_requests,self.acquisition_replies,
+                      self.stiffness_requests,self.stiffness_replies,
+                      self.artifact_requests,self.artifact_replies):
             queue.cancel_join_thread()
             queue.close()
         self.store.close()

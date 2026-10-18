@@ -23,7 +23,9 @@ def query(position, *, state='trial_body_a', stamp=10., command=(.2, -.3), versi
 
 
 def factor(weight=3., **config):
-    return VisibilityFactor(dict(enabled=True, weight=weight, **config))
+    # Historical always-center behavior remains an explicit comparison mode.
+    return VisibilityFactor(dict(enabled=True, weight=weight,
+        **dict({'penalty_mode': 'always_center'}, **config)))
 
 
 @pytest.mark.parametrize('position,expected', [([0., 0., 2.], 0.), ([1., 0., 0.], 1.),

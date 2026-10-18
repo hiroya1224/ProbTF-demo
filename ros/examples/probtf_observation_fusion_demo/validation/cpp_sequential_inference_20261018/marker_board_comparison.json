@@ -1,0 +1,104 @@
+{
+  "schema": "native_marker_board_same_law_replay_v1",
+  "records": [
+    {
+      "observation_id": "image:00000051",
+      "case": "marker",
+      "timing_seconds": {
+        "python": [
+          0.11928873136639595,
+          0.11796779092401266,
+          0.1185361472889781,
+          0.11907130014151335,
+          0.11765631567686796,
+          0.11775421723723412,
+          0.11821505520492792
+        ],
+        "native": [
+          0.06662444211542606,
+          0.06627676915377378,
+          0.06648536399006844,
+          0.06707017635926604,
+          0.06660161586478353,
+          0.06633546017110348,
+          0.06653626402840018
+        ]
+      },
+      "median_seconds": {
+        "python": 0.11821505520492792,
+        "native": 0.06653626402840018
+      },
+      "board_only_speedup": 1.776701125787124,
+      "comparison": {
+        "structural_checks": {
+          "native_ID_order": true,
+          "all_native_modes": true,
+          "all_product_branch_counts": true,
+          "reduction_and_fallback": true,
+          "output_modes": true
+        },
+        "maximum_absolute_differences": {
+          "translation": 3.3306690738754696e-16,
+          "covariance": 5.608416902007536e-19,
+          "quaternion_second_moment": 6.15341111398493e-14,
+          "log_weight": 0.0,
+          "projection_log_mass": 5.6701310313655995e-12,
+          "native_center_query_mean": 2.7755575615628914e-17,
+          "native_center_query_covariance": 1.3010426069826053e-18
+        }
+      }
+    },
+    {
+      "observation_id": "image:00000148",
+      "case": "imu_marker",
+      "timing_seconds": {
+        "python": [
+          0.01899409992620349,
+          0.018853179179131985,
+          0.018860542215406895,
+          0.01899293903261423,
+          0.018842333927750587,
+          0.018870828207582235,
+          0.018871187698096037
+        ],
+        "native": [
+          0.008291896898299456,
+          0.008211861830204725,
+          0.008249490056186914,
+          0.008251863066107035,
+          0.00818267511203885,
+          0.008252374827861786,
+          0.008306227158755064
+        ]
+      },
+      "median_seconds": {
+        "python": 0.018870828207582235,
+        "native": 0.008251863066107035
+      },
+      "board_only_speedup": 2.2868566839276077,
+      "comparison": {
+        "structural_checks": {
+          "native_ID_order": true,
+          "all_native_modes": true,
+          "all_product_branch_counts": true,
+          "reduction_and_fallback": true,
+          "output_modes": true
+        },
+        "maximum_absolute_differences": {
+          "translation": 1.1102230246251565e-16,
+          "covariance": 1.0842021724855044e-19,
+          "quaternion_second_moment": 9.076073226310655e-15,
+          "log_weight": 0.0,
+          "projection_log_mass": 4.440892098500626e-16,
+          "native_center_query_mean": 4.743384504624082e-20,
+          "native_center_query_covariance": 4.336808689942018e-19
+        }
+      }
+    }
+  ],
+  "fixture_sha256": "59ab55b15e6d6b8b78ae3c97c575d590c968a4e6a5ff64f35f5cae0093f46941",
+  "scope": "board fusion only, all native modes; detector and image Hessian estimator excluded",
+  "monotonic_clock": "time.perf_counter",
+  "monte_carlo_used": false,
+  "core_files_modified": false
+}

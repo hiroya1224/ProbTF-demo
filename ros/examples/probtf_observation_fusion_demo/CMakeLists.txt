@@ -62,3 +62,14 @@ install(TARGETS probtf_auxiliary_equilibrium
 catkin_install_python(PROGRAMS scripts/observation_fusion_demo.py scripts/observation_fusion_motion.py scripts/print_motion_robot.py scripts/record_four_cases.py scripts/benchmark_realtime.py scripts/benchmark_physics.py scripts/evaluate_running_gradient.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(DIRECTORY config launch rviz DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(FILES README.md REQUIREMENTS.md REQUIREMENTS_STIFFNESS_CORRECTION.md REQUIREMENTS_SEQUENTIAL_UPDATE.md MOTION_REQUIREMENTS.md DYNAMIC_PHYSICS.md DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+# Demo-local implementations of the unchanged first-order body formulas.
+add_library(probtf_body_law SHARED native/body_law.cpp)
+target_compile_features(probtf_body_law PRIVATE cxx_std_14)
+target_link_libraries(probtf_body_law PRIVATE pinocchio::pinocchio_default)
+install(TARGETS probtf_body_law LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+
+# Image-only central-board Bingham moments: unchanged deterministic integrals.
+add_library(probtf_marker_board_math SHARED native/marker_board_math.cpp)
+target_compile_features(probtf_marker_board_math PRIVATE cxx_std_14)
+install(TARGETS probtf_marker_board_math LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})

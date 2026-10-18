@@ -31,11 +31,14 @@ def _serial(value):
     return deepcopy(value)
 
 
-def direction_penalty(position, minimum_norm_m=1e-9):
+def direction_penalty(position, minimum_norm_m=1e-9, *,
+                      penalty_mode='always_center', tolerance_angle_deg=10.):
     """Return phi(p) and its analytic position gradient for optical +z.
 
-    ``(unit_z*unit-e_z)/norm`` equals z*p/norm**3-e_z/norm but
-    avoids cubing the norm or multiplying large coordinates together.
+    The legacy API default is always-center. The selection factor explicitly
+    chooses its configured mode, whose default is the squared cone residual.
+    ``(unit_z*unit-e_z)/norm`` avoids cubing a potentially large norm; the cone
+    gradient multiplies it by max(0, cos(theta0)-unit_z).
     """
     position = np.asarray(position, dtype=float)
     minimum_norm_m = float(minimum_norm_m)
@@ -48,8 +51,18 @@ def direction_penalty(position, minimum_norm_m=1e-9):
     if radius == 0.:
         raise ValueError('Marker bearing divides by a zero position norm.')
     unit = position/radius
-    penalty = float(1.-unit[2])
     gradient = (unit[2]*unit-np.array([0., 0., 1.]))/radius
+    if penalty_mode == 'always_center':
+        penalty = float(1.-unit[2])
+    elif penalty_mode == 'tolerance_cone':
+        angle = float(tolerance_angle_deg)
+        if not math.isfinite(angle) or not 0. <= angle < 90.:
+            raise ValueError('A front optical tolerance cone needs an angle in [0,90) degrees.')
+        residual = max(0., math.cos(math.radians(angle))-float(unit[2]))
+        penalty = .5*residual*residual
+        gradient = residual*gradient
+    else:
+        raise ValueError('Unknown optical bearing penalty mode: '+str(penalty_mode))
     if not math.isfinite(penalty) or not np.all(np.isfinite(gradient)):
         raise ValueError('Marker bearing or its derivative is non-finite.')
     return penalty, gradient
@@ -58,9 +71,11 @@ def direction_penalty(position, minimum_norm_m=1e-9):
 class VisibilityFactor:
     """Evaluate exp(-weight*V) in log form from complete per-mode queries.
 
-    Config keys are ``enabled``, ``weight`` and ``minimum_norm_m`` (the alias
-    ``min_norm_m`` is also accepted as a diagnostic threshold). With no explicit weight the factor is
-    neutral. Optional ``intrinsics`` may contain fx/fy/cx/cy and width/height;
+    Config includes ``penalty_mode`` (default tolerance_cone) and
+    ``tolerance_angle_deg`` (default 10), with always_center as a comparison.
+    ``minimum_norm_m`` (alias ``min_norm_m``) is only a diagnostic threshold.
+    With no explicit weight the factor is neutral. Optional ``intrinsics``
+    may contain fx/fy/cx/cy and width/height;
     a 3x3 matrix is also accepted. Pixel diagnostics never change the factor.
     """
 
@@ -69,10 +84,30 @@ class VisibilityFactor:
         self.enabled = bool(config.get('enabled', False))
         self.weight = float(config.get('weight', 0.))
         self.minimum_norm_m = float(config.get('minimum_norm_m', config.get('min_norm_m', 1e-9)))
+        self.penalty_mode = str(config.get('penalty_mode', 'tolerance_cone'))
+        self.tolerance_angle_deg = float(config.get('tolerance_angle_deg', 10.))
         if (not math.isfinite(self.weight) or self.weight < 0.
-                or not math.isfinite(self.minimum_norm_m) or self.minimum_norm_m <= 0.):
+                or not math.isfinite(self.minimum_norm_m) or self.minimum_norm_m <= 0.
+                or not math.isfinite(self.tolerance_angle_deg)
+                or not 0. <= self.tolerance_angle_deg < 90.
+                or self.penalty_mode not in ('always_center', 'tolerance_cone')):
             raise ValueError('Visibility factor needs finite nonnegative weight and positive minimum norm.')
         self.intrinsics = self._intrinsics(config.get('intrinsics'))
+
+    def _tolerance_basis(self):
+        camera = self.intrinsics
+        minimum = None
+        if (camera is not None and 'width' in camera and 'height' in camera
+                and 0. < camera['cx'] < camera['width']
+                and 0. < camera['cy'] < camera['height']):
+            minimum = math.degrees(min(math.atan(camera['cx']/camera['fx']),
+                math.atan((camera['width']-camera['cx'])/camera['fx']),
+                math.atan(camera['cy']/camera['fy']),
+                math.atan((camera['height']-camera['cy'])/camera['fy'])))
+        return dict(default_angle_rationale='10 degrees lies inside the 26.565 degree minimum half field of view of the declared 960x720, focal=720 camera',
+            calibration_minimum_half_fov_deg=minimum,
+            cone_within_calibrated_point_field=None if minimum is None else self.tolerance_angle_deg < minimum,
+            angular_domain='marker center direction only; no board-corner or detection guarantee')
 
     @staticmethod
     def _intrinsics(value):
@@ -143,8 +178,13 @@ class VisibilityFactor:
         """
         record = dict(enabled=self.enabled, weight=self.weight,
             minimum_norm_m=self.minimum_norm_m, optical_axis=[0., 0., 1.],
+            penalty_mode=self.penalty_mode, tolerance_angle_deg=self.tolerance_angle_deg,
+            tolerance_cosine=math.cos(math.radians(self.tolerance_angle_deg)),
+            tolerance_basis=self._tolerance_basis(),
             definition='V=sum_k exp(log_weight_k-log_mass)*phi(mean_camera_relative_marker_k)',
-            phi_definition='1-z/norm(position)', log_factor=None, penalty=None,
+            phi_definition=('0.5*max(0,cos(tolerance_angle)-z/norm(position))**2'
+                if self.penalty_mode == 'tolerance_cone' else '1-z/norm(position)'),
+            log_factor=None, penalty=None,
             weighted_penalty=None, per_mode_record=[], source_ids=_serial(source_ids),
             candidate_count=None, query_count=None,
             status='unavailable', reason=None, unit_factor_applied=False,
@@ -200,12 +240,15 @@ class VisibilityFactor:
                 mode.update(mean=mean.tolist(), covariance=covariance.tolist(),
                     position_mean=mean[:3].tolist(), position_covariance=covariance[:3, :3].tolist())
                 position = mean[:3]
-                penalty, derivative = direction_penalty(position, self.minimum_norm_m)
+                penalty, derivative = direction_penalty(position, self.minimum_norm_m,
+                    penalty_mode=self.penalty_mode, tolerance_angle_deg=self.tolerance_angle_deg)
                 radius = math.hypot(*position)
                 cosine = float(position[2]/radius)
                 mode.update(mean=mean.tolist(), covariance=covariance.tolist(),
                     position_mean=position.tolist(), position_covariance=covariance[:3, :3].tolist(),
                     position_norm_m=radius, penalty=penalty,
+                    tolerance_residual=max(0., record['tolerance_cosine']-cosine),
+                    inside_tolerance_cone=bool(cosine >= record['tolerance_cosine']),
                     position_norm_below_diagnostic_threshold=bool(radius <= self.minimum_norm_m),
                     minimum_norm_is_acceptance_gate=False,
                     positive_optical_depth=bool(position[2] > 0.),

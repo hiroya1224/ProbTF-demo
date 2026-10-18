@@ -9,9 +9,9 @@ from scipy.spatial.transform import Rotation
 
 from probtf.geometry import quat_to_rotmat, rotmat_to_quat
 from probtf.spherical_law.first_order import (
-    BinghamTransform, JointTransformState, _right_jacobian,
-    bingham_from_rotation_coordinates, point_query, reexpress_state,
+    BinghamTransform, JointTransformState, _right_jacobian, bingham_from_rotation_coordinates, point_query,
 )
+from probtf_observation_fusion_demo.body_native import reexpress_state
 from probtf.spherical_law.fusion import FusedMixture, Gaussian, PosteriorComponent
 from probtf.spherical_law.support import covariance_support
 from probtf_observation_fusion_demo.bayes_factor import (

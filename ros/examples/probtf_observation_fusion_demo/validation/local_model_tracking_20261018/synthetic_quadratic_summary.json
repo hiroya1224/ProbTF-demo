@@ -1,0 +1,145 @@
+{
+  "schema": "probtf_frozen_quadratic_tracking_comparison_v1",
+  "purpose": "synthetic frozen model only; not robot reaching or inference speed",
+  "equation": "u_dot=v; v_dot=-gamma*v-eta*(g_source+H*(u-u_source))",
+  "eta": 1e-06,
+  "gamma": 8.0,
+  "duration_s": 30.0,
+  "dt_s": 0.01,
+  "source_command": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "source_gradient": [
+    -48413.10358827477,
+    49898.86122909896,
+    -40000.0,
+    45000.0,
+    -50000.0,
+    40000.0
+  ],
+  "curvature": [
+    [
+      1075823.3226632087,
+      -179339.0227248807,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      -179339.02272488063,
+      1424176.6773367913,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      2000000.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      3000000.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      5000000.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      8000000.0
+    ]
+  ],
+  "fixed_equilibrium": [
+    0.04,
+    -0.03,
+    0.02,
+    -0.015,
+    0.01,
+    -0.005
+  ],
+  "initial_objective": 2804.24499020198,
+  "results": {
+    "held_source_gradient": {
+      "final_command": [
+        0.18079268371244955,
+        -0.18634105990238642,
+        0.14937499999998138,
+        -0.1680468749999882,
+        0.1867187499999748,
+        -0.14937499999998138
+      ],
+      "final_velocity": [
+        0.006051637948534342,
+        -0.006237357653637366,
+        0.0049999999999999975,
+        -0.00562499999999999,
+        0.0062499999999999925,
+        -0.0049999999999999975
+      ],
+      "final_objective": 245338.85154034727,
+      "final_distance_to_fixed_equilibrium": 0.36945906484637897,
+      "maximum_distance_to_fixed_equilibrium": 0.36945906484637897,
+      "whole_interval_command_discrepancy": 3.0003777240494856e-14,
+      "whole_interval_velocity_discrepancy": 9.540979117872439e-18,
+      "source_packet_count": 1,
+      "tick_count": 3000,
+      "wall_s": 0.22611065302044153,
+      "cpu_s": 0.226007138
+    },
+    "frozen_local_quadratic": {
+      "final_command": [
+        0.039424412913653686,
+        -0.030092316174255625,
+        0.01999109022393897,
+        -0.014999885181160745,
+        0.009999999986227835,
+        -0.004999999999999968
+      ],
+      "final_velocity": [
+        7.663570363569858e-05,
+        3.3845975881428478e-06,
+        2.3017748308644557e-06,
+        -4.529014469690441e-08,
+        9.411555752868208e-12,
+        -3.167183382483805e-17
+      ],
+      "final_objective": 0.1748290584642356,
+      "final_distance_to_fixed_equilibrium": 0.0005830112925927409,
+      "maximum_distance_to_fixed_equilibrium": 0.05700398102317845,
+      "whole_interval_command_discrepancy": 1.1796119636642288e-16,
+      "whole_interval_velocity_discrepancy": 2.839049025157023e-17,
+      "source_packet_count": 1,
+      "tick_count": 3000,
+      "wall_s": 0.6658339248970151,
+      "cpu_s": 0.665543977
+    }
+  },
+  "trace_output": "/tmp/probtf_local_quadratic_frozen_comparison_20261018.csv",
+  "monte_carlo_used": false,
+  "core_propagations_per_tick": 0,
+  "script_sha256": "19218772e8bc8365829dc0d0c525570fae00aeaf858b99f1d979e314f4c0a1b3",
+  "plot_output": "/tmp/probtf_local_quadratic_frozen_comparison_20261018.png"
+}

@@ -10,7 +10,7 @@ import pytest
 import yaml
 from scipy.special import ndtr
 
-from probtf.spherical_law.first_order import point_query
+from probtf_observation_fusion_demo.body_native import point_query
 from probtf_observation_fusion_demo.display import (
     _normal_points, make_markers, query_record, serialized_marker_array, verify_wire_identity,
 )

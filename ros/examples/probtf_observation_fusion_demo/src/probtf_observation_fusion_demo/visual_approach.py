@@ -13,7 +13,7 @@ from .immutable_body_cache import mutable_json_record
 
 import numpy as np
 
-from probtf.spherical_law.first_order import pose_query
+from .body_native import pose_query
 
 from .moving_control import _component_log_weight, control_components
 

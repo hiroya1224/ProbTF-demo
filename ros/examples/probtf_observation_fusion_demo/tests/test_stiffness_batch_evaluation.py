@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import yaml
 
-from probtf.spherical_law.first_order import reexpress_state
+from probtf_observation_fusion_demo.body_native import reexpress_state
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent
 from probtf_observation_fusion_demo.model import FrozenBodyBranch
 from probtf_observation_fusion_demo.moving_inference import MovingInference

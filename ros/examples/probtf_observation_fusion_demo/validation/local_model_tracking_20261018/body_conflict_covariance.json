@@ -1,0 +1,32 @@
+{
+  "marker": {
+    "initial_rotation_variance_trace_rad2": 0.025369047619047617,
+    "posterior_rotation_variance_trace_rad2": 0.015495505718407394,
+    "trace_ratio": 0.6108036041042803,
+    "initial_local_std_minmax_rad": [
+      0.03162277660168379,
+      0.044721359549995794
+    ],
+    "posterior_local_std_minmax_rad": [
+      0.01962792216880636,
+      0.03528662301070971
+    ],
+    "reset_posterior_probability": 1.0,
+    "covariance_comparison": "same raw rotation coordinates up to orthogonal command right-action; before terminal Bingham reexpression; all 18 rotation coordinates of six commanded edges"
+  },
+  "imu_marker": {
+    "initial_rotation_variance_trace_rad2": 0.025369047619047617,
+    "posterior_rotation_variance_trace_rad2": 0.013834532946748596,
+    "trace_ratio": 0.5453311907681286,
+    "initial_local_std_minmax_rad": [
+      0.03162277660168379,
+      0.044721359549995794
+    ],
+    "posterior_local_std_minmax_rad": [
+      0.01676710020739274,
+      0.035089062543298445
+    ],
+    "reset_posterior_probability": 1.0,
+    "covariance_comparison": "same raw rotation coordinates up to orthogonal command right-action; before terminal Bingham reexpression; all 18 rotation coordinates of six commanded edges"
+  }
+}

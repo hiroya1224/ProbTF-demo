@@ -1,0 +1,38 @@
+[
+  {
+    "case": "marker",
+    "path": "/tmp/probtf_cpp_sequential_live_20261018/window_captures/post_drain_marker.png",
+    "capture_wall_s": 1792303387.1973903,
+    "capture_finished_wall_s": 1792303388.3038325,
+    "physical_time": 90.0,
+    "post_motion_and_post_drain": true,
+    "only_RViz_rectangle_below_first48_toolbar_pixels": true,
+    "window_settings_and_size_unchanged": true,
+    "rectangle": {
+      "x": 72,
+      "y": 112,
+      "width": 1840,
+      "height": 1152
+    },
+    "bytes": 440329,
+    "returncode": 0
+  },
+  {
+    "case": "imu_marker",
+    "path": "/tmp/probtf_cpp_sequential_live_20261018/window_captures/post_drain_imu_marker.png",
+    "capture_wall_s": 1792303388.3136358,
+    "capture_finished_wall_s": 1792303389.4229112,
+    "physical_time": 90.0,
+    "post_motion_and_post_drain": true,
+    "only_RViz_rectangle_below_first48_toolbar_pixels": true,
+    "window_settings_and_size_unchanged": true,
+    "rectangle": {
+      "x": 1940,
+      "y": 112,
+      "width": 1840,
+      "height": 1152
+    },
+    "bytes": 427714,
+    "returncode": 0
+  }
+]

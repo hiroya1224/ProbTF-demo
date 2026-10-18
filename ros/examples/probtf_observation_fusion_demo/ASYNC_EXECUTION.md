@@ -1,5 +1,9 @@
 # 動作・観測取得・推定・IKの非同期実行
 
+2026年10月18日最新訂正: batchは取得frontierの受け渡し単位とし、その中ではC++数値処理を使う逐次更新を取得時刻・sequence順に反復する。身体は各観測ごとに更新し、Kは同じ観測前後lawから別workerでFIFO処理する。全raw保存・全観測使用を既定とし、処理能力不足時の選択はpending履歴全体の時間を覆う方式に限る。詳細は [CPP_SEQUENTIAL_INFERENCE.md](CPP_SEQUENTIAL_INFERENCE.md) に従う。
+
+2026年10月18日追加訂正: running_gradientの既定では、身体の完了とK evidenceの完了を別process・別版として扱い、制御readyをsnapshot/marker/JSON保存より先に渡す。表示は同じ不変候補の数値hashを照合して後追いする。受信結果は旧packetで進めた次の物理境界から適用する。現行の受け渡し・FIFO・clock仕様は [LOCAL_MODEL_TRACKING.md](LOCAL_MODEL_TRACKING.md) を優先する。
+
 2026年10月17日の追加指示を記録する。身体を壁時計で動かし、その間に観測を集めて推定する。推定が終わるまでの間も、最新の完了済みKと保持した身体分布を使ってIKを繰り返し、短い動作をつなぐ。この方式を既定の `async` として実装し、半速設定の別sourceで実配信を検証した。同期方式のテストやsource hashとの対応は分けて保持する。最終結果は末尾の実測節と [検証記録](validation/async_execution_20261017.json) に記録する。
 
 ## 実行周期とprocessの分離

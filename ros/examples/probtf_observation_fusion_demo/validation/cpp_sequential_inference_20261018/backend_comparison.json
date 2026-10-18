@@ -1,0 +1,197 @@
+{
+  "schema": "sequential_cpp_comparison_small_v1",
+  "cases": [
+    {
+      "case": "marker",
+      "python_s": 19.101280143018812,
+      "native_s": 12.978621611837298,
+      "speedup": 1.471749521197018,
+      "span_s": 6.671569585800171,
+      "native_rate_hz": 6.163982770484279,
+      "same_events": true,
+      "source_unchanged": true,
+      "numeric_max_abs": {
+        "bingham": 0.006870841956697404,
+        "covariance": 4.045830077209489e-12,
+        "goal_covariance": 4.045830077209489e-12,
+        "goal_quaternion_sign_invariant_second_moment": 8.504007949217129e-10,
+        "goal_translation": 4.1662251426544117e-10,
+        "quaternion_sign_invariant_second_moment": 8.504007949217129e-10,
+        "translation": 4.181521795487697e-10,
+        "raw_posterior_covariance": 4.045388590084853e-12,
+        "raw_posterior_mean": 8.529626276121416e-10
+      },
+      "numeric_max_relative_frobenius": {
+        "bingham": 3.407670066976999e-08,
+        "covariance": 1.3096498650081836e-08,
+        "goal_covariance": 1.2763499301050305e-08,
+        "goal_quaternion_sign_invariant_second_moment": 8.327610922162442e-10,
+        "goal_translation": 3.275247555886795e-10,
+        "quaternion_sign_invariant_second_moment": 8.329195132884278e-10,
+        "translation": 3.268432621571072e-10,
+        "raw_posterior_covariance": 1.3093698796173929e-08,
+        "raw_posterior_mean": 5.124290511324069e-08
+      },
+      "evidence_max_abs": {
+        "log_bayes_factor": 1.805476710359244e-07,
+        "posterior_change_probability": 1.4266863246348294e-09,
+        "log_keep_evidence": 1.8782084509894048e-07,
+        "log_reset_evidence": 1.0876327394271357e-08,
+        "posterior_keep_log_probability": 1.1691170698213682e-08,
+        "posterior_change_log_probability": 1.8052680061941828e-07,
+        "log_observation_evidence": 1.877999764587912e-07
+      },
+      "max_jump": {
+        "mode_displacement_m": {
+          "event_id": "image:00000000",
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "link": "tool0",
+          "mean_displacement_m": 0.12486015435725588,
+          "mode_displacement_m": 0.12527836114429095,
+          "modal_angle_rad": 0.351040252861653
+        },
+        "mean_displacement_m": {
+          "event_id": "image:00000000",
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "link": "tool0",
+          "mean_displacement_m": 0.12486015435725588,
+          "mode_displacement_m": 0.12527836114429095,
+          "modal_angle_rad": 0.351040252861653
+        },
+        "modal_angle_rad": {
+          "event_id": "image:00000000",
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "link": "link_6",
+          "mean_displacement_m": 0.09044556834518111,
+          "mode_displacement_m": 0.09063630614470966,
+          "modal_angle_rad": 0.351040252861653
+        }
+      },
+      "jump_records_gt_0p1m": 1
+    },
+    {
+      "case": "imu_marker",
+      "python_s": 14.839490910060704,
+      "native_s": 8.854486302472651,
+      "speedup": 1.6759290604940815,
+      "span_s": 2.934562921524048,
+      "native_rate_hz": 13.55245193235993,
+      "same_events": true,
+      "source_unchanged": true,
+      "numeric_max_abs": {
+        "bingham": 1.0959724022541195e-05,
+        "covariance": 1.0650774966841636e-12,
+        "goal_covariance": 1.0650774966841636e-12,
+        "goal_quaternion_sign_invariant_second_moment": 2.947643171213876e-11,
+        "goal_translation": 1.520196468707269e-11,
+        "quaternion_sign_invariant_second_moment": 2.947643171213876e-11,
+        "translation": 1.5903375838455247e-11,
+        "raw_posterior_covariance": 1.0634788947909424e-12,
+        "raw_posterior_mean": 5.603806654819188e-11
+      },
+      "numeric_max_relative_frobenius": {
+        "bingham": 2.79421223066416e-10,
+        "covariance": 6.592707987909657e-10,
+        "goal_covariance": 6.870938062148091e-10,
+        "goal_quaternion_sign_invariant_second_moment": 2.1803922203150043e-11,
+        "goal_translation": 1.5125999530642212e-11,
+        "quaternion_sign_invariant_second_moment": 2.1799273595903112e-11,
+        "translation": 1.5305912199499826e-11,
+        "raw_posterior_covariance": 6.591310369803599e-10,
+        "raw_posterior_mean": 5.8031282748956155e-09
+      },
+      "evidence_max_abs": {
+        "log_bayes_factor": 5.923392052409326e-07,
+        "posterior_change_probability": 2.572086987839839e-11,
+        "log_keep_evidence": 5.911924461088347e-07,
+        "log_reset_evidence": 2.118586195365424e-09,
+        "posterior_keep_log_probability": 5.923392194517874e-07,
+        "posterior_change_log_probability": 5.783446610507781e-09,
+        "log_observation_evidence": 5.885469889221895e-09
+      },
+      "max_jump": {
+        "mode_displacement_m": {
+          "event_id": "imu:00000000",
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "link": "tool0",
+          "mean_displacement_m": 0.14580733444152263,
+          "mode_displacement_m": 0.14620608928106799,
+          "modal_angle_rad": 0.2779102178926522
+        },
+        "mean_displacement_m": {
+          "event_id": "imu:00000000",
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "link": "tool0",
+          "mean_displacement_m": 0.14580733444152263,
+          "mode_displacement_m": 0.14620608928106799,
+          "modal_angle_rad": 0.2779102178926522
+        },
+        "modal_angle_rad": {
+          "event_id": "imu:00000000",
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "link": "link_3",
+          "mean_displacement_m": 0.07721329775063428,
+          "mode_displacement_m": 0.07731170448655289,
+          "modal_angle_rad": 0.27791021789265696
+        }
+      },
+      "jump_records_gt_0p1m": 2
+    }
+  ],
+  "scope": "actual raw chronological body-only replay; full event selection; auxiliary K evidence, IPC, archives, physical live contention excluded",
+  "limits": [
+    "Only original first 6.67s marker and 2.93s IMU+marker sampled, not full 90s",
+    "Initial observation correction is included, not removed",
+    "Native timing remains below full acquisition throughput",
+    "A matrices scale-sensitive; absolute and relative differences both exposed",
+    "No reaching or full RViz jump-resolution claim"
+  ]
+}

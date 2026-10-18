@@ -22,8 +22,8 @@ from probtf.bingham import bingham_log_normalizer
 from probtf.geometry import axis_angle_to_quat, quat_mul, rotation_vector_to_quaternion
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, bingham_from_rotation_coordinates,
-    point_query, pose_query,
 )
+from probtf_observation_fusion_demo.body_native import point_query, pose_query
 from probtf_observation_fusion_demo.display import (
     make_markers, serialized_marker_array, snapshot_record, verify_wire_identity,
 )

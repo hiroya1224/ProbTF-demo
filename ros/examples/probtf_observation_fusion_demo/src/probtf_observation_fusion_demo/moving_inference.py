@@ -23,7 +23,10 @@ import yaml
 from scipy.special import logsumexp
 
 from probtf.geometry import axis_angle_to_quat, quat_right_matrix, quat_to_rotmat, rotmat_to_quat
-from probtf.spherical_law.first_order import BinghamTransform, JointTransformState, point_query
+from probtf.spherical_law.first_order import (
+    BinghamTransform, JointTransformState,
+)
+from .body_native import point_query
 from probtf.spherical_law.fusion import PosteriorComponent
 from symaware_grasp.probtf_config import bingham_parameter_from_mode
 

@@ -418,7 +418,8 @@ def test_local_actions_use_the_exact_same_K_corrected_laws_next_prior_and_publis
     from scipy.stats import multivariate_normal
     from probtf.bingham import bingham_log_normalizer
     from probtf.geometry import quat_mul, rotation_vector_to_quaternion
-    from probtf.spherical_law.first_order import bingham_from_rotation_coordinates, pose_query
+    from probtf.spherical_law.first_order import bingham_from_rotation_coordinates
+    from probtf_observation_fusion_demo.body_native import pose_query
 
     scene, inputs, contexts = search_inputs
     inference = MovingInference(scene.robot_description, contexts['imu_marker'][0].templates, config_path=scene.legacy_inference_config)

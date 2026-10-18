@@ -110,7 +110,8 @@ class MotionDisplay:
         if len(marker.points) != len(trajectory):
             raise AssertionError('Physical path points and recorded command intervals differ.')
         points, colors = [], []
-        modes = {'reaching', 'braking', 'settling', 'searching', 'search_exhausted'}
+        modes = {'initial_hold', 'waiting_for_goal', 'reaching', 'braking',
+                 'settling', 'searching', 'search_exhausted'}
         for start, end, row in zip(marker.points, marker.points[1:], trajectory[1:]):
             mode = row.get('command_interval_mode', 'reaching')
             if mode not in modes:

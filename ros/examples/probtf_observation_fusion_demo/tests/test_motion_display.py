@@ -104,6 +104,21 @@ def _phase_wire(display, frame, index, execution):
     return MarkerArray().deserialize(stream.getvalue())
 
 
+@pytest.mark.parametrize('mode', ('initial_hold', 'waiting_for_goal'))
+def test_prior_wait_intervals_render_on_actual_scene_wire(reaching_phase_display, mode):
+    display, frames, _ = reaching_phase_display
+    for row in display.scene.trajectory[1:]:
+        row['command_interval_mode'] = mode
+    original = deepcopy(display.scene.trajectory)
+    wire = _phase_wire(display, frames[-1], len(frames)-1,
+        _phase_execution(frames[-1], display.scene.trajectory[-1]))
+    paths = [m for m in wire.markers if m.type == Marker.LINE_LIST and m.colors]
+    assert paths
+    assert all((c.r, c.g, c.b) == pytest.approx((.02, .65, .75))
+               for marker in paths for c in marker.colors)
+    assert display.scene.trajectory == original
+
+
 def test_reaching_phase_on_actual_ros_wire_matches_adopted_diagnostics_and_search_is_separate(reaching_phase_display):
     display, frames, diagnostics = reaching_phase_display
     original = deepcopy(display.scene.trajectory)

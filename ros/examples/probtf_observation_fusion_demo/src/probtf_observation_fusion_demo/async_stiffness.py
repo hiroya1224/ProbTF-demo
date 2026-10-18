@@ -5,7 +5,7 @@ its own auxiliary mechanics engine; no estimator identifier, robot workspace,
 factor cache or mutable StiffnessCommandMap is shared with another worker.
 """
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 import hashlib
 import json
 
@@ -33,6 +33,7 @@ class FrozenKPacket:
     """
     record_json: str
     packet_id: str
+    _proposal_json: object = field(default=None, init=False, repr=False, compare=False)
 
     @property
     def record(self):
@@ -40,7 +41,16 @@ class FrozenKPacket:
 
     @property
     def proposal(self):
-        return self.record['command_proposal']
+        # Keep the complete immutable history and its hash verbatim. Reading
+        # the small control representative must not decode that history at
+        # every physical/manifest/gradient access. Cache immutable JSON only;
+        # each caller still receives an independent mutable copy as before.
+        encoded = getattr(self, '_proposal_json', None)
+        if encoded is None:
+            encoded = json.dumps(self.record['command_proposal'],
+                                 separators=(',', ':'))
+            object.__setattr__(self, '_proposal_json', encoded)
+        return json.loads(encoded)
 
 
 @dataclass(frozen=True)

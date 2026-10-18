@@ -114,11 +114,19 @@ class SensorEvent:
     blobs: tuple
     result_metadata_json: object = None
     error: object = None
+    payload_loaded: bool = True
 
     @property
     def payload(self):
         """Decode a fresh mapping; ndarray storage is immutable DB bytes."""
+        if not self.payload_loaded:
+            raise ValueError('This batch event contains metadata only; load its raw payload by event_id before inference.')
         return _decode(self.payload_json, self.blobs)
+
+    @property
+    def payload_metadata(self):
+        """Encoded mapping without loading array/bytes BLOBs (not an observation)."""
+        return {} if self.payload_json is None else json.loads(self.payload_json)
 
     @property
     def result_metadata(self):
@@ -190,23 +198,24 @@ class SensorEventStore:
             else:
                 self.connection.execute('COMMIT')
 
-    def _event(self, row):
+    def _event(self, row, *, include_payload=True):
         if row is None:
             return None
         blobs = tuple(bytes(item[0]) for item in self.connection.execute(
             'SELECT value FROM payload_blobs WHERE event_id=? ORDER BY blob_index',
-            (row['event_id'],)))
+            (row['event_id'],))) if include_payload else ()
         return SensorEvent(row['sequence'], row['event_id'], row['kind'], row['stamp'],
             tuple(json.loads(row['command_json'])), row['status'],
             row['received_wall_stamp'], row['ready_wall_stamp'], row['worker_id'],
             row['claimed_wall_stamp'], row['completed_wall_stamp'], row['attempts'],
             row['payload_hash'], row['payload_json'], blobs,
-            row['result_metadata_json'], row['error'])
+            row['result_metadata_json'], row['error'], bool(include_payload))
 
-    def get(self, event_id):
+    def get(self, event_id, *, include_payload=True):
         with self._lock:
             return self._event(self.connection.execute(
-                'SELECT * FROM events WHERE event_id=?', (str(event_id),)).fetchone())
+                'SELECT * FROM events WHERE event_id=?', (str(event_id),)).fetchone(),
+                include_payload=include_payload)
 
     def _reserve(self, event_id, kind, stamp, command, wall):
         event_id = str(event_id)
@@ -302,6 +311,67 @@ class SensorEventStore:
                 claimed_wall_stamp=?,attempts=attempts+1 WHERE event_id=?''',
                 (worker_id, wall, row['event_id']))
             return self.get(row['event_id'])
+
+    def claim_batch(self, worker_id, *, max_stamp, snapshot_id,
+                    now_wall_stamp=None, include_payload=False,
+                    initial_command_only=False):
+        """Reserve one ready ordered prefix at a fixed acquisition frontier.
+
+        Metadata-only is the default so a backlog of images is not copied
+        through coordinator IPC. Workers load each claimed ID lazily with
+        ``get``. No event limit, newest-only selection, or timestamp rewrite
+        is applied. Existing per-event complete/fail/retry remain available.
+        ``initial_command_only`` claims only the first frame-zero joint
+        notification, before any inference claim. Sensor observations remain
+        pending for the next ordinary batch; no acquisition is skipped.
+        """
+        from .sensor_event_batch import SensorEventBatch
+        if not isinstance(worker_id, str) or not worker_id:
+            raise ValueError('A nonempty worker ID is required.')
+        if not isinstance(snapshot_id, str) or not snapshot_id:
+            raise ValueError('A nonempty batch snapshot ID is required.')
+        cutoff = _finite(max_stamp, 'Batch acquisition frontier')
+        wall = _finite(time.time() if now_wall_stamp is None else now_wall_stamp, 'Claim wall stamp')
+        with self._transaction():
+            frontier = self.connection.execute('SELECT COALESCE(MAX(sequence),0) FROM events').fetchone()[0]
+            if initial_command_only and self.connection.execute(
+                    "SELECT 1 FROM events WHERE attempts>0 OR status='completed' LIMIT 1").fetchone():
+                raise ValueError('The initial command prior requires an unclaimed initial database.')
+            in_flight = self.connection.execute("SELECT * FROM events WHERE status='processing' ORDER BY stamp,sequence LIMIT 1").fetchone()
+            pending = ([] if in_flight is not None else self.connection.execute(
+                "SELECT * FROM events WHERE status!='completed' AND stamp<=? AND sequence<=? ORDER BY stamp,sequence",
+                (cutoff, frontier)).fetchall())
+            if initial_command_only and pending:
+                first = pending[0]
+                if first['kind'] != 'joint':
+                    raise ValueError('The initial command prior requires the first acquisition to be a joint notification.')
+                if first['status'] == 'pending':
+                    metadata = json.loads(first['payload_json'])
+                    if metadata.get('frame_index') != 0:
+                        raise ValueError('The initial command prior requires a frame-zero joint notification.')
+                pending = pending[:1]
+            selected, blocker = [], in_flight
+            for row in pending:
+                if row['status'] != 'pending':
+                    blocker = row
+                    break
+                selected.append(row)
+            self.connection.executemany('''UPDATE events SET status='processing',worker_id=?,
+                claimed_wall_stamp=?,attempts=attempts+1 WHERE event_id=?''',
+                [(worker_id, wall, row['event_id']) for row in selected])
+            events = []
+            for row in selected:
+                claimed = dict(row, status='processing', worker_id=worker_id,
+                    claimed_wall_stamp=wall, attempts=row['attempts']+1)
+                events.append(self._event(claimed, include_payload=include_payload))
+            return SensorEventBatch(snapshot_id, worker_id, cutoff, int(frontier), wall,
+                tuple(events), reason=(('initial_command_prior_only' if initial_command_only
+                    else 'claimed_ready_prefix') if events else
+                    'blocked_'+blocker['status'] if blocker is not None else 'no_events_through_frontier'),
+                blocked_event_id=None if blocker is None else blocker['event_id'],
+                blocked_event_status=None if blocker is None else blocker['status'],
+                blocked_event_stamp=None if blocker is None else blocker['stamp'],
+                blocked_event_sequence=None if blocker is None else blocker['sequence'])
 
     def _owned(self, event_id, worker_id):
         event = self.get(event_id)

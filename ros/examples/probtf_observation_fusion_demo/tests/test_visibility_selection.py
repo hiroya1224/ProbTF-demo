@@ -16,6 +16,7 @@ from probtf_observation_fusion_demo import selection_gradient as selection_modul
 from probtf_observation_fusion_demo.running_gradient import GradientPacket, RunningGradientTracker
 from probtf_observation_fusion_demo.selection_gradient import selection_gradient_at_command
 from probtf_observation_fusion_demo.visibility_factor import VisibilityFactor
+from probtf_observation_fusion_demo.async_state import ActionStep, predict_result
 
 from test_visual_approach_integration import problems, controller, forbid_sampling
 
@@ -244,3 +245,64 @@ def test_factor_weights_do_not_mutate_any_body_goal_cross_K_or_inference_record(
                  for edge in inference.body_ids for offset in range(6)]
     marker = state.edge_ids.index('marker')
     assert np.linalg.norm(state.covariance[np.ix_(body_rows, range(6*marker, 6*marker+6))]) > 0.
+
+
+@pytest.mark.parametrize('observation_stamp', [None, -12.5])
+def test_joint_only_batch_keeps_actual_body_observation_clock_in_every_view_probe(problems, observation_stamp):
+    problem=problems['imu_marker']
+    _,_,_,source,mapping,_,_=problem
+    original_action=mapping.record()
+    reference=selection_gradient_at_command(controller(problem),source,_factor(),command_map=mapping).record
+    stamp=None if observation_stamp is None else source.prior.stamp+observation_stamp
+    provenance=dict(batch_id='joint-only-batch',effective_event_ids=[],
+        raw_event_ids=['joint:notification'],last_effective_observation_stamp=stamp,
+        endpoint_prediction_stamp=source.prior.stamp)
+    records=dict(source.records,joint_batch_source=provenance,observation_ids=[])
+    # The ordinary source endpoint is deliberately later and has no effective
+    # observation IDs. It must not replace the carried acquisition clock.
+    previous=records.get('async_prediction',{})
+    records['async_prediction']=dict(previous,observation_source=dict(
+        previous.get('observation_source',{}),stamp=source.prior.stamp,observation_ids=[]))
+    held=replace(source,records=records)
+    before=json.dumps(held.records,sort_keys=True)
+    actual=selection_gradient_at_command(controller(problem),held,_factor(),command_map=mapping).record
+    assert actual['status']==reference['status']=='ok'
+    assert actual['source_stamp']==source.prior.stamp
+    assert actual['body_observation_source_stamp']==stamp
+    for probe in actual['visibility_finite_difference_diagnostics']['evaluations']:
+        ids=probe['view_factor']['source_ids']
+        assert ids['body_observation_source_stamp']==stamp
+        assert ids['source_stamp']==source.prior.stamp
+    assert actual['selection_factors']['visibility_factor']['source_ids']['body_observation_source_stamp']==stamp
+    for name in ('gradient','task_gradient','view_gradient','weighted_view_gradient',
+                 'objective_at_source','selected_objective_at_source','source_branches',
+                 'finite_difference_diagnostics','body_state_ids','goal_state_ids',
+                 'selected_K','parameter_density_id'):
+        assert actual[name]==reference[name],name
+    assert json.dumps(held.records,sort_keys=True)==before
+    assert mapping.record()==original_action
+
+
+def test_prediction_transports_retain_joint_batch_acquisition_provenance_without_aliasing(problems):
+    problem=problems['imu_marker']
+    _,inference,_,source,_,_,_=problem
+    original_clock=source.prior.stamp-4.
+    provenance=dict(batch_id='joint-only-batch',effective_event_ids=[],
+        raw_event_ids=['joint:notification'],last_effective_observation_stamp=original_clock,
+        endpoint_prediction_stamp=source.prior.stamp)
+    held=replace(source,records=dict(source.records,joint_batch_source=provenance,observation_ids=[]))
+    command=held.prior.command
+    first_hold=ActionStep(0,held.prior.stamp,held.prior.stamp+1.,command,command,np.zeros(len(command)))
+    first=predict_result(held,(first_hold,),target_stamp=first_hold.end_stamp,frame_index=1,
+        body_ids=inference.body_ids,actions=inference.actions)
+    second_hold=ActionStep(1,first.prior.stamp,first.prior.stamp+1.,command,command,np.zeros(len(command)))
+    second=predict_result(first,(second_hold,),target_stamp=second_hold.end_stamp,frame_index=2,
+        body_ids=inference.body_ids,actions=inference.actions)
+    assert first.prior.stamp==source.prior.stamp+1.
+    assert second.prior.stamp==source.prior.stamp+2.
+    assert first.records['joint_batch_source']==second.records['joint_batch_source']==provenance
+    assert first.records['joint_batch_source'] is not provenance
+    assert second.records['joint_batch_source'] is not first.records['joint_batch_source']
+    second.records['joint_batch_source']['raw_event_ids'].append('changed-copy-only')
+    assert first.records['joint_batch_source']==provenance
+    assert provenance['last_effective_observation_stamp']==original_clock

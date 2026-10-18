@@ -9,6 +9,7 @@ this short local model.  No law is replaced by the control loss or its fit.
 """
 
 from copy import deepcopy
+from .immutable_body_cache import mutable_json_record
 
 import numpy as np
 
@@ -102,15 +103,15 @@ class VisualApproach:
             branches=[])
         memory = result.records.get('fixed_goal_memory', {})
         image_source = memory.get('image_relative_source', {})
-        record['goal_acquisition'] = deepcopy({key: memory[key] for key in (
+        record['goal_acquisition'] = mutable_json_record({key: memory[key] for key in (
             'available', 'root_frame', 'observation_stamp', 'observation_command',
             'observation_version', 'observation_ids', 'observation_sensor_ids',
             'observation_source_state_ids', 'marker_to_switch') if key in memory})
-        record['native_image_source'] = deepcopy({key: image_source[key] for key in (
+        record['native_image_source'] = mutable_json_record({key: image_source[key] for key in (
             'observation_id', 'sensor_id', 'image_stamp', 'capture_stamp', 'capture_command',
             'capture_version', 'image_parent_frame', 'image_child_frame', 'image_edge_id',
             'canonical_internal_state_id') if key in image_source})
-        record['native_image_components'] = [deepcopy({key: item[key] for key in (
+        record['native_image_components'] = [mutable_json_record({key: item[key] for key in (
             'native_component_id', 'native_seed_index', 'native_log_mass',
             'image_log_weight', 'weight', 'log_weight', 'image_only_mean',
             'image_only_covariance', 'bingham', 'goal_source_state_id') if key in item})

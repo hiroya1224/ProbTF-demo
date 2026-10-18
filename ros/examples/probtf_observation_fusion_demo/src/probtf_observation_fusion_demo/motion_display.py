@@ -444,6 +444,8 @@ class MotionDisplay:
                     if execution['finished']:
                         clock = ('FINISHED: wall-clock motion | ' if execution['estimation_drained']
                                  else 'FINISHED: motion | draining queued observations\n')+clock
+                    elif execution.get('startup_phase') == 'initial_prior':
+                        clock = 'INITIAL PRIOR | BEFORE OBSERVATIONS\n'+clock
                 elif execution is not None and execution['execution_mode'] == 'live':
                     hz = execution['actual_update_hz']
                     rate = 'measuring' if hz is None else '{:.2f} Hz'.format(hz)

@@ -383,6 +383,11 @@ def predict_result(result, steps, target_stamp, frame_index, body_ids, actions,
         # Acquisition metadata belongs to the original observation, not the
         # present prediction clock or the newest physical frame.
         records['sensor_event'] = deepcopy(result.records['sensor_event'])
+    if 'joint_batch_source' in result.records:
+        # This acquisition provenance survives prediction-only transports,
+        # including batches containing only command notifications. Its last
+        # effective observation clock must never become the prediction clock.
+        records['joint_batch_source'] = deepcopy(result.records['joint_batch_source'])
     if result.records.get('candidate_measure') is not None:
         measure = deepcopy(result.records['candidate_measure'])
         expected_source = [item.state.state_id for item in body]
@@ -415,6 +420,7 @@ def predict_result(result, steps, target_stamp, frame_index, body_ids, actions,
     predicted = replace(result, prior=predicted_body[0].state, stages=(stage,),
         sensor_posteriors=(), local_estimates=(), records=records,
         frozen_body_prior=None, frozen_body_posterior=None,
-        frozen_body_branches=(), projected_body_numerator=None)
+        frozen_body_branches=(), projected_body_numerator=None,
+        time_resolved_body_ratios=())
     control_components(predicted)
     return predicted

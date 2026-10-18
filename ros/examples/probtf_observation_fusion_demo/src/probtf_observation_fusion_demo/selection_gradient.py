@@ -22,8 +22,12 @@ def selection_gradient_at_command(controller, result, visibility_factor,
     action=None if command_map is None else command_map.record()
     body=tuple(result.stages[-1].components)
     observation=result.records.get('async_prediction',{}).get('observation_source')
-    body_stamp=(observation['stamp'] if observation.get('observation_ids') else None) if observation is not None else (
-        result.prior.stamp if result.records.get('observation_ids') else None)
+    if 'joint_batch_source' in result.records:
+        body_stamp=result.records['joint_batch_source'].get('last_effective_observation_stamp')
+    elif observation is not None:
+        body_stamp=observation['stamp'] if observation.get('observation_ids') else None
+    else:
+        body_stamp=result.prior.stamp if result.records.get('observation_ids') else None
     source_ids=dict(source_stamp=result.prior.stamp,source_command=list(result.prior.command),
         body_state_ids=[item.state.state_id for item in body],
         parameter_density_id=None if action is None else action['density_id'],
@@ -58,7 +62,8 @@ def selection_gradient_at_command(controller, result, visibility_factor,
         **({'evaluation_observer':observe} if active else {})).record
     source_ids.update(body_state_ids=task.get('body_state_ids',[]),
         goal_state_ids=task.get('goal_state_ids',[]))
-    record=dict(task)
+    record=dict(task,body_observation_source_stamp=body_stamp,
+        goal_observation_source_stamp=source_ids['goal_observation_source_stamp'])
     task_gradient=task.get('gradient')
     task_objective=task.get('objective_at_source')
     source=tuple(task['source_command']) if task.get('source_command') is not None else None

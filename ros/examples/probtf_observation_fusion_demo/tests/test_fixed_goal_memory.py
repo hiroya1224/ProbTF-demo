@@ -99,10 +99,47 @@ def test_image_loss_retains_underflowed_modes_and_empty_updates_are_identity(com
         Gaussian(prior.mean, prior.covariance), prior)
     assert all(actual is source for actual, source in zip(retained, projection.goal_components))
     assert retained[1].weight == 0. and retained[1].log_weight == -1000.
-    # A missing image must not become an unreported covariance inflation step.
+    # A finite noncontraction is a diagnostic. Preserve the actual posterior
+    # and cut formula; the assembled joint covariance must still be valid.
     grown = Gaussian(prior.mean, prior.covariance*1.01)
-    with pytest.raises(ValueError, match='body covariance contraction'):
-        retain_goal_components(retained, prior, grown, prior)
+    grown_internal=reexpress_state(prior,grown.mean,grown.covariance,version=prior.version+1)
+    diagnostics={}
+    expanded=retain_goal_components(retained,prior,grown,grown_internal,diagnostics=diagnostics)
+    assert diagnostics['fixed_goal_covariance_contraction']['minimum_eigenvalue']<0.
+    assert diagnostics['fixed_goal_covariance_contraction']['numerical_quality_is_stop_gate'] is False
+    for source,actual in zip(retained,expanded):
+        np.testing.assert_array_equal(actual.state.covariance[:60,:60],grown_internal.covariance[:60,:60])
+        np.testing.assert_array_equal(actual.state.covariance[60:,60:],source.state.covariance[60:,60:])
+        covariance_support(actual.state.covariance)
+
+
+def test_optional_contraction_eigensolve_failure_does_not_stop_a_valid_cut(common_state,monkeypatch):
+    from probtf_observation_fusion_demo import body_projection
+    projection=project_update(_result(common_state))
+    prior=projection.state
+    def unavailable(*args,**kwargs):
+        raise np.linalg.LinAlgError('optional audit unavailable')
+    monkeypatch.setattr(body_projection.np.linalg,'eigvalsh',unavailable)
+    diagnostics={}
+    retained=retain_goal_components(projection.goal_components,prior,
+        Gaussian(prior.mean,prior.covariance),prior,diagnostics=diagnostics)
+    assert all(actual is source for actual,source in zip(retained,projection.goal_components))
+    audit=diagnostics['fixed_goal_covariance_contraction']
+    assert audit['minimum_eigenvalue'] is None and 'optional audit unavailable' in audit['audit_error']
+
+
+def test_actual_invalid_assembled_joint_covariance_still_fails():
+    body=BinghamTransform('body',[0.,0.,0.],rotation_wxyz=[1.,0.,0.,0.],
+        translation_covariance=np.diag([1.,0.,0.]))
+    marker=BinghamTransform('marker',[1.,0.,0.],rotation_wxyz=[1.,0.,0.,0.],
+        translation_covariance=np.diag([1.,0.,0.]))
+    covariance=np.zeros((12,12));covariance[np.ix_([0,6],[0,6])]=1.
+    prior=JointTransformState((body,marker),covariance,stamp=1.,command=(0.,))
+    raw=Gaussian(prior.mean,2.*covariance)
+    internal=reexpress_state(prior,raw.mean,raw.covariance,version=2)
+    source=WeightedState(prior.component_id,1.,prior,0.)
+    with pytest.raises(ValueError,match='joint body covariance.*negative eigenvalue'):
+        retain_goal_components((source,),prior,raw,internal)
 
 
 @pytest.fixture(scope='module')

@@ -8,6 +8,7 @@ or invented process covariance enters inference.
 """
 
 from copy import deepcopy
+from .immutable_body_cache import freeze_json_record
 from dataclasses import dataclass, replace
 import hashlib
 import json
@@ -74,6 +75,10 @@ class MovingInference:
     ``observation_templates`` determines only which observations are enabled.
     IMU vectors and camera pixels are read solely from ``SensorInputs``.
     """
+
+    def update_sensor_batch(self, events, ledger_steps, *, batch_id):
+        from .joint_batch_inference import update_sensor_batch
+        return update_sensor_batch(self, events, ledger_steps, batch_id=batch_id)
 
     def __init__(self, robot_description, observation_templates, config_path=None):
         packages = rospkg.RosPack()
@@ -576,7 +581,8 @@ class MovingInference:
             goals = (projection.goal_components if not predicted_goals else
                      retain_transition_goals(predicted_goals, result, projection) if transition else
                      retain_goal_components(predicted_goals, result.prior,
-                                            projection.posterior, projection.state))
+                                            projection.posterior, projection.state,
+                                            diagnostics=projection.record))
         internal = WeightedState(projection.state.component_id, 1., projection.state, 0.)
         stage = Stage('fused', (internal,), raw_stage.sensor_ids, tuple(goals))
         effective_raw = PosteriorComponent(internal.label, projection.posterior, 1.,
@@ -678,7 +684,7 @@ class MovingInference:
                         joint_six_coordinate_covariance=state.covariance[np.ix_(block, block)].tolist()),
                     root_goal_point_queries=queries))
             source = goals[0].state
-            self.fixed_goal_memory = dict(available=True, root_frame=result.root_frame,
+            self.fixed_goal_memory = freeze_json_record(dict(available=True, root_frame=result.root_frame,
                 observation_stamp=source.stamp, observation_command=list(source.command),
                 observation_version=source.version,
                 observation_ids=list(dict.fromkeys(item.posterior.observation_id for item in estimates)),
@@ -686,11 +692,11 @@ class MovingInference:
                 observation_source_state_ids=result.records['internal_projection']['raw_source_state_ids'],
                 construction=result.records['fresh_goal_construction']['construction']+', then fixed known marker-to-switch action',
                 construction_approximation='task-only independent fresh measurement cut; not an exact joint Bayesian posterior',
-                image_relative_source=deepcopy(result.records['fresh_goal_construction']),
+                image_relative_source=result.records['fresh_goal_construction'],
                 marker_to_switch=dict(translation=offset.tolist(), rotation_wxyz=orientation.tolist()),
                 goal_components=components, sampling_used=False,
                 holding_policy=('fixed root marker marginal and all mixture masses; posterior-weighted continuation Schmidt cross and independent body-redraw cross' if self.surprise_enabled else
-                    'fixed root marker marginal and all mixture masses; body-side Schmidt cross update without conditioning the recorded goal'))
+                    'fixed root marker marginal and all mixture masses; body-side Schmidt cross update without conditioning the recorded goal')))
             event = 'marker_observation_update'
         elif self.fixed_goal_memory is None:
             event = 'unobserved_prior'
@@ -698,5 +704,5 @@ class MovingInference:
             event = 'image_missing_hold'
         result.records['fixed_goal_memory'] = (dict(available=False,
             root_frame=result.root_frame, reason='no valid marker observation has been captured')
-            if self.fixed_goal_memory is None else deepcopy(self.fixed_goal_memory))
+            if self.fixed_goal_memory is None else self.fixed_goal_memory)
         result.records['fixed_goal_memory_event'] = event

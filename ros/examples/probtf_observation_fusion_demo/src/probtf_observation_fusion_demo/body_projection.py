@@ -13,12 +13,13 @@ import numpy as np
 from scipy.special import logsumexp
 
 from probtf.spherical_law.first_order import (
-    JointTransformState, _right_jacobian, reexpress_state,
+    JointTransformState, _right_jacobian,
 )
 from probtf.spherical_law.fusion import Gaussian
 from probtf.spherical_law.support import covariance_support, require_in_support
 
 from .model import component_log_weight
+from .immutable_body_cache import reexpress_state
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,33 @@ def _check_weights(components):
     if not np.isfinite(normalizer) or not np.isclose(normalizer, 0., atol=1e-12, rtol=0.):
         raise ValueError('Global hypothesis log weights must already sum to one.')
     return np.exp(logs-normalizer), normalizer
+
+
+def _contraction_diagnostic(prior, posterior):
+    """Inspect a difference matrix, never use its factorization in the cut.
+
+    Only the original prior support inverse and the final assembled joint
+    covariance are required by the update. A negative difference eigenvalue
+    or an unavailable optional eigensolve cannot replace either requirement.
+    """
+    record=dict(numerical_quality_is_stop_gate=False,
+        minimum_eigenvalue=None,positive_semidefinite_by_computed_eigenvalues=None,
+        covariance_changed=False,audit_error=None)
+    try:
+        with np.errstate(over='ignore',invalid='ignore'):
+            difference=np.asarray(prior)-np.asarray(posterior)
+            symmetric=.5*difference+.5*difference.T
+        if not np.all(np.isfinite(symmetric)):
+            raise ValueError('Optional covariance-contraction difference is nonfinite.')
+        eigenvalues=np.linalg.eigvalsh(symmetric)
+        if not np.all(np.isfinite(eigenvalues)):
+            raise ValueError('Optional covariance-contraction eigenvalues are nonfinite.')
+        minimum=float(eigenvalues.min()) if eigenvalues.size else 0.
+        record.update(minimum_eigenvalue=minimum,
+            positive_semidefinite_by_computed_eigenvalues=minimum>=0.)
+    except (ValueError,np.linalg.LinAlgError,FloatingPointError) as error:
+        record['audit_error']=type(error).__name__+': '+str(error)
+    return record
 
 
 def _conditional_retarget(distribution, target, body, environment):
@@ -196,12 +224,12 @@ def project_update(result):
 
 def retain_goal_components(prior_goal_components, predicted_internal_prior,
                            posterior_rawGaussian, effective_internal_state,
-                           *, marker_edge_id='marker'):
+                           *, marker_edge_id='marker', diagnostics=None):
     """Hold the root marker law fixed while the body is updated without an image.
 
     This is a Schmidt-style cut update, not full posterior conditioning of the
     environment on a body observation.  In the frozen prior chart, with body
-    covariance ``P`` and its contracted posterior ``P+``, only the cross block
+    covariance ``P`` and its posterior ``P+``, only the cross block
     changes to ``P+ P^+ P_BE``.  The marker mean, its full six-coordinate
     covariance, Bingham parameter, weights and log weights remain unchanged.
     The existing core reexpression Jacobian transports the body's side of the
@@ -218,9 +246,9 @@ def retain_goal_components(prior_goal_components, predicted_internal_prior,
     prior_body = predicted_internal_prior.covariance[np.ix_(body, body)]
     posterior_body = posterior_rawGaussian.covariance[np.ix_(body, body)]
     support = covariance_support(prior_body, 'fixed-goal prior body')
-    # An ordinary non-marker Gaussian observation contracts this covariance.
-    # No variance floor, discarded correlation, or covariance recovery is used.
-    covariance_support(prior_body-posterior_body, 'fixed-goal body covariance contraction')
+    contraction=_contraction_diagnostic(prior_body,posterior_body)
+    if diagnostics is not None:
+        diagnostics['fixed_goal_covariance_contraction']=contraction
     for column in posterior_body.T:
         require_in_support(column, support, 'fixed-goal posterior body covariance')
     require_in_support(posterior_rawGaussian.mean[body], support,

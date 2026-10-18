@@ -50,9 +50,12 @@ class AsyncMotionSession:
     """One physical experiment with a durable, acquisition-ordered event log."""
     def __init__(self, observations_path, output, *, imu_target_link=None,
                  duration=None, clock=time.monotonic, context=None, control_mode=None,
-                 running_gradient_options=None, visibility_factor_options=None):
+                 running_gradient_options=None, visibility_factor_options=None,
+                 event_batching=None, joint_body_batch=None):
         self.clock, self.output = clock, Path(output)
         self.output.mkdir(parents=True, exist_ok=False)
+        from .runtime_monitor import RuntimeMonitor
+        self.runtime_monitor = RuntimeMonitor(self.output, 'coordinator')
         self.package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
         _, self.templates = load_inputs(self.package/'config/common.yaml', observations_path)
         self.scene = MovingSwitchScene(self.output, imu_target_link=imu_target_link)
@@ -61,6 +64,10 @@ class AsyncMotionSession:
         self.inference_description = MovingInference(self.scene.robot_description, self.templates)
         self.settings = self.inference_description.settings
         self.options = dict(self.settings.get('async_execution', {}))
+        self.event_batching = (bool(self.options.get('event_batching', True))
+                               if event_batching is None else bool(event_batching))
+        self.joint_body_batch = (bool(self.options.get('joint_body_batch', True))
+                                if joint_body_batch is None else bool(joint_body_batch))
         self.period = 1./float(self.options.get('physics_hz', 120.))
         self.rates = {kind: float(self.options.get(kind+'_hz', rate))
                       for kind, rate in (('joint',40.),('imu',30.),('image',12.))}
@@ -132,6 +139,13 @@ class AsyncMotionSession:
         self.control_ledger_transmitted = 0
         self.pending_control_request = None
         self.pending_inference_event = None
+        self.pending_inference_batch = None
+        self.pending_inference_batch_id = None
+        self.batch_counter = 0
+        self.completed_batches = 0
+        self.batch_progress_count = 0
+        self.selected_sensor_batch = None
+        self.last_completed_batch = None
         self.database_selection_pending = False
         self.database_ack_pending = None
         self.selected_sensor_event = None
@@ -249,6 +263,14 @@ class AsyncMotionSession:
                 if message['event'] is None:
                     self.database_empty_acquisition_watermark=message['acquisition_watermark']
                 continue
+            if message['kind']=='database_batch_selection':
+                if not self.database_selection_pending:
+                    raise ValueError('Unexpected acquisition batch selection reply.')
+                self.database_selection_pending=False
+                self.selected_sensor_batch=message['batch']
+                if not message['batch']:
+                    self.database_empty_acquisition_watermark=message['acquisition_watermark']
+                continue
             if message['kind']=='database_completed':
                 if self.database_ack_pending != message['event_id']:
                     raise ValueError('Database acknowledgement belongs to another event.')
@@ -276,6 +298,44 @@ class AsyncMotionSession:
 
     def submit_estimate(self):
         if self.inference_busy or self.database_ack_pending is not None:
+            return
+        # Show the actual unobserved prior before accepting observations.
+        # Acquisition still saves every raw event while start is pending.
+        # The first command context initializes the estimator's own law;
+        # this is never a separate display-only candidate distribution.
+        if self.latest_result is not None and self.started is None:
+            return
+        if self.event_batching:
+            batch = self.selected_sensor_batch
+            if not batch:
+                watermark=(self.acquisition_submitted,self.acquisition_completed)
+                if (not self.database_selection_pending and
+                        self.database_empty_acquisition_watermark != watermark):
+                    self.batch_counter += 1
+                    self.acquisition_requests.put(dict(kind='database_operation',operation='select_batch',
+                        through_stamp=self.frame.stamp, snapshot_id='acquisition_batch:'+str(self.batch_counter),
+                        acquisition_watermark=watermark,
+                        initial_command_only=self.latest_result is None))
+                    self.database_selection_pending=True
+                return
+            self.selected_sensor_batch=None
+            source_index=self.last_assimilated_capture
+            final_index=max(int(event.payload_metadata['frame_index']) for event in batch.events)
+            ledger_start=(int(batch.events[0].payload_metadata['frame_index'])
+                          if source_index is None else source_index)
+            steps=self._steps_since(ledger_start,final_index)
+            self.estimate_requests.put(dict(kind='sensor_event_batch',batch=batch,
+                joint_body_batch=self.joint_body_batch,
+                database=str(self.output/'observations.sqlite3'),ledger_steps=steps,
+                ledger_source_index=source_index,ledger_target_index=final_index))
+            self.pending_inference_batch=batch
+            self.pending_inference_batch_id=batch.batch_id
+            self.batch_progress_count=0
+            self.inference_busy=True
+            self.last_submitted_capture=final_index
+            _append(self.output/'assimilation_batches.jsonl',dict(batch.record(),
+                ledger_source_index=source_index,ledger_target_index=final_index,
+                command_interval_count=len(steps),all_ready_ordered_prefix_events_claimed=True))
             return
         event=self.selected_sensor_event
         if event is None:
@@ -324,9 +384,23 @@ class AsyncMotionSession:
     def poll(self):
         changed=False
         self.collect_archives()
-        for kind,queue in (('inference',self.estimate_replies),('control',self.control_replies)):
-            try: message=queue.get_nowait()
-            except Empty: continue
+        def messages():
+            for kind,queue in (('inference',self.estimate_replies),('control',self.control_replies)):
+                while True:
+                    try:
+                        message=queue.get_nowait()
+                    except Empty:
+                        break
+                    yield kind,message
+                    if kind=='control':
+                        break
+        for kind,message in messages():
+            monitor = getattr(self, 'runtime_monitor', None)
+            if monitor is not None and message.get('kind') != 'inference_batch_progress':
+                monitor.mark('worker_reply_received', worker=kind,
+                    message_kind=message.get('kind'), request_id=message.get('request_id'),
+                    batch_id=message.get('batch_id'), physical_stamp=self.frame.stamp,
+                    worker_work_seconds=message.get('work_seconds'))
             if message.get('failed'):
                 self.failure=message
                 _append(self.output/'execution_failure.jsonl',message)
@@ -335,6 +409,43 @@ class AsyncMotionSession:
                         event_id=self.pending_inference_event,error=message['traceback']))
                 raise RuntimeError(kind+' worker failed: '+message['traceback'])
             if kind == 'inference':
+                if message.get('kind')=='inference_batch_progress':
+                    batch=self.pending_inference_batch
+                    if (not self.inference_busy or batch is None or message['batch_id']!=self.pending_inference_batch_id
+                            or message['batch_offset']!=self.batch_progress_count
+                            or message['event_id']!=batch.events[self.batch_progress_count].event_id):
+                        raise ValueError('Inference checkpoint is outside the claimed acquisition batch.')
+                    self.batch_progress_count += 1
+                    changed=True
+                    continue
+                if message.get('kind')=='inference_batch_completed':
+                    batch=self.pending_inference_batch
+                    if (not self.inference_busy or batch is None or message['batch_id']!=self.pending_inference_batch_id
+                            or self.batch_progress_count!=len(batch.events)
+                            or tuple(message['batch_record']['completed_event_ids'])!=batch.event_ids):
+                        raise ValueError('A batch handoff has not completed every claimed observation.')
+                    self.inference_busy=False
+                    self.pending_inference_batch=None
+                    self.pending_inference_batch_id=None
+                    self.completed_batches += 1
+                    self.last_completed_batch=message['batch_record']
+                    final=message['final_message']
+                    if final is not None:
+                        self.latest_result=_freeze_arrays(final['result'])
+                        self.latest_packet=final['packet']
+                        self.last_assimilated_capture=final['capture_index']
+                        self.last_assimilated_event=final['event_id']
+                        self.assimilated.extend(message['batch_record']['evaluated_event_ids'])
+                        self.estimate_times.append(self.clock())
+                        if monitor is not None:
+                            monitor.mark('canonical_batch_adopted', batch_id=message['batch_id'],
+                                physical_stamp=self.frame.stamp, source_stamp=self.latest_result.prior.stamp,
+                                body_state_id=self.latest_result.prior.state_id,
+                                density_id=None if self.latest_packet is None else self.latest_packet.proposal['density_id'])
+                    if message['last_image_observed'] is not None:
+                        self.latest_marker_observed=message['last_image_observed']
+                    changed=True
+                    continue
                 if not self.inference_busy or message['event_id'] != self.pending_inference_event:
                     raise ValueError('Inference reply does not match the claimed acquisition event.')
                 self.inference_busy=False
@@ -381,10 +492,15 @@ class AsyncMotionSession:
                         source_action_packet_id=(None if message.get('packet') is None else message['packet'].packet_id))
                     self.last_gradient_adoption=adoption
                     _append(self.output/'gradient_adoptions.jsonl',adoption)
+                    if monitor is not None:
+                        monitor.mark('gradient_adopted', request_id=message.get('request_id'),
+                            physical_stamp=self.frame.stamp, source_stamp=evaluation.get('source_stamp'),
+                            accepted=adoption['accepted'], status=evaluation['status'],
+                            density_id=evaluation.get('parameter_density_id'))
                     adopt=adoption['accepted']
                     # Before the first valid input, publish the waiting-law
                     # snapshot with an explicit hold status, never as a gradient.
-                    if (not adopt and self.current_control is None and 'snapshot' in message
+                    if (not adopt and self.gradient_tracker.last_packet is None and 'snapshot' in message
                             and evaluation['status']=='waiting_for_goal'):
                         self.current_control=_freeze_arrays(message)
                 if adopt:
@@ -576,7 +692,21 @@ class AsyncMotionSession:
         row=self.scene.trajectory[-1]
         planned_phase,planned_source=self.reaching_phase()
         gradient=None if self.gradient_tracker is None else self.gradient_tracker.last_packet
+        startup_phase = ('running' if self.started is not None else
+            'initializing_prior' if self.current_control is None else 'initial_prior')
         return dict(execution_mode='async',execution_architecture='timestamped_sensor_events',
+            startup_phase=startup_phase,observation_updates_enabled=self.started is not None,
+            inference_batching=self.event_batching,
+            joint_body_batch=self.joint_body_batch,
+            completed_inference_batches=self.completed_batches,
+            pending_inference_batch_id=self.pending_inference_batch_id,
+            pending_batch_completed_events=self.batch_progress_count if self.inference_busy else 0,
+            pending_batch_reserved_events=(0 if self.pending_inference_batch is None
+                else len(self.pending_inference_batch.events)),
+            pending_batch_frontier_stamp=(None if self.pending_inference_batch is None
+                else self.pending_inference_batch.frontier_stamp),
+            last_completed_batch_frontier_stamp=(None if self.last_completed_batch is None
+                else self.last_completed_batch['frontier_stamp']),
             control_mode=self.control_mode,
             offline_precomputation=False,sample_index=len(self.frames)-1,estimate_index=self.last_assimilated_capture,
             simulated_elapsed_s=self.frame.time,duration=self.scene.duration,finished=self.motion_finished,
@@ -681,6 +811,11 @@ class AsyncMotionSession:
             acquisition_acknowledged=self.acquisition_completed,
             acquisition_recovery_journal='acquisition_requests.jsonl',
             interrupted_inference_event=self.pending_inference_event,
+            interrupted_inference_batch=(None if self.pending_inference_batch is None else dict(
+                batch_id=self.pending_inference_batch_id,
+                completed_checkpoint_count=self.batch_progress_count,
+                reserved_event_ids=list(self.pending_inference_batch.event_ids),
+                frontier_stamp=self.pending_inference_batch.frontier_stamp)),
             selected_but_not_dispatched_event=(None if self.selected_sensor_event is None
                                               else self.selected_sensor_event.event_id),
             interrupted_control_request=self.pending_control_request,

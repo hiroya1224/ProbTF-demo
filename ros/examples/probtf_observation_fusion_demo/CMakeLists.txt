@@ -32,7 +32,9 @@ if(NOT TARGET urdfdom_headers::urdfdom_headers)
 endif()
 find_package(pinocchio 3.3 CONFIG REQUIRED
   PATHS "${PROBTF_PINOCCHIO_PREFIX}/lib/cmake/pinocchio" NO_DEFAULT_PATH)
-catkin_package(LIBRARIES probtf_flexible_dynamics)
+find_package(LAPACK REQUIRED)
+find_package(OpenMP QUIET)
+catkin_package(LIBRARIES probtf_flexible_dynamics probtf_auxiliary_equilibrium)
 add_library(probtf_flexible_dynamics SHARED native/flexible_dynamics.cpp)
 target_compile_features(probtf_flexible_dynamics PRIVATE cxx_std_14)
 target_link_libraries(probtf_flexible_dynamics PRIVATE
@@ -42,6 +44,20 @@ set_target_properties(probtf_flexible_dynamics PROPERTIES
   INSTALL_RPATH "${PROBTF_PINOCCHIO_PREFIX}/lib"
   INSTALL_RPATH_USE_LINK_PATH TRUE)
 install(TARGETS probtf_flexible_dynamics
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+add_library(probtf_auxiliary_equilibrium SHARED native/auxiliary_equilibrium.cpp)
+target_compile_features(probtf_auxiliary_equilibrium PRIVATE cxx_std_14)
+target_link_libraries(probtf_auxiliary_equilibrium PRIVATE
+  pinocchio::pinocchio_default pinocchio::pinocchio_parsers ${LAPACK_LIBRARIES})
+if(OpenMP_CXX_FOUND)
+  target_compile_options(probtf_auxiliary_equilibrium PRIVATE ${OpenMP_CXX_FLAGS})
+  target_link_libraries(probtf_auxiliary_equilibrium PRIVATE ${OpenMP_CXX_FLAGS})
+endif()
+set_target_properties(probtf_auxiliary_equilibrium PROPERTIES
+  BUILD_RPATH "${PROBTF_PINOCCHIO_PREFIX}/lib"
+  INSTALL_RPATH "${PROBTF_PINOCCHIO_PREFIX}/lib"
+  INSTALL_RPATH_USE_LINK_PATH TRUE)
+install(TARGETS probtf_auxiliary_equilibrium
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 catkin_install_python(PROGRAMS scripts/observation_fusion_demo.py scripts/observation_fusion_motion.py scripts/print_motion_robot.py scripts/record_four_cases.py scripts/benchmark_realtime.py scripts/benchmark_physics.py scripts/evaluate_running_gradient.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(DIRECTORY config launch rviz DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

@@ -11,7 +11,7 @@ from scipy.special import logsumexp
 
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, MAX_FIRST_ORDER_ROTATION_VARIANCE,
-    point_query, reexpress_state,
+    point_query,
 )
 from probtf.spherical_law.fusion import (
     Gaussian, LabelledPrior, PosteriorComponent, fuse_labelled_sensor_posteriors,
@@ -21,6 +21,7 @@ from probtf.spherical_law.support import SUPPORT_ATOL, SUPPORT_RTOL, covariance_
 
 from probtf_observation_fusion_demo.scene import render_image
 from probtf_observation_fusion_demo.sensors import ADAPTERS, PREPARERS
+from .immutable_body_cache import reexpress_state
 
 
 @dataclass(frozen=True)
@@ -81,6 +82,9 @@ class DemoResult:
     # been projected into the actual single internal law. Native branches
     # still specify the transition prior, not a tight continuation-only prior.
     projected_body_numerator: object = None
+    # Historical density-ratio views retain each original acquisition q_i.
+    # They are not installed as current body laws or sent to visualization.
+    time_resolved_body_ratios: tuple = ()
 
 
 def load_inputs(common_path, observations_path):

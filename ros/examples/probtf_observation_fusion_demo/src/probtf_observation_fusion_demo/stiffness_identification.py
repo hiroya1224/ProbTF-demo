@@ -7,6 +7,7 @@ or a Gaussian projection. Finite numerical trials serve initial proposals only.
 """
 
 from pathlib import Path
+from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
@@ -35,8 +36,14 @@ from scipy.spatial.transform import Rotation
 
 from .stiffness_bayes_factor import (
     ContinuousStiffnessBFS, LocalLaplaceEvidence, ResetMeasure,
-    StiffnessEvidenceUnavailable,
+    StiffnessEvidenceUnavailable, update_hazard_log_probabilities,
 )
+from .joint_batch_fusion import add_log_evidence_parts, log_evidence_parts_difference
+
+
+def _runtime_stage(owner, name, **context):
+    monitor = getattr(owner, 'runtime_monitor', None)
+    return nullcontext() if monitor is None else monitor.stage(name, **context)
 
 
 def _stiffness_surprise_settings(settings):
@@ -62,24 +69,40 @@ def _stiffness_surprise_settings(settings):
     return dict(supplied, enabled=enabled, change_probability=probability)
 
 
-def _density(distribution, value, support=None):
+def _density_parts(distribution, value, support=None):
     support = distribution.support if support is None else support
     error = np.asarray(value)-distribution.mean
     require_in_support(error, support, 'auxiliary prediction in frozen body support')
     score = -support.inverse @ error
-    log_value = -.5*(support.rank*math.log(2.*math.pi)+support.log_pdet-error @ score)
-    return float(log_value), score
+    parts = add_log_evidence_parts((0., 0.),
+        (-.5*(support.rank*math.log(2.*math.pi)+support.log_pdet),
+         .5*float(error @ score)))
+    return parts, score
 
 
-def _mixture_density(components, value, supports=None):
-    evaluations = [_density(component.distribution, value,
+def _density(distribution, value, support=None):
+    parts, score = _density_parts(distribution, value, support)
+    return parts[0]+parts[1], score
+
+
+def _log_mixture_parts(parts):
+    reference = max(parts, key=lambda item:(item[0], item[1]))
+    shifted = np.asarray([log_evidence_parts_difference(item, reference) for item in parts])
+    normalizer = float(logsumexp(shifted))
+    return add_log_evidence_parts(reference, (normalizer,)), np.exp(shifted-normalizer)
+
+
+def _mixture_density(components, value, supports=None, *, return_parts=False):
+    evaluations = [_density_parts(component.distribution, value,
         None if supports is None else supports[index]) for index, component in enumerate(components)]
-    terms = [_log_weight(component)+item[0]
+    terms = [add_log_evidence_parts(item[0], (_log_weight(component),))
              for component, item in zip(components, evaluations)]
-    total = float(logsumexp(terms))
-    responsibility = np.exp(np.asarray(terms)-total)
+    total_parts, responsibility = _log_mixture_parts(terms)
+    total = total_parts[0]+total_parts[1]
     score = sum(weight*item[1] for weight, item in zip(responsibility, evaluations))
-    return total, score, [item[0] for item in evaluations], responsibility
+    component_logs = ([item[0] for item in evaluations] if return_parts else
+                      [item[0][0]+item[0][1] for item in evaluations])
+    return total_parts if return_parts else total, score, component_logs, responsibility
 
 
 def _log_weight(component):
@@ -149,13 +172,16 @@ class BodyDensityRatio:
             require_in_support(np.asarray(value)-self.prior.mean, self.prior_support,
                                'identity body density ratio support')
             return 0., np.zeros_like(self.prior.mean), [0.]*len(self.components)
-        minus, minus_score, _, _ = _mixture_density(self.prior_components, value, self.prior_supports)
+        minus, minus_score, _, _ = _mixture_density(self.prior_components, value,
+            self.prior_supports, return_parts=True)
         if branch is None:
-            plus, plus_score, component_logs, _ = _mixture_density(self.components, value, self.component_supports)
+            plus, plus_score, component_logs, _ = _mixture_density(self.components, value,
+                self.component_supports, return_parts=True)
         else:
-            plus, plus_score = _density(self.components[branch].distribution, value, self.component_supports[branch])
+            plus, plus_score = _density_parts(self.components[branch].distribution, value, self.component_supports[branch])
             component_logs = [plus]
-        return plus-minus, plus_score-minus_score, [item-minus for item in component_logs]
+        return (log_evidence_parts_difference(plus, minus), plus_score-minus_score,
+                [log_evidence_parts_difference(item, minus) for item in component_logs])
 
 
 def _rotation_chart_volume(value):
@@ -235,7 +261,10 @@ class ChartedBodyDensityRatio:
                         for _, child in children)
             mass = (float(logsumexp([_log_weight(child) for child, _ in children]))
                     if children else -np.inf)
-            self.identity &= equal and np.isclose(mass, _log_weight(branch), atol=1e-12, rtol=0.)
+            # L=1 is an exact algebraic shortcut. A small finite change in
+            # mixture mass can change the K likelihood and must not be
+            # discarded by an approximate-equality threshold.
+            self.identity &= equal and mass == _log_weight(branch)
             self.marginals.append((prior, children, support))
             self.child_supports.append(tuple(child.support for _, child in children))
         if not self.branches:
@@ -259,19 +288,20 @@ class ChartedBodyDensityRatio:
                 continue
             volume, volume_gradient = ((0., np.zeros_like(value)) if len(self.branches) == 1
                                         else _rotation_chart_volume(value))
-            log_minus, score_minus = _density(prior, value, support)
-            minus_terms.append(_log_weight(branch)+log_minus-volume)
+            log_minus, score_minus = _density_parts(prior, value, support)
+            minus_terms.append(add_log_evidence_parts(log_minus, (_log_weight(branch), -volume)))
             minus_gradients.append(jacobian.T @ (score_minus-volume_gradient))
             for (child, distribution), child_support in zip(children, child_supports):
-                log_plus, score_plus = _density(distribution, value, child_support)
-                plus_terms.append(_log_weight(child)+log_plus-volume)
+                log_plus, score_plus = _density_parts(distribution, value, child_support)
+                plus_terms.append(add_log_evidence_parts(log_plus, (_log_weight(child), -volume)))
                 plus_gradients.append(jacobian.T @ (score_plus-volume_gradient))
         if self.identity:
             return 0., np.zeros(predictions[0][1].shape[1])
-        minus, plus = float(logsumexp(minus_terms)), float(logsumexp(plus_terms))
-        minus_gradient = np.exp(np.asarray(minus_terms)-minus) @ np.asarray(minus_gradients)
-        plus_gradient = np.exp(np.asarray(plus_terms)-plus) @ np.asarray(plus_gradients)
-        return plus-minus, plus_gradient-minus_gradient
+        minus, minus_responsibility = _log_mixture_parts(minus_terms)
+        plus, plus_responsibility = _log_mixture_parts(plus_terms)
+        minus_gradient = minus_responsibility @ np.asarray(minus_gradients)
+        plus_gradient = plus_responsibility @ np.asarray(plus_gradients)
+        return log_evidence_parts_difference(plus, minus), plus_gradient-minus_gradient
 
     def record(self):
         return dict(chart_measure='common Haar rotation volume and parent-translation Lebesgue volume; single-chart Jacobian cancels',
@@ -310,6 +340,31 @@ class FrozenStiffnessFactor:
     properness: dict
 
 
+@dataclass(frozen=True)
+class FrozenTimeIndexedStiffnessFactor:
+    """A batch product whose atomic factors keep their acquisition commands.
+
+    The product is one BFS event.  Its individual body-density ratios are
+    evaluated at their own ``h(K, q_i)``, not at a transported endpoint pose.
+    """
+    factor_id: str
+    observation_ids: tuple
+    parts: tuple
+    properness: dict
+
+    @property
+    def ratio(self):
+        return SimpleNamespace(identity=all(part.ratio.identity for part in self.parts))
+
+
+def _atomic_stiffness_factors(factors):
+    for factor in factors:
+        if isinstance(factor, FrozenTimeIndexedStiffnessFactor):
+            yield from _atomic_stiffness_factors(factor.parts)
+        else:
+            yield factor
+
+
 def _right_log_derivative(vector):
     angle = float(np.linalg.norm(vector))
     cross = skew(vector)
@@ -336,7 +391,11 @@ class StiffnessIdentifier:
         self.spring = LinearSpringModel()
         self.solver = EquilibriumSolver(self.robot, self.spring,
             EquilibriumConfig(maxiter=100, ftol=1e-14, refine_tol=1e-14))
-        self.sensitivity = SensitivityCalculator(self.robot, self.spring)
+        # A converged interior root remains free even a few nanoradians from
+        # a stop. The Newton candidates are actually projected onto the box;
+        # only that real boundary with the outward KKT sign is constrained.
+        self.sensitivity = SensitivityCalculator(self.robot, self.spring,
+            active_set_tol=0., kkt_tol=0.)
         config_path = settings.get('prior_config_path')
         if config_path is None:
             config_path = Path(rospkg.RosPack().get_path(settings.get(
@@ -350,10 +409,20 @@ class StiffnessIdentifier:
         self.initial_components = self.components
         self.factors = ()
         self.factor_cache = {}
+        # These are numerical memoization tables, not candidate measures.
+        # Physical predictions at one identical log-K query can be shared by
+        # factors with the same command and frozen continuation anchor.
+        self._physical_prediction_cache = {}
+        self._physical_prediction_query = None
+        self._evaluation_cache_statistics = dict(factor_cache_hits=0,
+            physical_cache_hits=0, native_batch_calls=0, native_batch_rows=0,
+            native_continuation_rows=0, native_convex_certified_rows=0,
+            native_direct_rows=0, native_direct_fallback_rows=0)
         self.observation_ids = frozenset()
         self.stiffness_bfs = None
         self.pending_stiffness_events = ()
         self._bfs_evidence_modes = ()
+        self._joint_batch_signatures = {}
         if (self.stiffness_surprise_settings['enabled']
                 and self.stiffness_surprise_settings['change_probability'] > 0.):
             initial_density = partial(_continuous_initial_density, self.initial_components)
@@ -376,6 +445,7 @@ class StiffnessIdentifier:
             total_mass_kg=self.robot.total_mass, gravity=self.robot.model.gravity.linear.tolist(),
             declaration=settings.get('known_model_source', 'URDF geometry, masses and inertias declared known for the auxiliary model'),
             spring_law='existing deflecomp LinearSpringModel',
+            active_joint_limit_policy='actual box boundary and outward KKT sign; zero proximity/sign tolerance; converged interior roots stay free',
             equilibrium='existing EquilibriumSolver stiffness-homotopy continuation; initialized at sent command, not physical truth',
             numerical_continuation_stages=self.solver.cfg.n_lambda,
             numerical_continuation_stiffness=self.solver.cfg.k_stiffness)
@@ -402,6 +472,24 @@ class StiffnessIdentifier:
         self.equilibrium_audit_summary = dict(evaluations=0,
             residual_warning_count=0, nonpositive_curvature_count=0,
             maximum_KKT_residual_nm=0.)
+        backend = settings.get('auxiliary_equilibrium_backend', 'native')
+        if backend not in ('native', 'python_reference'):
+            raise ValueError('auxiliary_equilibrium_backend must be native or python_reference.')
+        self._auxiliary_native = None
+        if backend == 'native':
+            from .auxiliary_equilibrium_native import AuxiliaryEquilibriumNative
+            self._auxiliary_native = AuxiliaryEquilibriumNative(str(urdf_path), self.robot.nv,
+                certified_fastpath=settings.get('auxiliary_certified_direct', False))
+            self.model_source['global_convexity_certificate'] = dict(
+                enabled=self._auxiliary_native.certified_fastpath,
+                gravity_hessian_absolute_bound=self._auxiliary_native.gravity_hessian_absolute_bound.tolist(),
+                proof='URDF mass-times-gravity times rotated-segment lengths bound every gravity Hessian entry; exact gravity-parallel root rotation symmetry gives zero rows; positive weighted row witness certifies diag(K)-B positive definite',
+                uncertified_policy='retain canonical continuation; no candidate or update dropped',
+                finite_direct_root_policy='use only after the existing 1e-11 Nm exact-box KKT residual target; otherwise canonical continuation')
+        if self.stiffness_bfs is not None:
+            self.stiffness_bfs.batch_factor_evaluator = self._batch_factor_evaluation
+        self.model_source['anchored_equilibrium_backend'] = backend
+        self.model_source['direct_unanchored_equilibrium_backend'] = 'existing Python stiffness homotopy'
 
     def numerical_diagnostics(self):
         """Report numerical quality without making finite audits fatal.
@@ -415,7 +503,8 @@ class StiffnessIdentifier:
             policy='finite residual, curvature and iteration audits are diagnostic only; actual nonfinite arithmetic or unsolved linear systems remain errors',
             last_equilibrium=getattr(self, 'last_equilibrium_audit', None),
             last_continuation=getattr(self, 'last_continuation_audit', None),
-            equilibrium_summary=getattr(self, 'equilibrium_audit_summary', None)))
+            equilibrium_summary=getattr(self, 'equilibrium_audit_summary', None),
+            evaluation_cache=getattr(self, '_evaluation_cache_statistics', None)))
 
     def _evidence_starts(self):
         """Numerical evidence-mode starts; never a finite stiffness prior."""
@@ -442,11 +531,19 @@ class StiffnessIdentifier:
         discarded merely because a local evidence approximation failed.
         """
         recovered = []
+        if self.stiffness_bfs is not None:
+            self.stiffness_bfs.runtime_monitor = getattr(self, 'runtime_monitor', None)
         while self.pending_stiffness_events:
             factor, event_id, metadata = self.pending_stiffness_events[0]
-            record = self.stiffness_bfs.advance(factor.factor_id, factor.observation_ids,
-                partial(self._factor_evaluation, factor), event_id=event_id,
-                identity_factor=bool(factor.ratio.identity), metadata=metadata)
+            with _runtime_stage(self, 'stiffness.bfs_update', event_id=event_id,
+                    factor_id=factor.factor_id, observation_count=len(factor.observation_ids),
+                    retained_factor_count=len(self.factors)):
+                record = self.stiffness_bfs.advance(factor.factor_id, factor.observation_ids,
+                    partial(self._factor_evaluation, factor), event_id=event_id,
+                    identity_factor=bool(factor.ratio.identity), metadata=metadata,
+                    rho0=metadata.get('joint_batch_rho0'),
+                    log_keep_probability=metadata.get('joint_batch_log_keep_probability'),
+                    log_reset_probability=metadata.get('joint_batch_log_reset_probability'))
             # Only after both branch integrals succeeded does the accepted
             # expression, factor list and consumed-ID set advance together.
             self.factors += (factor,)
@@ -572,6 +669,12 @@ class StiffnessIdentifier:
             return self._refine_equilibrium(
                 self.solver.solve(command, stiffness, theta_init=command), command, stiffness)
         _, start, theta = anchor
+        native = getattr(self, '_auxiliary_native', None)
+        if native is not None:
+            result = native.continue_from(start, theta, x, command)
+            self._accept_native_equilibrium(result)
+            return (result['theta'], result['hessian'],
+                    result['parameter_jacobian'], result['active'])
         # Each query starts from the same anchor and takes the same path,
         # independently of every earlier optimizer or Hessian evaluation.
         def segment(left, right, initial, depth):
@@ -599,33 +702,244 @@ class StiffnessIdentifier:
             theta, left = result[0], right
         return result
 
-    def _prediction(self, x, state):
+    def _accept_native_equilibrium(self, result):
+        """Expose actual native diagnostics; a failed row is never a value."""
+        if result.get('status') not in ('ok', 'success', 'available'):
+            raise ValueError('Native auxiliary equilibrium failed: '+str(result.get('error')))
+        for name in ('theta', 'hessian', 'parameter_jacobian', 'active'):
+            if not np.all(np.isfinite(result[name])):
+                raise ValueError('Native auxiliary equilibrium returned nonfinite '+name+'.')
+        self.last_equilibrium_audit = deepcopy(result.get('audit',
+            result.get('equilibrium_audit')))
+        self.last_continuation_audit = deepcopy(result.get('continuation',
+            result.get('continuation_audit')))
+        certificate = (self.last_continuation_audit or {}).get('convexity_certificate', {})
+        statistics = self._evaluation_cache_statistics
+        statistics['native_continuation_rows'] += 1
+        statistics['native_convex_certified_rows'] += int(certificate.get('certified', False))
+        statistics['native_direct_rows'] += int(certificate.get('direct_used', False))
+        statistics['native_direct_fallback_rows'] += int(
+            certificate.get('direct_attempted', False) and not certificate.get('direct_used', False))
+        current = result.get('equilibrium_summary', result.get('equilibrium_audit_summary'))
+        if current is not None:
+            summary = self.equilibrium_audit_summary
+            for key in ('evaluations', 'residual_warning_count',
+                        'nonpositive_curvature_count', 'curvature_audit_failure_count'):
+                summary[key] = summary.get(key, 0)+current.get(key, 0)
+            summary['maximum_KKT_residual_nm'] = max(summary['maximum_KKT_residual_nm'],
+                current.get('maximum_KKT_residual_nm', 0.))
+
+    def _physical_prediction_key(self, x, state, anchor=None):
+        anchor = getattr(self, '_branch_anchor', None) if anchor is None else anchor
+        if anchor is None or anchor[0] != state.state_id:
+            return None
+        return (np.asarray(state.command, dtype=float).tobytes(),
+                np.asarray(anchor[1], dtype=float).tobytes(),
+                np.asarray(anchor[2], dtype=float).tobytes())
+
+    def _physical_query_cache(self, x):
+        query = np.asarray(x, dtype=float).tobytes()
+        if getattr(self, '_physical_prediction_query', None) != query:
+            # Clear cached arithmetic only. All factors and source candidates
+            # remain in their immutable retained histories.
+            self._physical_prediction_cache = {}
+            self._physical_prediction_query = query
+        return self._physical_prediction_cache
+
+    def _physical_prediction(self, x, state):
         stiffness = np.exp(x)
         if not np.all(np.isfinite(stiffness)) or np.any(stiffness <= 0.):
             raise ValueError('Nonfinite auxiliary stiffness candidate.')
+        key = self._physical_prediction_key(x, state)
+        cache = self._physical_query_cache(x)
+        if key is not None and key in cache:
+            self._evaluation_cache_statistics['physical_cache_hits'] += 1
+            value = cache[key]
+            if 'error' in value:
+                raise ValueError(value['error'])
+            self.last_equilibrium_audit = deepcopy(value['audit'])
+            self.last_continuation_audit = deepcopy(value['continuation'])
+            return value
         theta, hessian, parameter_jacobian, active = self._branch_equilibrium(x, state)
         derivative = -np.linalg.solve(hessian, parameter_jacobian)
         if not np.all(np.isfinite(derivative)):
             raise ValueError('Auxiliary equilibrium parameter sensitivity is nonfinite.')
-        value, jacobian = self._body_chart(theta, derivative, state)
-        return value, jacobian, theta, active
+        prediction = self._store_physical_prediction(theta, derivative, active,
+            self.last_equilibrium_audit, self.last_continuation_audit)
+        if key is not None:
+            cache[key] = prediction
+        return prediction
 
-    def _body_chart(self, theta, derivative, state):
+    def _store_physical_prediction(self, theta, derivative, active, audit, continuation):
         self.robot._fk_update(theta)
+        local_poses = []
+        for _, parent, child, _, _ in self.edges:
+            local = self.robot.data.oMf[parent].inverse()*self.robot.data.oMf[child]
+            local_poses.append((np.array(local.translation, copy=True),
+                                np.array(local.rotation, copy=True)))
+        return dict(theta=np.array(theta, copy=True), derivative=np.array(derivative, copy=True),
+            active=np.array(active, copy=True), local_poses=tuple(local_poses),
+            audit=deepcopy(audit), continuation=deepcopy(continuation))
+
+    def _prediction(self, x, state):
+        physical = self._physical_prediction(x, state)
+        value, jacobian = self._body_chart(physical['theta'], physical['derivative'], state,
+                                         local_poses=physical['local_poses'])
+        return value, jacobian, physical['theta'], physical['active']
+
+    def _body_chart(self, theta, derivative, state, *, local_poses=None):
+        if local_poses is None:
+            self.robot._fk_update(theta)
         by_id = {item.edge_id: item for item in state.transforms}
         value = np.zeros(6*len(self.edges)); jacobian = np.zeros((value.size, derivative.shape[1]))
         for index, (name, parent, child, joint_index, axis) in enumerate(self.edges):
-            local = self.robot.data.oMf[parent].inverse()*self.robot.data.oMf[child]
+            if local_poses is None:
+                local = self.robot.data.oMf[parent].inverse()*self.robot.data.oMf[child]
+                translation, rotation = local.translation, local.rotation
+            else:
+                translation, rotation = local_poses[index]
             edge = by_id[name]
             rotation_vector = Rotation.from_matrix(
-                quat_to_rotmat(edge.rotation_wxyz).T @ local.rotation).as_rotvec()
-            value[6*index:6*index+3] = local.translation-edge.translation
+                quat_to_rotmat(edge.rotation_wxyz).T @ rotation).as_rotvec()
+            value[6*index:6*index+3] = translation-edge.translation
             value[6*index+3:6*index+6] = rotation_vector
             jacobian[6*index+3:6*index+6] = np.outer(
                 _right_log_derivative(rotation_vector) @ axis, derivative[joint_index])
         return value, jacobian
 
-    def update(self, result):
+    def update_batch(self, result, *, events, command_ledger, batch_id=None,
+                     event_body_ratios=None):
+        """Use time-matched body ratios and one declared batch hazard.
+
+        Per-observation intermediate evidence/representative computations are
+        absent.  With ``event_body_ratios`` every effective acquisition has its
+        own unprojected before/after Gaussian ratio and its own command.  The
+        endpoint body is only the final shared IK/display law.  ``None`` keeps
+        the explicitly named legacy endpoint approximation for old synthetic
+        callers, never for a valid production joint-batch observation.
+        """
+        if (event_body_ratios is None and 'joint_batch' in result.records
+                and result.records.get('observation_ids')):
+            raise ValueError('A production joint batch must supply every acquisition-specific stiffness ratio; endpoint-only fallback is forbidden.')
+        from .joint_batch_stiffness import make_joint_batch_stiffness_context
+        context = make_joint_batch_stiffness_context(result, events=events,
+            command_ledger=command_ledger, batch_id=batch_id,
+            probability=self.stiffness_surprise_settings['change_probability'],
+            enabled=self.stiffness_bfs is not None)
+        return self.update(result, batch_context=context,
+                           event_body_ratios=event_body_ratios)
+
+    def _time_indexed_ratios(self, specifications, batch_record):
+        """Validate original acquisition identity and freeze each actual chart.
+
+        A prefix prior Gaussian can have a nonzero mean and can differ from
+        the initial reference covariance.  Keeping that bias in the original
+        chart is intentional: intermediate reexpression/projection is absent.
+        """
+        if batch_record is None:
+            raise ValueError('Time-indexed stiffness factors require a declared acquisition batch.')
+        specifications = tuple(specifications)
+        acquired = {item['event_id']: item for item in batch_record['acquired_events']}
+        expected = tuple(batch_record['effective_observation_ids'])
+        if tuple(item.get('observation_id') for item in specifications) != expected:
+            raise ValueError('Time-indexed stiffness ratios must retain every effective acquisition in order.')
+        frozen, digest = [], hashlib.sha256(b'ProbTF time-indexed stiffness batch v1')
+        for spec in specifications:
+            identity = spec['observation_id']
+            event = acquired[identity]
+            stamp, command = float(spec['source_stamp']), tuple(spec['source_command'])
+            if stamp != event['stamp'] or command != tuple(event['command']):
+                raise ValueError('A stiffness ratio must use its original acquisition command and timestamp.')
+            branches = tuple(spec['branches'])
+            projected = spec.get('posterior_branch')
+            if not branches:
+                raise ValueError('Every acquisition stiffness ratio needs its full frozen body branches.')
+            for branch in branches+(() if projected is None else (projected,)):
+                reference = branch.reference_state
+                if (reference.stamp != stamp or tuple(reference.command) != command
+                        or branch.prior.mean.shape != reference.mean.shape
+                        or branch.prior.covariance.shape != reference.covariance.shape):
+                    raise ValueError('An acquisition stiffness ratio changed its frozen source chart or clock.')
+                if any(child.distribution.mean.shape != reference.mean.shape
+                       or child.distribution.covariance.shape != reference.covariance.shape
+                       for child in branch.posterior_components):
+                    raise ValueError('An acquisition stiffness ratio lost full joint Gaussian dimensions.')
+            ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids,
+                                           posterior_branch=projected)
+            fingerprint = hashlib.sha256(repr((identity, stamp, command)).encode())
+            for branch in branches+(() if projected is None else (projected,)):
+                fingerprint.update(branch.reference_state.state_id.encode())
+                fingerprint.update(repr((branch.label, _log_weight(branch))).encode())
+                fingerprint.update(branch.prior.mean.tobytes()+branch.prior.covariance.tobytes())
+                for child in branch.posterior_components:
+                    fingerprint.update(repr((child.label, _log_weight(child))).encode())
+                    fingerprint.update(child.distribution.mean.tobytes()
+                                       +child.distribution.covariance.tobytes())
+            factor_id = fingerprint.hexdigest()
+            digest.update(factor_id.encode())
+            frozen.append((factor_id, identity, ratio, branches,
+                           deepcopy(spec.get('provenance', spec.get('record')))))
+        return tuple(frozen), digest.hexdigest()
+
+    def _freeze_time_indexed_factor(self, definitions, composite_id, record):
+        """Capture all command-specific anchors without solving evidence yet."""
+        parts, diagnostics, saved = [], [], self._branch_anchor
+        try:
+            for factor_id, identity, ratio, branches, provenance in definitions:
+                source = branches[0].reference_state
+                properness = (dict(verified=True, log_factor_lower_bound=0.,
+                    log_factor_upper_bound=0., argument='declared exact identity body density ratio')
+                    if ratio.identity else self._properness_bounds(ratio))
+                parameter_records = []
+                for branch, (prior, children, _) in zip(branches, ratio.marginals):
+                    parameter_records.append(dict(label=branch.label,
+                        log_weight=_log_weight(branch),
+                        reference_state_id=branch.reference_state.state_id,
+                        reference_version=branch.reference_state.version,
+                        mean_dimension=prior.mean.size, support_rank=prior.support.rank,
+                        prior_parameters_sha256=hashlib.sha256(
+                            prior.mean.tobytes()+prior.covariance.tobytes()).hexdigest(),
+                        children=[dict(label=child.label, log_weight=_log_weight(child),
+                            parameters_sha256=hashlib.sha256(distribution.mean.tobytes()
+                                +distribution.covariance.tobytes()).hexdigest())
+                            for child, distribution in children]))
+                anchor, item = None, dict(observation_id=identity,
+                    source_stamp=source.stamp, source_command=list(source.command),
+                    factor_id=factor_id,
+                    body_marginal=dict(edge_ids=list(self.body_edge_ids),
+                        frozen_factor_sha256=factor_id, branches=parameter_records,
+                        full_joint_parameters_retained_in_immutable_factor=True,
+                        repeated_full_matrix_JSON_expansion=False,
+                        digest_array_convention='float64 native-order C-contiguous mean bytes followed by covariance bytes'),
+                    prefix_source=provenance,
+                    trial_stiffness_mechanics_evaluated_at_original_acquisition=True,
+                    intermediate_body_projection_used=False)
+                if not ratio.identity:
+                    self._freeze_branch(source, item)
+                    anchor = self._branch_anchor
+                parts.append(FrozenStiffnessFactor(factor_id, (identity,), ratio,
+                    tuple(branch.reference_state for branch in branches), anchor, properness))
+                diagnostics.append(item)
+        finally:
+            self._branch_anchor = saved
+        properness = dict(verified=all(part.properness['verified'] for part in parts),
+            log_factor_lower_bound=sum(part.properness['log_factor_lower_bound'] for part in parts),
+            log_factor_upper_bound=sum(part.properness['log_factor_upper_bound'] for part in parts),
+            argument='sum of the retained bounded acquisition-specific body log-density ratios')
+        record['time_indexed_body_factors'] = diagnostics
+        record['stiffness_batch_factorization'] = dict(
+            representation='product of all acquisition-specific full-body prefix density ratios',
+            log_factor='sum_i log[p_body_i_plus(h(K,q_i)) / p_body_i_minus(h(K,q_i))]',
+            atomic_factor_count=len(parts), atomic_factor_ids=[part.factor_id for part in parts],
+            all_acquisition_commands_requeried_for_each_trial_K=True,
+            endpoint_body_ratio_used_as_K_factor=False,
+            intermediate_Laplace_updates=False, intermediate_command_proposals=False,
+            batch_evidence_updates=1 if parts else 0,
+            parameter_density_projection_applied=False, monte_carlo_used=False)
+        return FrozenTimeIndexedStiffnessFactor(composite_id,
+            tuple(part.observation_ids[0] for part in parts), tuple(parts), properness)
+
+    def update(self, result, *, batch_context=None, event_body_ratios=None):
         """Retain new likelihood factors, without projecting away information.
 
         Numerical proposal fits are deliberately separate from this density.
@@ -633,6 +947,31 @@ class StiffnessIdentifier:
         an observation or replace its posterior by the preceding prior.
         """
         state = result.prior
+        if (event_body_ratios is None and 'joint_batch' in result.records
+                and result.records.get('observation_ids')):
+            raise ValueError('A production joint batch must supply every acquisition-specific stiffness ratio; endpoint-only fallback is forbidden.')
+        batch_record = None
+        if batch_context is not None:
+            from .joint_batch_stiffness import JointBatchStiffnessContext
+            if not isinstance(batch_context, JointBatchStiffnessContext):
+                raise ValueError('A batch update needs its validated immutable stiffness batch context.')
+            batch_context.validate_result(result)
+            batch_record = batch_context.record()
+            previous = self._joint_batch_signatures.get(batch_context.batch_id)
+            if previous is not None and previous != batch_context.source_digest:
+                raise ValueError('An already acquired stiffness batch identity changed its contents.')
+        time_indexed = None
+        if event_body_ratios is not None:
+            with _runtime_stage(self, 'stiffness.time_indexed_ratio_validation',
+                    batch_id=None if batch_record is None else batch_record['batch_id'],
+                    acquisition_count=(len(event_body_ratios)
+                        if hasattr(event_body_ratios, '__len__') else None)):
+                time_indexed, time_indexed_id = self._time_indexed_ratios(event_body_ratios, batch_record)
+            batch_record.update(factor_semantics='product of acquisition-specific full-body prefix posterior/prior ratios; each trial K is evaluated by auxiliary equilibrium/FK at every original acquisition command',
+                time_indexed_atomic_factor_count=len(time_indexed),
+                time_indexed_atomic_factor_ids=[item[0] for item in time_indexed],
+                time_indexed_factorization_id=time_indexed_id,
+                endpoint_only_stiffness_factor=False)
         if result.frozen_body_prior is None or result.frozen_body_posterior is None:
             raise ValueError('Stiffness requires actual frozen pre-reexpression body Gaussians.')
         raw_prior, raw_posterior = result.frozen_body_prior, result.frozen_body_posterior
@@ -666,15 +1005,24 @@ class StiffnessIdentifier:
             for item in projected_numerator.posterior_components:
                 digest.update(repr((item.label, _log_weight(item))).encode())
                 digest.update(item.distribution.mean.tobytes()+item.distribution.covariance.tobytes())
+        if time_indexed is not None:
+            digest.update(b'acquisition-specific-stiffness-body-ratios')
+            digest.update(time_indexed_id.encode())
         key = (digest.hexdigest(), observation_ids,
                tuple((item.label, item.weight, _log_weight(item), item.state.state_id)
                      for item in result.stages[-1].components))
+        if batch_context is not None:
+            key += (batch_context.source_digest,)
         if key == self.last_key:
             return self.last_record
+        if time_indexed is not None and self.last_stamp is not None and any(
+                branches[0].reference_state.stamp < self.last_stamp
+                for _, _, _, branches, _ in time_indexed):
+            raise ValueError('A stiffness acquisition predates the retained batch frontier; explicit checkpoint replay is required.')
         bfs = getattr(self, 'stiffness_bfs', None)
         if self.last_stamp is not None and (state.stamp < self.last_stamp
                 or state.stamp == self.last_stamp and bfs is None
-                    and result.records.get('sensor_event') is None):
+                    and result.records.get('sensor_event') is None and batch_context is None):
             raise ValueError('Stiffness acquisition times must increase; distinct configured sensor events may share a time.')
         if isinstance(raw_prior, Gaussian) and (
                 not np.array_equal(raw_prior.mean, state.mean)
@@ -742,6 +1090,8 @@ class StiffnessIdentifier:
             proposal_approximation=None, proposal_status='not_computed', command_proposal=None,
             approximation='specified Bingham-derived local Gaussian body proxies; no Gaussian projection of cumulative stiffness density',
             support_regularization_added=False)
+        if batch_record is not None:
+            record['joint_batch'] = batch_record
         projection = result.records.get('internal_projection')
         if projection is not None:
             record['body_internal_approximation'] = dict(
@@ -751,6 +1101,10 @@ class StiffnessIdentifier:
                 ratio_semantics=('native transition-prior mixture versus the declared full joint moment approximation after sensor fusion; not a conditional keep-branch likelihood'
                     if projected_numerator is not None else
                     'prior versus the declared full joint moment approximation after sensor fusion; not the unprojected exact observation likelihood'))
+            if time_indexed is not None:
+                record['body_internal_approximation'].update(
+                    role_for_stiffness='endpoint shared IK/display law diagnostic only; not the time-indexed K numerator',
+                    ratio_semantics='K uses unprojected acquisition-specific prefix body ratios, not this terminal projected body law')
         if len(set(observation_ids)) != len(observation_ids):
             raise ValueError('New stiffness evidence contains a duplicate observation ID.')
         repeated = self.observation_ids.intersection(observation_ids)
@@ -761,7 +1115,7 @@ class StiffnessIdentifier:
         if repeated:
             raise ValueError('A stiffness density factor cannot count an old observation again: '+repr(sorted(repeated)))
         sensor_event = result.records.get('sensor_event')
-        if bfs is not None and observation_ids:
+        if bfs is not None and observation_ids and batch_context is None:
             if len(observation_ids) != 1:
                 raise ValueError('per_effective_sensor_event stiffness BFS requires one separately fused sensor event, not a multi-sensor packet.')
             if sensor_event is not None and (
@@ -770,42 +1124,60 @@ class StiffnessIdentifier:
                     or sensor_event.get('event_id') != observation_ids[0]):
                 raise ValueError('Stiffness BFS observation identity does not match its effective sensor event.')
         try:
-            ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids,
-                                           posterior_branch=projected_numerator)
-            record['body_marginal'] = dict(edge_ids=list(self.body_edge_ids), **ratio.record())
-            if ratio.identity and (bfs is None or not observation_ids):
+            with _runtime_stage(self, 'stiffness.endpoint_body_ratio_diagnostic',
+                    source_stamp=state.stamp, observation_count=len(observation_ids)):
+                ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids,
+                                               posterior_branch=projected_numerator)
+                record['body_marginal'] = dict(edge_ids=list(self.body_edge_ids), **ratio.record())
+            identity = (ratio.identity if time_indexed is None else
+                        all(item[2].identity for item in time_indexed))
+            if time_indexed is not None:
+                record['body_marginal']['role_for_stiffness'] = 'terminal body diagnostic only; not used as a stiffness factor'
+            if identity and (bfs is None or not observation_ids):
                 self.observation_ids = self.observation_ids.union(observation_ids)
                 record.update(status='identity_density_ratio', log_density_ratio=0.,
                               information_rank=0, identity_preserved_bitwise=True)
             else:
                 if not observation_ids:
                     raise ValueError('A changed posterior without new observation IDs is not new stiffness evidence.')
-                properness = (dict(verified=True, log_factor_lower_bound=0.,
-                    log_factor_upper_bound=0., argument='declared exact identity body density ratio')
-                    if ratio.identity else self._properness_bounds(ratio))
-                # An equilibrium query failure does not become a zero
-                # likelihood. The frozen density factor remains in memory.
-                anchor = None
-                if not ratio.identity:
-                    try:
-                        with np.errstate(over='raise', invalid='raise'):
-                            self._freeze_branch(branches[0].reference_state, record)
-                        anchor = self._branch_anchor
-                    except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                        record.update(proposal_status='unavailable', proposal_failure_reason=str(error))
-                factor = FrozenStiffnessFactor(digest.hexdigest(), observation_ids, ratio,
-                    tuple(branch.reference_state for branch in branches), anchor, properness)
+                if time_indexed is not None:
+                    with _runtime_stage(self, 'stiffness.factor_freeze',
+                            source_stamp=state.stamp, acquisition_count=len(time_indexed)):
+                        factor = self._freeze_time_indexed_factor(time_indexed, digest.hexdigest(), record)
+                    properness = factor.properness
+                else:
+                    properness = (dict(verified=True, log_factor_lower_bound=0.,
+                        log_factor_upper_bound=0., argument='declared exact identity body density ratio')
+                        if ratio.identity else self._properness_bounds(ratio))
+                    # An equilibrium query failure does not become a zero
+                    # likelihood. The frozen density factor remains in memory.
+                    anchor = None
+                    if not ratio.identity:
+                        try:
+                            with np.errstate(over='raise', invalid='raise'):
+                                self._freeze_branch(branches[0].reference_state, record)
+                            anchor = self._branch_anchor
+                        except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                            record.update(proposal_status='unavailable', proposal_failure_reason=str(error))
+                    factor = FrozenStiffnessFactor(digest.hexdigest(), observation_ids, ratio,
+                        tuple(branch.reference_state for branch in branches), anchor, properness)
                 if bfs is None:
                     self.factors += (factor,)
                     self.observation_ids = self.observation_ids.union(observation_ids)
                 else:
-                    event_id = (sensor_event['event_id'] if sensor_event is not None else
+                    event_id = (batch_context.batch_id if batch_context is not None else
+                        sensor_event['event_id'] if sensor_event is not None else
                         hashlib.sha256(repr(observation_ids).encode()).hexdigest())
                     event_metadata = dict(source_stamp=state.stamp,
                         source_command=list(state.command), source_prior_state_id=state.state_id,
                         body_posterior_state_ids=metadata['body_posterior_state_ids'],
                         probability_unit=self.stiffness_surprise_settings['event_probability_unit'],
                         sensor_event=None if sensor_event is None else dict(sensor_event))
+                    if batch_record is not None:
+                        event_metadata.update(probability_unit='declared joint batch of effective sensor events',
+                            joint_batch=batch_record, joint_batch_rho0=batch_context.rho_batch,
+                            joint_batch_log_keep_probability=batch_context.hazard_logs[0],
+                            joint_batch_log_reset_probability=batch_context.hazard_logs[1])
                     self.pending_stiffness_events += ((factor, event_id, event_metadata),)
                     applied_events = self._apply_pending_stiffness_events()
                     record['bayes_factor_surprise'] = applied_events[-1]
@@ -839,6 +1211,8 @@ class StiffnessIdentifier:
         if bfs is not None and record['posterior'] is not None:
             record['stiffness_posterior_defined'] = True
         self.last_stamp = state.stamp
+        if batch_context is not None:
+            self._joint_batch_signatures[batch_context.batch_id] = batch_context.source_digest
         record['auxiliary_numerical_diagnostics'] = self.numerical_diagnostics()
         self.last_key, self.last_record = key, record
         return record
@@ -912,12 +1286,13 @@ class StiffnessIdentifier:
             # are local approximations. Do not reuse product-only Z bounds.
             lower = upper = bfs.initial_log_mass
             for update, factor in zip(bfs.updates, factors):
-                if update.rho0:
-                    reset_term = math.log(update.rho0)+update.keep_log_mass
-                    if update.rho0 == 1.:
+                log_keep, log_reset = update_hazard_log_probabilities(update)
+                if log_reset != -np.inf:
+                    reset_term = log_reset+update.keep_log_mass
+                    if log_keep == -np.inf:
                         lower = upper = update.keep_log_mass
                     else:
-                        keep_term = math.log1p(-update.rho0)
+                        keep_term = log_keep
                         lower = float(logsumexp([keep_term+lower, reset_term]))
                         upper = float(logsumexp([keep_term+upper, reset_term]))
                 lower += factor.properness['log_factor_lower_bound']
@@ -934,25 +1309,107 @@ class StiffnessIdentifier:
                     proof='bounded positive full-joint body ratio factors and finite branch-relative scales; no claim of exact Laplace normalization'))
         return record
 
+    def _prepare_physical_batch(self, factors, x):
+        """Evaluate independent frozen continuation problems in one native call.
+
+        Only equal commands and equal physical anchors share a solution.
+        Factor distributions, chart correspondences and source IDs stay
+        separate and are evaluated below in their original order.
+        """
+        native = getattr(self, '_auxiliary_native', None)
+        if native is None:
+            return
+        cache = self._physical_query_cache(x)
+        groups = {}
+        for factor in _atomic_stiffness_factors(factors):
+            if factor.ratio.identity or factor.branch_anchor is None:
+                continue
+            key = self._physical_prediction_key(x, factor.states[0], factor.branch_anchor)
+            if key is not None and key not in cache:
+                groups.setdefault(key, factor)
+        if not groups:
+            return
+        keys, selected = tuple(groups), tuple(groups.values())
+        result = native.evaluate_batch(
+            np.repeat(np.asarray(x, dtype=float)[None, :], len(selected), axis=0),
+            np.asarray([factor.states[0].command for factor in selected], dtype=float),
+            np.asarray([factor.branch_anchor[1] for factor in selected], dtype=float),
+            np.asarray([factor.branch_anchor[2] for factor in selected], dtype=float))
+        self._evaluation_cache_statistics['native_batch_calls'] += 1
+        self._evaluation_cache_statistics['native_batch_rows'] += len(selected)
+        for index, key in enumerate(keys):
+            diagnostic = result['diagnostics'][index]
+            row = {name: result[name][index] for name in
+                   ('theta', 'hessian', 'parameter_jacobian', 'active')}
+            row.update(diagnostic)
+            try:
+                self._accept_native_equilibrium(row)
+                derivative = (result['derivative'][index] if 'derivative' in result else
+                              -np.linalg.solve(row['hessian'], row['parameter_jacobian']))
+                if not np.all(np.isfinite(derivative)):
+                    raise ValueError('Native auxiliary parameter sensitivity is nonfinite.')
+                cache[key] = self._store_physical_prediction(row['theta'], derivative,
+                    row['active'], self.last_equilibrium_audit, self.last_continuation_audit)
+            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                # A failure is not a density value and is not silently hidden.
+                # Its own factor query reports it; other rows remain distinct.
+                cache[key] = dict(error=str(error))
+
+    def _batch_factor_evaluation(self, x, updates):
+        by_id = {factor.factor_id: factor for factor in self.factors}
+        factors = tuple(by_id[update.factor_id] for update in updates)
+        x = np.asarray(x, dtype=float)
+        uncached = tuple(factor for factor in factors
+            if (factor.factor_id, x.tobytes()) not in self.factor_cache)
+        # New batch products need all their own q_i rows as well as the old
+        # retained history.  Preparing them together shares only identical
+        # command/anchor problems, never a different acquisition command.
+        pending = tuple(factor for factor, _, _ in self.pending_stiffness_events)
+        self._prepare_physical_batch(uncached+pending, x)
+        return tuple(self._factor_evaluation(factor, x) for factor in factors)
+
     def _factor_evaluation(self, factor, x):
         if factor.ratio.identity:
             return 0., np.zeros_like(np.asarray(x, dtype=float))
         key = (factor.factor_id, np.asarray(x, dtype=float).tobytes())
         if key not in self.factor_cache:
+            if isinstance(factor, FrozenTimeIndexedStiffnessFactor):
+                x = np.asarray(x, dtype=float)
+                self._prepare_physical_batch((factor,), x)
+                value, gradient = 0., np.zeros_like(x)
+                for part in factor.parts:
+                    contribution, derivative = self._factor_evaluation(part, x)
+                    value += contribution
+                    gradient += derivative
+                if not np.isfinite(value) or not np.all(np.isfinite(gradient)):
+                    raise ValueError('A time-indexed stiffness product has a nonfinite value or score.')
+                self.factor_cache[key] = float(value), gradient
+                return self.factor_cache[key]
             saved = self._branch_anchor
             try:
                 self._branch_anchor = factor.branch_anchor
                 first = self._prediction(np.asarray(x), factor.states[0])
                 predictions = [first]
                 if len(factor.states) > 1:
-                    hessian, parameter_jacobian = self.sensitivity.equilibrium_jacobians(
-                        first[2], np.asarray(factor.states[0].command), np.exp(x))
-                    derivative = -np.linalg.solve(hessian, parameter_jacobian)
-                    predictions += [self._body_chart(first[2], derivative, state)
+                    physical = self._physical_query_cache(x).get(
+                        self._physical_prediction_key(x, factor.states[0]))
+                    if physical is not None and 'error' not in physical:
+                        derivative, local_poses = physical['derivative'], physical['local_poses']
+                    else:
+                        hessian, parameter_jacobian = self.sensitivity.equilibrium_jacobians(
+                            first[2], np.asarray(factor.states[0].command), np.exp(x))
+                        derivative = -np.linalg.solve(hessian, parameter_jacobian)
+                        local_poses = None
+                    predictions += [self._body_chart(first[2], derivative, state,
+                                                     local_poses=local_poses)
                                     for state in factor.states[1:]]
                 self.factor_cache[key] = factor.ratio.evaluate(predictions)
             finally:
                 self._branch_anchor = saved
+        else:
+            statistics = getattr(self, '_evaluation_cache_statistics', None)
+            if statistics is not None:
+                statistics['factor_cache_hits'] += 1
         return self.factor_cache[key]
 
     def log_density(self, x):

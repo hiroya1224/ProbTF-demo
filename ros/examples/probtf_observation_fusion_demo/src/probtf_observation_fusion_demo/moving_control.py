@@ -29,6 +29,7 @@ from probtf.spherical_law.first_order import (
     point_query, pose_query,
 )
 from probtf.spherical_law.support import covariance_support, require_in_support
+from .joint_batch_fusion import add_log_evidence_parts, log_evidence_parts_difference
 
 
 @lru_cache(maxsize=4096)
@@ -88,6 +89,28 @@ def _component_log_weight(component):
     value = getattr(component, 'log_weight', None)
     return float(value if value is not None else (
         np.log(component.weight) if component.weight > 0. else -np.inf))
+
+
+def _relative_mixture_log_parts(branches):
+    """Subtract the common density scale before adding native log weights.
+
+    A float alone cannot retain a small log mixture correction beside a huge
+    common log PDF. The pair represents the same scalar criterion and allows
+    its differences to retain that correction without modifying any mass.
+    """
+    active=[branch for branch in branches if branch['log_weight'] != -np.inf]
+    if not active:
+        raise ValueError('The complete relative mixture has no positive finite mass.')
+    reference=max((tuple(branch['log_density_parts']) for branch in active),
+                  key=lambda parts:(parts[0],parts[1]))
+    if not np.all(np.isfinite(reference)):
+        raise ValueError('The complete relative mixture density is not finite.')
+    terms=[log_evidence_parts_difference(branch['log_density_parts'],reference)
+           +branch['log_weight'] for branch in branches]
+    normalizer=float(logsumexp(terms))
+    if not np.isfinite(normalizer):
+        raise ValueError('The complete relative mixture density is not finite.')
+    return add_log_evidence_parts(reference,(normalizer,))
 
 
 def _bounded_gradient_direction(metric, gradient, baseline, lower, upper):
@@ -205,20 +228,29 @@ def _relative_density(query, goal_offset, goal_orientation, integration_steps):
     support = covariance_support(covariance, "relative hand position")
     difference = np.asarray(goal_offset)-query.mean[:3]
     require_in_support(difference, support, "relative target position")
-    log_position = -0.5 * (
-        support.rank*np.log(2.0*np.pi) + support.log_pdet
-        + difference @ support.inverse @ difference)
+    position_parts=add_log_evidence_parts((0.,0.),(
+        -.5*support.rank*np.log(2.0*np.pi),-.5*support.log_pdet,
+        -.5*float(difference @ support.inverse @ difference)))
+    log_position=float(position_parts[0]+position_parts[1])
     mean_orientation = quat_mul(query.rotation_wxyz,
         rotation_vector_to_quaternion(query.correction[3:]))
     parameter = bingham_from_rotation_coordinates(
         mean_orientation, query.covariance[3:, 3:])
     eigenvalues = np.linalg.eigvalsh(parameter)
     shift = float(eigenvalues[-1])
-    log_z = _log_normalizer(tuple(eigenvalues-shift), int(integration_steps))+shift
-    log_orientation = float(goal_orientation @ parameter @ goal_orientation - log_z)
-    return float(log_position + log_orientation), {
+    log_z_parts=add_log_evidence_parts((_log_normalizer(tuple(eigenvalues-shift), int(integration_steps)),0.),(shift,))
+    log_z=float(log_z_parts[0]+log_z_parts[1])
+    orientation_parts=add_log_evidence_parts((float(goal_orientation @ parameter @ goal_orientation),0.),
+        (-log_z_parts[0],-log_z_parts[1]))
+    log_orientation=float(orientation_parts[0]+orientation_parts[1])
+    density_parts=add_log_evidence_parts(position_parts,orientation_parts)
+    return float(density_parts[0]+density_parts[1]), {
         "log_position": float(log_position), "log_position_pdet": support.log_pdet,
         "log_orientation": log_orientation, "log_bingham_normalizer": float(log_z),
+        "log_position_parts": list(position_parts),
+        "log_orientation_parts": list(orientation_parts),
+        "log_bingham_normalizer_parts": list(log_z_parts),
+        "log_density_parts": list(density_parts),
         "relative_position_mean": query.mean[:3].tolist(),
         "relative_position_covariance": covariance.tolist(),
         "relative_orientation_mean_wxyz": mean_orientation.tolist(),
@@ -334,7 +366,7 @@ class MovingController:
         propagated covariance, and Bingham normalizer. The pose query retains
         the complete joint covariance before the final comparison proxy.
         """
-        terms, branches, queries = [], [], []
+        branches, queries = [], []
         for component in components:
             trial_state = (command_state(component.state, command,
                 self.body_ids, self.actions) if command_map is None else
@@ -348,12 +380,13 @@ class MovingController:
             log_weight = _component_log_weight(component)
             branch.update(label=component.label, weight=float(component.weight),
                 log_weight=log_weight, state_id=trial_state.state_id,
+                log_density_parts=list(branch.get('log_density_parts',(log_density,0.))),
                 parent_state_id=component.state.state_id,
                 parent_command=list(component.state.command),
                 parent_stamp=float(component.state.stamp))
             branches.append(branch)
-            terms.append(log_weight+log_density)
-        return float(logsumexp(terms)), branches, tuple(queries)
+        parts=_relative_mixture_log_parts(branches)
+        return float(parts[0]+parts[1]), branches, tuple(queries)
 
     def _objective_source(self, result, command_map):
         body, goals = control_components(result)
@@ -380,6 +413,8 @@ class MovingController:
         The caller supplies the already history-transported snapshot. Only
         physical joint positions bound this query; speed, acceleration, the
         old endpoint duration, a quadratic step and line search play no role.
+        The scalar is a rounded summary; each branch retains compensated log
+        parts, which the gradient API subtracts before discarding any scale.
         """
         _, components, _ = self._objective_source(result, command_map)
         command = np.asarray(command, dtype=float)
@@ -409,6 +444,7 @@ class MovingController:
             parameter_density_id=None, selected_K=None, objective_at_source=None,
             computation_seconds=0., finite_difference_diagnostics=dict(
                 method='physical-position-aware two-sided/one-sided full-objective finite differences',
+                log_difference_arithmetic='compensated common-scale subtraction; native log weights added after density-scale subtraction',
                 configured_step=self.gradient_step, evaluations=[], coordinates=[]),
             status='failed', reason=None, physical_truth_received=False,
             monte_carlo_used=False, endpoint_selection_performed=False,
@@ -436,7 +472,7 @@ class MovingController:
             record.update(command_action=action_record,
                 command_propagation=('declared rigid joint action; no stiffness representative selected'
                     if command_map is None else 'captured estimated-K anchored equilibrium joint action'))
-            cache = {}
+            cache = {};objective_parts_by_command={}
 
             def evaluate(candidate):
                 key = tuple(float(value) for value in candidate)
@@ -458,15 +494,19 @@ class MovingController:
                         objective = -log_density
                         if not np.isfinite(objective):
                             raise ValueError('The complete relative objective is not finite.')
+                        log_parts=_relative_mixture_log_parts(branches)
+                        parts=(-log_parts[0],-log_parts[1])
+                        objective_parts_by_command[key]=parts
                         cache[key] = (objective, branches)
-                        attempt.update(status='ok', objective=objective)
+                        attempt.update(status='ok', objective=objective,objective_parts=list(parts))
                     except Exception as error:
                         attempt['reason'] = type(error).__name__+': '+str(error)
                         raise
                 return cache[key]
 
             objective, branches = evaluate(command)
-            record.update(objective_at_source=objective, source_branches=branches)
+            source_parts=objective_parts_by_command[tuple(command)]
+            record.update(objective_at_source=objective,objective_at_source_parts=list(source_parts),source_branches=branches)
             gradient = []
             for index in range(command.size):
                 coordinate = dict(joint_index=index, source_position=float(command[index]),
@@ -487,24 +527,27 @@ class MovingController:
                     candidate[index] = value
                     try:
                         probed, _ = evaluate(candidate)
-                        successful[side] = (abs(step), probed)
-                        probe_record.update(status='ok', objective=probed)
+                        parts=objective_parts_by_command[tuple(candidate)]
+                        difference=log_evidence_parts_difference(parts,source_parts)
+                        successful[side] = (abs(step), difference)
+                        probe_record.update(status='ok', objective=probed,objective_parts=list(parts),
+                            objective_difference_from_source=difference)
                     except Exception as error:
                         probe_record.update(status='evaluation_failed',
                             reason=type(error).__name__+': '+str(error))
                 if len(successful) == 2:
-                    forward, plus = successful['forward']
-                    backward, minus = successful['backward']
-                    derivative = (backward*(plus-objective)/forward
-                        + forward*(objective-minus)/backward)/(forward+backward)
+                    forward, plus_difference = successful['forward']
+                    backward, minus_difference = successful['backward']
+                    derivative = (backward*plus_difference/forward
+                        - forward*minus_difference/backward)/(forward+backward)
                     coordinate['method'] = 'two-sided unequal-step quadratic derivative'
                 elif 'forward' in successful:
-                    forward, plus = successful['forward']
-                    derivative = (plus-objective)/forward
+                    forward, plus_difference = successful['forward']
+                    derivative = plus_difference/forward
                     coordinate['method'] = 'one-sided forward derivative'
                 elif 'backward' in successful:
-                    backward, minus = successful['backward']
-                    derivative = (objective-minus)/backward
+                    backward, minus_difference = successful['backward']
+                    derivative = -minus_difference/backward
                     coordinate['method'] = 'one-sided backward derivative'
                 else:
                     raise ValueError('No finite objective difference is available for joint '+str(index)+'.')
@@ -688,7 +731,8 @@ class MovingController:
                 return cache[key]
             log_density, branches, queries = self._evaluate_command_objective(
                 components, trial_command, command_map)
-            cache[key] = (log_density, increment.copy(), branches, queries)
+            cache[key] = (log_density, increment.copy(), branches, queries,
+                          _relative_mixture_log_parts(branches))
             return cache[key]
 
         # Start at the feasible increment closest to stopping. Retaining the
@@ -725,7 +769,7 @@ class MovingController:
                 log_braking_criterion=braking_item[0],
                 role='initial command proposal only; accepted by the same complete body criterion',
                 physical_truth_received=False)
-            if candidate[0] > initial_item[0]:
+            if log_evidence_parts_difference(candidate[4],initial_item[4]) > 0.:
                 initial_item = candidate
                 baseline = candidate[1].copy()
                 proposal_diagnostics['accepted_as_initial_point'] = True
@@ -740,7 +784,7 @@ class MovingController:
             approach_proposal.update(requested_command=proposed.tolist(),
                 projected_command=(command+candidate[1]).tolist(),
                 proposed_objective=-candidate[0], comparison_objective=-initial_item[0])
-            if candidate[0] > initial_item[0]:
+            if log_evidence_parts_difference(candidate[4],initial_item[4]) > 0.:
                 initial_item = candidate
                 baseline = candidate[1].copy()
                 approach_proposal['accepted_as_initial_point'] = True
@@ -758,7 +802,7 @@ class MovingController:
             # Differentiate J with respect to q only: every moment, covariance,
             # logdet, Bingham parameter/normalizer and weight enters each value.
             probed = evaluate(probe)
-            raw_gradient[index] = (-probed[0]-initial_cost)/difference
+            raw_gradient[index] = -log_evidence_parts_difference(probed[4],initial_item[4])/difference
             difference_steps[index] = difference
         command_jacobian = (None if command_map is None
                             else command_map.jacobian(command+baseline))
@@ -783,10 +827,13 @@ class MovingController:
                 trial = evaluate(baseline+scale*direction)
                 trial_cost = -trial[0]
                 sufficient_decrease = initial_cost+1e-4*scale*slope
+                objective_change=-log_evidence_parts_difference(trial[4],initial_item[4])
+                change_bound=1e-4*scale*slope
                 line_search.append({"scale": scale, "objective": trial_cost,
                     "armijo_bound": sufficient_decrease,
+                    "objective_change":objective_change,"armijo_change_bound":change_bound,
                     "direction_kind": "coupled quadratic", "backtracks": backtracks})
-                if trial_cost <= sufficient_decrease:
+                if objective_change <= change_bound:
                     selected, accepted_step, step_scale = trial, True, scale
                     accepted_backtracks = backtracks
                     break
@@ -804,6 +851,7 @@ class MovingController:
             "method": "one projected complete-objective gradient update with Armijo backtracking",
             "duration": dt, "increment": increment.tolist(), "velocity": self.velocity.tolist(),
             "log_expected_density": selected[0],
+            "log_expected_density_parts":list(selected[4]),
             "objective_evaluation_count": len(cache),
             "gradient_evaluation_count": 1,
             "objective_used_for_command_selection": True,
@@ -832,7 +880,8 @@ class MovingController:
             "maximum_line_search_backtracks": self.max_backtracks,
             "selected_gradient_direction": direction.tolist(),
             "line_search": line_search,
-            "improved_from_feasible_baseline": bool(selected[0] > initial_item[0]),
+            "improved_from_feasible_baseline": bool(
+                log_evidence_parts_difference(selected[4],initial_item[4]) > 0.),
             "zero_increment_feasible": bool(np.all(lower <= 0.0) and np.all(upper >= 0.0)),
             "baseline_motion_required_by_acceleration_limits": bool(
                 np.any(lower > 0.0) or np.any(upper < 0.0)),
@@ -907,7 +956,7 @@ class MovingController:
             desired_velocity = np.sign(difference)*np.minimum(target_stopping_speed, speed)
             increment = np.clip(dt*desired_velocity, lower, upper)
         next_command = command+increment
-        branches, terms = [], []
+        branches = []
         for component in components:
             trial_state = (command_state(component.state, next_command,
                                          self.body_ids, self.actions) if command_map is None
@@ -919,12 +968,13 @@ class MovingController:
             log_weight = _component_log_weight(component)
             branch.update(label=component.label, weight=float(component.weight),
                           log_weight=log_weight, state_id=trial_state.state_id,
+                          log_density_parts=list(branch.get('log_density_parts',(log_density,0.))),
                           parent_state_id=component.state.state_id,
                           parent_command=list(component.state.command),
                           parent_stamp=float(component.state.stamp))
             branches.append(branch)
-            terms.append(log_weight+log_density)
-        log_density = float(logsumexp(terms))
+        log_parts=_relative_mixture_log_parts(branches)
+        log_density = float(log_parts[0]+log_parts[1])
         sources = self._selection_sources(result, body_components, components,
                                           next_command, command_map, branches)
         self.velocity = increment/dt
@@ -944,6 +994,7 @@ class MovingController:
             "local_position_lower": None if position_lower is None else np.asarray(position_lower).tolist(),
             "local_position_upper": None if position_upper is None else np.asarray(position_upper).tolist(),
             "log_expected_density": log_density,
+            "log_expected_density_parts":list(log_parts),
             "objective_used_for_command_selection": False,
             "objective_evaluation_count": 1,
             "gradient_evaluation_count": 0,

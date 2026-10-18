@@ -15,6 +15,7 @@ requiring an integral. An evidence rule states its approximation in LogIntegral.
 """
 
 from dataclasses import dataclass, field
+from contextlib import nullcontext
 import hashlib
 import math
 import time
@@ -22,6 +23,11 @@ import time
 import numpy as np
 from scipy.special import logsumexp
 from scipy.optimize import OptimizeResult, minimize
+
+
+def _runtime_stage(owner, name, **context):
+    monitor = getattr(owner, 'runtime_monitor', None)
+    return nullcontext() if monitor is None else monitor.stage(name, **context)
 
 
 @dataclass(frozen=True)
@@ -208,6 +214,66 @@ class LocalLaplaceEvidence:
             raise ValueError('Laplace evidence requires valid mode/Hessian numerical settings.')
 
     def __call__(self, density):
+        """Retry declared numerical starts only after required mass arithmetic fails.
+
+        A finite point with an evaluable positive Hessian keeps the original
+        path, regardless of optimizer flags or score residual.  A failed
+        Cholesky is not a mass: try the remaining already declared starts
+        against the same full density, without changing curvature or law.
+        """
+        started = time.perf_counter()
+        seeds, cache = tuple(self.seeds()), {}
+        failures = []
+        try:
+            with _runtime_stage(self, 'stiffness.laplace.attempt',
+                    start_policy='rank declared starts', seed_count=len(seeds)):
+                return self._integrate_seed_pool(density, seeds, cache)
+        except StiffnessEvidenceUnavailable as initial_error:
+            initial = initial_error.diagnostics
+            if initial.get('failed_operation') != 'Cholesky factorization / Laplace log mass':
+                raise
+            failures.append(dict(source='initial ranked mode search', diagnostics=dict(initial)))
+            selected = np.asarray(initial.get('selected_start', ()), dtype=float)
+            seen = {selected.tobytes()}
+            for index, seed in enumerate(seeds):
+                seed = np.asarray(seed, dtype=float)
+                if seed.tobytes() in seen:
+                    continue
+                seen.add(seed.tobytes())
+                try:
+                    with _runtime_stage(self, 'stiffness.laplace.attempt',
+                            start_policy='declared restart after unavailable mass',
+                            original_seed_index=index, seed_count=1):
+                        result = self._integrate_seed_pool(density, (seed,), cache)
+                except StiffnessEvidenceUnavailable as error:
+                    failures.append(dict(source='declared deterministic restart',
+                        original_seed_index=index, diagnostics=dict(error.diagnostics)))
+                    continue
+                diagnostics = result.diagnostics
+                diagnostics.update(selected_start_index=index,
+                    evaluations=diagnostics['evaluations']+sum(
+                        attempt['diagnostics'].get('evaluations', 0) for attempt in failures),
+                    seconds=time.perf_counter()-started,
+                    mode_method=diagnostics['mode_method']+'; declared-start restart after an unavailable Laplace mass',
+                    mass_operation_recovery=dict(applied=True,
+                        trigger='actual Cholesky / Laplace mass failure, not optimizer status or stationarity audit',
+                        failed_attempts=failures, accepted_original_seed_index=index,
+                        same_density_and_score=True, same_hessian_width=True,
+                        same_laplace_formula=True, curvature_regularization_added=False,
+                        optimizer_status_is_acceptance_gate=False,
+                        stationarity_is_acceptance_gate=False,
+                        deterministic_starts_are_parameter_measure=False))
+                return result
+            initial['mass_operation_recovery'] = dict(applied=True,
+                trigger='actual Cholesky / Laplace mass failure',
+                failed_attempts=failures, all_declared_starts_exhausted=True,
+                same_density_and_score=True, curvature_regularization_added=False)
+            initial['seconds'] = time.perf_counter()-started
+            raise StiffnessEvidenceUnavailable(
+                str(initial_error)+'; no evaluable mass after every declared numerical start; '
+                'no curvature regularization or fabricated mass was supplied.', initial) from initial_error
+
+    def _integrate_seed_pool(self, density, seeds, cache):
         started = time.perf_counter()
         # The former two-width rule used its fine (half-configured) width
         # in the mass formula. Retain that numerical choice without running
@@ -238,7 +304,6 @@ class LocalLaplaceEvidence:
             unavailable_starts=[], unavailable_trials=[],
             availability_recovery=dict(applied=False),
             evaluations=0, density_projection_applied=False)
-        cache = {}
         def query(x):
             x = np.asarray(x, dtype=float)
             if x.ndim != 1 or not x.size or not np.all(np.isfinite(x)):
@@ -255,18 +320,19 @@ class LocalLaplaceEvidence:
             raise StiffnessEvidenceUnavailable(message, diagnostics)
         ranked = []
         seen = set()
-        for index, seed in enumerate(self.seeds()):
-            seed = np.asarray(seed, dtype=float)
-            if seed.ndim != 1 or not seed.size or not np.all(np.isfinite(seed)):
-                fail('Laplace evidence received an invalid deterministic mode start.')
-            if seed.tobytes() in seen:
-                continue
-            seen.add(seed.tobytes())
-            try:
-                value, _ = query(seed)
-                ranked.append((value, index, seed.copy()))
-            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                diagnostics['unavailable_starts'].append(dict(index=index, reason=str(error)))
+        with _runtime_stage(self, 'stiffness.laplace.seed_ranking', seed_count=len(seeds)):
+            for index, seed in enumerate(seeds):
+                seed = np.asarray(seed, dtype=float)
+                if seed.ndim != 1 or not seed.size or not np.all(np.isfinite(seed)):
+                    fail('Laplace evidence received an invalid deterministic mode start.')
+                if seed.tobytes() in seen:
+                    continue
+                seen.add(seed.tobytes())
+                try:
+                    value, _ = query(seed)
+                    ranked.append((value, index, seed.copy()))
+                except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                    diagnostics['unavailable_starts'].append(dict(index=index, reason=str(error)))
         diagnostics['ranked_start_count'] = len(ranked)
         if not ranked:
             fail('Laplace evidence has no evaluable deterministic mode start.')
@@ -283,22 +349,25 @@ class LocalLaplaceEvidence:
             return -value, -score
         def completed_iteration(x):
             accepted.append(np.array(x, copy=True))
-        try:
-            optimum = minimize(objective, seed, jac=True, method='BFGS',
-                callback=completed_iteration,
-                options=dict(maxiter=self.max_iterations, gtol=self.gradient_tolerance))
-            value, score = query(optimum.x)
-        except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-            if not diagnostics['unavailable_trials']:
-                fail('Laplace evidence mode evaluation is unavailable: '+str(error))
-            diagnostics['availability_recovery'].update(applied=True, trigger=str(error),
-                source_logK=accepted[-1].tolist())
-            diagnostics['mode_method'] += '; availability-aware BFGS continuation after an unavailable trial'
+        with _runtime_stage(self, 'stiffness.laplace.mode_optimization',
+                selected_start_index=index, dimension=seed.size,
+                maximum_iterations=self.max_iterations):
             try:
-                optimum = self._continue_available_bfgs(query, accepted, diagnostics)
+                optimum = minimize(objective, seed, jac=True, method='BFGS',
+                    callback=completed_iteration,
+                    options=dict(maxiter=self.max_iterations, gtol=self.gradient_tolerance))
                 value, score = query(optimum.x)
-            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as recovery_error:
-                fail('Laplace evidence mode evaluation is unavailable: '+str(recovery_error))
+            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                if not diagnostics['unavailable_trials']:
+                    fail('Laplace evidence mode evaluation is unavailable: '+str(error))
+                diagnostics['availability_recovery'].update(applied=True, trigger=str(error),
+                    source_logK=accepted[-1].tolist())
+                diagnostics['mode_method'] += '; availability-aware BFGS continuation after an unavailable trial'
+                try:
+                    optimum = self._continue_available_bfgs(query, accepted, diagnostics)
+                    value, score = query(optimum.x)
+                except (ValueError, np.linalg.LinAlgError, FloatingPointError) as recovery_error:
+                    fail('Laplace evidence mode evaluation is unavailable: '+str(recovery_error))
         score_norm = float(np.max(np.abs(score)))
         diagnostics.update(optimizer_success=bool(optimum.success), optimizer_message=str(optimum.message),
             optimizer_iterations=int(optimum.nit), mode=optimum.x.tolist(),
@@ -312,7 +381,9 @@ class LocalLaplaceEvidence:
         attempt = dict(steps=[actual_hessian_step], precision_checks_required=False)
         diagnostics['Hessian_attempts'].append(attempt)
         try:
-            with np.errstate(over='raise', invalid='raise', divide='raise'):
+            with _runtime_stage(self, 'stiffness.laplace.hessian',
+                    dimension=mode.size, step=actual_hessian_step,
+                    mode_score_inf=score_norm), np.errstate(over='raise', invalid='raise', divide='raise'):
                 matrix = np.column_stack([-(query(mode+actual_hessian_step*axis)[1]
                     -query(mode-actual_hessian_step*axis)[1])/(2.*actual_hessian_step)
                     for axis in np.eye(mode.size)])
@@ -350,12 +421,14 @@ class LocalLaplaceEvidence:
             diagnostics.update(Hessian_eigenvalues=None, Hessian_condition_number=None,
                 Hessian_spectral_diagnostic_reason=str(error))
         try:
-            cholesky = np.linalg.cholesky(symmetric)
-            with np.errstate(over='raise', invalid='raise', divide='raise'):
-                log_determinant = float(2.*np.log(np.diag(cholesky)).sum())
-                log_integral = float(value+.5*mode.size*math.log(2.*math.pi)-.5*log_determinant)
-            if not np.isfinite(log_integral):
-                raise FloatingPointError('The calculated Laplace log mass is not finite.')
+            with _runtime_stage(self, 'stiffness.laplace.mass_factorization',
+                    dimension=mode.size, evaluations=diagnostics['evaluations']):
+                cholesky = np.linalg.cholesky(symmetric)
+                with np.errstate(over='raise', invalid='raise', divide='raise'):
+                    log_determinant = float(2.*np.log(np.diag(cholesky)).sum())
+                    log_integral = float(value+.5*mode.size*math.log(2.*math.pi)-.5*log_determinant)
+                if not np.isfinite(log_integral):
+                    raise FloatingPointError('The calculated Laplace log mass is not finite.')
         except (np.linalg.LinAlgError, FloatingPointError) as error:
             diagnostics.update(failed_operation='Cholesky factorization / Laplace log mass',
                 positive_definiteness_verified=False)
@@ -377,6 +450,36 @@ class _Update:
     keep_log_mass: object
     reset: object
     record: dict
+    log_keep_probability: object = None
+    log_reset_probability: object = None
+
+
+def hazard_log_probabilities(rho, log_keep_probability=None, log_reset_probability=None):
+    """Optional authoritative logs preserve finite batch survival mass."""
+    if log_keep_probability is None and log_reset_probability is None:
+        return (-np.inf if rho == 1. else math.log1p(-rho),
+                -np.inf if rho == 0. else math.log(rho))
+    keep = -np.inf if log_keep_probability is None else float(log_keep_probability)
+    reset = -np.inf if log_reset_probability is None else float(log_reset_probability)
+    if (np.isnan(keep) or np.isnan(reset) or keep > 0. or reset > 0.
+            or not np.isfinite(logsumexp([keep, reset]))
+            or abs(float(logsumexp([keep, reset]))) > 1e-12):
+        raise ValueError('Keep/Reset log prior probabilities must be normalized finite-or-zero masses.')
+    return keep, reset
+
+
+def update_hazard_log_probabilities(update):
+    keep = getattr(update, 'log_keep_probability', None)
+    reset = getattr(update, 'log_reset_probability', None)
+    if keep is None and reset is None:
+        return hazard_log_probabilities(update.rho0)
+    # Frozen updates were validated once at advance(), not at every density
+    # query. Keeping the stored logs also avoids reconstructing 1-rho.
+    return (-np.inf if keep is None else keep, -np.inf if reset is None else reset)
+
+
+def _json_log_probability(value):
+    return None if value == -np.inf else float(value)
 
 
 class ContinuousStiffnessBFS:
@@ -408,6 +511,10 @@ class ContinuousStiffnessBFS:
         self.updates = ()
         self.observation_ids = frozenset()
         self._events = {}
+        # Optional arithmetic batching. It returns the same ordered factor
+        # values/scores; the retained recurrence and per-event hazards below
+        # are unchanged. No candidate or observation is pruned by this hook.
+        self.batch_factor_evaluator = None
 
     @staticmethod
     def _validate_rho(rho):
@@ -427,24 +534,36 @@ class ContinuousStiffnessBFS:
         x = np.asarray(x, dtype=float)
         value, score = self._evaluate(self.initial, x)
         reset_cache = {}
+        batch = getattr(self, 'batch_factor_evaluator', None)
+        evaluated = None if batch is None else tuple(batch(x, self.updates))
+        if evaluated is not None and len(evaluated) != len(self.updates):
+            raise ValueError('A stiffness factor batch must retain every ordered update.')
         # An iterative recurrence avoids a Python recursion limit after many
         # asynchronous observations; all events and factors remain retained.
-        for update in self.updates:
-            if update.rho0:
+        for index, update in enumerate(self.updates):
+            log_keep, log_reset = update_hazard_log_probabilities(update)
+            if log_reset != -np.inf:
                 reset = update.reset
                 key = (reset.source_id, id(reset.evaluate))
                 if key not in reset_cache:
                     reset_cache[key] = self._evaluate(reset.evaluate, x)
                 reset_value, reset_score = reset_cache[key]
-                if update.rho0 == 1.:
+                if log_keep == -np.inf:
                     value, score = reset_value-reset.log_mass+update.keep_log_mass, reset_score
                 else:
-                    terms = np.array([math.log1p(-update.rho0)+value,
-                        math.log(update.rho0)+reset_value-reset.log_mass+update.keep_log_mass])
+                    terms = np.array([log_keep+value,
+                        log_reset+reset_value-reset.log_mass+update.keep_log_mass])
                     value = float(logsumexp(terms))
                     responsibility = np.exp(terms-value)
                     score = responsibility[0]*score+responsibility[1]*reset_score
-            contribution, derivative = self._evaluate(update.factor, x)
+            if evaluated is None:
+                contribution, derivative = self._evaluate(update.factor, x)
+            else:
+                contribution, derivative = evaluated[index]
+                derivative = np.asarray(derivative, dtype=float)
+                if (derivative.shape != x.shape or not np.isfinite(contribution)
+                        or not np.all(np.isfinite(derivative))):
+                    raise ValueError('A batched stiffness factor must have finite value and score.')
             value += contribution
             score = score+derivative
         return float(value), score
@@ -462,7 +581,7 @@ class ContinuousStiffnessBFS:
 
     def advance(self, factor_id, observation_ids, factor, *, event_id=None,
                 rho0=None, reset=None, integrator=None, identity_factor=False,
-                metadata=None):
+                metadata=None, log_keep_probability=None, log_reset_probability=None):
         """Apply one fresh valid observation event, retaining both hypotheses.
 
         ``identity_factor`` is a declared exact L=1 optimization. It still
@@ -479,12 +598,18 @@ class ContinuousStiffnessBFS:
             raise ValueError('A retained stiffness factor needs a function and source identity.')
         rho = self.rho0 if rho0 is None else float(rho0)
         self._validate_rho(rho)
+        explicit_logs = log_keep_probability is not None or log_reset_probability is not None
+        log_keep, log_reset = hazard_log_probabilities(rho,
+            log_keep_probability, log_reset_probability)
+        has_reset, has_keep = log_reset != -np.inf, log_keep != -np.inf
         candidate_reset = self.reset if reset is None else reset
-        if rho and not isinstance(candidate_reset, ResetMeasure):
+        if has_reset and not isinstance(candidate_reset, ResetMeasure):
             raise ValueError('Positive-rho stiffness BFS requires an explicitly declared reset measure.')
         event_id = str(factor_id if event_id is None else event_id)
         signature = (str(factor_id), ids, rho,
-                     None if not rho else candidate_reset.source_id, bool(identity_factor))
+                     None if not has_reset else candidate_reset.source_id, bool(identity_factor))
+        if explicit_logs:
+            signature += (log_keep, log_reset)
         if event_id in self._events:
             previous_signature, previous_record = self._events[event_id]
             if previous_signature != signature:
@@ -494,29 +619,37 @@ class ContinuousStiffnessBFS:
         if repeated:
             raise ValueError('A stiffness observation cannot be counted again: '+repr(sorted(repeated)))
         rule = self.integrator if integrator is None else integrator
+        if isinstance(rule, LocalLaplaceEvidence):
+            rule.runtime_monitor = getattr(self, 'runtime_monitor', None)
+        timing_context = dict(event_id=event_id, factor_id=str(factor_id),
+            observation_count=len(ids), retained_event_count=len(self.updates))
         keep_mass = self.log_mass
         keep_integral = reset_integral = recovered_scale = None
         shared_evidence = False
         log_bf = posterior_reset = mixed_evidence = None
-        if not rho:
+        posterior_keep_log = posterior_reset_log = None
+        if not has_reset:
             # No mass/evidence approximation can alter the rho=0 product.
             new_mass = keep_mass if identity_factor else None
+            posterior_keep_log, posterior_reset_log = 0., -np.inf
         else:
             if keep_mass is None:
-                recovered_scale = self._integral(rule, self.evaluate)
+                with _runtime_stage(self, 'stiffness.evidence.keep_scale', **timing_context):
+                    recovered_scale = self._integral(rule, self.evaluate)
                 keep_mass = recovered_scale.log_value
             if identity_factor:
                 keep_integral = LogIntegral(0., 'declared exact identity factor', exact=True)
                 reset_integral = keep_integral
             else:
-                if rho < 1.:
+                if has_keep:
                     def keep_query(x):
                         x = np.asarray(x, dtype=float)
                         value, score = self.evaluate(x)
                         contribution, derivative = self._evaluate(factor, x)
                         return value-keep_mass+contribution, score+derivative
-                    keep_integral = self._integral(rule, keep_query)
-                shared_evidence = (rho < 1. and not self.updates
+                    with _runtime_stage(self, 'stiffness.evidence.keep', **timing_context):
+                        keep_integral = self._integral(rule, keep_query)
+                shared_evidence = (has_keep and not self.updates
                     and candidate_reset.evaluate is self.initial
                     and candidate_reset.log_mass == keep_mass)
                 if shared_evidence:
@@ -529,29 +662,44 @@ class ContinuousStiffnessBFS:
                         value, score = self._evaluate(candidate_reset.evaluate, x)
                         contribution, derivative = self._evaluate(factor, x)
                         return value-candidate_reset.log_mass+contribution, score+derivative
-                    reset_integral = self._integral(rule, reset_query)
-            if rho == 1.:
+                    with _runtime_stage(self, 'stiffness.evidence.reset', **timing_context):
+                        reset_integral = self._integral(rule, reset_query)
+            if not has_keep:
                 mixed_evidence = reset_integral.log_value
                 posterior_reset = 1.
+                posterior_keep_log, posterior_reset_log = -np.inf, 0.
             else:
-                terms = [math.log1p(-rho)+keep_integral.log_value,
-                         math.log(rho)+reset_integral.log_value]
+                terms = [log_keep+keep_integral.log_value,
+                         log_reset+reset_integral.log_value]
                 mixed_evidence = float(logsumexp(terms))
                 posterior_reset = float(math.exp(terms[1]-mixed_evidence))
+                posterior_keep_log, posterior_reset_log = terms[0]-mixed_evidence, terms[1]-mixed_evidence
                 log_bf = float(reset_integral.log_value-keep_integral.log_value)
             if identity_factor:
                 mixed_evidence, posterior_reset = 0., rho
+                posterior_keep_log, posterior_reset_log = log_keep, log_reset
             new_mass = keep_mass+mixed_evidence
-        record = dict(status='updated_continuous_keep_reset_density' if rho else
+        log_odds = None if not has_reset or not has_keep else log_reset-log_keep
+        ordinary_odds = (None if not has_keep or (log_odds is not None and
+                         log_odds > math.log(np.finfo(float).max))
+                         else 0. if not has_reset else
+                         math.exp(log_odds) if explicit_logs else rho/(1.-rho))
+        record = dict(status='updated_continuous_keep_reset_density' if has_reset else
                       'updated_continuous_factor_product', update_applied=True,
             event_id=event_id, factor_id=str(factor_id), observation_ids=list(ids),
-            hazard_applied=bool(rho), rho0=rho,
-            prior_reset_odds=(None if rho == 1. else rho/(1.-rho)),
+            hazard_applied=has_reset, rho0=rho,
+            prior_reset_odds=ordinary_odds, prior_log_reset_odds=log_odds,
+            log_keep_prior_probability=_json_log_probability(log_keep),
+            log_reset_prior_probability=_json_log_probability(log_reset),
+            authoritative_log_probabilities=explicit_logs,
+            zero_mass_log_representation='null means negative infinity',
+            posterior_keep_log_probability=_json_log_probability(posterior_keep_log),
+            posterior_reset_log_probability=_json_log_probability(posterior_reset_log),
             keep_log_mass=keep_mass,
-            reset_source_id=(None if not rho else candidate_reset.source_id),
-            reset_description=(None if not rho else candidate_reset.description),
-            reset_log_mass=(None if not rho else candidate_reset.log_mass),
-            hypothesis_scale=(None if not rho else dict(
+            reset_source_id=(None if not has_reset else candidate_reset.source_id),
+            reset_description=(None if not has_reset else candidate_reset.description),
+            reset_log_mass=(None if not has_reset else candidate_reset.log_mass),
+            hypothesis_scale=(None if not has_reset else dict(
                 convention='retain keep candidate mass and scale reset to that same mass',
                 keep_log_total_mass=keep_mass, reset_log_total_mass=keep_mass,
                 reset_input_log_total_mass=candidate_reset.log_mass,
@@ -568,7 +716,8 @@ class ContinuousStiffnessBFS:
             density_projection_applied=False, factor_pruning_applied=False,
             integration_semantics='only branch mass/evidence; retained law is the full continuous expression')
         update = _Update(event_id, str(factor_id), ids, factor, rho,
-                         keep_mass, candidate_reset if rho else None, record)
+                         keep_mass, candidate_reset if has_reset else None, record,
+                         log_keep if explicit_logs else None, log_reset if explicit_logs else None)
         self.updates += (update,)
         self.log_mass = new_mass
         self.observation_ids = self.observation_ids.union(ids)
@@ -585,6 +734,8 @@ class ContinuousStiffnessBFS:
                 update.rho0, update.keep_log_mass,
                 None if update.reset is None else update.reset.source_id,
                 None if update.reset is None else update.reset.log_mass)).encode())
+            if getattr(update, 'log_keep_probability', None) is not None:
+                identity.update(repr((update.log_keep_probability, update.log_reset_probability)).encode())
         return identity.hexdigest()
 
     def record(self):

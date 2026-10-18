@@ -15,13 +15,14 @@ from scipy.spatial.transform import Rotation
 
 from probtf.geometry import quat_to_rotmat
 from probtf.spherical_law.first_order import (
-    JointTransformState, _right_jacobian, reexpress_state,
+    JointTransformState, _right_jacobian,
 )
 from probtf.spherical_law.fusion import Gaussian
 from probtf.spherical_law.support import covariance_support, require_in_support
 
-from .body_projection import _partition, _require_common_body
+from .body_projection import _partition, _require_common_body, _contraction_diagnostic
 from .model import FrozenBodyBranch, WeightedState, component_log_weight
+from .immutable_body_cache import reexpress_state
 
 
 def _same_time_geometry(left, right):
@@ -246,7 +247,7 @@ def retain_transition_goals(predicted_goals, raw_result, projection):
     prior_body = reference.covariance[np.ix_(body, body)]
     keep_body = covariance[np.ix_(body, body)]
     support = covariance_support(prior_body, 'fixed-goal retained hypothesis body')
-    covariance_support(prior_body-keep_body, 'fixed-goal retained hypothesis contraction')
+    contraction=_contraction_diagnostic(prior_body,keep_body)
     for column in keep_body.T:
         require_in_support(column, support, 'fixed-goal retained posterior body support')
     require_in_support(mean[body], support, 'fixed-goal retained posterior body mean')
@@ -299,6 +300,7 @@ def retain_transition_goals(predicted_goals, raw_result, projection):
         keep_posterior_log_mass=keep_log_mass, keep_posterior_mass=keep_mass,
         keep_conditional_body_mean=mean[body].tolist(),
         keep_conditional_body_covariance=keep_body.tolist(),
+        fixed_goal_covariance_contraction=contraction,
         source_internal_state_id=reference.state_id,
         current_internal_state_id=projection.state.state_id,
         goal_components=records, goal_marginals_reconditioned=False,

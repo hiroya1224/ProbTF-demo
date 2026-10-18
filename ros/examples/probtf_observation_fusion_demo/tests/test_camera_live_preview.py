@@ -90,7 +90,7 @@ def test_worker_publishes_after_detection_before_ipc_or_archival_and_closes_owne
     from probtf_observation_fusion_demo import camera_live_preview
     events = []
     class Camera:
-        def __init__(self, *args):
+        def __init__(self, *args, **kwargs):
             self.diagnostics = {}
         def render(self, *args):
             events.append('render')
@@ -121,7 +121,7 @@ def test_worker_publishes_after_detection_before_ipc_or_archival_and_closes_owne
         events.append('png_write')
         assert 'direct_publish' in events
         return original_write(*args, **kwargs)
-    monkeypatch.setattr(workers, 'BoardCamera', Camera)
+    monkeypatch.setattr(workers, 'make_camera', Camera)
     monkeypatch.setattr(workers, '_camera_preview', preview)
     monkeypatch.setattr(workers, '_write_camera_image', write)
     monkeypatch.setattr(camera_live_preview, 'make_live_preview_publisher', factory)
@@ -131,7 +131,7 @@ def test_worker_publishes_after_detection_before_ipc_or_archival_and_closes_owne
         camera_pose=None, marker_pose=None, camera_history=()))
     requests.put(None)
     workers.acquisition_worker(requests, replies,
-        dict(board=dict(enabled=True), camera={}, texture='fixture', seed=21,
+        dict(board=dict(enabled=True), camera={}, texture='fixture', seed=21, marker_size=.072,
              marker_ids=(21,), direct_camera_preview=True),
         str(tmp_path/'observations.sqlite3'), str(tmp_path))
     messages = [replies.get_nowait() for _ in range(replies.qsize())]

@@ -10,6 +10,7 @@ only to initialize the already-sagged arm, with zero initial velocity.
 
 from dataclasses import dataclass
 import hashlib
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -22,7 +23,7 @@ from probtf_switch_press_demo.scene import apply, inverse, transform, write_robo
 from probtf_switch_press_demo.vision import PlanarCamera
 from symaware_grasp.box_geometry import box_box_gap
 
-from .board_camera import BoardCamera
+from .board_camera import BoardCamera, make_camera
 from .dynamic_physics import NativeDynamics
 
 
@@ -112,12 +113,21 @@ class MovingSwitchScene:
     transparent robot is FK of the command sent at the same instant.
     """
 
-    def __init__(self, output_dir, config_path=None, *, imu_target_link=None):
+    def __init__(self, output_dir, config_path=None, *, imu_target_link=None,
+                 marker_occlusion_enabled=None):
         packages = rospkg.RosPack()
         package = Path(packages.get_path("probtf_observation_fusion_demo"))
         config_path = Path(config_path or package / "config/switch_press_scene.yaml")
         self.config_sha256 = hashlib.sha256(config_path.read_bytes()).hexdigest()
         self.config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        self.physical_scene_overrides = {}
+        if marker_occlusion_enabled is not None:
+            if not isinstance(marker_occlusion_enabled, (bool, np.bool_)):
+                raise ValueError('marker_occlusion_enabled must be a boolean or None.')
+            self.config['camera'].setdefault('marker_occluder', {})['enabled'] = bool(marker_occlusion_enabled)
+            self.physical_scene_overrides['marker_occlusion_enabled'] = bool(marker_occlusion_enabled)
+        self.resolved_config_sha256 = hashlib.sha256(json.dumps(
+            self.config, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         self.collision_checking = self.config['plant'].get('collision_checking', True)
         if not isinstance(self.collision_checking, bool):
             raise ValueError('Physical collision_checking must be an explicit Boolean.')
@@ -134,7 +144,9 @@ class MovingSwitchScene:
         self.physics_source = dict(backend_path=str(self.dynamics.backend_path),
             backend_sha256=hashlib.sha256(Path(self.dynamics.backend_path).read_bytes()).hexdigest(),
             urdf_sha256=hashlib.sha256(self.urdf.read_bytes()).hexdigest(),
-            scene_config_sha256=self.config_sha256)
+            scene_config_sha256=self.config_sha256,
+            resolved_scene_config_sha256=self.resolved_config_sha256,
+            physical_scene_overrides=dict(self.physical_scene_overrides))
         self.initial_command = _readonly(self.config["initial_command"])
         # This scene's root is fixed to the world. Resolve its invariant
         # transform and all frame names once; internal integration points
@@ -181,9 +193,8 @@ class MovingSwitchScene:
             self.monitor.collided = None
             self.monitor.minimum_clearance = None
         board = self.config.get('marker_board', {})
-        self.camera = (BoardCamera(self.texture_path, board, self.config['camera'], self.config['seed'])
-            if board.get('enabled', False) else PlanarCamera(self.texture_path,
-                self.config['marker']['size'], self.config['camera'], self.config['seed']))
+        self.camera = make_camera(self.texture_path, board, self.config['camera'],
+            self.config['seed'], marker_size=self.config['marker']['size'])
 
     def _link_poses(self, joints):
         robot = self.plant.robot

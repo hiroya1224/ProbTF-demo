@@ -24,7 +24,7 @@ from visualization_msgs.msg import MarkerArray
 from probtf_switch_press_demo.body import EquilibriumBody
 from probtf_switch_press_demo.vision import PlanarCamera
 from .async_workers import _append, _freeze_arrays
-from .board_camera import BoardCamera
+from .board_camera import BoardCamera, make_camera
 from .display import snapshot_record
 from .motion_display import MotionDisplay
 from .node import image_message
@@ -62,9 +62,8 @@ def _publication_scene(specification):
     """Own a reference-only geometry/FK workspace, never a second estimate."""
     config = specification['config']
     board = config.get('marker_board', {})
-    camera = (BoardCamera(specification['texture_path'], board, config['camera'], config['seed'])
-        if board.get('enabled', False) else PlanarCamera(specification['texture_path'],
-            config['marker']['size'], config['camera'], config['seed']))
+    camera = make_camera(specification['texture_path'], board, config['camera'],
+        config['seed'], marker_size=config['marker']['size'])
     return SimpleNamespace(config=config, camera=camera,
         robot_description=specification['robot_description'],
         texture_path=Path(specification['texture_path']),

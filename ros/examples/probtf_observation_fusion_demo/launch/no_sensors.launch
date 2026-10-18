@@ -3,6 +3,7 @@
   <arg name="moving" default="true" />
   <arg name="execution_mode" default="simple" />
   <arg name="body_surprise" default="" />
+  <arg name="marker_occlusion" default="" />
   <arg name="autostart" default="true" />
   <arg name="max_updates" default="0" />
   <arg name="stage_seconds" default="3.0" />
@@ -13,6 +14,7 @@
     <arg name="moving" value="$(arg moving)" />
     <arg name="execution_mode" value="$(arg execution_mode)" />
     <arg name="body_surprise" value="$(arg body_surprise)" />
+    <arg name="marker_occlusion" value="$(arg marker_occlusion)" />
     <arg name="autostart" value="$(arg autostart)" />
     <arg name="max_updates" value="$(arg max_updates)" />
     <arg name="stage_seconds" value="$(arg stage_seconds)" />

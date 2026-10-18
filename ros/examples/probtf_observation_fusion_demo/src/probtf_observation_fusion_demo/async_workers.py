@@ -19,7 +19,7 @@ from .async_artifacts import (capture_candidate_identity, identity_hash,
     action_packet_reference, restore_action_packet, freeze_work_item, thaw_work_item,
     construct_control_artifacts, archive_stiffness_job, load_stiffness_job)
 from .async_stiffness import PhysicalActionEngine, capture_stiffness_packet, capture_direct_stiffness_action, reanchor_retained_stiffness
-from .board_camera import BoardCamera
+from .board_camera import BoardCamera, make_camera
 from .display import make_markers, save_snapshot, snapshot_record
 from .marker_search import marker_observed
 from .motion_display import MotionDisplay
@@ -1083,10 +1083,8 @@ def acquisition_worker(requests, replies, specification, database, output):
         live_preview = make_live_preview_publisher(dict(specification,
             camera_live_preview_output=str(output)))
         board = specification['board']
-        camera = (BoardCamera(specification['texture'], board,
-                    specification['camera'], specification['seed'])
-            if board.get('enabled', False) else PlanarCamera(specification['texture'],
-                specification['marker_size'], specification['camera'], specification['seed']))
+        camera = make_camera(specification['texture'], board, specification['camera'],
+            specification['seed'], marker_size=specification['marker_size'])
         dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
         parameters = (cv2.aruco.DetectorParameters() if hasattr(cv2.aruco,
             'DetectorParameters') else cv2.aruco.DetectorParameters_create())

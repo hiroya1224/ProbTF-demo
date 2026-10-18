@@ -1,0 +1,63 @@
+{
+  "scope": "Previous unobstructed trajectory replay for physical scene design only; not the new occlusion closed-loop trial.",
+  "source_run": "/tmp/probtf_squared_mean_reaching_rviz_20261019/imu_marker",
+  "no_truth_given_to_inference": true,
+  "image_only_pose_checks": [
+    {
+      "relative_physical_time_s": 0.0,
+      "original_stamp": 1792080000.0,
+      "image_sha256": "c3900a4c59e8f392d3b9d1658ebfec5b9c644e472a0c51e3e8ae2cd6a54c4f49",
+      "detected": true,
+      "detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "usable_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "rejected_marker_observations": [],
+      "body_prior_applied": false
+    },
+    {
+      "relative_physical_time_s": 20.000109632965177,
+      "original_stamp": 1792080020.0001097,
+      "image_sha256": "03fa738017acd4bbee183a860a90e136a76f64e2e0b2c84aaa3ae9f706568f34",
+      "detected": true,
+      "detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "usable_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "rejected_marker_observations": [],
+      "body_prior_applied": false
+    },
+    {
+      "relative_physical_time_s": 39.99712660815567,
+      "original_stamp": 1792080039.9971266,
+      "image_sha256": "23194ed7844d59f19ef95e01c7155e3d3a7f3f6b488d9cccf668b12142756e4e",
+      "detected": false,
+      "detected_marker_ids": [],
+      "usable_marker_ids": [],
+      "rejected_marker_observations": [],
+      "body_prior_applied": false
+    },
+    {
+      "relative_physical_time_s": 156.32665919372812,
+      "original_stamp": 1792080156.3266592,
+      "image_sha256": "614fee643fafd3570cb0cde9302d831433c7b9d064cd99991a4a158fb837b385",
+      "detected": false,
+      "detected_marker_ids": [],
+      "usable_marker_ids": [],
+      "rejected_marker_observations": [],
+      "body_prior_applied": false
+    }
+  ]
+}

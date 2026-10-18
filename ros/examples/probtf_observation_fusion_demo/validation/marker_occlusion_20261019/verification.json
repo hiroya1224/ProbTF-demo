@@ -1,0 +1,86 @@
+{
+  "verified_at_utc": "2026-10-18T20:23:55.234641+00:00",
+  "base_commit": "77d28a65e3559e56964a253968b1d6c6683db707",
+  "scenario": "Initial genuine marker observation, then geometrical occlusion and continued IMU/joint-environment reaching",
+  "launch": "roslaunch probtf_observation_fusion_demo imu_marker.launch marker_occlusion:=true",
+  "optional_default_enabled": false,
+  "reaching_objective": "||E_mu_c[p_hand(B)]-E_mu_c[p_goal(E)]||^2",
+  "body_BFS_rho": 0.25,
+  "K_BFS_enabled": false,
+  "K_evidence_enabled": false,
+  "build": {
+    "command": "catkin build probtf_observation_fusion_demo --no-deps --jobs 2 --make-args -j2",
+    "succeeded": true,
+    "seconds": 2.6,
+    "warning": "existing FindBoost dependency-version warnings"
+  },
+  "tests": {
+    "passed": 1502,
+    "failed": 0,
+    "seconds": 267.79,
+    "existing_deprecation_warnings": 1,
+    "command": "source /home/leus/catkin_ws/devel/setup.bash && env PYTHONPATH=/tmp/probtf_switch_press_pytest:$PYTHONPATH OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/probtf_observation_fusion_demo/tests ros/examples/probtf_observation_fusion_demo/validation/tools",
+    "coverage": [
+      "off camera class/image byte identity",
+      "physical near-plane/foreground/background depth ordering",
+      "native double pixel boundaries and 7-exposure+blur+noise exact image equality",
+      "real acquisition original-pixel/archive/preview FIFO and direct ROS clock identity",
+      "genuine initial marker fusion, natural loss, retained joint environment and IMU/finite-step continuation",
+      "actual RViz serialized occluder center/rotation/dimensions/gray on/off",
+      "original-clock occlusion audit and distinction between physical duration and complete drain"
+    ]
+  },
+  "hash_checks": {
+    "production": {
+      "file_count": 96,
+      "changed_paths": []
+    },
+    "compiled_libraries": {
+      "file_count": 6,
+      "changed_paths": []
+    },
+    "protected_core_and_rviz": {
+      "file_count": 214,
+      "changed_paths": []
+    }
+  },
+  "protected_rviz_file_count": 43,
+  "native_image_comparison": {
+    "pairs": 24,
+    "all_pixels_and_diagnostics_equal": true,
+    "library_sha256": "aaf6ae83ea6eb4bd2451ef8a89756460c8ab83578fe64dd728fadbe9289feb49",
+    "compile_floating_point_contraction": false
+  },
+  "actual_trial": {
+    "all_raw_drained": true,
+    "physical_seconds": 180.0,
+    "raw_events": 14661,
+    "terminal_loss_source_s": 34.83458852767944,
+    "original_clock_reacquisitions": 1,
+    "post_loss_fused_imu": 173,
+    "post_loss_imu_completed_during_motion": 162,
+    "post_loss_nonzero_plans": 203,
+    "minimum_distance_mm": 2.7209127131010087,
+    "final_distance_mm": 11.818768907713958,
+    "terminal_reached": false
+  },
+  "artifacts_sha256": {
+    "before_native/occlusion_180s.json": "ca532dccea7dcbdf06d05499e32cb20a1b166557aa39020fc0b9c62c5c809a5f",
+    "before_native/runtime_180s.json": "2e3234e3595d910741bf9a5a49f9929219ddbea401d439bf09316ea90c33bda0",
+    "before_native/source_manifest.json": "f6c569926970578a23b5b5f78a04412dc57acfe926f55315dddc512b6d37c4a3",
+    "mask_equivalence_and_perf.json": "cf4233ce56c2793a7c9aa4fcce178a462fcb63d62c4ed1950fc89d1edf67ac17",
+    "occlusion_180s.json": "3a0fe6def1f92f4b53e0f7231452e693e86ed479cf338e8ea916f3e696022eef",
+    "previous_path_geometry.json": "40d44e8eb122ceca63ef19af5f05279fec19492688a7c19ae83549aa1d9615b4",
+    "previous_path_image_only_pose_check.json": "130a6e2c854de489fb5057be9d19fa85a4fa9a02007767e5de5df0f937c598fa",
+    "runtime_180s.json": "691ea3646192a49d3abe9e33799a0406db23e3afe4b02880e8e9ae9230b0552b",
+    "source_manifest.json": "626cda572b4f273921d882d3bea53085ca04f161a3f1c41092ee34bc2764c8a4"
+  },
+  "limitations": [
+    "Transient reaching occurred; terminal6mm hold was not achieved.",
+    "Body observation acquisition-to-completion lag remains; camera timing is not full-estimator real-time timing.",
+    "Raw drain is not fusion of every acquisition; existing uniform-time thinning remains.",
+    "Rod/sheet posthoc clearance is not complete collision checking, and collision dynamics remain disabled.",
+    "Same-request pixel equivalence and single asynchronous closed-loop outcomes are different validation scopes."
+  ],
+  "raw_outside_git": "/tmp/probtf_marker_occlusion_native_rviz_20261019"
+}

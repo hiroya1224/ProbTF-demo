@@ -1,0 +1,312 @@
+{
+  "scope": "Actual new physical occlusion run; all acquisition identities retained. Physical distances are posthoc only.",
+  "run": "/tmp/probtf_marker_occlusion_rviz_20261019/imu_marker",
+  "original_start_stamp": 1792080000.0,
+  "completion": {
+    "physical_elapsed_s": 180.0,
+    "physical_finished": true,
+    "estimation_drained": true,
+    "failure": null
+  },
+  "physical_occluder": {
+    "enabled": true,
+    "center": [
+      0.0,
+      -0.155,
+      0.28
+    ],
+    "size": [
+      0.36,
+      0.14
+    ],
+    "thickness": 0.004,
+    "intensity": 96
+  },
+  "camera": {
+    "preview_count": 2122,
+    "physical_occlusion_record_count": 2122,
+    "original_time_range_s": [
+      0.0,
+      180.0
+    ],
+    "original_capture_gap_max_s": 0.30357813835144043,
+    "visible_count": 394,
+    "missing_count": 1728,
+    "initial_marker_ids": [
+      17,
+      18,
+      19
+    ],
+    "final_marker_ids": [],
+    "occluded_board_fraction": {
+      "first": 0.5605208499760345,
+      "final": 1.0,
+      "minimum": 0.4785633210150269,
+      "maximum": 1.0,
+      "fully_covered_frames": 1629
+    },
+    "pipeline_wall_seconds": {
+      "render_seconds": {
+        "count": 2122,
+        "median": 0.1197346686385572,
+        "p95": 0.13340380715671926,
+        "maximum": 0.19007626781240106
+      },
+      "preview_detection_seconds": {
+        "count": 2122,
+        "median": 0.0306273081805557,
+        "p95": 0.031838244665414094,
+        "maximum": 0.0446799211204052
+      },
+      "foreground_queue_seconds": {
+        "count": 2122,
+        "median": 46.67343306541443,
+        "p95": 115.44408700466155,
+        "maximum": 122.18715167045593
+      },
+      "total_work_seconds": {
+        "count": 2122,
+        "median": 0.15136315347626805,
+        "p95": 0.16586038200184702,
+        "maximum": 0.221594481728971
+      }
+    },
+    "direct_ROS_publication_wall_seconds": {
+      "input_to_publish_wall_age_s": {
+        "count": 2122,
+        "median": 46.84653329849243,
+        "p95": 115.59284955263136,
+        "maximum": 122.34071207046509
+      },
+      "ready_to_publish_wall_age_s": {
+        "count": 2122,
+        "median": 0.0003864765167236328,
+        "p95": 0.0004887580871582031,
+        "maximum": 0.0017046928405761719
+      }
+    },
+    "periods": [
+      {
+        "visible": true,
+        "first_stamp": 1792080000.0,
+        "last_stamp": 1792080032.750718,
+        "samples": 394
+      },
+      {
+        "visible": false,
+        "first_stamp": 1792080032.834001,
+        "last_stamp": 1792080180.0,
+        "samples": 1728
+      }
+    ],
+    "reacquisitions": 0,
+    "terminal_lost_interval": {
+      "visible": false,
+      "first_stamp": 1792080032.834001,
+      "last_stamp": 1792080180.0,
+      "samples": 1728
+    },
+    "initial_seen": true
+  },
+  "fused_sensor_counts": {
+    "imu": 73,
+    "image": 12
+  },
+  "original_image_fusion_events": [
+    {
+      "event_id": "image:00000000",
+      "stamp": 1792080000.0,
+      "relative_time_s": 0.0,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000011",
+      "stamp": 1792080000.090687,
+      "relative_time_s": 0.09068703651428223,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000131",
+      "stamp": 1792080001.090664,
+      "relative_time_s": 1.0906639099121094,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000141",
+      "stamp": 1792080001.1740527,
+      "relative_time_s": 1.1740527153015137,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000491",
+      "stamp": 1792080004.0906718,
+      "relative_time_s": 4.09067177772522,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000501",
+      "stamp": 1792080004.1739094,
+      "relative_time_s": 4.173909425735474,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00001098",
+      "stamp": 1792080009.167198,
+      "relative_time_s": 9.167197942733765,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00001108",
+      "stamp": 1792080009.2504978,
+      "relative_time_s": 9.250497817993164,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00001895",
+      "stamp": 1792080015.8336117,
+      "relative_time_s": 15.833611726760864,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00001905",
+      "stamp": 1792080015.9169023,
+      "relative_time_s": 15.916902303695679,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00002874",
+      "stamp": 1792080024.0847917,
+      "relative_time_s": 24.084791660308838,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00002884",
+      "stamp": 1792080024.1679983,
+      "relative_time_s": 24.16799831390381,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    }
+  ],
+  "post_terminal_camera_loss": {
+    "available": true,
+    "source_stamp": 1792080032.834001,
+    "counts": {
+      "processed_imu": 4210,
+      "processed_image": 1728,
+      "processed_joint": 5576,
+      "fused_imu": 26,
+      "fused_with_goal_latched": 26,
+      "plans_adopted": 108,
+      "plans_with_retained_goal": 108,
+      "plans_sending_nonzero_command_increment": 108,
+      "plans_using_observation_acquired_after_loss": 93
+    },
+    "actual_sent_command_path_length_rad": 1.1003124999999996,
+    "actual_sent_command_endpoint_displacement_rad": 0.3662918450359929,
+    "fusion_completion_wall_counts": {
+      "imu_before_final_physical_tick": 10,
+      "imu_during_drain_after_final_physical_tick": 16
+    },
+    "fused_observation_acquisition_to_completion_wall_s": {
+      "count": 26,
+      "median": 176.48929500579834,
+      "p95": 234.27831584215164,
+      "maximum": 246.5610339641571
+    },
+    "final_physical_tick_request_wall_boundary": 1792354200.7742102,
+    "wall_boundary_definition": "Earliest acquisition-request received_wall_stamp attached to the saved final physical tick; an explicit logged boundary proxy, not a rewritten sensor time.",
+    "latest_effective_observation_source_stamp_used_during_physical_motion": 1792080055.7678616
+  },
+  "original_raw_imu_target_counts": {
+    "link_3": 5193
+  },
+  "checks": {
+    "camera_preview_duplicate_frame_index": 0,
+    "physical_camera_duplicate_event_ID": 0,
+    "camera_preview_original_stamp_regressions": 0,
+    "camera_preview_original_frame_regressions": 0,
+    "physical_preview_raw_event_missing": 0,
+    "physical_preview_original_stamp_mismatch": 0,
+    "physical_preview_original_command_mismatch": 0,
+    "physical_preview_original_image_hash_mismatch": 0,
+    "physical_preview_original_frame_mismatch": 0,
+    "physical_preview_camera_preview_missing": 0,
+    "physical_preview_camera_preview_stamp_mismatch": 0,
+    "physical_preview_camera_preview_visible_mismatch": 0,
+    "physical_preview_camera_preview_marker_ids_mismatch": 0,
+    "distance_trigger_used": 0,
+    "sensor_events_disabled": 0,
+    "physical_preview_truth_boundary_scope_mismatch": 0,
+    "simple_inference_physical_truth_received": 0,
+    "simple_inference_monte_carlo_used": 0,
+    "fused_image_without_physical_preview": 0,
+    "fused_image_with_zero_original_decoded_markers": 0,
+    "body_state_simple_state_ID_mismatch": 0,
+    "plan_body_goal_source_ID_mismatch": 0,
+    "point_hand_goal_joint_state_ID_mismatch": 0
+  },
+  "physical_posthoc": {
+    "minimum_distance_mm": 29.175437754501374,
+    "minimum_at_s": 66.25637381803244,
+    "final_distance_mm": 31.0482790733943,
+    "any_reached": false,
+    "terminal_reached": false,
+    "collision_checking_enabled": false,
+    "reach_condition": "distance_only_collision_unchecked"
+  },
+  "limitations": [
+    "The last lost interval is defined from actual preview source times, not assumed from a distance trigger.",
+    "Raw image decoding and selected observation fusion have different counts; zero original decoded markers are never counted as a marker observation.",
+    "Continuation counts establish execution and IMU fusion, not successful arrival or accurate estimation.",
+    "Final drained fusion counts include updates completed after physical motion ended; the separately recorded wall-boundary counts identify this distinction.",
+    "ROSpublish and preview source gaps do not measure RViz display completion."
+  ],
+  "trial_label": "Before native physical occluder optimization: historical slow-path diagnosis, not the forthcoming optimized trial."
+}

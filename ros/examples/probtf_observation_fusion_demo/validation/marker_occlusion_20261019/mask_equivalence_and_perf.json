@@ -1,0 +1,50 @@
+{
+  "scope": "same three physical rendering requests; actual catkin-built production library, no estimation or source changes",
+  "source_requests": "/tmp/probtf_squared_mean_reaching_rviz_20261019/imu_marker/acquisition_requests.jsonl",
+  "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_physical_camera.so",
+  "library_sha256": "aaf6ae83ea6eb4bd2451ef8a89756460c8ab83578fe64dd728fadbe9289feb49",
+  "settings": {
+    "width": 960,
+    "height": 720,
+    "exposure_samples": 7,
+    "threads": 1
+  },
+  "measurements": [
+    {
+      "requested_t": 0.0,
+      "physical_t": 0.0,
+      "repeats": 8,
+      "all_image_bytes_equal": true,
+      "all_diagnostics_equal": true,
+      "old_numpy_median_s": 0.022806657943874598,
+      "native_median_s": 0.01983644417487085,
+      "old_numpy_cpu_s": 0.02279591000000003,
+      "native_cpu_s": 0.019830389999999976,
+      "native_max_s": 0.020481199026107788
+    },
+    {
+      "requested_t": 30.0,
+      "physical_t": 30.00014602812007,
+      "repeats": 8,
+      "all_image_bytes_equal": true,
+      "all_diagnostics_equal": true,
+      "old_numpy_median_s": 0.13905381434597075,
+      "native_median_s": 0.05323703167960048,
+      "old_numpy_cpu_s": 0.13868182249999994,
+      "native_cpu_s": 0.053125140999999876,
+      "native_max_s": 0.05452883895486593
+    },
+    {
+      "requested_t": 60.0,
+      "physical_t": 60.001061188057065,
+      "repeats": 8,
+      "all_image_bytes_equal": true,
+      "all_diagnostics_equal": true,
+      "old_numpy_median_s": 0.1533346176147461,
+      "native_median_s": 0.06209425698034465,
+      "old_numpy_cpu_s": 0.15312143000000034,
+      "native_cpu_s": 0.06206294500000009,
+      "native_max_s": 0.09101046808063984
+    }
+  ]
+}

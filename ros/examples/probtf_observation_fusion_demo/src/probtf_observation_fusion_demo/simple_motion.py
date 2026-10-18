@@ -149,13 +149,14 @@ class SimpleMotionSession:
 
     def __init__(self, observations_path, output, *, imu_target_link=None, duration=None,
                  clock=time.monotonic, context=None, direct_camera_preview=False,
-                 body_surprise_enabled=None, **_unused):
+                 body_surprise_enabled=None, marker_occlusion_enabled=None, **_unused):
         from .simple_inference import SimpleInference
         self.clock, self.output = clock, Path(output)
         self.output.mkdir(parents=True, exist_ok=False)
         self.package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
         _, self.templates = load_inputs(self.package/'config/common.yaml', observations_path)
-        self.scene = MovingSwitchScene(self.output, imu_target_link=imu_target_link)
+        self.scene = MovingSwitchScene(self.output, imu_target_link=imu_target_link,
+            marker_occlusion_enabled=marker_occlusion_enabled)
         if duration is not None:
             self.scene.duration = float(duration)
         self.inference_description = SimpleInference(self.scene.robot_description, self.templates,
@@ -282,6 +283,16 @@ class SimpleMotionSession:
             kind = message['kind']
             if kind == 'preview_ready':
                 self._accept_camera_preview(message)
+                occluder = message.get('camera_diagnostics', {}).get('marker_occluder')
+                if occluder is not None:
+                    _append(self.output/'physical_camera_occlusion.jsonl', dict(
+                        event_id=message['event_id'], frame_index=message['frame_index'],
+                        stamp=message['stamp'], command=message['command'],
+                        image_sha256=message['image_sha256'],
+                        marker_visible=message['preview']['visible'],
+                        visible_marker_ids=message['preview']['visible_marker_ids'],
+                        physical_occluder=occluder,
+                        scope='physical image generation and detector preview only; not an estimator input'))
             elif kind == 'database_batch_selection':
                 self.selection_pending = False
                 batch = message['batch']
@@ -447,6 +458,8 @@ class SimpleMotionSession:
             actual_imu_hz=hz(self.acquisition_times['imu']),
             camera_preview_publication_route='acquisition_worker_direct_ros' if self.direct_camera_preview else 'publication_worker',
             body_bfs_enabled=self.body_surprise_enabled,
+            physical_marker_occluder=dict(self.scene.config['camera'].get('marker_occluder', {})),
+            resolved_scene_config_sha256=self.scene.resolved_config_sha256,
             body_bayes_factor_surprise=dict(self.inference_description.surprise_settings),
             K_bfs_enabled=False, K_evidence_enabled=False,
             cumulative_K_factor_reevaluation=False, independent_fresh_goal_enabled=False,

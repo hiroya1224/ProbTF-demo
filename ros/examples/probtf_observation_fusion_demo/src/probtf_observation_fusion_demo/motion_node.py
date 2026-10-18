@@ -581,7 +581,7 @@ class MotionLive:
         return TriggerResponse(True, 'Starting a fresh sequential experiment from the common initial prior.')
 
 
-def optional_body_surprise(value):
+def optional_boolean(value, name):
     """An empty launch option uses YAML; explicit false must stay false."""
     if value is None or value == '':
         return None
@@ -589,7 +589,11 @@ def optional_body_surprise(value):
         return value
     if isinstance(value, str) and value.strip().lower() in ('true', 'false'):
         return value.strip().lower() == 'true'
-    raise ValueError('body_surprise must be true, false, or empty to use the YAML setting.')
+    raise ValueError(name+' must be true, false, or empty to use the YAML setting.')
+
+
+def optional_body_surprise(value):
+    return optional_boolean(value, 'body_surprise')
 
 
 def main():
@@ -602,8 +606,11 @@ def main():
     imu_target_link = rospy.get_param('~imu_target_link', '') or None
     max_updates = int(rospy.get_param('~max_updates', 0))
     body_surprise = optional_body_surprise(rospy.get_param('~body_surprise', ''))
+    marker_occlusion = optional_boolean(rospy.get_param('~marker_occlusion', ''), 'marker_occlusion')
     if body_surprise is not None and mode != 'simple':
         raise ValueError('body_surprise applies to execution_mode=simple.')
+    if marker_occlusion is not None and mode != 'simple':
+        raise ValueError('marker_occlusion applies to execution_mode=simple.')
     if mode in ('simple', 'async'):
         from .async_motion import AsyncMotionLive
         from .simple_motion import SimpleMotionSession
@@ -614,7 +621,8 @@ def main():
             running_gradient_options=rospy.get_param('~running_gradient_options', None),
             visibility_factor_options=rospy.get_param('~visibility_factor_options', None),
             observation_selection_options=rospy.get_param('~observation_selection_options', None),
-            session_factory=(partial(SimpleMotionSession, body_surprise_enabled=body_surprise)
+            session_factory=(partial(SimpleMotionSession, body_surprise_enabled=body_surprise,
+                                     marker_occlusion_enabled=marker_occlusion)
                              if mode == 'simple' else None))
         rospy.loginfo('Asynchronous wall-clock motion; inference and %s run in separate processes.',
                       playback.session.control_mode)

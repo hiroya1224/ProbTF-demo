@@ -4,6 +4,7 @@
   <arg name="autostart" default="true" />
   <arg name="execution_mode" default="simple" />
   <arg name="body_surprise" default="" />
+  <arg name="marker_occlusion" default="" />
   <arg name="max_updates" default="0" />
   <arg name="output_dir" default="/tmp/probtf_observation_fusion_demo/$(anon imu_hand)" />
   <include file="$(find probtf_observation_fusion_demo)/launch/common.launch">
@@ -11,6 +12,7 @@
     <arg name="moving" value="true" />
     <arg name="execution_mode" value="$(arg execution_mode)" />
     <arg name="body_surprise" value="$(arg body_surprise)" />
+    <arg name="marker_occlusion" value="$(arg marker_occlusion)" />
     <arg name="imu_target_link" value="tool0" />
     <arg name="rviz" value="$(arg rviz)" />
     <arg name="rviz_config" value="$(arg rviz_config)" />

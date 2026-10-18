@@ -11,6 +11,7 @@ from std_msgs.msg import ColorRGBA, String
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
 from .display import goal_pose_records
+from .physical_occlusion import marker_occluder_settings
 
 from probtf_switch_press_demo.ros_display import Display as SwitchDisplay
 from probtf_switch_press_demo.scene import apply
@@ -434,6 +435,13 @@ class MotionDisplay:
             # their existing sources and configured values.
             output.markers = [marker for marker in output.markers if marker.ns != 'tag']
             output.markers.extend(self._board_markers())
+        occluder = marker_occluder_settings(self.scene.config.get('camera', {}))
+        if occluder['enabled']:
+            pose = self.scene.marker.copy()
+            pose[:3, 3] = apply(self.scene.marker, occluder['center'])
+            gray = occluder['intensity']/255.
+            output.markers.append(self.marker('marker_occluder', Marker.CUBE,
+                (gray, gray, gray, 1.), (*occluder['size'], occluder['thickness']), pose=pose))
         for marker in output.markers:
             if marker.ns == 'actual_path':
                 self._color_action_path(marker, self.trial.trajectory)

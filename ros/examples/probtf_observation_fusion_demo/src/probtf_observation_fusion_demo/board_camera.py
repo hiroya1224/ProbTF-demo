@@ -10,6 +10,7 @@ import numpy as np
 from probtf_switch_press_demo.vision import PlanarCamera
 
 from .marker_board import board_layout
+from .physical_occlusion import marker_occluder_settings, occlude_marker_image
 
 
 def marker_texture(marker_id, pixels_per_module=16):
@@ -82,3 +83,57 @@ class BoardCamera(PlanarCamera):
             gaussian_blur_applications=1 if self.settings['blur_sigma'] > 0 else 0,
             image_noise_applications=1)
         return image
+
+
+class _OccludedCamera:
+    """Apply physical occlusion before each inherited exposure sample."""
+    def __init__(self, *args, occluder, **kwargs):
+        self.occluder_config = dict(occluder)
+        self._occlusion_samples = []
+        super().__init__(*args, **kwargs)
+
+    def sharp_image(self, world_camera, world_marker):
+        image = super().sharp_image(world_camera, world_marker)
+        image, diagnostics = occlude_marker_image(image, world_camera, world_marker,
+            self.camera, self.texture_points, self.occluder_config)
+        self._occlusion_samples.append(diagnostics)
+        return image
+
+    def render(self, world_camera, world_marker, history=()):
+        self._occlusion_samples = []
+        image = super().render(world_camera, world_marker, history)
+        # The first sharp image is the inherited clean-current diagnostic;
+        # only the subsequent samples participate in temporal integration.
+        current, exposures = self._occlusion_samples[0], self._occlusion_samples[1:]
+        fractions = [sample['occluded_board_fraction'] for sample in exposures]
+        self.diagnostics['marker_occluder'] = dict(self.occluder_config,
+            current_occluded_board_fraction=current['occluded_board_fraction'],
+            current_occluded_board_pixels=current['occluded_board_pixels'],
+            occluded_board_fraction=float(np.mean(fractions)),
+            exposure_occluded_board_fractions=fractions, exposure_samples=len(exposures),
+            compositing='physical ray-plane depth at every sharp exposure pose, before blur and noise',
+            distance_trigger_used=False, sensor_events_disabled=False)
+        return image
+
+
+class _OccludedBoardCamera(_OccludedCamera, BoardCamera):
+    pass
+
+
+class _OccludedPlanarCamera(_OccludedCamera, PlanarCamera):
+    pass
+
+
+def make_camera(texture_path, board_settings, settings, seed, *, marker_size=None):
+    """Use the original camera unless the physical sheet is explicitly enabled."""
+    occluder = marker_occluder_settings(settings)
+    if board_settings.get('enabled', False):
+        kind = _OccludedBoardCamera if occluder['enabled'] else BoardCamera
+        args = (texture_path, board_settings, settings, seed)
+    else:
+        size = marker_size if marker_size is not None else board_settings.get('marker_size')
+        if size is None:
+            raise ValueError('A single-marker physical camera requires its known printed marker size.')
+        kind = _OccludedPlanarCamera if occluder['enabled'] else PlanarCamera
+        args = (texture_path, size, settings, seed)
+    return kind(*args, occluder=occluder) if occluder['enabled'] else kind(*args)

@@ -1,0 +1,344 @@
+{
+  "scope": "physical scene geometry design only; saved ordinary trajectory replay, not a new closed-loop run",
+  "source_run": "/tmp/probtf_squared_mean_reaching_rviz_20261019/imu_marker",
+  "truth_role": "read_only_saved_physical_scene_geometry_not_inference_input",
+  "plate": {
+    "enabled": true,
+    "center": [
+      0.0,
+      -0.155,
+      0.28
+    ],
+    "size": [
+      0.36,
+      0.14
+    ],
+    "thickness": 0.004,
+    "intensity": 96
+  },
+  "clearance": {
+    "axis_to_sheet_m": 0.03307907444758213,
+    "time": 14.570992249064147,
+    "stamp": 1792080014.5709922,
+    "flange_marker": [
+      -0.02811905402649755,
+      -0.29682222117649104,
+      0.6066139452503155
+    ],
+    "hand_marker": [
+      -0.016450001348274484,
+      -0.2580090670396769,
+      0.2841509671031416
+    ],
+    "rod_radius_m": 0.008,
+    "rod_surface_to_sheet_m": 0.02507907444758213,
+    "evaluated_physical_samples": 20881
+  },
+  "limitations": [
+    "This reuses the previous unobstructed physical trajectory. The new closed-loop path can differ.",
+    "Corner decode counts are image-only; board pose refinement and the new closed-loop reach are not inferred by this geometry audit.",
+    "The rod is a capsule around its axis segment; other robot links and camera box collision are not assessed here."
+  ],
+  "samples": [
+    {
+      "time": 0.0,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "occluded_board_fraction": 0.5605208499760345
+    },
+    {
+      "time": 0.9991707247681916,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "occluded_board_fraction": 0.5605208499760345
+    },
+    {
+      "time": 4.999743587803096,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "occluded_board_fraction": 0.4956732790340076
+    },
+    {
+      "time": 9.99813041696325,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "occluded_board_fraction": 0.4966182330336301
+    },
+    {
+      "time": 14.995980207808316,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "occluded_board_fraction": 0.5356449879186095
+    },
+    {
+      "time": 20.000109632965177,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "occluded_board_fraction": 0.5858096231050138
+    },
+    {
+      "time": 24.998280290979892,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [
+        17,
+        18,
+        19
+      ],
+      "occluded_board_fraction": 0.667887295664583
+    },
+    {
+      "time": 30.00014602812007,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 0.7740518275307983
+    },
+    {
+      "time": 34.999810685869306,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 0.9282549731973593
+    },
+    {
+      "time": 39.99712660815567,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 1.0
+    },
+    {
+      "time": 49.99873011605814,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 1.0
+    },
+    {
+      "time": 60.001061188057065,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 1.0
+    },
+    {
+      "time": 89.99881564173847,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 1.0
+    },
+    {
+      "time": 120.00153268314898,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 1.0
+    },
+    {
+      "time": 149.98182615078986,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 1.0
+    },
+    {
+      "time": 156.32665919372812,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 1.0
+    },
+    {
+      "time": 180.0,
+      "baseline_detected_marker_ids": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "occluded_detected_marker_ids": [],
+      "occluded_board_fraction": 1.0
+    }
+  ]
+}

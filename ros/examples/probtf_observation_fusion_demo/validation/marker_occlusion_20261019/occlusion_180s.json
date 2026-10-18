@@ -1,0 +1,462 @@
+{
+  "scope": "Actual new physical occlusion run; all acquisition identities retained. Physical distances are posthoc only.",
+  "run": "/tmp/probtf_marker_occlusion_native_rviz_20261019/imu_marker",
+  "original_start_stamp": 1792080000.0,
+  "completion": {
+    "physical_elapsed_s": 180.0,
+    "physical_finished": true,
+    "estimation_drained": true,
+    "failure": null
+  },
+  "physical_occluder": {
+    "enabled": true,
+    "center": [
+      0.0,
+      -0.155,
+      0.28
+    ],
+    "size": [
+      0.36,
+      0.14
+    ],
+    "thickness": 0.004,
+    "intensity": 96
+  },
+  "camera": {
+    "preview_count": 2153,
+    "physical_occlusion_record_count": 2153,
+    "original_time_range_s": [
+      0.0,
+      180.0
+    ],
+    "original_capture_gap_max_s": 0.3837094306945801,
+    "visible_count": 413,
+    "missing_count": 1740,
+    "initial_marker_ids": [
+      17,
+      18,
+      19
+    ],
+    "final_marker_ids": [],
+    "occluded_board_fraction": {
+      "first": 0.5605208499760345,
+      "final": 1.0,
+      "minimum": 0.4844693862619246,
+      "maximum": 1.0,
+      "fully_covered_frames": 1504
+    },
+    "pipeline_wall_seconds": {
+      "render_seconds": {
+        "count": 2153,
+        "median": 0.049605384003371,
+        "p95": 0.05448467684909701,
+        "maximum": 0.0781444851309061
+      },
+      "preview_detection_seconds": {
+        "count": 2153,
+        "median": 0.029573666863143444,
+        "p95": 0.03120268555358052,
+        "maximum": 0.0437034722417593
+      },
+      "foreground_queue_seconds": {
+        "count": 2153,
+        "median": 0.009826183319091797,
+        "p95": 0.09576840400695796,
+        "maximum": 0.4289417266845703
+      },
+      "total_work_seconds": {
+        "count": 2153,
+        "median": 0.08013093285262585,
+        "p95": 0.08604388805106282,
+        "maximum": 0.11021575191989541
+      }
+    },
+    "direct_ROS_publication_wall_seconds": {
+      "input_to_publish_wall_age_s": {
+        "count": 2153,
+        "median": 0.0912008285522461,
+        "p95": 0.1774817943572998,
+        "maximum": 0.48249030113220215
+      },
+      "ready_to_publish_wall_age_s": {
+        "count": 2153,
+        "median": 0.0003814697265625,
+        "p95": 0.0004888534545898437,
+        "maximum": 0.0016486644744873047
+      }
+    },
+    "periods": [
+      {
+        "visible": true,
+        "first_stamp": 1792080000.0,
+        "last_stamp": 1792080033.9180171,
+        "samples": 408
+      },
+      {
+        "visible": false,
+        "first_stamp": 1792080034.0012355,
+        "last_stamp": 1792080034.3374217,
+        "samples": 5
+      },
+      {
+        "visible": true,
+        "first_stamp": 1792080034.4180639,
+        "last_stamp": 1792080034.7512805,
+        "samples": 5
+      },
+      {
+        "visible": false,
+        "first_stamp": 1792080034.8345885,
+        "last_stamp": 1792080180.0,
+        "samples": 1735
+      }
+    ],
+    "reacquisitions": 1,
+    "terminal_lost_interval": {
+      "visible": false,
+      "first_stamp": 1792080034.8345885,
+      "last_stamp": 1792080180.0,
+      "samples": 1735
+    },
+    "initial_seen": true
+  },
+  "fused_sensor_counts": {
+    "imu": 225,
+    "image": 14
+  },
+  "original_image_fusion_events": [
+    {
+      "event_id": "image:00000000",
+      "stamp": 1792080000.0,
+      "relative_time_s": 0.0,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000011",
+      "stamp": 1792080000.0901732,
+      "relative_time_s": 0.09017324447631836,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000121",
+      "stamp": 1792080001.006783,
+      "relative_time_s": 1.0067830085754395,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000131",
+      "stamp": 1792080001.090164,
+      "relative_time_s": 1.0901639461517334,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000471",
+      "stamp": 1792080003.9234948,
+      "relative_time_s": 3.923494815826416,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00000481",
+      "stamp": 1792080004.006932,
+      "relative_time_s": 4.006932020187378,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00001028",
+      "stamp": 1792080008.5890276,
+      "relative_time_s": 8.589027643203735,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00001038",
+      "stamp": 1792080008.6723254,
+      "relative_time_s": 8.672325372695923,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00001784",
+      "stamp": 1792080014.922459,
+      "relative_time_s": 14.92245888710022,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00001794",
+      "stamp": 1792080015.0061276,
+      "relative_time_s": 15.00612759590149,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00002709",
+      "stamp": 1792080022.6743333,
+      "relative_time_s": 22.674333333969116,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00002719",
+      "stamp": 1792080022.757948,
+      "relative_time_s": 22.75794792175293,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00003745",
+      "stamp": 1792080031.4169228,
+      "relative_time_s": 31.41692280769348,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "event_id": "image:00003755",
+      "stamp": 1792080031.5003498,
+      "relative_time_s": 31.500349760055542,
+      "visible_marker_ids": [
+        17,
+        18,
+        19
+      ]
+    }
+  ],
+  "post_terminal_camera_loss": {
+    "available": true,
+    "source_stamp": 1792080034.8345885,
+    "counts": {
+      "processed_imu": 4321,
+      "processed_image": 1735,
+      "processed_joint": 5756,
+      "fused_imu": 173,
+      "fused_with_goal_latched": 173,
+      "plans_adopted": 214,
+      "plans_with_retained_goal": 214,
+      "plans_sending_nonzero_command_increment": 203,
+      "plans_using_observation_acquired_after_loss": 199
+    },
+    "actual_sent_command_path_length_rad": 0.9710809657128993,
+    "actual_sent_command_endpoint_displacement_rad": 0.309877200278947,
+    "fusion_completion_wall_counts": {
+      "imu_before_final_physical_tick": 162,
+      "imu_during_drain_after_final_physical_tick": 11
+    },
+    "fused_observation_acquisition_to_completion_wall_s": {
+      "count": 173,
+      "median": 9.056848526000977,
+      "p95": 13.627147054672243,
+      "maximum": 16.539291620254517
+    },
+    "final_physical_tick_request_wall_boundary": 1792354813.4086738,
+    "wall_boundary_definition": "Earliest acquisition-request received_wall_stamp attached to the saved final physical tick; an explicit logged boundary proxy, not a rewritten sensor time.",
+    "latest_effective_observation_source_stamp_used_during_physical_motion": 1792080174.773984
+  },
+  "original_raw_imu_target_counts": {
+    "link_3": 5363
+  },
+  "checks": {
+    "camera_preview_duplicate_frame_index": 0,
+    "physical_camera_duplicate_event_ID": 0,
+    "camera_preview_original_stamp_regressions": 0,
+    "camera_preview_original_frame_regressions": 0,
+    "physical_preview_raw_event_missing": 0,
+    "physical_preview_original_stamp_mismatch": 0,
+    "physical_preview_original_command_mismatch": 0,
+    "physical_preview_original_image_hash_mismatch": 0,
+    "physical_preview_original_frame_mismatch": 0,
+    "physical_preview_camera_preview_missing": 0,
+    "physical_preview_camera_preview_stamp_mismatch": 0,
+    "physical_preview_camera_preview_visible_mismatch": 0,
+    "physical_preview_camera_preview_marker_ids_mismatch": 0,
+    "distance_trigger_used": 0,
+    "sensor_events_disabled": 0,
+    "physical_preview_truth_boundary_scope_mismatch": 0,
+    "simple_inference_physical_truth_received": 0,
+    "simple_inference_monte_carlo_used": 0,
+    "fused_image_without_physical_preview": 0,
+    "fused_image_with_zero_original_decoded_markers": 0,
+    "body_state_simple_state_ID_mismatch": 0,
+    "plan_body_goal_source_ID_mismatch": 0,
+    "point_hand_goal_joint_state_ID_mismatch": 0
+  },
+  "physical_posthoc": {
+    "minimum_distance_mm": 2.7209127131010087,
+    "minimum_at_s": 60.00530415400863,
+    "final_distance_mm": 11.818768907713958,
+    "any_reached": true,
+    "terminal_reached": false,
+    "collision_checking_enabled": false,
+    "reach_condition": "distance_only_collision_unchecked"
+  },
+  "limitations": [
+    "The last lost interval is defined from actual preview source times, not assumed from a distance trigger.",
+    "Raw image decoding and selected observation fusion have different counts; zero original decoded markers are never counted as a marker observation.",
+    "Continuation counts establish execution and IMU fusion, not successful arrival or accurate estimation.",
+    "Final drained fusion counts include updates completed after physical motion ended; the separately recorded wall-boundary counts identify this distinction.",
+    "ROSpublish and preview source gaps do not measure RViz display completion."
+  ],
+  "trial_label": "Final native physical camera retry: new physical180 s and complete estimation drain, separate from before_native.",
+  "physical_posthoc_rod_sheet_geometry": {
+    "axis_to_finite_thickness_sheet_m": 0.020094237417188143,
+    "original_time_s": 13.980813387781382,
+    "original_stamp": 1792080013.9808135,
+    "rod_flange_in_marker": [
+      -0.03181748267622691,
+      -0.288664585672442,
+      0.6055339376640666
+    ],
+    "rod_tip_in_marker": [
+      -0.02202709924595051,
+      -0.24502838150523742,
+      0.28362551888915133
+    ],
+    "rod_radius_m": 0.008,
+    "rod_capsule_surface_clearance_m": 0.012094237417188142,
+    "evaluated_actual_physical_samples": 21386,
+    "scope": "Actual native retry saved physical states only, posthoc FK and segment-to-finite-sheet-box distance; never an inference/control input.",
+    "collision_checking_enabled": false,
+    "limitations": [
+      "Not a full robot collision certificate and not reactivated contact dynamics.",
+      "Capsule geometry conservatively encloses the cylindrical rod; only rod versus the fixed sheet is evaluated."
+    ]
+  },
+  "observed_pipeline_comparison_with_before_native": {
+    "scope": "Two completed asynchronous closed-loop runs with the same physical scene and requested duration. Different wall timing changes selected observation sets and physical trajectories; this is not a frozen-image numerical equivalence test or a controlled proof of reaching causality.",
+    "before_native_run": "/tmp/probtf_marker_occlusion_rviz_20261019/imu_marker",
+    "native_run": "/tmp/probtf_marker_occlusion_native_rviz_20261019/imu_marker",
+    "camera_pipeline_wall_s": {
+      "render_seconds": {
+        "before_native": {
+          "count": 2122,
+          "median": 0.1197346686385572,
+          "p95": 0.13340380715671926,
+          "maximum": 0.19007626781240106
+        },
+        "native": {
+          "count": 2153,
+          "median": 0.049605384003371,
+          "p95": 0.05448467684909701,
+          "maximum": 0.0781444851309061
+        }
+      },
+      "preview_detection_seconds": {
+        "before_native": {
+          "count": 2122,
+          "median": 0.0306273081805557,
+          "p95": 0.031838244665414094,
+          "maximum": 0.0446799211204052
+        },
+        "native": {
+          "count": 2153,
+          "median": 0.029573666863143444,
+          "p95": 0.03120268555358052,
+          "maximum": 0.0437034722417593
+        }
+      },
+      "foreground_queue_seconds": {
+        "before_native": {
+          "count": 2122,
+          "median": 46.67343306541443,
+          "p95": 115.44408700466155,
+          "maximum": 122.18715167045593
+        },
+        "native": {
+          "count": 2153,
+          "median": 0.009826183319091797,
+          "p95": 0.09576840400695796,
+          "maximum": 0.4289417266845703
+        }
+      },
+      "total_work_seconds": {
+        "before_native": {
+          "count": 2122,
+          "median": 0.15136315347626805,
+          "p95": 0.16586038200184702,
+          "maximum": 0.221594481728971
+        },
+        "native": {
+          "count": 2153,
+          "median": 0.08013093285262585,
+          "p95": 0.08604388805106282,
+          "maximum": 0.11021575191989541
+        }
+      }
+    },
+    "direct_ROS_publication_wall_s": {
+      "input_to_publish_wall_age_s": {
+        "before_native": {
+          "count": 2122,
+          "median": 46.84653329849243,
+          "p95": 115.59284955263136,
+          "maximum": 122.34071207046509
+        },
+        "native": {
+          "count": 2153,
+          "median": 0.0912008285522461,
+          "p95": 0.1774817943572998,
+          "maximum": 0.48249030113220215
+        }
+      },
+      "ready_to_publish_wall_age_s": {
+        "before_native": {
+          "count": 2122,
+          "median": 0.0003864765167236328,
+          "p95": 0.0004887580871582031,
+          "maximum": 0.0017046928405761719
+        },
+        "native": {
+          "count": 2153,
+          "median": 0.0003814697265625,
+          "p95": 0.0004888534545898437,
+          "maximum": 0.0016486644744873047
+        }
+      }
+    },
+    "interpretation": "Camera preview is now close to physical acquisition in this trial. Body inference remains asynchronous with multi-second delay; this does not establish real-time completion of the entire inference/control pipeline."
+  }
+}

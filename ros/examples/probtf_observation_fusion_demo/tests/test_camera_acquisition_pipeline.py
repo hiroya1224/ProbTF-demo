@@ -32,7 +32,7 @@ def request(kind, index, stamp):
 def install_camera(monkeypatch):
     rendered = []
     class Camera:
-        def __init__(self, *args):
+        def __init__(self, *args, **kwargs):
             self.diagnostics = dict(synthetic_estimated_sensor_fixture=True)
         def render(self, camera_pose, marker_pose, history):
             # One deterministic new capture per request; no shared mutable
@@ -40,7 +40,7 @@ def install_camera(monkeypatch):
             image = ((np.arange(32*48).reshape(32, 48)+17*camera_pose) % 256).astype(np.uint8)
             rendered.append((camera_pose, image))
             return image
-    monkeypatch.setattr(workers, 'BoardCamera', Camera)
+    monkeypatch.setattr(workers, 'make_camera', Camera)
     return rendered
 
 

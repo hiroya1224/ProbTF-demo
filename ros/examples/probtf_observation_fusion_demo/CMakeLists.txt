@@ -79,3 +79,9 @@ install(TARGETS probtf_moment_reverse LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_D
 add_library(probtf_marker_board_math SHARED native/marker_board_math.cpp)
 target_compile_features(probtf_marker_board_math PRIVATE cxx_std_14)
 install(TARGETS probtf_marker_board_math LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+
+# Physical image pixels only: the same ray/plane tests without array temporaries.
+add_library(probtf_physical_camera SHARED native/physical_camera.cpp)
+target_compile_features(probtf_physical_camera PRIVATE cxx_std_14)
+target_compile_options(probtf_physical_camera PRIVATE -ffp-contract=off)
+install(TARGETS probtf_physical_camera LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})

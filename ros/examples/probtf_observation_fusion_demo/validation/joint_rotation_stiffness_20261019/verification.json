@@ -1,0 +1,23 @@
+{
+  "tests": {
+    "full_suite": {
+      "command": "source /home/leus/catkin_ws/devel/setup.bash && PYTHONPATH=/tmp/probtf_switch_press_pytest:$PYTHONPATH OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/probtf_observation_fusion_demo/tests ros/examples/probtf_observation_fusion_demo/validation/tools",
+      "passed": 1384,
+      "seconds": 239.76,
+      "warning": "hppfcl deprecated import; unrelated existing dependency warning"
+    },
+    "additional_diagnostic_tests": {
+      "command": "/usr/bin/python3 -m pytest -q ros/examples/probtf_observation_fusion_demo/validation/tools/test_joint_rotation_factor_comparison.py",
+      "passed": 8,
+      "seconds": 0.29,
+      "scope": "Rerun after adding one read-only physical-orientation diagnostic regression; seven were already in the 1384-suite run; current distinct test count is 1385."
+    }
+  },
+  "original_instructions_sha256": "8470d698d23bd1a7245f9dc36efc225f45c65c129b8e787b51d44f9cbed0f35b",
+  "original_copy_byte_identical": true,
+  "production_manifest": "source_manifest.json",
+  "new_factor_module_sha256": "e42ad7aaf1ef7d7ad014a2255fb07b8dd336ff8327b2123e18e3fb5facbaba1c",
+  "normal_paths_physical_truth_injection_enabled": false,
+  "monte_carlo_used": false,
+  "large_raw_archives_stored_in_git": false
+}

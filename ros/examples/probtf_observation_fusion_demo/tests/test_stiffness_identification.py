@@ -273,11 +273,10 @@ def test_valid_sensor_cases_use_same_frozen_ratio_and_are_sensor_order_invariant
         assert not record['status'].startswith('failed')
         assert record['source_stamp'] == frame.stamp and record['source_command'] == frame.command.tolist()
         assert record['body_posterior_weights'] == [item.weight for item in result.stages[-1].components]
-        marginal = record['hand_marginal']['branches'][0]
-        assert len(marginal['prior']['mean']) == 6
-        assert record['matching_target'] == 'hand_pose'
-        assert record['hand_marginal']['hand_path'][-1] == ['rod_tip', False]
-        assert not record['hand_marginal']['intermediate_link_density_scored']
+        marginal = record['rotation_marginal']['branches'][0]
+        assert len(marginal['prior_mean']) == 18
+        assert record['matching_target'] == 'joint_rotation'
+        assert record['rotation_marginal']['coordinate_offsets'] == [3, 4, 5]
         assert len(marginal['components']) == len(result.frozen_body_posterior.components)
         assert record['source_prior_weights'] == [.75, .25]
         assert result.projected_body_numerator is not None

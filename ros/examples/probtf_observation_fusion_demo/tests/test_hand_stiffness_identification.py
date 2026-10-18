@@ -46,6 +46,7 @@ def hand_model(tmp_path_factory):
     source = reexpress_state(source, source.mean, covariance)
     settings = dict(prior_config_path=str(REPO/
         'ros/examples/deflecomp/deflecomp_ros/config/estimator.yaml'),
+        matching_target='hand_pose',  # Explicit historical hand-only comparison.
         # Keep the cumulative continuous density while avoiding a separate
         # Laplace-evidence test in each endpoint-geometry regression.
         bayes_factor_surprise=dict(enabled=False))
@@ -88,7 +89,7 @@ def updated_identifier(model, result=None):
     return identifier, result, record
 
 
-def test_default_updates_the_complete_tool_pose_not_intermediate_link_densities(hand_model):
+def test_explicit_hand_mode_updates_complete_tool_pose_not_intermediate_link_densities(hand_model):
     identifier, result, record = updated_identifier(hand_model)
     assert identifier.matching_target == 'hand_pose'
     factor = identifier.factors[0]

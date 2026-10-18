@@ -1,0 +1,67 @@
+{
+  "current_source_manifest": "/tmp/probtf_variational_commonchart_pre_regression_sources_20261018.json",
+  "current_source_manifest_sha256": "ff1e23f2376da6ac5f979088126581bde48b17d678a12b49b740d885fa6d7283",
+  "current_source_file_count": 200,
+  "full_suite_rerun_after_connection_followups": false,
+  "current_targeted_tests_passed": 280,
+  "counts_overlap_do_not_sum": true,
+  "source_changes_since_previous_targeted": [
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/native/body_law.cpp",
+      "previous_sha256": "ed569b70a99a86a60656e100970a1f6d0bb5924b36713b10834f7c3592ca96aa",
+      "sha256": "bfc1a9005d2fbd5ba1c6e4d050d0c1dd70be4d02177c2610ae70f16c6489f215"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+      "previous_sha256": "48d4af84135dff95ec43422862c0b9807a1af2b312c9f5190e31246f3dfdbe00",
+      "sha256": "421eb1fccf77664e4f52f44b18451a4a6435c88c1f09a5acd9f35d2c7f7b656a"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py",
+      "previous_sha256": "b8b9ac7e8af10d45c0d2135f90690adec04fcd79fa6d91c0f5bc117e37ada151",
+      "sha256": "290d7e0c0d92fcd8e446f3d3bc52d2ee3fbfe3ca1b443a3a9f838429a50b99ca"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+      "previous_sha256": "3399e3bd971f870bef14714d1c954edbe75b664749b52310a742f80a7e1b66bd",
+      "sha256": "ab077d933ea166f96bac9c741c07cfac64a033c28c3cc0d107cb3d667466be11"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/immutable_body_cache.py",
+      "previous_sha256": "c3c37c82cdf45df41a0da96571fec15e1adc890dff03e78e145044794c30ef4a",
+      "sha256": "57c7be9c27d2b2242aefb3e17bf5df462552e6f77477e86ff998c917486ecd9e"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+      "previous_sha256": "82b803da3b4a853d40a84107a0be83b0fd15b8b22d70ee9a697d99f98baf76c9",
+      "sha256": "ba06c14bf90d545e90406b4b7edb6023f97aa873e8ebf4281f6f415df36d9d03"
+    }
+  ],
+  "previous_coverage_manifest": "/tmp/probtf_variational_nodiag_regression_coverage_20261018.json",
+  "logs": [
+    {
+      "path": "/tmp/probtf_variational_unrestricted_full_tests_final_20261018.log",
+      "sha256": "50776b3019119847ee822bf49cf39fe2d4d044b34b319015052f78e1af532c2d",
+      "passed": 1263,
+      "scope": "full core/demo before connection-only followups"
+    },
+    {
+      "path": "/tmp/probtf_optional_goal_diagnostics_regression_20261018.log",
+      "sha256": "dfb609686c29edee9a28241f8cad65efc1f761593bcf9831c4e19759e04cd393",
+      "passed": 130,
+      "scope": "prior optional diagnostic connection checks"
+    },
+    {
+      "path": "/tmp/probtf_optional_goal_diagnostics_tests_20261018.log",
+      "sha256": "2b593982fb7857120168f2c9554b28f909c9437328ddaea20d14e3b277b1c414",
+      "passed": 5,
+      "scope": "optional diagnostic invariance tests"
+    },
+    {
+      "path": "/tmp/probtf_commonchart_integration_regression_final_20261018.log",
+      "sha256": "e2e368ac8d299a906329cc8b1a2aab6f8aee9de1c3b0dcc0e0c3dc1bf7b1cae9",
+      "passed": 280,
+      "scope": "current affected projection/body/materialization/K/goal/control/publication regressions"
+    }
+  ]
+}

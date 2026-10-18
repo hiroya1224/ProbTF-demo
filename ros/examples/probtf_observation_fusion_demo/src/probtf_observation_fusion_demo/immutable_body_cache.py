@@ -9,6 +9,7 @@ from threading import RLock
 import numpy as np
 
 from .body_native import reexpress_state as _core_reexpress_state, _native
+from .body_native import materialize_state_in_chart as _materialize_state_in_chart
 
 
 class ReexpressionCache:
@@ -31,13 +32,21 @@ class ReexpressionCache:
                         entries=len(self._values), maximum_entries=self.maximum_entries)
 
     def reexpress(self, state, mean, covariance, version=None, component_id=None):
+        return self._evaluate(state, mean, covariance, version, component_id,
+                               operation='strict_reexpression')
+
+    def materialize(self, state, mean, covariance, version=None, component_id=None):
+        return self._evaluate(state, mean, covariance, version, component_id,
+                               operation='common_chart_materialization')
+
+    def _evaluate(self, state, mean, covariance, version, component_id, *, operation):
         mean = np.asarray(mean, dtype=float)
         covariance = np.asarray(covariance, dtype=float)
         # The core ID hashes the joint covariance, transform values and
         # metadata. Include separately stored local marginals and zero-chart
         # mean too, so even tolerated marginal roundoff cannot share a key.
         source_marginals = tuple(edge.translation_covariance.tobytes() for edge in state.transforms)
-        key = (_native(), state.state_id, state.mean.tobytes(), source_marginals,
+        key = (operation, _native(), state.state_id, state.mean.tobytes(), source_marginals,
                mean.shape, mean.tobytes(), covariance.shape,
                covariance.tobytes(), state.version+1 if version is None else int(version),
                state.component_id if component_id is None else str(component_id))
@@ -47,8 +56,10 @@ class ReexpressionCache:
                 self._values.move_to_end(key)
                 return self._values[key]
             self._misses += 1
-        result = _core_reexpress_state(state, mean, covariance,
-                                       version=version, component_id=component_id)
+        function = (_core_reexpress_state if operation == 'strict_reexpression'
+                    else _materialize_state_in_chart)
+        result = function(state, mean, covariance, version=version,
+                            component_id=component_id)
         with self._lock:
             self._values[key] = result
             self._values.move_to_end(key)
@@ -60,6 +71,7 @@ class ReexpressionCache:
 
 _REEXPRESSIONS = ReexpressionCache()
 reexpress_state = _REEXPRESSIONS.reexpress
+materialize_state_in_chart = _REEXPRESSIONS.materialize
 
 
 def reexpression_cache_statistics():

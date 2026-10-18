@@ -1,0 +1,406 @@
+{
+  "schema": "failed-original-variational-event-fixture-v1",
+  "original_run": "/tmp/probtf_variational_unrestricted_180s_live_20261018",
+  "previous_archive_reference_path": "/tmp/probtf_variational_unrestricted_180s_live_20261018/marker/stiffness_jobs/00000004_94edafebd27e3e73.json",
+  "previous_archive_reference": {
+    "archived_wall_time_s": 1792316098.3131242,
+    "batch_id": "33e48824878d66d8db6a8f16dd847adf7869e51cd8d98bd389c9c7ae65a463eb",
+    "initialize_only": false,
+    "job_sequence": 4,
+    "kind": "stiffness_job_reference",
+    "path": "/tmp/probtf_variational_unrestricted_180s_live_20261018/marker/stiffness_jobs/00000004_94edafebd27e3e73.pickle",
+    "payload_bytes": 1704570,
+    "payload_sha256": "dd58d51e4fee5d4f0328ada3689867bb865ad394bd6e68fada8d0ee373c53ccb",
+    "source_candidate_id": "93cd4dfe7a78759d75b469c251cf48b9872ad9defefc2bfb8e9cfa02e31d8fce",
+    "source_command": [
+      -0.15,
+      -1.85,
+      2.35,
+      0.0,
+      -0.95,
+      0.0
+    ],
+    "source_stamp": 1792080000.417046,
+    "source_version": 154,
+    "status": "pending"
+  },
+  "original_DB": "/tmp/probtf_variational_unrestricted_180s_live_20261018/marker/observations.sqlite3",
+  "original_event": {
+    "sequence": 89,
+    "event_id": "image:00000127",
+    "kind": "image",
+    "stamp": 1792080001.0845249,
+    "command_json": "[-0.14494822024914758,-1.8803631616654133,2.319775232715033,0.0011065800631794788,-0.9653184911730476,0.0017154338989035062]",
+    "payload_hash": "7e8315e88f072df7c4e40c30150f214097ca37eb07affbbb93d44ae8198b5c88",
+    "payload_json": "{\"frame_index\":127,\"image\":{\"__event_array__\":0,\"dtype\":\"|u1\",\"shape\":[720,960]},\"image_path\":\"capture_000127.png\",\"image_sha256\":\"d53f653c0cf7730b245e6bce9a8be7f9e9b1f8038b30f9c8d0b0974f6a8c2633\",\"image_stamp\":1792080001.0845249,\"time\":1.084524979814887}",
+    "status": "failed"
+  },
+  "offline_replay_status_scope": "Original row remains failed. Only the API clone status is processing to permit replay; no q/t/ID/sequence/value/hash changed.",
+  "original_ledger_indices": [
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126
+  ],
+  "original_ledger_count": 76,
+  "expected_error": "conditional marker residual has a significant negative eigenvalue",
+  "retarget_inputs_bytes": 72057,
+  "retarget_inputs_sha256": "29ff3ae75007ca900edb57a476303d510199dda9b6abd4a60b542f694e4dad30",
+  "reproduced_failure": "ValueError: conditional marker residual has a significant negative eigenvalue: -1.1975682986156904e-12.",
+  "fixture_bytes": 1257375,
+  "fixture_sha256": "153e2656ca7d224a13914e2a56d7a9f01370700273717e73cd576a9f5c43f99b",
+  "raw_pixels_received": true,
+  "physical_truth_received": false,
+  "native_backend": {
+    "backend": "native_analytic_reverse",
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_moment_reverse.so",
+    "library_sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f",
+    "native_source_sha256": "133baaf99f57cb0c2a1357cd4ce2f70a3cf222173841481e80773150bd18ee75",
+    "binding_sha256": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "stochastic_sampling": false,
+    "runtime_compilation": false,
+    "reverse_derivatives": true,
+    "core_equations_changed": false
+  },
+  "branches": [
+    {
+      "source_state_id": "54b0ece950f7c48767b3dcbed600fa226dced0b7cbedc33ecd18edeacd088785",
+      "source_component_id": "predicted:127:0",
+      "source_stamp": 1792080001.0845249,
+      "source_command": [
+        -0.14494822024914758,
+        -1.8803631616654133,
+        2.319775232715033,
+        0.0011065800631794788,
+        -0.9653184911730476,
+        0.0017154338989035062
+      ],
+      "log_evidence": -603.481884190443,
+      "log_evidence_parts": [
+        -603.481884190443,
+        -5.1514348342607263e-14
+      ],
+      "mean_sha256": "ed358a8608f2b028be71dba07c7e5f18bb710d4611b2f49e8b090897d9168e3a",
+      "covariance_sha256": "15cd45df40b58b293202776777b340b513ab7b2ebdd103491793c75b2009e9cf",
+      "rotation_widths": [
+        {
+          "edge_id": "link_1",
+          "original_chart_rotation_eigenvalues": [
+            0.001211235243427524,
+            0.0058691458106132684,
+            0.06000826647807012
+          ]
+        },
+        {
+          "edge_id": "link_2",
+          "original_chart_rotation_eigenvalues": [
+            0.001253192799540743,
+            0.009721312286901203,
+            0.0717444719832037
+          ]
+        },
+        {
+          "edge_id": "link_3",
+          "original_chart_rotation_eigenvalues": [
+            0.003440266950997174,
+            0.013501876195232024,
+            0.13399461947856833
+          ]
+        },
+        {
+          "edge_id": "link_4",
+          "original_chart_rotation_eigenvalues": [
+            0.002518422004836273,
+            0.021972295007783433,
+            0.11531445727454503
+          ]
+        },
+        {
+          "edge_id": "link_5",
+          "original_chart_rotation_eigenvalues": [
+            0.006122665766969618,
+            0.008148353880560868,
+            0.17985886854858738
+          ]
+        },
+        {
+          "edge_id": "link_6",
+          "original_chart_rotation_eigenvalues": [
+            0.006012841072725678,
+            0.03772215060983439,
+            0.07222983590110982
+          ]
+        },
+        {
+          "edge_id": "tool0",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "press_rod",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "rod_tip",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "camera_optical_frame",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "marker",
+          "original_chart_rotation_eigenvalues": [
+            0.0011083795318335007,
+            0.0034129622250462692,
+            0.05593912719428526
+          ]
+        }
+      ],
+      "final_gradient_inf": 181.08965720429714,
+      "final_F": 603.481884190443,
+      "initial_seed": {
+        "provided": true,
+        "considered": true,
+        "selected": false,
+        "proposal_only": true,
+        "used_as_new_prior": false,
+        "status": "evaluated on same fixed-prior objective",
+        "objective": 39340.46475896783,
+        "objective_parts": [
+          39340.46475896783,
+          1.602273869139026e-12
+        ],
+        "gradient_inf": 4570.500446196511
+      }
+    },
+    {
+      "source_state_id": "ee7b06b65c24b148d87643ccc44c7175cd6ae59289f4b5b5d80227426507e32f",
+      "source_component_id": "reset:382",
+      "source_stamp": 1792080001.0845249,
+      "source_command": [
+        -0.14494822024914758,
+        -1.8803631616654133,
+        2.319775232715033,
+        0.0011065800631794788,
+        -0.9653184911730476,
+        0.0017154338989035062
+      ],
+      "log_evidence": -398.0075156243616,
+      "log_evidence_parts": [
+        -398.0075156243616,
+        5.329070518200751e-15
+      ],
+      "mean_sha256": "51fe74a728449e912fce18c6b848e8aef62c973ffac51d429b2f1eab5e755a1f",
+      "covariance_sha256": "9d13a3e5f268b84625b09533d1493851f5a2b781ea5a9250578d67f4aecc33a0",
+      "rotation_widths": [
+        {
+          "edge_id": "link_1",
+          "original_chart_rotation_eigenvalues": [
+            0.0006095002913057211,
+            0.0007746398901624028,
+            0.0009220229910451817
+          ]
+        },
+        {
+          "edge_id": "link_2",
+          "original_chart_rotation_eigenvalues": [
+            0.0008363035214350097,
+            0.0008921115177597271,
+            0.001052423528509232
+          ]
+        },
+        {
+          "edge_id": "link_3",
+          "original_chart_rotation_eigenvalues": [
+            0.0007380213146345725,
+            0.0008991540866403458,
+            0.001061670226459311
+          ]
+        },
+        {
+          "edge_id": "link_4",
+          "original_chart_rotation_eigenvalues": [
+            0.0010476255263545254,
+            0.0011566475475051695,
+            0.0013709462064360719
+          ]
+        },
+        {
+          "edge_id": "link_5",
+          "original_chart_rotation_eigenvalues": [
+            0.001260494454190748,
+            0.0013440568648858833,
+            0.0016423532949800333
+          ]
+        },
+        {
+          "edge_id": "link_6",
+          "original_chart_rotation_eigenvalues": [
+            0.0011086726250047357,
+            0.0015489188423840545,
+            0.001968559937214318
+          ]
+        },
+        {
+          "edge_id": "tool0",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "press_rod",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "rod_tip",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "camera_optical_frame",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "marker",
+          "original_chart_rotation_eigenvalues": [
+            0.00011647837280051999,
+            0.0003282350032449005,
+            0.000898543560103601
+          ]
+        }
+      ],
+      "final_gradient_inf": 10.7551956782313,
+      "final_F": 398.0075156243616,
+      "initial_seed": {
+        "provided": true,
+        "considered": true,
+        "selected": true,
+        "proposal_only": true,
+        "used_as_new_prior": false,
+        "status": "evaluated on same fixed-prior objective",
+        "objective": 5650.25440437323,
+        "objective_parts": [
+          5650.25440437323,
+          9.592326932761353e-14
+        ],
+        "gradient_inf": 4456.319194356849
+      }
+    }
+  ],
+  "source_sha256_before": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": "5391bc5a45ece4da657e6739da6d549bded7f597e4b03273cd29a7976e056504",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "64d3a11aadebcc4968adccab91707718094566d8970348b1006d01c2afa94a5d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "b8b9ac7e8af10d45c0d2135f90690adec04fcd79fa6d91c0f5bc117e37ada151"
+  },
+  "source_sha256_after": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": "5391bc5a45ece4da657e6739da6d549bded7f597e4b03273cd29a7976e056504",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "64d3a11aadebcc4968adccab91707718094566d8970348b1006d01c2afa94a5d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "b8b9ac7e8af10d45c0d2135f90690adec04fcd79fa6d91c0f5bc117e37ada151"
+  },
+  "source_unchanged": true
+}

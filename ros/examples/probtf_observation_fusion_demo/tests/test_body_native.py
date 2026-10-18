@@ -76,16 +76,96 @@ def test_reexpression_preserves_full_cross_and_existing_immutable_types(monkeypa
     assert abs(a.covariance[1,9])>0.
 
 
-@pytest.mark.parametrize('problem',['nonfinite','negative','unsupported','rotation_rank','too_broad'])
-def test_native_reexpression_retains_actual_core_domain_failures(monkeypatch,problem):
+@pytest.mark.parametrize('problem',['nonfinite','negative','unsupported','rotation_rank'])
+def test_native_reexpression_retains_actual_core_arithmetic_and_support_failures(monkeypatch,problem):
     monkeypatch.setenv('PROBTF_BODY_BACKEND','native');s=source();m=np.zeros(18);P=s.covariance.copy()
     if problem=='nonfinite':m[0]=np.nan
     elif problem=='negative':P[0,0]=-1.
     elif problem=='unsupported':m[-1]=.2
     elif problem=='rotation_rank':P[3:6,:]=0.;P[:,3:6]=0.
-    elif problem=='too_broad':P[:12,:12]=np.eye(12)*.2
-    with pytest.raises(ValueError):core_reexpress(s,m,P)
+    with pytest.raises((ValueError,np.linalg.LinAlgError)):core_reexpress(s,m,P)
     with pytest.raises(ValueError):native.reexpress_state(s,m,P)
+
+
+@pytest.mark.parametrize('rotation_variance',[.11,.2,2.,20.,1e15])
+def test_broad_rotation_covariance_is_preserved_without_a_concentration_gate(monkeypatch,rotation_variance):
+    monkeypatch.setenv('PROBTF_BODY_BACKEND','native')
+    state=source();mean=np.zeros(18);mean[:12]=.04*np.sin(np.arange(12)+.3)
+    # Increase the original full covariance coherently so its nonzero
+    # translation/rotation and inter-link cross blocks remain PSD. Neither
+    # evaluator may floor, clip, collapse, or discard the broad candidate.
+    P=state.covariance*(rotation_variance/np.linalg.eigvalsh(state.covariance[3:6,3:6]).max())
+    before=P.copy()
+    actual=native.reexpress_state(state,mean,P,version=41,component_id='broad-kept')
+    expected=core_reexpress(state,mean,P,version=41,component_id='broad-kept')
+    np.testing.assert_array_equal(P,before)
+    np.testing.assert_allclose(actual.covariance,expected.covariance,atol=2e-13,rtol=2e-11)
+    assert np.linalg.eigvalsh(actual.covariance[3:6,3:6]).max()>.1
+    assert np.linalg.norm(actual.covariance[:6,6:12])>0.
+    # Existing immutable core constructors now accept the same covariance
+    # after the explicitly authorized gate removal, with unchanged formulas.
+    rebuilt=JointTransformState(actual.transforms,actual.covariance,
+        actual.version,actual.stamp,actual.command,actual.component_id)
+    assert rebuilt.state_id==actual.state_id
+    compare_query(native.pose_query(actual,actual.edge_ids),core_pose(actual,actual.edge_ids))
+
+
+def test_positive_anisotropic_rotation_axis_is_not_rejected_by_affine_rank_cutoff(monkeypatch):
+    monkeypatch.setenv('PROBTF_BODY_BACKEND','native')
+    P=np.zeros((6,6));P[3:,3:]=np.diag([.25,1e-14,.5])
+    # covariance_support's affine numerical rank convention is unchanged;
+    # a required rotation inverse must nevertheless retain this positive
+    # small axis rather than treating it as an exactly fixed orientation.
+    edge=BinghamTransform('rotation',[0.,0.,0.],
+        bingham_from_rotation_coordinates([1.,0.,0.,0.],P[3:,3:]))
+    state=JointTransformState((edge,),P)
+    actual=native.reexpress_state(state,np.zeros(6),P)
+    expected=core_reexpress(state,np.zeros(6),P)
+    np.testing.assert_array_equal(actual.covariance,P)
+    assert actual.covariance[4,4]==1e-14
+    np.testing.assert_allclose(actual.transforms[0].bingham,
+                               expected.transforms[0].bingham,atol=1e-12,rtol=1e-12)
+    compare_query(native.pose_query(actual,('rotation',)),core_pose(actual,('rotation',)))
+
+
+def test_structurally_symmetric_modal_gap_roundoff_is_not_an_invalid_input_covariance(monkeypatch):
+    monkeypatch.setenv('PROBTF_BODY_BACKEND','native')
+    # Marker marginal captured from imu:00006013/sequence9552 at its original
+    # source clock. N.T A N is mathematically symmetric but old native entry-
+    # wise checking rejected roundoff in a ~1.55e6-scale positive gap.
+    q=np.array([.4283664152704617,.5311824459262225,
+                -.5069774075598791,-.5266130758270575])
+    rotation=np.array([
+        [2.7351878974539784e-6,1.033327707666423e-7,-6.454133737254084e-9],
+        [1.033327707666423e-7,1.2978870776644246e-6,-7.899850822010231e-8],
+        [-6.454133737254084e-9,-7.899850822010231e-8,1.4621882017116729e-6]])
+    P=np.zeros((6,6));P[3:,3:]=rotation
+    state=JointTransformState((BinghamTransform('marker',[0.,0.,0.],
+        bingham_from_rotation_coordinates(q,rotation)),),P,
+        stamp=1792080173.402229,component_id='original-marker-marginal')
+    mean=np.r_[np.zeros(3),[1.2084798904295574e-5,
+        .00012615040693987536,-.0001375188148811895]]
+    before=(mean.copy(),P.copy())
+    actual=native.reexpress_state(state,mean,P)
+    expected=core_reexpress(state,mean,P)
+    # Python and libm evaluate the small-angle Jr coefficients with ordinary
+    # floating-point differences; the measured full-block discrepancy is
+    # below 7e-19, not a change to either supplied Gaussian parameter.
+    np.testing.assert_allclose(actual.covariance,expected.covariance,atol=2e-18,rtol=2e-12)
+    np.testing.assert_array_equal(mean,before[0]);np.testing.assert_array_equal(P,before[1])
+    compare_query(native.pose_query(actual,('marker',)),core_pose(actual,('marker',)))
+
+
+def test_internal_symmetry_handling_does_not_accept_an_external_invalid_covariance(monkeypatch):
+    monkeypatch.setenv('PROBTF_BODY_BACKEND','native')
+    state=source();P=state.covariance.copy();P[0,1]+=.01
+    with pytest.raises(ValueError,match='symmetric'):
+        native.reexpress_state(state,np.zeros(18),P)
+    # Even a tiny skew that is harmless for an ordinary numeric symmetry
+    # audit cannot create random covariance on an explicitly fixed edge.
+    P=state.covariance.copy();P[15,16]=1e-17;P[16,15]=-1e-17
+    with pytest.raises(ValueError,match='known fixed rotation'):
+        native.reexpress_state(state,np.zeros(18),P)
 
 
 def test_explicit_python_comparison_backend_and_unknown_backend(monkeypatch):

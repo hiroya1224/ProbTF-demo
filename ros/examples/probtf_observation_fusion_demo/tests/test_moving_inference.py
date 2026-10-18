@@ -53,9 +53,9 @@ def test_moving_cases_share_exact_prior_and_core_paths(moving_inputs):
         assert [item['source_prior_state_id'] for item in standalone] == [
             item['source_prior_state_id'] for item in combined]
         standalone_native = [item for item in results[sensor].records[
-            'high_concentration_observation_update']['native_likelihoods'] if item['sensor'] == sensor]
+            'variational_observation_update']['native_likelihoods'] if item['sensor'] == sensor]
         combined_native = [item for item in results['imu_marker'].records[
-            'high_concentration_observation_update']['native_likelihoods'] if item['sensor'] == sensor]
+            'variational_observation_update']['native_likelihoods'] if item['sensor'] == sensor]
         assert standalone_native == combined_native
         assert all(item['log_evidence_scope'] == 'joint raw observation product for this fixed prior parent'
                    for item in standalone+combined)

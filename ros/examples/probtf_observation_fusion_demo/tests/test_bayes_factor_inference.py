@@ -37,7 +37,7 @@ def test_finite_joint_evidence_odds_roundoff_is_diagnostic_and_does_not_change_t
     def rounded_evidence(self, *args, **kwargs):
         result = original_run(self, *args, **kwargs)
         if result.sensor_posteriors and kwargs.get('joint_evidence'):
-            assert result.records['high_concentration_observation_update']['method'] == 'propagated_moments'
+            assert result.records['variational_observation_update']['method'] == 'variational_moments'
             # Perturb only a redundant evidence diagnostic. All actual
             # posterior components, masses, covariances and IDs are intact.
             evidence = result.records['joint_observation_evidence']['parents'][1]
@@ -74,7 +74,7 @@ def test_nonfinite_joint_evidence_odds_remains_an_actual_failure(sensor_problem,
     def invalid_evidence(self, *args, **kwargs):
         result = original_run(self, *args, **kwargs)
         if result.sensor_posteriors and kwargs.get('joint_evidence'):
-            assert result.records['high_concentration_observation_update']['method'] == 'propagated_moments'
+            assert result.records['variational_observation_update']['method'] == 'variational_moments'
             evidence = result.records['joint_observation_evidence']['parents'][1]
             evidence['log_evidence'] = np.nan
             evidence['log_evidence_parts'] = [np.nan, 0.]

@@ -1,0 +1,1 @@
+修正前runは180秒物理動作を完了した後、imu:00006013の処理で停止した。materialization_roundoff_proof.jsonは新native d747…の局所修正検証、fixed_event_replay.jsonは同じ原prior/native/t/q/ledgerの全update→wire検証である。原最適化m/P/Fは両枝bitwise一致。この新nativeで180秒を再実走した証拠ではない。元失敗pickle、全replay結果はtmpに保持。

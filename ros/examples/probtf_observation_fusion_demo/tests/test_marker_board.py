@@ -18,7 +18,11 @@ from probtf.distributions.transform_component import TransformComponent
 from probtf.distributions.transform_distribution import TransformDistribution
 from probtf.geometry import (axis_angle_to_quat, quat_to_rotmat, skew,
     right_perturbation_vec_rotation_jacobian)
-from probtf.spherical_law.first_order import bingham_from_rotation_coordinates
+from probtf.spherical_law.first_order import (
+    bingham_from_rotation_coordinates, bingham_rotation_coordinates, _right_jacobian,
+)
+from probtf.spherical_law.fusion import Gaussian
+from probtf_observation_fusion_demo import marker_board as board_module
 from probtf_observation_fusion_demo.marker_board import board_layout, fuse_marker_board
 from probtf_observation_fusion_demo.sensors import _marker_mode_chart
 
@@ -261,27 +265,31 @@ def test_all_nine_native_two_mode_observations_stay_recorded_without_exponential
                for step in result.record['steps'])
 
 
-def test_broad_intermediate_projection_is_deferred_and_all_correlated_branches_enter_next_product():
+def test_broad_intermediate_fit_is_accepted_after_using_all_native_modes_without_width_cutoff():
     first = detection(17, angles=(-.4, .4), log_masses=np.log([.7, .3]),
                       coupling=.02*np.eye(3))
     second = detection(18, angles=(.4, .42), log_masses=np.log([.6, .4]))
     result = fuse_marker_board({17: first, 18: second}, SETTINGS)
-    assert result.record['deferred_projection_marker_ids'] == [17]
+    assert result.record['deferred_projection_marker_ids'] == []
     before, after = result.record['steps']
     projection = before['projection']
-    assert projection['deferred'] and not projection['applied']
-    assert 'concentration domain' in projection['single_proxy_domain_reason']
+    assert projection['applied'] and not projection['deferred']
+    assert projection['single_proxy_domain_reason'] is None
+    assert not projection['concentration_threshold_applied']
+    assert projection['maximum_local_rotation_variance_rad2'] > .1
     assert projection['quaternion_second_moment_fit_max_error'] < 1e-6
-    assert projection['discarded_position_rotation_cross_covariance'] is None
-    assert projection['retained_position_rotation_cross_covariance'] is not None
-    assert after['prior_branch_count'] == 2
-    assert len(after['branch_products']) == 4
-    assert result.record['maximum_live_branch_count'] == 4
-    before_laws = {item['product_branch_label']: item for item in before['branch_products']}
+    assert projection['discarded_position_rotation_cross_covariance'] is not None
+    assert projection['retained_position_rotation_cross_covariance'] is None
+    assert len(before['branch_products']) == projection['branch_count'] == 2
+    assert len(projection['branch_log_weights']) == 2
+    assert all(weight > 0. for weight in projection['branch_weights'])
+    assert after['prior_branch_count'] == 1
+    assert len(after['branch_products']) == 2
+    assert result.record['maximum_live_branch_count'] == 2
     for product in after['branch_products']:
-        parent = before_laws[product['prior_branch_label']]
-        np.testing.assert_array_equal(product['prior_branch_mean'], parent['product_mean'])
-        np.testing.assert_array_equal(product['prior_branch_full_covariance'], parent['product_full_covariance'])
+        np.testing.assert_array_equal(product['prior_branch_mean'],
+            np.r_[projection['product_translation_mean'], np.zeros(3)])
+        np.testing.assert_array_equal(product['prior_branch_full_covariance'], projection['product_covariance'])
         expected_log = (product['prior_branch_log_weight']+product['native_log_weight']
             +product['push_chart_log_volume']+product['common_chart_log_volume']
             +product['prior_overlap_log_evidence'])
@@ -289,33 +297,89 @@ def test_broad_intermediate_projection_is_deferred_and_all_correlated_branches_e
     assert after['projection']['applied'] and not after['projection']['deferred']
     assert len(result.detected.weights) == 1
     assert not result.record['final_mixture_fallback_used']
+    assert sum(raw['native_component_count'] for raw in result.record['raw_observations']) == 4
 
 
-def test_final_broad_single_Bingham_keeps_every_narrow_branch_and_log_mass_as_central_mixture():
+def test_final_broad_single_Bingham_uses_every_native_branch_and_preserves_its_full_width():
     native = detection(21, angles=(-.4, .4), log_masses=np.log([.7, .3]),
                        coupling=.02*np.eye(3))
     result = fuse_marker_board({21: native}, SETTINGS)
     final = result.record['central_distribution']
-    assert result.record['final_mixture_fallback_used']
-    assert result.record['central_component_count'] == final['component_count'] == 2
+    assert not result.record['final_mixture_fallback_used']
+    assert not result.record['concentration_threshold_applied']
+    assert result.record['central_component_count'] == final['component_count'] == 1
     assert final['stamp'] == native.record.stamp
     assert final['parent_frame_id'] == 'camera' and final['child_frame_id'] == 'marker'
-    assert 'component_id' not in final
-    assert len(result.detected.record.distribution.components) == 2
-    assert result.detected.seed_indices == (0, 1)
+    assert len(result.detected.record.distribution.components) == 1
+    assert result.detected.seed_indices == (0,)
     projection = result.record['steps'][-1]['projection']
-    np.testing.assert_array_equal(result.detected.log_masses, projection['branch_log_weights'])
-    mixture_moment = np.zeros((4, 4))
-    for component, descriptor, weight, log_weight in zip(result.detected.record.distribution.components,
-            final['components'], result.detected.weights, result.detected.log_masses):
-        law, _volume = _marker_mode_chart(component, quat_to_rotmat(component.orientation.mode_wxyz))
-        assert descriptor['component_id'] == component.component_id
-        assert descriptor['weight'] == weight and descriptor['log_weight'] == log_weight
-        np.testing.assert_array_equal(descriptor['full_product_covariance'], law.covariance)
-        assert descriptor['position_orientation_product_approximation']
-        assert np.linalg.norm(descriptor['discarded_position_rotation_cross_covariance']) > 0.
-        mixture_moment += weight*bingham_second_moment(component.orientation.parameter_matrix())
-    np.testing.assert_allclose(mixture_moment, projection['quaternion_second_moment_target'], atol=2e-12)
+    assert len(projection['branch_log_weights']) == 2
+    assert all(weight > 0. for weight in projection['branch_weights'])
+    assert result.record['raw_observations'][0]['native_component_count'] == 2
+    component = result.detected.record.distribution.components[0]
+    law, _volume = _marker_mode_chart(component, quat_to_rotmat(component.orientation.mode_wxyz))
+    _, omega = bingham_rotation_coordinates(component.orientation.parameter_matrix())
+    assert np.max(np.linalg.eigvalsh(omega)) > .1
+    np.testing.assert_allclose(law.covariance[3:, 3:], omega, atol=2e-13, rtol=1e-12)
+    np.testing.assert_allclose(law.covariance, projection['product_covariance'], atol=2e-13, rtol=1e-12)
+    np.testing.assert_allclose(bingham_second_moment(component.orientation.parameter_matrix()),
+        projection['quaternion_second_moment_target'], atol=1e-6)
+    assert result.detected.weights == (1.,) and result.detected.log_masses == (0.,)
+
+
+def test_actual_nonunique_fitted_mode_defers_without_discarding_input_branches(monkeypatch):
+    # Equal orthogonal quaternion modes have no unique central modal chart.
+    # Supply that exact tied fitted Bingham, rather than emulating a width
+    # threshold. Every individual branch has a proper finite inverse.
+    # Deliberately inaccurate but proper finite fit: the optional refinement
+    # is entered, and its zero gap cannot be represented by log parameters.
+    # A nonzero scalar gauge must not change that conclusion or the law.
+    tied_parameter = np.diag([0., -1000., 0., -1000.])+7.25*np.eye(4)
+    monkeypatch.setattr(board_module, 'match_bingham_to_second_moment',
+        lambda *args, **kwargs: tied_parameter.copy())
+    branches = []
+    for angle in (-np.pi/2., np.pi/2.):
+        mean = np.array([.1, -.02, .8, 0., angle, 0.])
+        inverse = np.linalg.inv(_right_jacobian(mean[3:]))
+        covariance = np.zeros((6, 6))
+        covariance[:3, :3] = 2e-5*np.eye(3)
+        covariance[3:, 3:] = 2e-4*inverse@inverse.T
+        branches.append(dict(label=str(angle), law=Gaussian(mean, covariance), log_mass=np.log(.5)))
+    before = [(item['law'].mean.copy(), item['law'].covariance.copy()) for item in branches]
+    proxy, record = board_module._project_central(branches, np.array([1., 0., 0., 0.]), 120)
+    assert proxy is None and record['deferred'] and not record['applied']
+    assert 'maximum' in record['single_proxy_domain_reason']
+    assert record['core_bingham_fit_max_error'] > 5e-8
+    assert not record['bingham_fit_refinement_used']
+    assert 'zero modal gap' in record['bingham_fit_refinement_skipped_reason']
+    np.testing.assert_array_equal(record['bingham_parameter'], tied_parameter)
+    assert not record['quaternion_second_moment_fit_tolerance_verified']
+    assert record['quaternion_second_moment_fit_warning']
+    assert not record['concentration_threshold_applied']
+    assert record['branch_count'] == len(record['branch_log_weights']) == 2
+    assert record['retained_position_rotation_cross_covariance'] is not None
+    for item, (mean, covariance) in zip(branches, before):
+        np.testing.assert_array_equal(item['law'].mean, mean)
+        np.testing.assert_array_equal(item['law'].covariance, covariance)
+
+
+def test_optional_log_concentration_refinement_uses_scalar_gauge_invariant_gaps(monkeypatch):
+    fit = board_module.match_bingham_to_second_moment
+    def shifted_seed(target, **options):
+        # Same proper Bingham gauge, with intentionally imperfect gaps so
+        # that the existing optional refinement actually runs. Absolute
+        # -eigenvalue concentrations would incorrectly reject this seed.
+        return .5*fit(target, **options)+1e4*np.eye(4)
+    monkeypatch.setattr(board_module, 'match_bingham_to_second_moment', shifted_seed)
+    native = detection(21, angles=(-.4, .4), log_masses=np.log([.7, .3]))
+    result = fuse_marker_board({21: native}, SETTINGS)
+    projection = result.record['steps'][0]['projection']
+    assert projection['core_bingham_fit_max_error'] > 5e-8
+    assert projection['bingham_fit_refinement_used']
+    assert projection['bingham_fit_refinement_skipped_reason'] is None
+    assert projection['quaternion_second_moment_fit_max_error'] < 1e-6
+    assert projection['applied']
+    assert result.record['raw_observations'][0]['native_component_count'] == 2
 
 
 def test_empty_unknown_mismatched_image_and_native_weight_errors_are_explicit():

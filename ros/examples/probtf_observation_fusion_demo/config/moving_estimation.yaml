@@ -6,9 +6,12 @@ body_law_file: config/independent_transform_laws.yaml
 body_law_source: unchanged directly specified six-link family from the switch-press example; translation Gaussians and full Bingham rotations, transported by its explicit right_joint_action
 temporal_policy: retain a single full joint moment proxy and explicit candidate log mass; process every acquired enabled sensor event in acquisition order; retain the unknown marker marginal and all goal modes; no invented process noise
 observation_update:
-  # One analytic Gaussian conditioning of the unchanged core's propagated
-  # Bingham-derived mean/covariance/cross-covariance. No point MAP or GN.
-  method: propagated_moments
+  # Full Gaussian variational posterior: fixed prior KL plus the native
+  # likelihood expectation, differentiated through the core moment formulas.
+  method: variational_moments
+  max_iterations: 24
+  gradient_tolerance: 0.000001
+  max_line_search: 20
 bayes_factor_surprise:
   enabled: true
   change_probability: 0.25

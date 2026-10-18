@@ -1,0 +1,40 @@
+{
+  "current_source_file_count": 198,
+  "source_changes_since_full_suite": [
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+      "previous_sha256": "6503f7ca653e5ee6b21d0f722df7eae22f70bd07fd648e8f5d2bca9fb21cf9ab",
+      "sha256": "3399e3bd971f870bef14714d1c954edbe75b664749b52310a742f80a7e1b66bd"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+      "previous_sha256": "64d3a11aadebcc4968adccab91707718094566d8970348b1006d01c2afa94a5d",
+      "sha256": "b5144380a8a73a8818d16711a0e281f86c33fea8e19c665cdaa2eb9fd458dddf"
+    }
+  ],
+  "new_test_file": "ros/examples/probtf_observation_fusion_demo/tests/test_optional_goal_diagnostics.py",
+  "full_suite_rerun_after_optional_change": false,
+  "targeted_count_after_change": 135,
+  "targeted_overlaps_full_suite": true,
+  "sum_is_not_a_unique_test_count": true,
+  "logs": [
+    {
+      "path": "/tmp/probtf_variational_unrestricted_full_tests_final_20261018.log",
+      "sha256": "50776b3019119847ee822bf49cf39fe2d4d044b34b319015052f78e1af532c2d",
+      "passed": 1263,
+      "scope": "full core/demo before optional diagnostic connection change"
+    },
+    {
+      "path": "/tmp/probtf_optional_goal_diagnostics_regression_20261018.log",
+      "sha256": "dfb609686c29edee9a28241f8cad65efc1f761593bcf9831c4e19759e04cd393",
+      "passed": 130,
+      "scope": "15 affected integration/goal/control/publication test files after change"
+    },
+    {
+      "path": "/tmp/probtf_optional_goal_diagnostics_tests_20261018.log",
+      "sha256": "2b593982fb7857120168f2c9554b28f909c9437328ddaea20d14e3b277b1c414",
+      "passed": 5,
+      "scope": "new same-law/caller/wire invariance regressions after change"
+    }
+  ]
+}

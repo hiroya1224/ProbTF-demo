@@ -1,0 +1,5 @@
+{
+  "exception_type": "RuntimeError",
+  "reason": "imu_marker execution failure recorded; preserved original run will be closed gracefully.",
+  "wall_time": 1792317605.5205228
+}

@@ -22,7 +22,7 @@ from probtf.spherical_law.support import covariance_support, require_in_support
 
 from .body_projection import _partition, _require_common_body, _contraction_diagnostic
 from .model import FrozenBodyBranch, WeightedState, component_log_weight
-from .immutable_body_cache import reexpress_state
+from .immutable_body_cache import reexpress_state, materialize_state_in_chart
 
 
 def _same_time_geometry(left, right):
@@ -171,7 +171,7 @@ def projection_input(raw_result):
             transported = common_chart_gaussian(source, child.distribution, target)
             item = replace(child, distribution=transported)
             common = (actual.state if source.state_id == target.state_id else
-                reexpress_state(target, transported.mean, transported.covariance,
+                materialize_state_in_chart(target, transported.mean, transported.covariance,
                     version=actual.state.version, component_id=child.label))
             raw.append(item)
             displayed.append(replace(actual, state=common))
@@ -200,6 +200,9 @@ def projection_input(raw_result):
         original_prior_state_ids=[branch.reference_state.state_id for branch in branches],
         source_posterior_state_ids=[item.state.state_id for item in stage.components],
         source_posterior_parameter_identity_verified=True,
+        common_chart_materialization=True,
+        common_chart_is_probability_prior=False,
+        reset_law_restricted_to_keep_prior_support=False,
         sampling_used=False, numerical_differentiation_used=False,
         density_ratio_uses_temporary_prior=False,
     )
@@ -213,7 +216,9 @@ def projection_input(raw_result):
 def retain_transition_goals(predicted_goals, raw_result, projection):
     """Keep each root goal marginal under a change-aware body-only update.
 
-    The keep branch uses the existing Schmidt body-side contraction.  The
+    The keep branch uses the declared body-side Gaussian coupling. The
+    variational method transports the full marginal and supports expansion;
+    historical modes retain the Schmidt contraction. The
     reset branch's independent redraw has zero environment cross covariance.
     Mixing these laws leaves every recorded marker marginal and goal mass
     unchanged, while the body's full mixture covariance includes between-
@@ -251,6 +256,14 @@ def retain_transition_goals(predicted_goals, raw_result, projection):
     keep_body = covariance[np.ix_(body, body)]
     support = covariance_support(prior_body, 'fixed-goal retained hypothesis body')
     contraction=_contraction_diagnostic(prior_body,keep_body)
+    if raw_result.records.get('observation_update_method')=='variational_moments':
+        from .gaussian_marginal_transport import covariance_transport
+        coupling,coupling_diagnostics=covariance_transport(prior_body,keep_body)
+        coupling_method='gaussian_marginal_transport'
+    else:
+        coupling=keep_body@support.inverse
+        coupling_diagnostics=dict(method='historical Schmidt contraction')
+        coupling_method='schmidt'
     for column in keep_body.T:
         require_in_support(column, support, 'fixed-goal retained posterior body support')
     require_in_support(mean[body], support, 'fixed-goal retained posterior body mean')
@@ -279,7 +292,7 @@ def retain_transition_goals(predicted_goals, raw_result, projection):
         old_cross = source.covariance[np.ix_(body, environment)]
         for column in old_cross.T:
             require_in_support(column, support, 'fixed-goal retained prior cross support')
-        cross = keep_mass*body_map @ keep_body @ support.inverse @ old_cross
+        cross = keep_mass*body_map @ coupling @ old_cross
         full = projection.state.covariance.copy()
         full[np.ix_(body, environment)] = cross
         full[np.ix_(environment, body)] = cross.T
@@ -298,8 +311,9 @@ def retain_transition_goals(predicted_goals, raw_result, projection):
             source_body_environment_cross_covariance=old_cross.tolist(),
             retained_body_environment_cross_covariance=cross.tolist()))
     raw_result.records['bayes_factor_goal_retention'] = dict(
-        policy='fixed root goal marginals; posterior-weighted keep-branch Schmidt cross and independent reset branch',
-        cross_formula='exp(log_keep_mass) J_body(total_mean) P_keep P_old^+ C_old',
+        policy='fixed root goal marginals; posterior-weighted declared keep-branch Gaussian coupling and independent reset branch',
+        cross_formula='exp(log_keep_mass) J_body(total_mean) A_keep C_old',
+        coupling_method=coupling_method,coupling_diagnostics=coupling_diagnostics,
         keep_posterior_log_mass=keep_log_mass, keep_posterior_mass=keep_mass,
         keep_conditional_body_mean=mean[body].tolist(),
         keep_conditional_body_covariance=keep_body.tolist(),

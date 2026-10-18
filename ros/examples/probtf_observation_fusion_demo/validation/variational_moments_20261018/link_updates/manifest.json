@@ -1,0 +1,18 @@
+{
+  "/tmp/probtf_variational_top12_physical_audit_20261018/summary.json": {
+    "bytes": 56952,
+    "sha256": "fe81ba24c0822c437c0fede452e0409578557ffa4cd62e3eb466a0a179e5a118"
+  },
+  "/tmp/probtf_variational_top12_physical_audit_20261018/REPORT.md": {
+    "bytes": 6170,
+    "sha256": "d33dabe35529bd534b3b2172756d9d4db565a70c76ba7cb7299d8041ba60fb04"
+  },
+  "/tmp/probtf_variational_top12_physical_audit_20261018.py": {
+    "bytes": 18613,
+    "sha256": "251aa28ee0e7643d16361478e7075246fd692a1644bc89f1f44f56e0c89931ab"
+  },
+  "/tmp/probtf_finalize_variational_top12_audit_20261018.py": {
+    "bytes": 13965,
+    "sha256": "72ec7c8211835ff8bef3fc8705612e7d04d0d54e8cd5cdf387d778045cabfd69"
+  }
+}

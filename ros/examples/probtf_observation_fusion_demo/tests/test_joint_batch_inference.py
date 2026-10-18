@@ -58,9 +58,9 @@ def test_joint_batch_keeps_every_event_and_projects_only_once(batch_problem,monk
     model,events,ledger,_ = batch_problem
     calls = []
     original = moving_module.project_update
-    def projection(result):
+    def projection(result, **options):
         calls.append(result)
-        return original(result)
+        return original(result, **options)
     monkeypatch.setattr(moving_module,'project_update',projection)
     result = model.update_sensor_batch(events,ledger[:3],batch_id='all-acquired')
     record = result.records['joint_batch']

@@ -1,0 +1,499 @@
+{
+  "schema": "failed-original-variational-event-fixture-v1",
+  "original_run": "/tmp/probtf_variational_commonchart_180s_live_20261018",
+  "previous_archive_reference_path": "/tmp/probtf_variational_commonchart_180s_live_20261018/imu_marker/stiffness_jobs/00000456_d8f4bf0ed1fef20e.json",
+  "previous_archive_reference": {
+    "archived_wall_time_s": 1792317605.1867032,
+    "batch_id": "85e638c3a4b9980ce55d0bb02e0835db13f615e16ed7b8dbdbb7a23d523d7a1a",
+    "initialize_only": false,
+    "job_sequence": 456,
+    "kind": "stiffness_job_reference",
+    "path": "/tmp/probtf_variational_commonchart_180s_live_20261018/imu_marker/stiffness_jobs/00000456_d8f4bf0ed1fef20e.pickle",
+    "payload_bytes": 1657957,
+    "payload_sha256": "76c29a1181745a8777c58d9f2d193071dfb83948e4773413c551bdda62860484",
+    "source_candidate_id": "b7137d13b52a2a804bed7b8654be107dfdf1d1f180ae2b52cf0fb60b0bf2377f",
+    "source_command": [
+      -0.12658565924288695,
+      -1.3289519234227485,
+      1.3503406845505845,
+      -0.17151548970142624,
+      -0.811074650819957,
+      0.14576673871254325
+    ],
+    "source_stamp": 1792080171.7459395,
+    "source_version": 17941,
+    "status": "pending"
+  },
+  "original_DB": "/tmp/probtf_variational_commonchart_180s_live_20261018/imu_marker/observations.sqlite3",
+  "original_event": {
+    "sequence": 9552,
+    "event_id": "imu:00006013",
+    "kind": "imu",
+    "stamp": 1792080173.402229,
+    "command_json": "[-0.12572809146930813,-1.3267114910398243,1.3456992281781797,-0.1668953401814478,-0.8079064114426089,0.1507414209134739]",
+    "payload_hash": "baf794e8d43ada886bd0ff44005adf9ab5ed5c58a243b0d488b7565370a59b02",
+    "payload_json": "{\"frame_index\":6013,\"gravity_in_sensor\":{\"__event_array__\":0,\"dtype\":\"<f8\",\"shape\":[3]},\"imu_sigma_rad\":0.012,\"imu_target_link\":\"link_3\",\"time\":173.40222899708897}",
+    "status": "failed"
+  },
+  "offline_replay_status_scope": "Original row remains failed. Only the API clone status is processing to permit replay; no q/t/ID/sequence/value/hash changed.",
+  "original_ledger_indices": [
+    5980,
+    5981,
+    5982,
+    5983,
+    5984,
+    5985,
+    5986,
+    5987,
+    5988,
+    5989,
+    5990,
+    5991,
+    5992,
+    5993,
+    5994,
+    5995,
+    5996,
+    5997,
+    5998,
+    5999,
+    6000,
+    6001,
+    6002,
+    6003,
+    6004,
+    6005,
+    6006,
+    6007,
+    6008,
+    6009,
+    6010,
+    6011,
+    6012
+  ],
+  "original_ledger_count": 33,
+  "expected_error": "Bingham modal gap must be symmetric.",
+  "small_fixture_bytes": 404,
+  "small_fixture_sha256": "f017857d8cd9a9a033836e57a9d1d0864314eaf5e79e80e98633ff9520aebf92",
+  "reproduced_failure": null,
+  "fixture_bytes": 3762626,
+  "fixture_sha256": "d2aaf77bbba645ec36d0cda65e49b5e5e81e551cd48f8ca0fea9b51a4dbe9ee9",
+  "raw_pixels_received": true,
+  "physical_truth_received": false,
+  "native_backend": {
+    "backend": "native_analytic_reverse",
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_moment_reverse.so",
+    "library_sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f",
+    "native_source_sha256": "133baaf99f57cb0c2a1357cd4ce2f70a3cf222173841481e80773150bd18ee75",
+    "binding_sha256": "7cc0deea0c6492ce5774915814a00b9122464bfc8883f546dd278011c361364a",
+    "stochastic_sampling": false,
+    "runtime_compilation": false,
+    "reverse_derivatives": true,
+    "core_equations_changed": false
+  },
+  "branches": [
+    {
+      "source_state_id": "109b41d29139d9cbc074daa3bec4ebbf75134af820b097925fcb07cbb29ace86",
+      "source_component_id": "predicted:6013:0",
+      "source_stamp": 1792080173.402229,
+      "source_command": [
+        -0.12572809146930813,
+        -1.3267114910398243,
+        1.3456992281781797,
+        -0.1668953401814478,
+        -0.8079064114426089,
+        0.1507414209134739
+      ],
+      "log_evidence": 5.160958290985816,
+      "log_evidence_parts": [
+        5.160958290985816,
+        -2.7755575615628914e-17
+      ],
+      "mean_sha256": "ae0e8c725e739e70bc352de7dead118d9f9ebdb303beb2c698316db6a55bc384",
+      "covariance_sha256": "1cd56098bf5423d1708a763cc35c74233a875a3af8aa65be1fa71c6878ce5145",
+      "rotation_widths": [
+        {
+          "edge_id": "link_1",
+          "original_chart_rotation_eigenvalues": [
+            0.00016943004241942372,
+            0.0010974860628048411,
+            0.0037400474458879817
+          ]
+        },
+        {
+          "edge_id": "link_2",
+          "original_chart_rotation_eigenvalues": [
+            0.00031510509776559037,
+            0.00287206463265495,
+            0.009559660662881522
+          ]
+        },
+        {
+          "edge_id": "link_3",
+          "original_chart_rotation_eigenvalues": [
+            0.00034550366385958947,
+            0.0011295549339080313,
+            0.00790371074251798
+          ]
+        },
+        {
+          "edge_id": "link_4",
+          "original_chart_rotation_eigenvalues": [
+            0.001562238604068696,
+            0.0031041653371585245,
+            0.018278431314699577
+          ]
+        },
+        {
+          "edge_id": "link_5",
+          "original_chart_rotation_eigenvalues": [
+            0.0021229518376460668,
+            0.0075271440071516095,
+            0.04719373523986896
+          ]
+        },
+        {
+          "edge_id": "link_6",
+          "original_chart_rotation_eigenvalues": [
+            0.0010637120647148208,
+            0.00309052663247112,
+            0.016561996996089866
+          ]
+        },
+        {
+          "edge_id": "tool0",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "press_rod",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "rod_tip",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "camera_optical_frame",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "marker",
+          "original_chart_rotation_eigenvalues": [
+            1.2601131776468732e-06,
+            1.4924569215387386e-06,
+            2.742693077644465e-06
+          ]
+        }
+      ],
+      "final_gradient_inf": 9.992753022807051e-07,
+      "final_F": -5.160958290985816,
+      "initial_seed": {
+        "provided": true,
+        "considered": true,
+        "selected": false,
+        "proposal_only": true,
+        "used_as_new_prior": false,
+        "status": "unavailable optional initial proposal; original prior candidate retained",
+        "reason": "ValueError: initial variational proposal has a different covariance support."
+      }
+    },
+    {
+      "source_state_id": "e0b5b9c07f9e47c595a5363c7fa237ad7e85defd89004c1dfe89f2a81d30c036",
+      "source_component_id": "reset:18040",
+      "source_stamp": 1792080173.402229,
+      "source_command": [
+        -0.12572809146930813,
+        -1.3267114910398243,
+        1.3456992281781797,
+        -0.1668953401814478,
+        -0.8079064114426089,
+        0.1507414209134739
+      ],
+      "log_evidence": -33.77035102216166,
+      "log_evidence_parts": [
+        -33.77035102216166,
+        -2.1094237467877974e-15
+      ],
+      "mean_sha256": "3a55fc56d9e993c5e29b57abc792ba9b05195700549a53b48fc7ab42007f789b",
+      "covariance_sha256": "3f80258ab172c052e0b3cdeb4bfcd3d76c86290db93d5901ec6d0a39a48f8e63",
+      "rotation_widths": [
+        {
+          "edge_id": "link_1",
+          "original_chart_rotation_eigenvalues": [
+            0.0007147122714232834,
+            0.0007313614570610675,
+            0.000999999299074053
+          ]
+        },
+        {
+          "edge_id": "link_2",
+          "original_chart_rotation_eigenvalues": [
+            0.0007589049056936385,
+            0.0007594035129774377,
+            0.0011375694449654208
+          ]
+        },
+        {
+          "edge_id": "link_3",
+          "original_chart_rotation_eigenvalues": [
+            0.0007829259953026339,
+            0.0008042370845495461,
+            0.0013189998360360973
+          ]
+        },
+        {
+          "edge_id": "link_4",
+          "original_chart_rotation_eigenvalues": [
+            0.0014285714285714284,
+            0.0014285714285714284,
+            0.0014285714285714284
+          ]
+        },
+        {
+          "edge_id": "link_5",
+          "original_chart_rotation_eigenvalues": [
+            0.0016666666666666655,
+            0.0016666666666666663,
+            0.0016666666666666663
+          ]
+        },
+        {
+          "edge_id": "link_6",
+          "original_chart_rotation_eigenvalues": [
+            0.0019999999999999996,
+            0.0019999999999999996,
+            0.0019999999999999996
+          ]
+        },
+        {
+          "edge_id": "tool0",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "press_rod",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "rod_tip",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "camera_optical_frame",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "marker",
+          "original_chart_rotation_eigenvalues": [
+            1.2618012691870488e-06,
+            1.4925678293675178e-06,
+            2.74229526455012e-06
+          ]
+        }
+      ],
+      "final_gradient_inf": 9.82398081557645e-05,
+      "final_F": 33.77035102216166,
+      "initial_seed": {
+        "provided": true,
+        "considered": true,
+        "selected": true,
+        "proposal_only": true,
+        "used_as_new_prior": false,
+        "status": "evaluated on same fixed-prior objective",
+        "objective": 40.42742332880962,
+        "objective_parts": [
+          40.42742332880962,
+          -2.4424906541753444e-15
+        ],
+        "gradient_inf": 10.098396391258769
+      }
+    }
+  ],
+  "all_original_branches_comparison": [
+    {
+      "source_component_id": "predicted:6013:0",
+      "original_prior_mean_equal": true,
+      "original_prior_covariance_equal": true,
+      "raw_mean_bitwise_equal": true,
+      "raw_covariance_bitwise_equal": true,
+      "raw_mean_max_abs": 0.0,
+      "raw_covariance_max_abs": 0.0,
+      "evidence_parts_identical": true,
+      "evidence_parts_difference": [
+        0.0,
+        0.0
+      ],
+      "native_likelihoods_identical": true
+    },
+    {
+      "source_component_id": "reset:18040",
+      "original_prior_mean_equal": true,
+      "original_prior_covariance_equal": true,
+      "raw_mean_bitwise_equal": true,
+      "raw_covariance_bitwise_equal": true,
+      "raw_mean_max_abs": 0.0,
+      "raw_covariance_max_abs": 0.0,
+      "evidence_parts_identical": true,
+      "evidence_parts_difference": [
+        0.0,
+        0.0
+      ],
+      "native_likelihoods_identical": true
+    }
+  ],
+  "full_update_finished": true,
+  "wire_verified": true,
+  "wire_bytes": 223133,
+  "candidate_identity": {
+    "schema": "immutable_control_candidate_v1",
+    "frame": "base_link",
+    "stamp": 1792080173.402229,
+    "command": [
+      -0.12572809146930813,
+      -1.3267114910398243,
+      1.3456992281781797,
+      -0.1668953401814478,
+      -0.8079064114426089,
+      0.1507414209134739
+    ],
+    "version": 18040,
+    "prior_state_id": "109b41d29139d9cbc074daa3bec4ebbf75134af820b097925fcb07cbb29ace86",
+    "body": [
+      {
+        "label": "internal:18042",
+        "state_id": "c663d43b46de0a2685ef3c5546af5b9c9513d3e39713ff8ed9f425fd5d535af2",
+        "component_id": "internal:18042",
+        "weight": 1.0,
+        "log_weight": 0.0,
+        "numeric_law_sha256": "6116e9d0f7467a1fc4a2c24a2e9c4aed447bba4e4dff2ae3e3fd8a5f8bc7cd22"
+      }
+    ],
+    "goals": [
+      {
+        "label": "predicted_goal:6013:0",
+        "state_id": "cdd4f75408d1f2248ff8e587fc90d661dd3315c99e6dc6085a860bca760cb846",
+        "component_id": "predicted_goal:6013:0",
+        "weight": 1.0,
+        "log_weight": 0.0,
+        "numeric_law_sha256": "9b5481f2f4390c709b9444d54075399e02d227e27bf9a6580ba0d24a138d86f8"
+      }
+    ],
+    "candidate_log_total_mass": -20357.260657943636,
+    "observation_ids_sha256": "549229f7b98dd183b275d620c3941e46f34916ec23e27eb55180da03e4edb8ec",
+    "observation_id_count": 1,
+    "original_sensor_event": {
+      "acquisition_metadata": {
+        "frame_index": 6013
+      },
+      "acquisition_metadata_is_observation": false,
+      "acquisition_stamp": 1792080173.402229,
+      "chronological_separate_sensor_update": true,
+      "enabled": true,
+      "event_id": "imu:00006013",
+      "event_index": 6013,
+      "joint_notification_is_observation": false,
+      "kind": "imu",
+      "law_metadata_index": "physical acquisition frame index; may repeat across separate sensor events",
+      "monte_carlo_used": false,
+      "observation_id": "imu:00006013",
+      "payload_hash": "baf794e8d43ada886bd0ff44005adf9ab5ed5c58a243b0d488b7565370a59b02",
+      "physical_truth_received": false,
+      "probability_unit": "per_effective_sensor_event",
+      "sent_command": [
+        -0.12572809146930813,
+        -1.3267114910398243,
+        1.3456992281781797,
+        -0.1668953401814478,
+        -0.8079064114426089,
+        0.1507414209134739
+      ],
+      "sequence": 9552,
+      "simultaneous_sensor_wait": false,
+      "update_identity": "event_id and sequence plus content-derived state_id; numeric version alone is not an observation identifier"
+    },
+    "action_ledger_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+    "parameter": {
+      "action_packet_ref": null,
+      "density_id": null,
+      "estimated_packet_id": null,
+      "selected_K": null
+    }
+  },
+  "retained_original_branch_logmass": [
+    {
+      "label": "predicted:6013:0",
+      "prior_weight": 0.75,
+      "prior_log_weight": -0.2876820724517809,
+      "children": [
+        {
+          "label": "predicted:6013:0|imu:00006013:gravity",
+          "weight": 1.0,
+          "log_weight": 0.0,
+          "finite_logmass": true
+        }
+      ]
+    },
+    {
+      "label": "reset:18040",
+      "prior_weight": 0.25,
+      "prior_log_weight": -1.3862943611198906,
+      "children": [
+        {
+          "label": "reset:18040|imu:00006013:gravity",
+          "weight": 4.123119644403175e-18,
+          "log_weight": -40.02992160181559,
+          "finite_logmass": true
+        }
+      ]
+    }
+  ],
+  "canonical_covariance_trace": 0.12764374310600243,
+  "goal_records": {},
+  "baseline_scope": "Old production failed before full canonical goal/wire completion. Comparison is to the exact captured original branch Gaussians, not a nonexistent old complete successful result.",
+  "source_sha256_before": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": "5391bc5a45ece4da657e6739da6d549bded7f597e4b03273cd29a7976e056504",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": "7cc0deea0c6492ce5774915814a00b9122464bfc8883f546dd278011c361364a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "b5144380a8a73a8818d16711a0e281f86c33fea8e19c665cdaa2eb9fd458dddf",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "290d7e0c0d92fcd8e446f3d3bc52d2ee3fbfe3ca1b443a3a9f838429a50b99ca"
+  },
+  "source_sha256_after": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": "5391bc5a45ece4da657e6739da6d549bded7f597e4b03273cd29a7976e056504",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": "7cc0deea0c6492ce5774915814a00b9122464bfc8883f546dd278011c361364a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "b5144380a8a73a8818d16711a0e281f86c33fea8e19c665cdaa2eb9fd458dddf",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "290d7e0c0d92fcd8e446f3d3bc52d2ee3fbfe3ca1b443a3a9f838429a50b99ca"
+  },
+  "source_unchanged": true
+}

@@ -19,11 +19,6 @@ from probtf.geometry import (
 from probtf.spherical_law.support import covariance_support, require_in_support, support_inverse
 
 
-# An explicitly declared applicability bound, not a covariance adjustment or
-# an asymptotic error guarantee.  Broad inputs are rejected, never shrunk.
-MAX_FIRST_ORDER_ROTATION_VARIANCE = 0.1  # radian squared
-
-
 def _array(value, shape=None):
     result = np.array(value, dtype=float, copy=True)
     if shape is not None and result.shape != shape:
@@ -43,33 +38,37 @@ def bingham_rotation_coordinates(matrix):
     matrix = _array(matrix, (4, 4))
     if not np.allclose(matrix, matrix.T, atol=1e-12, rtol=1e-12):
         raise ValueError("Bingham parameter must be symmetric.")
-    # B(A+cI)=B(A); remove the scalar offset before testing concentration or
+    # B(A+cI)=B(A); remove the scalar offset before computing the mode or
     # taking modal gaps so the computation respects that gauge invariance.
     matrix = matrix - np.trace(matrix)*0.25*np.eye(4)
     values, vectors = np.linalg.eigh(matrix)
-    scale = max(1.0, float(np.max(np.abs(values))))
-    if values[-1] - values[-2] <= 1e-12 * scale:
+    if values[-1] <= values[-2]:
         raise ValueError("A single-pose proxy needs a simple maximum Bingham eigenvalue.")
     quaternion = quat_normalize(vectors[:, -1])
     if quaternion[np.argmax(np.abs(quaternion))] < 0.0:
         quaternion = -quaternion
     tangent = quat_left_matrix(quaternion)[:, 1:]
     gap = values[-1] * np.eye(3) - tangent.T @ matrix @ tangent
-    inverse, basis, _ = support_inverse(gap, name="Bingham modal gap")
-    if basis.shape[1] != 3:
-        raise ValueError("A continuous unobserved orientation is not a single-pose Bingham.")
-    covariance = 2.0 * inverse
-    if np.max(np.linalg.eigvalsh(covariance)) > MAX_FIRST_ORDER_ROTATION_VARIANCE:
-        raise ValueError("Bingham rotation exceeds the declared first-order concentration domain (0.1 rad^2).")
+    # This precision needs an actual inverse, not a numerical-range
+    # approximation. A small finite positive gap is not a quality failure.
+    # Cholesky/solve still fails when the required positive inverse is
+    # genuinely unavailable. No concentration ceiling or jitter is used.
+    gap = 0.5 * (gap + gap.T)
+    root = np.linalg.cholesky(gap)
+    inverse_root = np.linalg.solve(root, np.eye(3))
+    covariance = 2.0 * inverse_root.T @ inverse_root
     return _array(quaternion), _array(covariance)
 
 
 def bingham_from_rotation_coordinates(quaternion, covariance):
     """First-order reexpression, A=-2 N Omega^-1 N^T (maximum zero)."""
     quaternion = quat_normalize(quaternion)
-    inverse, basis, _ = support_inverse(covariance, name="rotation covariance")
-    if basis.shape[1] != 3:
-        raise ValueError("A continuous Bingham reexpression needs full rotation support.")
+    covariance = _array(covariance, (3, 3))
+    if not np.allclose(covariance, covariance.T, atol=1e-12, rtol=1e-12):
+        raise ValueError("Rotation covariance must be symmetric.")
+    root = np.linalg.cholesky(0.5 * (covariance + covariance.T))
+    inverse_root = np.linalg.solve(root, np.eye(3))
+    inverse = inverse_root.T @ inverse_root
     tangent = quat_left_matrix(quaternion)[:, 1:]
     parameter = -2.0 * tangent @ inverse @ tangent.T
     # This quadratic form is symmetric analytically. Remove only the skew

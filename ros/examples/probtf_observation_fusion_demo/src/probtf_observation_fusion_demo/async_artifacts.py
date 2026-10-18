@@ -157,7 +157,7 @@ def load_stiffness_job(reference):
     return job
 
 
-def construct_control_artifacts(job, common, output, monitor):
+def construct_control_artifacts(job, common, output, monitor, *, consistency_evaluator=None):
     """Construct and save the exact source candidate, never a newer estimate."""
     from .async_workers import _append, _freeze_arrays
     predicted = _freeze_arrays(job['result'])
@@ -181,6 +181,23 @@ def construct_control_artifacts(job, common, output, monitor):
         MotionDisplay.stiffness_marker(snapshot, snapshot.stiffness_record)
         wire = io.BytesIO()
         markers.serialize(wire)
+    if consistency_evaluator is not None:
+        # The execution reply already used this exact frozen candidate.  An
+        # auxiliary model-fit diagnostic may neither delay that reply nor
+        # mutate the inferred law, gradient, stiffness packet or display.
+        with monitor.stage('K_body_consistency_diagnostic', **context):
+            try:
+                consistency = consistency_evaluator.evaluate(
+                    predicted, expected, request=request)
+            except Exception as error:
+                consistency = dict(status='unavailable',
+                    reason=type(error).__name__+': '+str(error),
+                    candidate_id=job['candidate_id'], request_id=request.get('request_id'),
+                    stamp=expected['stamp'], command=expected['command'],
+                    diagnostic_is_control_acceptance_gate=False,
+                    body_reconstructed_from_stiffness=False,
+                    physical_truth_received=False, monte_carlo_used=False)
+            _append(Path(output)/'K_body_consistency.jsonl', consistency)
     with monitor.stage('control_record_json_write', **context):
         _append(Path(output)/'control.jsonl', dict(index=request['index'],
             request_id=request.get('request_id'),event_id=request.get('event_id'),

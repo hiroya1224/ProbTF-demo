@@ -1,0 +1,44 @@
+[
+  {
+    "path": "live/physical_distance_500ms.csv",
+    "original_sha256": "4df34d1d012df124efe606ad88d21587a735c4852eec4f5be8d5148ffe4a3508",
+    "sha256": "e05a7f6625d8468d12247c3473e9d3c656704562b3e44c42d4ce660d28080ed7",
+    "csv_rows_and_fields_identical": true,
+    "change": "CRLF to LF only"
+  },
+  {
+    "path": "live/runtime_stage_exclusive.csv",
+    "original_sha256": "c5a1336c48b6ad43e1c86257ce5801784b4fe7350776f845568ec32f10cdcd36",
+    "sha256": "739460b366dcc46eb71d5ed67beb559ea708a069ec007fc1d2997d906ee6f8a5",
+    "csv_rows_and_fields_identical": true,
+    "change": "CRLF to LF only"
+  },
+  {
+    "path": "live/runtime_stages.csv",
+    "original_sha256": "726255ccd3746c87bd5027bd864df33b7355ab794566001387abb94a07ddc039",
+    "sha256": "8961e878d2c9401f69b57500612acf059f01ab7fa41c4ee700ce1433cab3b63a",
+    "csv_rows_and_fields_identical": true,
+    "change": "CRLF to LF only"
+  },
+  {
+    "path": "live/runtime_timeline.csv",
+    "original_sha256": "ec63fe215effb897e6eaff8207b797aec89ac8d181aea228ce5dcff29d017c87",
+    "sha256": "5be66b3fc55d73833cff012260e293af07e3e1d7dea83958230ddc1f7db1e9f0",
+    "csv_rows_and_fields_identical": true,
+    "change": "CRLF to LF only"
+  },
+  {
+    "path": "live/used_K_representatives_imu_marker.csv",
+    "original_sha256": "1732c33b110e447f183a9f45e4ee9984f2fec7813231dd6f4f716ae09a9728d2",
+    "sha256": "d2bd1a6f69c733fb37c956417c66ee9e7201dbc1d4b255fdc15dd3cc90a10901",
+    "csv_rows_and_fields_identical": true,
+    "change": "CRLF to LF only"
+  },
+  {
+    "path": "live/used_K_representatives_marker.csv",
+    "original_sha256": "06454fcd337796531c584f628c5d5c4fa694c92aee2ad24746ddb46fa6026d5d",
+    "sha256": "cf9c61f4b0a4caf8ff0ef8336ca889bc3ebea0ea3e862ebb076e9ceb65152f43",
+    "csv_rows_and_fields_identical": true,
+    "change": "CRLF to LF only"
+  }
+]

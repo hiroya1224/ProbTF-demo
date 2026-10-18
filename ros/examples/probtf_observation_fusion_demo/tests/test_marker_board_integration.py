@@ -13,11 +13,9 @@ import yaml
 from visualization_msgs.msg import MarkerArray
 
 from probtf.geometry import quat_to_rotmat
-from probtf.spherical_law.first_order import (
-    MAX_FIRST_ORDER_ROTATION_VARIANCE, bingham_rotation_coordinates,
-)
+from probtf.spherical_law.first_order import bingham_rotation_coordinates
 from probtf_observation_fusion_demo.body_native import point_query
-from probtf_observation_fusion_demo import model, moment_observation, sensors
+from probtf_observation_fusion_demo import model, moment_observation, sensors, marker_board
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
 from probtf_observation_fusion_demo.marker_search import marker_observed
 from probtf_observation_fusion_demo.marker_board import fuse_marker_board
@@ -86,7 +84,7 @@ def board_pipeline(board_capture):
     patch.setattr(model, 'lift_sensor_posterior', forbidden_affine)
     try:
         inference = MovingInference(scene.robot_description, templates)
-        assert inference.observation_update_method == 'propagated_moments'
+        assert inference.observation_update_method == 'variational_moments'
         result = inference.update(inputs, 0)
         yield SimpleNamespace(scene=scene, inputs=inputs, inference=inference, result=result,
             prepared=tuple(prepared_calls), affine_calls=tuple(affine_calls))
@@ -255,7 +253,7 @@ def _fresh_domain_handoff(pipeline, fusion):
     """Exercise the derived-observation/task boundary on a frozen body.
 
     These analytic native-mode fixtures are deliberately unresolved pose
-    likelihoods. They are a concentration-domain contract test, separate
+    likelihoods. They test the finite-width handoff, separate
     from the real-pixel body update and its accuracy above.
     """
     original = pipeline.result
@@ -286,33 +284,34 @@ def _fresh_domain_handoff(pipeline, fusion):
     return goals, record, snapshot
 
 
-def test_broad_central_single_fit_preserves_every_narrow_mode_through_fresh_goal_and_wire(board_pipeline):
+def test_broad_central_single_fit_preserves_full_width_through_fresh_goal_and_wire(board_pipeline):
     native = detection(21, angles=(-.4, .4), log_masses=np.log([.7, .3]),
         coupling=.02*np.eye(3), stamp=board_pipeline.inputs.stamp)
     fusion = fuse_marker_board({21: native}, ANALYTIC_BOARD_SETTINGS)
-    assert MAX_FIRST_ORDER_ROTATION_VARIANCE == .1
     projection = fusion.record['steps'][0]['projection']
-    assert projection['deferred'] and not projection['applied']
+    assert projection['applied'] and not projection['deferred']
     assert projection['quaternion_second_moment_fit_max_error'] < 1e-6
-    with pytest.raises(ValueError, match='concentration domain'):
-        bingham_rotation_coordinates(np.asarray(projection['bingham_parameter']))
-    assert fusion.record['final_mixture_fallback_used'] is True
-    assert fusion.record['central_distribution']['component_count'] == 2
-    for component in fusion.detected.record.distribution.components:
-        _, covariance = bingham_rotation_coordinates(component.orientation.parameter_matrix())
-        assert np.max(np.linalg.eigvalsh(covariance)) <= MAX_FIRST_ORDER_ROTATION_VARIANCE
+    assert projection['single_proxy_domain_reason'] is None
+    assert not projection['concentration_threshold_applied']
+    _, covariance = bingham_rotation_coordinates(np.asarray(projection['bingham_parameter']))
+    assert np.max(np.linalg.eigvalsh(covariance)) > .1
+    assert fusion.record['final_mixture_fallback_used'] is False
+    assert fusion.record['central_distribution']['component_count'] == 1
+    central = fusion.detected.record.distribution.components[0]
+    _, actual_covariance = bingham_rotation_coordinates(central.orientation.parameter_matrix())
+    np.testing.assert_allclose(actual_covariance, covariance, atol=2e-13, rtol=1e-12)
     goals, record, snapshot = _fresh_domain_handoff(board_pipeline, fusion)
-    assert len(goals) == record['central_component_count'] == record['goal_component_count'] == 2
+    assert len(goals) == record['central_component_count'] == record['goal_component_count'] == 1
     assert record['marker_board_fusion'] is fusion.record
     assert record['raw_marker_count'] == 1 and record['raw_native_component_count'] == 2
     np.testing.assert_array_equal([item.weight for item in goals], fusion.detected.weights)
     np.testing.assert_allclose([item.log_weight for item in goals], fusion.detected.log_masses,
         atol=1e-14, rtol=0.)
-    assert len({item.query.state_id for item in snapshot.points if item.frame_label == 'switch_goal'}) == 2
+    assert len({item.query.state_id for item in snapshot.points if item.frame_label == 'switch_goal'}) == 1
     assert record['component_pruning_used'] is False
 
 
-def test_intermediate_broad_fit_defers_until_next_marker_before_fresh_single_goal(board_pipeline):
+def test_intermediate_broad_fit_is_used_by_next_marker_before_fresh_single_goal(board_pipeline):
     stamp = board_pipeline.inputs.stamp
     native = {
         17: detection(17, angles=(-.4, .4), log_masses=np.log([.7, .3]),
@@ -320,10 +319,14 @@ def test_intermediate_broad_fit_defers_until_next_marker_before_fresh_single_goa
         18: detection(18, angles=(.4, .42), log_masses=np.log([.6, .4]), stamp=stamp),
     }
     fusion = fuse_marker_board(native, ANALYTIC_BOARD_SETTINGS)
-    assert fusion.record['deferred_projection_marker_ids'] == [17]
-    assert fusion.record['steps'][0]['projection']['retained_position_rotation_cross_covariance'] is not None
-    assert fusion.record['steps'][1]['prior_branch_count'] == 2
-    assert len(fusion.record['steps'][1]['branch_products']) == 4
+    assert fusion.record['deferred_projection_marker_ids'] == []
+    first = fusion.record['steps'][0]
+    assert first['projection']['applied']
+    assert first['projection']['maximum_local_rotation_variance_rad2'] > .1
+    assert len(first['branch_products']) == 2
+    assert first['projection']['discarded_position_rotation_cross_covariance'] is not None
+    assert fusion.record['steps'][1]['prior_branch_count'] == 1
+    assert len(fusion.record['steps'][1]['branch_products']) == 2
     assert fusion.record['steps'][1]['projection']['applied'] is True
     assert fusion.record['final_mixture_fallback_used'] is False
     goals, record, _snapshot = _fresh_domain_handoff(board_pipeline, fusion)
@@ -331,3 +334,31 @@ def test_intermediate_broad_fit_defers_until_next_marker_before_fresh_single_goa
     assert record['raw_marker_count'] == 2 and record['raw_native_component_count'] == 4
     assert goals[0].weight == 1. and goals[0].log_weight == 0.
     assert record['marker_board_fusion'] is fusion.record
+
+
+def test_actual_nonunique_central_fit_retains_native_branches_through_fresh_goal_and_wire(board_pipeline, monkeypatch):
+    # A finite but inaccurate tied fitted Bingham is still a valid law.
+    # Optional refinement cannot log its zero gap; the subsequent actual
+    # nonunique modal operation retains all original branches instead.
+    parameter = np.diag([0., -1000., 0., -1000.])+7.25*np.eye(4)
+    monkeypatch.setattr(marker_board, 'match_bingham_to_second_moment',
+        lambda *args, **kwargs: parameter.copy())
+    native = detection(21, angles=(-.4, .4), log_masses=np.log([.7, .3]),
+        coupling=.02*np.eye(3), stamp=board_pipeline.inputs.stamp)
+    fusion = fuse_marker_board({21: native}, ANALYTIC_BOARD_SETTINGS)
+    projection = fusion.record['steps'][0]['projection']
+    assert projection['deferred'] and not projection['applied']
+    assert 'maximum' in projection['single_proxy_domain_reason']
+    assert 'zero modal gap' in projection['bingham_fit_refinement_skipped_reason']
+    assert not projection['quaternion_second_moment_fit_tolerance_verified']
+    assert fusion.record['final_mixture_fallback_used']
+    assert fusion.record['raw_observations'][0]['native_component_count'] == 2
+    assert len(fusion.detected.record.distribution.components) == 2
+    np.testing.assert_array_equal(fusion.detected.log_masses, projection['branch_log_weights'])
+    goals, record, snapshot = _fresh_domain_handoff(board_pipeline, fusion)
+    assert len(goals) == record['goal_component_count'] == 2
+    assert record['raw_native_component_count'] == 2
+    np.testing.assert_array_equal([item.weight for item in goals], fusion.detected.weights)
+    np.testing.assert_allclose([item.log_weight for item in goals], fusion.detected.log_masses,
+        atol=1e-14, rtol=0.)
+    assert len({item.query.state_id for item in snapshot.points if item.frame_label == 'switch_goal'}) == 2

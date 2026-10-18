@@ -2,13 +2,15 @@
 
 初期表示は[観測前の剛体事前分布](INITIAL_PRIOR.md)。async起動時は初回joint通知だけで同じ推定・制御・表示lawを構成し、`autostart=false`では画像・IMUを保存しながら観測融合を開始操作まで保留する。最初の観測後の事後を、観測前の初期分布として表示しない。
 
-推定の最新方式は[全取得情報の共同バッチ推定](BATCH_INFERENCE.md)。取得済みfrontierまでの原観測を全て共同融合し、身体の単一化・剛性evidence・K代表選定をバッチ末尾へまとめる。ユーザー承認による近似方式の変更であり、以下の観測ごとの旧逐次近似と数値的に同じではない。全raw・native観測mixture・全cross・実指令ledger・連続K履歴を保持し、同じ末尾身体を推定・IK・表示・次事前へ渡す。処理率と未完了件数は取得率から分けて測る。
+推定の現行方式は[伝播モーメントの逆微分によるGaussian変分更新](VARIATIONAL_MOMENT_UPDATE.md)。各観測の原時刻・実指令で、前回から保持した共同事前を固定し、KL項と観測の期待負対数尤度から共同Gaussianの平均・全共分散を求める。既存の高集中Bingham由来の伝播式と全crossをデモ内C++で逆微分し、同じ観測を反復融合しない。同じcanonical事後を次事前・K比・制御・表示へ渡す。coreの伝播式とRViz設定を維持し、高集中の数値閾値は最新指示に従って撤去した。
+
+取得済みfrontierの処理は[C++による原取得順の逐次更新](CPP_SEQUENTIAL_INFERENCE.md)であり、batchは受渡し単位である。全rawを保存し、処理能力に届かない場合は設定済みの時間被覆選択と未融合理由を明示する。各観測へ実指令ledgerで輸送し、一件ずつ全native/Keep/Reset枝の更新とcanonical化を行う。[共同バッチ推定](BATCH_INFERENCE.md)と以下の過去の数値は撤回済みの比較履歴である。処理率・融合率・未完了件数を取得率と分けて記録する。
 
 全処理に共通する最新規則は[数値監査と早期終了の扱い](NUMERICAL_DIAGNOSTICS.md)。有限な計算結果を残差・精度の独自監査で止めず、未達を診断として残して後続更新へ進む。以下の旧実行で発生したevidence停止の原因と、その後の修正・再検証を区別して記録する。
 
 最新の追加は[マーカー視野因子](VISIBILITY_FACTOR_TRACKING.md)。完全タスクJとは独立な視野因子を指令選定だけで合成し、既存の減衰二階系へ渡す。以下の「完全Jの勾配だけ」という説明と実測は、視野因子追加前の履歴である。
 
-最新の追従制御は[Running Gradient Tracking](RUNNING_GRADIENT_TRACKING.md)。完全Jの勾配だけを非同期に計算し、位置と速度を保持する減衰二階系で実行する。新指示書に従う取得側の目標は物理120 Hz・Joint40 Hz・IMU30 Hz・画像12 Hz。旧端点IKは`control_mode:=single_step_ik`の比較用に保持する。以下の過去の到達・性能結果とは区別する。
+現行の追従制御は[局所二次モデルによる追従](LOCAL_MODEL_TRACKING.md)。完全task規準と視野因子の勾配・局所曲率を非同期に計算し、現在指令で局所勾配を評価する減衰二階系で実行する。元の[定勾配保持](RUNNING_GRADIENT_TRACKING.md)と区別する。現在の取得側の目標は設定の通り物理120 Hz・Joint40 Hz・IMU30 Hz・画像12 Hz。旧端点IKは`control_mode:=single_step_ik`の比較用に保持する。以下の過去の到達・性能結果とは区別する。[捕捉したKと身体の整合度](STIFFNESS_BODY_CONSISTENCY.md) は勾配ready後の別processで記録する。
 
 直前のsourceでは物理目標を240 Hzへ引き上げ、不要な全リンク変換の構築を省いた。ROS実測はno sensorの10秒試行で約219 Hz。[当時の変更・測定条件・検証](PHYSICS_UPDATE_RATE.md)を参照する。
 

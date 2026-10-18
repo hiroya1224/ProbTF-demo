@@ -84,16 +84,49 @@ def test_hand_gravity_updates_all_six_local_laws_and_the_same_display_distributi
     previous = first.stages[-1].components[0].state
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
     np.testing.assert_array_equal(second.prior.covariance, previous.covariance)
+    for carried, before in zip(second.prior.transforms, previous.transforms):
+        np.testing.assert_array_equal(carried.translation, before.translation)
+        np.testing.assert_array_equal(carried.rotation_wxyz, before.rotation_wxyz)
+        if before.bingham is not None:
+            np.testing.assert_array_equal(carried.bingham, before.bingham)
     assert second.records['prediction'][0]['source_state_id'] == previous.state_id
     assert second.records['observation_ids'] != first.records['observation_ids']
     current = second.stages[-1].components[0].state
+    gravity_query = second.local_estimates[0].posterior.query
+    assert gravity_query.state_id == second.frozen_body_branches[0].reference_state.state_id
+    assert gravity_query.stamp == second.prior.stamp
+    assert gravity_query.command == second.prior.command
     for edge in inference.body_ids:
         index = current.edge_ids.index(edge)
         rotation = slice(6*index+3, 6*index+6)
         assert np.trace(previous.covariance[rotation, rotation]) < np.trace(
             first.prior.covariance[rotation, rotation])
-        assert np.trace(current.covariance[rotation, rotation]) < np.trace(
-            previous.covariance[rotation, rotation])
+        # Hand gravity has two informed rotation directions at EVERY
+        # upstream local transform. Verify that information actually reaches
+        # and changes each block. Full Gaussian variational optimization,
+        # finite chart transport and Keep/Reset mixing do not imply a
+        # monotonically shrinking trace on every subsequent observation.
+        assert np.linalg.matrix_rank(gravity_query.jacobian[:, rotation]) == 2
+        assert np.linalg.norm(gravity_query.cross_covariance[rotation, :]) > 0.
+        assert not np.array_equal(current.covariance[rotation, rotation],
+                                  second.prior.covariance[rotation, rotation])
+    for result in (first, second):
+        update = result.records['variational_observation_update']
+        assert update['original_prior_held_fixed']
+        assert update['observation_added_once']
+        assert update['distribution_parameter_optimization_used']
+        parents = {branch.label: branch for branch in result.frozen_body_branches}
+        for branch in update['branch_diagnostics']:
+            assert branch['source_prior_state_id'] == parents[branch['parent_label']].reference_state.state_id
+            # In this fixture both hypotheses improve the SAME fixed-prior
+            # free energy and expected gravity likelihood. A trace change
+            # alone would not establish either meaningful update.
+            assert branch['final_objective'] < branch['initial_objective']
+            assert branch['final_expected_negative_log_likelihood'] < branch[
+                'objective_history'][0]['expected_negative_log_likelihood']
+            assert not branch['point_MAP_used']
+            assert not branch['Gauss_Newton_used']
+            assert not branch['body_Laplace_evidence_used']
     first_index, last_index = (current.edge_ids.index(edge) for edge in ('link_1', 'link_6'))
     assert np.linalg.norm(current.covariance[
         6*first_index:6*first_index+6, 6*last_index:6*last_index+6]) > 1e-6

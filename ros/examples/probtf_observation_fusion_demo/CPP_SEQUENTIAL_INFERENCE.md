@@ -1,6 +1,6 @@
 # C++数値処理と取得時刻順の逐次推定
 
-現行の観測更新は [PROPAGATED_MOMENT_UPDATE.md](PROPAGATED_MOMENT_UPDATE.md) の一回の解析的更新である。C++化した既存coreの補正平均・共分散・全交差の伝播式を直接使い、点MAP＋GN/Laplace方式は撤回した。以下の過去の移植・比較数値は、それぞれ記録したsourceに対応する履歴として区別する。
+現行の観測更新は [VARIATIONAL_MOMENT_UPDATE.md](VARIATIONAL_MOMENT_UPDATE.md) のGaussian変分更新である。デモ内C++で既存coreの補正平均・全共分散の分布パラメータ依存を逆微分する。単回条件付け・点MAP＋GN/Laplace方式は比較用履歴とし、以下の過去の移植・比較数値を新方式の証拠へ転用しない。
 
 2026年10月18日のユーザー指示を記録する。実装・検証結果は作業の進行に合わせて追記する。旧共同バッチの速度やテスト結果を、この方式の速度・推定精度の証拠として扱わない。
 

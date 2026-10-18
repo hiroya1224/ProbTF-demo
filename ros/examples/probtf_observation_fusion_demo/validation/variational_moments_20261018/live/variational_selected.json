@@ -1,0 +1,962 @@
+{
+  "source_report_path": "/tmp/probtf_variational_commonchart_180s_live_20261018/variational_diagnostics.json",
+  "source_report_sha256": "0d0290249e3f8515e94a8857b44ccb8e4b76d743ff7b46fb90d40891624e81ec",
+  "cases": {
+    "marker": {
+      "counts": {
+        "identity_or_ineffective_jobs": 1,
+        "effective_jobs": 108,
+        "branches": 216,
+        "finite_nonstationary": 216,
+        "seed_selected": 120,
+        "prior_start": 96
+      },
+      "original_source_errors": [],
+      "completed_iterations": {
+        "count": 216,
+        "median": 24.0,
+        "p95": 24.0,
+        "maximum": 24.0
+      },
+      "valid_evaluator_calls": {
+        "count": 216,
+        "median": 28.0,
+        "p95": 32.0,
+        "maximum": 38.0
+      },
+      "final_gradient_inf": {
+        "count": 216,
+        "median": 246.16885128577871,
+        "p95": 3844.3753100190397,
+        "maximum": 17837.99827924159
+      },
+      "modal_link_update_magnitudes_m": {
+        "count": 108,
+        "median": 0.006708242298627787,
+        "p95": 0.0765514915520486,
+        "maximum": 0.1518339112520879
+      },
+      "top_modal_link_updates": [
+        {
+          "job_sequence": 74,
+          "event_id": "image:00002781",
+          "kind": "image",
+          "sequence": 2367,
+          "stamp": 1792080034.94331,
+          "frame_index": 2781,
+          "command": [
+            -0.17253465398560364,
+            -1.9236008599231778,
+            2.2027525340809033,
+            -0.21807842959845644,
+            -0.8023018837960292,
+            0.08014918630380624
+          ],
+          "payload_hash": "79ff43011870fc46dc6dd811b1052e8e472b3270e97ee2ba0bdee2fb88bb682e",
+          "prior_state_id": "1a80915193330cd8d433291f46e89c4797b3a7c4e039fe8a041647ac56449c77",
+          "canonical_state_id": "ef683afe250571d7d1c5f6e7279acd469e306fbf58dd6e94d9a05c5b84b4b2bb",
+          "max_link_modal_shift_m": 0.1518339112520879,
+          "links": {
+            "link_1": {
+              "position_shift_m": 9.912676685556824e-05,
+              "rotation_shift_rad": 0.13649486942821912
+            },
+            "link_2": {
+              "position_shift_m": 0.023417991343727962,
+              "rotation_shift_rad": 0.21482971151122782
+            },
+            "link_3": {
+              "position_shift_m": 0.07807515606323638,
+              "rotation_shift_rad": 0.22702208453561437
+            },
+            "link_4": {
+              "position_shift_m": 0.1267956389060507,
+              "rotation_shift_rad": 0.1739528880458076
+            },
+            "link_5": {
+              "position_shift_m": 0.14699413484045068,
+              "rotation_shift_rad": 0.04241851913860236
+            },
+            "link_6": {
+              "position_shift_m": 0.1518339112520879,
+              "rotation_shift_rad": 0.21965352552891626
+            },
+            "tool0": {
+              "position_shift_m": 0.130660653132575,
+              "rotation_shift_rad": 0.21965352552891626
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 1,
+          "event_id": "image:00000000",
+          "kind": "image",
+          "sequence": 3,
+          "stamp": 1792080000.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "payload_hash": "f9db43dc3e9afcb8466c4db55dbec1af5b2653ecb46d607f9ef11a2dfc616adc",
+          "prior_state_id": "2d7ec0a3121cdd97e869740eb71ae4f11fdcd1e5e7a673abf5c924617dceb46a",
+          "canonical_state_id": "a9389b58e9e55ac64257bb15ca3460e7058ee8c1b5082ed11d6b03d5e078922f",
+          "max_link_modal_shift_m": 0.12392882815883687,
+          "links": {
+            "link_1": {
+              "position_shift_m": 1.189110434679727e-05,
+              "rotation_shift_rad": 0.04188960330523717
+            },
+            "link_2": {
+              "position_shift_m": 0.0075099175585265614,
+              "rotation_shift_rad": 0.09244906219525431
+            },
+            "link_3": {
+              "position_shift_m": 0.04052362772990985,
+              "rotation_shift_rad": 0.16344493428636162
+            },
+            "link_4": {
+              "position_shift_m": 0.03578286356496187,
+              "rotation_shift_rad": 0.22277345599301726
+            },
+            "link_5": {
+              "position_shift_m": 0.0590825056837699,
+              "rotation_shift_rad": 0.2798749864505868
+            },
+            "link_6": {
+              "position_shift_m": 0.09086407266449013,
+              "rotation_shift_rad": 0.33909211469139783
+            },
+            "tool0": {
+              "position_shift_m": 0.12392882815883687,
+              "rotation_shift_rad": 0.33909211469139783
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 56,
+          "event_id": "image:00002147",
+          "kind": "image",
+          "sequence": 1716,
+          "stamp": 1792080024.5078297,
+          "frame_index": 2147,
+          "command": [
+            -0.3037872427014617,
+            -2.0193409579111905,
+            2.179853867409571,
+            -0.11178886028873584,
+            -0.7887060299811164,
+            0.06312797348060271
+          ],
+          "payload_hash": "635c95b3303ed4ef437dcd58d8da8ee327a88cc8ab92205c24e4dc578fded561",
+          "prior_state_id": "6919fb53b4d41170d7e528c8df323f275cb55e40fd87bc4ef8a6f32900606e14",
+          "canonical_state_id": "073b905b6de88a34c6079316810d73d7e78cb5002439a9d64eef596eceeb1387",
+          "max_link_modal_shift_m": 0.09793372148018195,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.0001341761884307036,
+              "rotation_shift_rad": 0.10944195356346895
+            },
+            "link_2": {
+              "position_shift_m": 0.019800535992877944,
+              "rotation_shift_rad": 0.15049173525067655
+            },
+            "link_3": {
+              "position_shift_m": 0.070090136207475,
+              "rotation_shift_rad": 0.09376581924400217
+            },
+            "link_4": {
+              "position_shift_m": 0.08698197017963348,
+              "rotation_shift_rad": 0.10000258913966346
+            },
+            "link_5": {
+              "position_shift_m": 0.09793372148018195,
+              "rotation_shift_rad": 0.03473032459062067
+            },
+            "link_6": {
+              "position_shift_m": 0.09695317547846749,
+              "rotation_shift_rad": 0.15849848973008157
+            },
+            "tool0": {
+              "position_shift_m": 0.08656899103093992,
+              "rotation_shift_rad": 0.15849848973008157
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 55,
+          "event_id": "image:00002098",
+          "kind": "image",
+          "sequence": 1675,
+          "stamp": 1792080024.009782,
+          "frame_index": 2098,
+          "command": [
+            -0.30193395623447705,
+            -2.0164948726614167,
+            2.1855179064960266,
+            -0.1109180825676834,
+            -0.7926753603927034,
+            0.06322302423225191
+          ],
+          "payload_hash": "8f87da22b8f7bf50b1f00cea1818a3a290d32a2895040acc0e06c512f37ae42c",
+          "prior_state_id": "c68a215a806cdb5f36a8a471925e1cf8fdbae74641962434da0c6ab804c92d95",
+          "canonical_state_id": "a45237cd83637b72b87b4dc79f7cb32060c0e2bfa61c3f06cc4171de7d5cc710",
+          "max_link_modal_shift_m": 0.08538154048897054,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.00011910771157803326,
+              "rotation_shift_rad": 0.11817858447476912
+            },
+            "link_2": {
+              "position_shift_m": 0.02139179740627061,
+              "rotation_shift_rad": 0.1645269119784329
+            },
+            "link_3": {
+              "position_shift_m": 0.07866433680546149,
+              "rotation_shift_rad": 0.0613940822246459
+            },
+            "link_4": {
+              "position_shift_m": 0.08381438027221585,
+              "rotation_shift_rad": 0.01936942730173084
+            },
+            "link_5": {
+              "position_shift_m": 0.08538154048897054,
+              "rotation_shift_rad": 0.03207599846568192
+            },
+            "link_6": {
+              "position_shift_m": 0.08410639045713823,
+              "rotation_shift_rad": 0.18291934669777177
+            },
+            "tool0": {
+              "position_shift_m": 0.07784626670212808,
+              "rotation_shift_rad": 0.18291934669777177
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 73,
+          "event_id": "image:00002685",
+          "kind": "image",
+          "sequence": 2259,
+          "stamp": 1792080032.9318008,
+          "frame_index": 2685,
+          "command": [
+            -0.1676188792163095,
+            -1.9317515005264416,
+            2.1854127717127003,
+            -0.20806971891572748,
+            -0.7731242081032323,
+            0.07672121114675944
+          ],
+          "payload_hash": "f9a9c35606575f4c0c26a33f00b14c808e7e90fd7cb2631ebff03a81cde3155b",
+          "prior_state_id": "00e3364e8e92f4b4700c86143eb347022ac0c54a0253b6fd0eb4c1326491ac4e",
+          "canonical_state_id": "ffd25c5c1e5c3eaf50fe916fa57fe906b995753f1d9765471fd20dbe5790f533",
+          "max_link_modal_shift_m": 0.07832194691742624,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.0001668092703277753,
+              "rotation_shift_rad": 0.13864103516897797
+            },
+            "link_2": {
+              "position_shift_m": 0.024933398322225544,
+              "rotation_shift_rad": 0.14357993242274456
+            },
+            "link_3": {
+              "position_shift_m": 0.0719637161703424,
+              "rotation_shift_rad": 0.1034098231717187
+            },
+            "link_4": {
+              "position_shift_m": 0.07737769645015874,
+              "rotation_shift_rad": 0.0852555622368375
+            },
+            "link_5": {
+              "position_shift_m": 0.07780233164672254,
+              "rotation_shift_rad": 0.13564835564510688
+            },
+            "link_6": {
+              "position_shift_m": 0.07832194691742624,
+              "rotation_shift_rad": 0.3143878108099552
+            },
+            "tool0": {
+              "position_shift_m": 0.05358135933217623,
+              "rotation_shift_rad": 0.3143878108099552
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 33,
+          "event_id": "image:00001294",
+          "kind": "image",
+          "sequence": 1018,
+          "stamp": 1792080014.1698604,
+          "frame_index": 1294,
+          "command": [
+            0.0793853788621705,
+            -1.8824191929076712,
+            2.218083457913818,
+            -0.1939532565357767,
+            -0.8288813334943924,
+            0.03053579874580237
+          ],
+          "payload_hash": "6562751948404f465186176ea00556f01b376751eef5770fedc7f750b6fe9d4a",
+          "prior_state_id": "e63fa52785e8e7bee687e62f45e69816f22a63a3ccc3d2d76a24ac40e933aabe",
+          "canonical_state_id": "7492cdbc7241c08e6a0b7bd39a27af147c32ca98dcdaa0c84883db9bedd44fd7",
+          "max_link_modal_shift_m": 0.07704326162285585,
+          "links": {
+            "link_1": {
+              "position_shift_m": 6.514851512131201e-05,
+              "rotation_shift_rad": 0.08418820191804872
+            },
+            "link_2": {
+              "position_shift_m": 0.014659919209273,
+              "rotation_shift_rad": 0.10794115858351765
+            },
+            "link_3": {
+              "position_shift_m": 0.05166694656445193,
+              "rotation_shift_rad": 0.08303127587319657
+            },
+            "link_4": {
+              "position_shift_m": 0.05053673780475138,
+              "rotation_shift_rad": 0.13429234938370846
+            },
+            "link_5": {
+              "position_shift_m": 0.05341948736290911,
+              "rotation_shift_rad": 0.24346211350338878
+            },
+            "link_6": {
+              "position_shift_m": 0.07191050804068658,
+              "rotation_shift_rad": 0.07586504706934694
+            },
+            "tool0": {
+              "position_shift_m": 0.07704326162285585,
+              "rotation_shift_rad": 0.07586504706934694
+            }
+          },
+          "native_component_count": 1
+        }
+      ],
+      "selected_raw_vs_canonical_closure": [
+        {
+          "job_sequence": 74,
+          "event_id": "image:00002781",
+          "label": "predicted:2781:0|image:00002781:camera__to__marker:board_adf:446f796de7046368:0",
+          "native_label": "camera__to__marker:board_adf:446f796de7046368:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 1.1546319456101628e-14,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 1.5063633933970477e-17,
+          "canonical_projection_minus_component_mean_norm": 0.19255241536613024,
+          "canonical_projection_minus_component_covariance_max_abs": 0.0003028573394459863,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 74,
+          "event_id": "image:00002781",
+          "label": "reset:8344|image:00002781:camera__to__marker:board_adf:446f796de7046368:0",
+          "native_label": "camera__to__marker:board_adf:446f796de7046368:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 3.916138247017642e-15,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.1317701700022604e-18,
+          "canonical_projection_minus_component_mean_norm": 7.148203841399378e-16,
+          "canonical_projection_minus_component_covariance_max_abs": 2.3464930221312255e-18,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 1,
+          "event_id": "image:00000000",
+          "label": "predicted:0:0|image:00000000:camera__to__marker:board_adf:9a4189d14e057909:0",
+          "native_label": "camera__to__marker:board_adf:9a4189d14e057909:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 8.164042358815848e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.1137707198731065e-18,
+          "canonical_projection_minus_component_mean_norm": 3.165573288030122e-17,
+          "canonical_projection_minus_component_covariance_max_abs": 3.426843841684683e-19,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 1,
+          "event_id": "image:00000000",
+          "label": "reset:1|image:00000000:camera__to__marker:board_adf:9a4189d14e057909:0",
+          "native_label": "camera__to__marker:board_adf:9a4189d14e057909:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 8.164042358815848e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.1137707198731065e-18,
+          "canonical_projection_minus_component_mean_norm": 3.165573288030122e-17,
+          "canonical_projection_minus_component_covariance_max_abs": 3.426843841684683e-19,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 56,
+          "event_id": "image:00002147",
+          "label": "predicted:2147:0|image:00002147:camera__to__marker:board_adf:564ea116727e2aa6:0",
+          "native_label": "camera__to__marker:board_adf:564ea116727e2aa6:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 1.165456620100258e-13,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 7.155734338404329e-17,
+          "canonical_projection_minus_component_mean_norm": 0.11114455339531128,
+          "canonical_projection_minus_component_covariance_max_abs": 0.0006766313898652708,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 56,
+          "event_id": "image:00002147",
+          "label": "reset:6442|image:00002147:camera__to__marker:board_adf:564ea116727e2aa6:0",
+          "native_label": "camera__to__marker:board_adf:564ea116727e2aa6:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 7.022160630754115e-15,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.7647155398380363e-18,
+          "canonical_projection_minus_component_mean_norm": 9.736377951858771e-15,
+          "canonical_projection_minus_component_covariance_max_abs": 2.6207199388048052e-18,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 55,
+          "event_id": "image:00002098",
+          "label": "predicted:2098:0|image:00002098:camera__to__marker:board_adf:437a05c64c58268d:0",
+          "native_label": "camera__to__marker:board_adf:437a05c64c58268d:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 5.190292640122607e-15,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 1.2497560855153375e-17,
+          "canonical_projection_minus_component_mean_norm": 0.14934322923729437,
+          "canonical_projection_minus_component_covariance_max_abs": 0.00021728100272363913,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 55,
+          "event_id": "image:00002098",
+          "label": "reset:6295|image:00002098:camera__to__marker:board_adf:437a05c64c58268d:0",
+          "native_label": "camera__to__marker:board_adf:437a05c64c58268d:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 3.164135620181696e-15,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 1.2955368928254524e-18,
+          "canonical_projection_minus_component_mean_norm": 8.148474614243159e-16,
+          "canonical_projection_minus_component_covariance_max_abs": 3.3347687133401804e-18,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 73,
+          "event_id": "image:00002685",
+          "label": "predicted:2685:0|image:00002685:camera__to__marker:board_adf:545cace625aab75c:0",
+          "native_label": "camera__to__marker:board_adf:545cace625aab75c:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 1.587618925213974e-14,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.7090509168246478e-17,
+          "canonical_projection_minus_component_mean_norm": 0.1984757914574575,
+          "canonical_projection_minus_component_covariance_max_abs": 0.00014811767144138013,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 73,
+          "event_id": "image:00002685",
+          "label": "reset:8056|image:00002685:camera__to__marker:board_adf:545cace625aab75c:0",
+          "native_label": "camera__to__marker:board_adf:545cace625aab75c:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 5.065392549852277e-15,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 3.622548157169829e-18,
+          "canonical_projection_minus_component_mean_norm": 7.586991163767673e-16,
+          "canonical_projection_minus_component_covariance_max_abs": 2.4318315915670963e-18,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 33,
+          "event_id": "image:00001294",
+          "label": "predicted:1294:0|image:00001294:camera__to__marker:board_adf:071cb55b9d0408b2:0",
+          "native_label": "camera__to__marker:board_adf:071cb55b9d0408b2:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 1.481315070606115e-13,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 1.6485836133728338e-15,
+          "canonical_projection_minus_component_mean_norm": 0.11924932957198499,
+          "canonical_projection_minus_component_covariance_max_abs": 0.00026221982219987107,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 33,
+          "event_id": "image:00001294",
+          "label": "reset:3883|image:00001294:camera__to__marker:board_adf:071cb55b9d0408b2:0",
+          "native_label": "camera__to__marker:board_adf:071cb55b9d0408b2:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 8.36136715420821e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 1.260385025514399e-18,
+          "canonical_projection_minus_component_mean_norm": 7.751785926949684e-16,
+          "canonical_projection_minus_component_covariance_max_abs": 2.298847418848171e-18,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        }
+      ]
+    },
+    "imu_marker": {
+      "counts": {
+        "identity_or_ineffective_jobs": 1,
+        "effective_jobs": 456,
+        "branches": 912,
+        "finite_nonstationary": 550,
+        "seed_selected": 848,
+        "stationarity_verified": 362,
+        "prior_start": 64
+      },
+      "original_source_errors": [],
+      "completed_iterations": {
+        "count": 912,
+        "median": 24.0,
+        "p95": 24.0,
+        "maximum": 24.0
+      },
+      "valid_evaluator_calls": {
+        "count": 912,
+        "median": 27.0,
+        "p95": 31.0,
+        "maximum": 44.0
+      },
+      "final_gradient_inf": {
+        "count": 912,
+        "median": 3.054990878936478e-05,
+        "p95": 688.2235934102832,
+        "maximum": 13968.719815380819
+      },
+      "modal_link_update_magnitudes_m": {
+        "count": 456,
+        "median": 0.0014015846215556104,
+        "p95": 0.02517328604859307,
+        "maximum": 0.1432706325675818
+      },
+      "top_modal_link_updates": [
+        {
+          "job_sequence": 1,
+          "event_id": "imu:00000000",
+          "kind": "imu",
+          "sequence": 2,
+          "stamp": 1792080000.0,
+          "frame_index": 0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "payload_hash": "64af01c2929304f58bec5de758f38e52cd0f8790bacd89b027c740f21b3dccb7",
+          "prior_state_id": "2d7ec0a3121cdd97e869740eb71ae4f11fdcd1e5e7a673abf5c924617dceb46a",
+          "canonical_state_id": "f8d51b6b0e269bdcfa80f7ed5b59efb962d8bf3b69f8d7680bac3d52bec712d0",
+          "max_link_modal_shift_m": 0.1432706325675818,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.0,
+              "rotation_shift_rad": 0.0809588623891285
+            },
+            "link_2": {
+              "position_shift_m": 0.014568615818340472,
+              "rotation_shift_rad": 0.17091363783924837
+            },
+            "link_3": {
+              "position_shift_m": 0.0756995641059186,
+              "rotation_shift_rad": 0.2721135084524311
+            },
+            "link_4": {
+              "position_shift_m": 0.060352073314213696,
+              "rotation_shift_rad": 0.2721135084524311
+            },
+            "link_5": {
+              "position_shift_m": 0.08485044374233251,
+              "rotation_shift_rad": 0.2721135084524311
+            },
+            "link_6": {
+              "position_shift_m": 0.11655912529041093,
+              "rotation_shift_rad": 0.2721135084524311
+            },
+            "tool0": {
+              "position_shift_m": 0.1432706325675818,
+              "rotation_shift_rad": 0.2721135084524311
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 451,
+          "event_id": "image:00005914",
+          "kind": "image",
+          "sequence": 9297,
+          "stamp": 1792080168.350915,
+          "frame_index": 5914,
+          "command": [
+            -0.1247237130693218,
+            -1.3538981017806289,
+            1.3448821020245485,
+            -0.19020428358856128,
+            -0.815440279252572,
+            0.11873219141327208
+          ],
+          "payload_hash": "83305ce7f92e9a0b6e1d08c9a88e0482f218dd4cd7c899664bd4b6bea087a7b1",
+          "prior_state_id": "9c339095877573a3398479ed087657492c02af7c7417cb072e902bfff0590b15",
+          "canonical_state_id": "01ef55caed7173ead7786350d4d31a044b2af44a1a27405e7fcf791650a02cc9",
+          "max_link_modal_shift_m": 0.10735496764851364,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.001295780963521371,
+              "rotation_shift_rad": 0.34510611337659747
+            },
+            "link_2": {
+              "position_shift_m": 0.0456579959097099,
+              "rotation_shift_rad": 0.18058274549510167
+            },
+            "link_3": {
+              "position_shift_m": 0.10058576597914434,
+              "rotation_shift_rad": 0.19516426871461875
+            },
+            "link_4": {
+              "position_shift_m": 0.10735496764851364,
+              "rotation_shift_rad": 0.3381351106313843
+            },
+            "link_5": {
+              "position_shift_m": 0.10046216172900443,
+              "rotation_shift_rad": 0.4332226612819877
+            },
+            "link_6": {
+              "position_shift_m": 0.10390447302201115,
+              "rotation_shift_rad": 0.1524541921527636
+            },
+            "tool0": {
+              "position_shift_m": 0.08978870999450803,
+              "rotation_shift_rad": 0.1524541921527636
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 71,
+          "event_id": "image:00000972",
+          "kind": "image",
+          "sequence": 786,
+          "stamp": 1792080011.4177594,
+          "frame_index": 972,
+          "command": [
+            0.08579864456096023,
+            -1.8169509126201915,
+            2.319906926122251,
+            0.030302344487697346,
+            -0.9424866655531865,
+            0.005837216066127329
+          ],
+          "payload_hash": "f3e88ae81d2d6649e88de43253e0bb6b19ac0769fd857ad7e2a859480e0d6af8",
+          "prior_state_id": "6ffcfe845d21ff86e63e54d3be5e803604d77171a9139666406bef3eb24b360b",
+          "canonical_state_id": "e26fa177e23890df171bcd64fb16a5c95d4e022e6334740da8cadd6921ebb79a",
+          "max_link_modal_shift_m": 0.10560477994037658,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.00011734934679177851,
+              "rotation_shift_rad": 0.06459371700566456
+            },
+            "link_2": {
+              "position_shift_m": 0.010631438911471678,
+              "rotation_shift_rad": 0.18479903285536292
+            },
+            "link_3": {
+              "position_shift_m": 0.07131864502840185,
+              "rotation_shift_rad": 0.14666257974488578
+            },
+            "link_4": {
+              "position_shift_m": 0.06769989107861218,
+              "rotation_shift_rad": 0.23943877776514355
+            },
+            "link_5": {
+              "position_shift_m": 0.09026276211165117,
+              "rotation_shift_rad": 0.2914950190815829
+            },
+            "link_6": {
+              "position_shift_m": 0.09977177809436759,
+              "rotation_shift_rad": 0.13441011994940505
+            },
+            "tool0": {
+              "position_shift_m": 0.10560477994037658,
+              "rotation_shift_rad": 0.13441011994940505
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 249,
+          "event_id": "imu:00003212",
+          "kind": "imu",
+          "sequence": 3162,
+          "stamp": 1792080049.3442764,
+          "frame_index": 3212,
+          "command": [
+            -0.14179923206731035,
+            -1.7133072421805147,
+            1.9186685199341578,
+            -0.06864901807967808,
+            -0.9147275500075851,
+            0.010555878450172576
+          ],
+          "payload_hash": "a99ff9ec23828697b92c2eca7f0cf1232e76eec75adfe462a9f7ac8f123a4ddd",
+          "prior_state_id": "eb2131df7500a0908ded3c55bf180b699d00613db97a3863a19afdf3efcc231a",
+          "canonical_state_id": "f0aebeaddc7a3331caa07f4bc081978287a121f123f482abffc2f4e359c2dba2",
+          "max_link_modal_shift_m": 0.08684278488799482,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.00038437658325031086,
+              "rotation_shift_rad": 0.024116041184613614
+            },
+            "link_2": {
+              "position_shift_m": 0.004670205962568933,
+              "rotation_shift_rad": 0.08594973337438751
+            },
+            "link_3": {
+              "position_shift_m": 0.033303455415447485,
+              "rotation_shift_rad": 0.12665565055754271
+            },
+            "link_4": {
+              "position_shift_m": 0.06395183584348638,
+              "rotation_shift_rad": 0.05183144971071147
+            },
+            "link_5": {
+              "position_shift_m": 0.05888546780896821,
+              "rotation_shift_rad": 0.20834747729512315
+            },
+            "link_6": {
+              "position_shift_m": 0.08371945417575982,
+              "rotation_shift_rad": 0.05675357490553913
+            },
+            "tool0": {
+              "position_shift_m": 0.08684278488799482,
+              "rotation_shift_rad": 0.05675357490553913
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 251,
+          "event_id": "image:00003239",
+          "kind": "image",
+          "sequence": 3208,
+          "stamp": 1792080049.9274354,
+          "frame_index": 3239,
+          "command": [
+            -0.1478680782804193,
+            -1.7094586996670977,
+            1.9173857262399714,
+            -0.06518752525834208,
+            -0.9099832114977235,
+            0.011625908199551057
+          ],
+          "payload_hash": "5eca6316ba04290cab87f4405374841ace928dbc501aaea315da3521edf37d6a",
+          "prior_state_id": "aad6e3eecb7a22eed278eca5809be2f8ffb11cba57070220572bafda903c9714",
+          "canonical_state_id": "8307337b836fd870743d78aeac90292940b19346e03ed7d12aac0d63fb9ed820",
+          "max_link_modal_shift_m": 0.06941772084321295,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.0002677449294938478,
+              "rotation_shift_rad": 0.020253886921428415
+            },
+            "link_2": {
+              "position_shift_m": 0.003818887050591317,
+              "rotation_shift_rad": 0.053205112452401844
+            },
+            "link_3": {
+              "position_shift_m": 0.021871652870945443,
+              "rotation_shift_rad": 0.08992451638592504
+            },
+            "link_4": {
+              "position_shift_m": 0.043810780547598696,
+              "rotation_shift_rad": 0.04562261187884828
+            },
+            "link_5": {
+              "position_shift_m": 0.04003175418933991,
+              "rotation_shift_rad": 0.1830417930043005
+            },
+            "link_6": {
+              "position_shift_m": 0.06200089403463224,
+              "rotation_shift_rad": 0.09198216330600846
+            },
+            "tool0": {
+              "position_shift_m": 0.06941772084321295,
+              "rotation_shift_rad": 0.09198216330600846
+            }
+          },
+          "native_component_count": 1
+        },
+        {
+          "job_sequence": 441,
+          "event_id": "image:00005681",
+          "kind": "image",
+          "sequence": 8693,
+          "stamp": 1792080153.6920106,
+          "frame_index": 5681,
+          "command": [
+            -0.0843624772192659,
+            -1.3659085951310814,
+            1.406299231576794,
+            -0.15071040416946527,
+            -0.767808104553644,
+            -0.0032878691466756652
+          ],
+          "payload_hash": "05a683e4dd784b0ca2cd27d73655fb16ebb5ac2bce8de47f476110585e189343",
+          "prior_state_id": "c8341c16e84d7bd5190d358d65c07ce9d96c4467b0a18e6dd2f4faf0fcb4e525",
+          "canonical_state_id": "5bb94ad797d76a1467f78cfb592732f14beb006aee54ebe6fe2e3e94a893dcd8",
+          "max_link_modal_shift_m": 0.06016429455973956,
+          "links": {
+            "link_1": {
+              "position_shift_m": 0.0037497919612740744,
+              "rotation_shift_rad": 0.1681895976639568
+            },
+            "link_2": {
+              "position_shift_m": 0.016613621816144387,
+              "rotation_shift_rad": 0.25463884276607285
+            },
+            "link_3": {
+              "position_shift_m": 0.06016429455973956,
+              "rotation_shift_rad": 0.09405450544966375
+            },
+            "link_4": {
+              "position_shift_m": 0.043989338768603704,
+              "rotation_shift_rad": 0.35649942730320866
+            },
+            "link_5": {
+              "position_shift_m": 0.03138181456967715,
+              "rotation_shift_rad": 0.4120225286239818
+            },
+            "link_6": {
+              "position_shift_m": 0.017016128035479514,
+              "rotation_shift_rad": 0.054950702295916955
+            },
+            "tool0": {
+              "position_shift_m": 0.014745772798628435,
+              "rotation_shift_rad": 0.054950702295916955
+            }
+          },
+          "native_component_count": 1
+        }
+      ],
+      "selected_raw_vs_canonical_closure": [
+        {
+          "job_sequence": 1,
+          "event_id": "imu:00000000",
+          "label": "predicted:0:0|imu:00000000:gravity",
+          "native_label": "gravity",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 1.3720578492804059e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.439454888092385e-19,
+          "canonical_projection_minus_component_mean_norm": 4.691589727343201e-17,
+          "canonical_projection_minus_component_covariance_max_abs": 8.944667923005412e-19,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 1,
+          "event_id": "imu:00000000",
+          "label": "reset:1|imu:00000000:gravity",
+          "native_label": "gravity",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 1.3720578492804059e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.439454888092385e-19,
+          "canonical_projection_minus_component_mean_norm": 4.691589727343201e-17,
+          "canonical_projection_minus_component_covariance_max_abs": 8.944667923005412e-19,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 451,
+          "event_id": "image:00005914",
+          "label": "predicted:5914:0|image:00005914:camera__to__marker:board_adf:22886c858b73b313:0",
+          "native_label": "camera__to__marker:board_adf:22886c858b73b313:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 1.5795698082854415e-13,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 7.813031905473666e-17,
+          "canonical_projection_minus_component_mean_norm": 0.1572961998601247,
+          "canonical_projection_minus_component_covariance_max_abs": 9.62297022627895e-05,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 451,
+          "event_id": "image:00005914",
+          "label": "reset:17743|image:00005914:camera__to__marker:board_adf:22886c858b73b313:0",
+          "native_label": "camera__to__marker:board_adf:22886c858b73b313:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 3.469446951953614e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.2721658810096607e-18,
+          "canonical_projection_minus_component_mean_norm": 5.314599358432774e-16,
+          "canonical_projection_minus_component_covariance_max_abs": 1.9922214919421144e-18,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 71,
+          "event_id": "image:00000972",
+          "label": "predicted:972:0|image:00000972:camera__to__marker:board_adf:3fd62ccedcce0391:0",
+          "native_label": "camera__to__marker:board_adf:3fd62ccedcce0391:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 3.2029934260435766e-14,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 5.7295955530241045e-18,
+          "canonical_projection_minus_component_mean_norm": 0.0,
+          "canonical_projection_minus_component_covariance_max_abs": 0.0,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 71,
+          "event_id": "image:00000972",
+          "label": "reset:2917|image:00000972:camera__to__marker:board_adf:3fd62ccedcce0391:0",
+          "native_label": "camera__to__marker:board_adf:3fd62ccedcce0391:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 7.322701472967097e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 1.6394322694106983e-18,
+          "canonical_projection_minus_component_mean_norm": 0.048098857639479554,
+          "canonical_projection_minus_component_covariance_max_abs": 8.346786378025555e-05,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 249,
+          "event_id": "imu:00003212",
+          "label": "predicted:3212:0|imu:00003212:gravity",
+          "native_label": "gravity",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 2.4060614611798314e-15,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 4.119968255444917e-18,
+          "canonical_projection_minus_component_mean_norm": 6.659511810074125e-11,
+          "canonical_projection_minus_component_covariance_max_abs": 3.252023569053422e-12,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 249,
+          "event_id": "imu:00003212",
+          "label": "reset:9637|imu:00003212:gravity",
+          "native_label": "gravity",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 5.898059818321144e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 9.555276107579806e-19,
+          "canonical_projection_minus_component_mean_norm": 0.034070249643874145,
+          "canonical_projection_minus_component_covariance_max_abs": 0.00011986080121422112,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 251,
+          "event_id": "image:00003239",
+          "label": "predicted:3239:0|image:00003239:camera__to__marker:board_adf:cbbed4b0c3152be0:0",
+          "native_label": "camera__to__marker:board_adf:cbbed4b0c3152be0:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 3.191891195797325e-15,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 1.8854953405880726e-18,
+          "canonical_projection_minus_component_mean_norm": 0.0,
+          "canonical_projection_minus_component_covariance_max_abs": 0.0,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 251,
+          "event_id": "image:00003239",
+          "label": "reset:9718|image:00003239:camera__to__marker:board_adf:cbbed4b0c3152be0:0",
+          "native_label": "camera__to__marker:board_adf:cbbed4b0c3152be0:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 4.85722573273506e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 2.0599841277224584e-18,
+          "canonical_projection_minus_component_mean_norm": 0.04900027314777257,
+          "canonical_projection_minus_component_covariance_max_abs": 0.0003889696673908282,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 441,
+          "event_id": "image:00005681",
+          "label": "predicted:5681:0|image:00005681:camera__to__marker:board_adf:89a20fc0d8a9a703:0",
+          "native_label": "camera__to__marker:board_adf:89a20fc0d8a9a703:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 5.457006374554041e-15,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 4.3020009297657863e-20,
+          "canonical_projection_minus_component_mean_norm": 0.0,
+          "canonical_projection_minus_component_covariance_max_abs": 0.0,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        },
+        {
+          "job_sequence": 441,
+          "event_id": "image:00005681",
+          "label": "reset:17044|image:00005681:camera__to__marker:board_adf:89a20fc0d8a9a703:0",
+          "native_label": "camera__to__marker:board_adf:89a20fc0d8a9a703:0",
+          "raw_optimizer_to_reexpressed_core_mean_max_abs": 7.641456911677835e-16,
+          "raw_optimizer_to_reexpressed_core_covariance_max_abs": 1.2031044224563268e-18,
+          "canonical_projection_minus_component_mean_norm": 0.10243864910031648,
+          "canonical_projection_minus_component_covariance_max_abs": 6.825169953311616e-05,
+          "distinction": "raw closure compares the SAME Gaussian; canonical projection mixes all parent/native branches and may change moments"
+        }
+      ]
+    }
+  },
+  "scope": "Archived effective body events through actual shutdown, including after-physical-end processing. Same-q/t modal prior-to-canonical link updates; not physical motion or O(P)-mean displacement. Per-branch full diagnostics remain in original tmp report."
+}

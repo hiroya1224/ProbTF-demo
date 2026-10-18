@@ -1,0 +1,53 @@
+{
+  "source_manifest": "regression_sources.json",
+  "source_manifest_sha256": "c464e24121c9ea71054dc1d08e31c76d1d1c46b10803dd72b4f307ff17b63d5a",
+  "source_file_count": 202,
+  "source_changes_during_final_regression": [],
+  "command": "source /home/leus/catkin_ws/devel/setup.bash && PYTHONPATH=/tmp/probtf_switch_press_pytest:$PYTHONPATH OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/core/probtf_core/test ros/examples/probtf_observation_fusion_demo/tests",
+  "passed": 1304,
+  "warnings": 1,
+  "wall_s": 207.59,
+  "log": "logs/final_full_tests.log",
+  "log_sha256": "906acea96edc81e2904cc50717ad118bba19c3135159931a152d0a97e2b6b4f0",
+  "native_backends": {
+    "physical_dynamics": {
+      "path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_flexible_dynamics.so",
+      "abi_symbol": "probtf_dynamics_abi_version",
+      "abi": 2,
+      "sha256": "c5a70015d262e0ed78d9834970094f59673ae896b9a3ceef9e5f488a42ab5be0",
+      "bytes": 452600
+    },
+    "auxiliary_equilibrium": {
+      "path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_auxiliary_equilibrium.so",
+      "abi_symbol": "probtf_auxiliary_abi_version",
+      "abi": 2,
+      "sha256": "b59e0eb874236eb15532cf351e86cd24e00e5625ff787d3fc62aff8098c5e97e",
+      "bytes": 178008
+    },
+    "body_law": {
+      "path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so",
+      "abi_symbol": "probtf_body_abi_version",
+      "abi": 1,
+      "sha256": "d747c13bd8ff06354bd927fcf226c003f8e9abac3fccc1ab54ea4ff248580c53",
+      "bytes": 197360,
+      "common_chart_extension_abi": 1
+    },
+    "marker_board_math": {
+      "path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_marker_board_math.so",
+      "abi_symbol": "probtf_marker_board_math_abi_version",
+      "abi": 1,
+      "sha256": "2b1bbd62d46511a89db87a12659eabe9d00dd125fecb658079866938216f8f30",
+      "bytes": 27440
+    },
+    "moment_reverse": {
+      "path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_moment_reverse.so",
+      "abi_symbol": "probtf_moment_reverse_abi_version",
+      "abi": 1,
+      "sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f",
+      "bytes": 157464
+    }
+  },
+  "counts_overlap_do_not_sum": true,
+  "physical_180_s_source_is_historical_200_file_source": true,
+  "entire_post_motion_drain_after_native_fix_executed": false
+}

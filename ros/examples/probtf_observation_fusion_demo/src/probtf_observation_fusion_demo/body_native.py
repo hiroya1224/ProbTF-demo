@@ -17,7 +17,10 @@ from probtf.spherical_law.first_order import (
     point_query as reference_point_query, pose_query as reference_pose_query,
     direction_query as reference_direction_query,
     reexpress_state as reference_reexpress_state,
+    _right_jacobian, bingham_from_rotation_coordinates,
 )
+from probtf.geometry import quat_mul, rotation_vector_to_quaternion
+from probtf.spherical_law.support import support_inverse
 
 _DOUBLE = ct.POINTER(ct.c_double)
 _BYTE = ct.POINTER(ct.c_ubyte)
@@ -63,11 +66,28 @@ def _library():
     return lib
 
 
+@lru_cache(maxsize=1)
+def _materialization_library():
+    lib = _library()
+    if not hasattr(lib, 'probtf_body_materialize_in_chart_abi_version'):
+        raise RuntimeError('Native body library lacks the common-chart materialization extension; rebuild the demo.')
+    lib.probtf_body_materialize_in_chart_abi_version.restype = ct.c_int
+    if lib.probtf_body_materialize_in_chart_abi_version() != 1:
+        raise RuntimeError('Native common-chart materialization ABI is incompatible.')
+    lib.probtf_body_materialize_in_chart.argtypes = lib.probtf_body_reexpress.argtypes
+    lib.probtf_body_materialize_in_chart.restype = ct.c_int
+    return lib
+
+
 def backend_record():
     selected = os.environ.get('PROBTF_BODY_BACKEND', 'native')
     if selected not in ('native', 'python_reference'):
         raise ValueError('PROBTF_BODY_BACKEND must be native or python_reference.')
     return dict(backend=selected, core_equations_changed=False, stochastic_sampling=False,
+                common_chart_materialization_supported=True,
+                common_chart_materialization_abi=(None if selected == 'python_reference' else
+                    _materialization_library().probtf_body_materialize_in_chart_abi_version()),
+                strict_reexpression_prior_support_check_preserved=True,
                 library_path=None if selected == 'python_reference' else str(_library_path()),
                 library_sha256=None if selected == 'python_reference' else hashlib.sha256(_library_path().read_bytes()).hexdigest())
 
@@ -153,6 +173,62 @@ def _state_identity(state):
 def reexpress_state(state, mean, covariance, version=None, component_id=None):
     if not _native():
         return reference_reexpress_state(state, mean, covariance, version, component_id)
+    return _native_materialize(state, mean, covariance, version, component_id,
+                               check_source_support=True)
+
+
+def _reference_materialize_in_chart(state, mean, covariance, version, component_id):
+    """The same core equations without an unrelated prior-support condition."""
+    if not isinstance(state, JointTransformState):
+        raise TypeError('Common-chart materialization needs an immutable core reference geometry.')
+    mean = np.asarray(mean, dtype=float)
+    covariance = np.asarray(covariance, dtype=float)
+    n = state.mean.size
+    if mean.shape != (n,) or covariance.shape != (n, n):
+        raise ValueError('Posterior dimensions differ from the frozen body state.')
+    if not np.all(np.isfinite(mean)):
+        raise ValueError('Common-chart candidate mean must be finite.')
+    support_inverse(covariance, name='common-chart candidate covariance')
+    chart = np.eye(n)
+    for i, edge in enumerate(state.transforms):
+        if edge.bingham is not None:
+            block = slice(6*i+3, 6*i+6)
+            chart[block, block] = _right_jacobian(mean[block])
+    transported = chart @ covariance @ chart.T
+    transforms = []
+    for i, edge in enumerate(state.transforms):
+        quaternion = quat_mul(edge.rotation_wxyz,
+            rotation_vector_to_quaternion(mean[6*i+3:6*i+6]))
+        rotation_covariance = transported[6*i+3:6*i+6, 6*i+3:6*i+6]
+        transforms.append(BinghamTransform(edge.edge_id,
+            edge.translation+mean[6*i:6*i+3],
+            None if edge.bingham is None else bingham_from_rotation_coordinates(quaternion, rotation_covariance),
+            transported[6*i:6*i+3, 6*i:6*i+3],
+            quaternion if edge.bingham is None else None))
+    return JointTransformState(tuple(transforms), transported,
+        state.version+1 if version is None else int(version), state.stamp, state.command,
+        state.component_id if component_id is None else str(component_id))
+
+
+def materialize_state_in_chart(reference_geometry, mean, covariance, version=None,
+                               component_id=None):
+    """Express another law in this chart; do not condition on its reference P.
+
+    This is NOT an alternate Bayesian posterior update. Its caller owns the
+    source-law support/provenance and known-attachment consistency. The
+    supplied finite PSD full covariance is preserved as G P G.T, with the
+    existing t/q/Bingham parameter equations and actual fixed-rotation checks.
+    The reference covariance does not constrain this other law's mean.
+    """
+    if not _native():
+        return _reference_materialize_in_chart(reference_geometry, mean, covariance,
+                                                version, component_id)
+    return _native_materialize(reference_geometry, mean, covariance, version,
+                               component_id, check_source_support=False)
+
+
+def _native_materialize(state, mean, covariance, version, component_id,
+                        *, check_source_support):
     t, q, random, prior = _inputs(state)
     mean = np.ascontiguousarray(mean, dtype=np.float64)
     covariance = np.ascontiguousarray(covariance, dtype=np.float64)
@@ -162,14 +238,16 @@ def reexpress_state(state, mean, covariance, version=None, component_id=None):
     translated, rotated = np.empty_like(t), np.empty_like(q)
     parameter, transported = np.empty((edges, 4, 4)), np.empty((n, n))
     error = ct.create_string_buffer(2048)
-    status = _library().probtf_body_reexpress(edges, _pointer(t), _pointer(q),
+    function = (_library().probtf_body_reexpress if check_source_support else
+                _materialization_library().probtf_body_materialize_in_chart)
+    status = function(edges, _pointer(t), _pointer(q),
         random.ctypes.data_as(_BYTE), _pointer(prior), _pointer(mean), _pointer(covariance),
         _pointer(translated), _pointer(rotated), _pointer(parameter), _pointer(transported),
         error, len(error))
     if status:
         raise ValueError(error.value.decode(errors='replace'))
-    # Native performs the same support, marginal-consistency, Bingham-gap and
-    # concentration validation as the existing constructors. Construct their
+    # Native performs the same support, marginal-consistency and Bingham-gap
+    # validation as the existing constructors. Construct their
     # exact immutable types from that validated result, avoiding a duplicate
     # Python eigensystem for every edge and another full support decomposition.
     transforms = []

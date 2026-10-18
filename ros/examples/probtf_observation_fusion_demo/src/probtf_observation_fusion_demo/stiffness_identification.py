@@ -27,7 +27,7 @@ from deflecomp_core.model.sensitivity import SensitivityCalculator
 from deflecomp_core.model.spring import LinearSpringModel
 from deflecomp_core.robot.pinocchio_robot import RobotArm
 from probtf.geometry import quat_to_rotmat, skew
-from .body_native import reexpress_state
+from .body_native import reexpress_state, materialize_state_in_chart
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent
 from probtf.spherical_law.support import (
     require_in_support, require_same_support,
@@ -1065,7 +1065,11 @@ class StiffnessIdentifier:
                     and item.state.state_id == reference.state_id):
                 expected_id = reference.state_id
             else:
-                expected_id = reexpress_state(reference, child.distribution.mean,
+                materialize = (materialize_state_in_chart
+                    if projected_numerator is not None and result.records.get(
+                        'internal_projection', {}).get('common_chart_materialization', False)
+                    else reexpress_state)
+                expected_id = materialize(reference, child.distribution.mean,
                     child.distribution.covariance, version=item.state.version,
                     component_id=item.state.component_id).state_id
             if expected_id != item.state.state_id:

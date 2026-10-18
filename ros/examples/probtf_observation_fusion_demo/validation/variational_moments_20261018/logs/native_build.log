@@ -1,0 +1,8 @@
+[ 20%] Built target probtf_marker_board_math
+[ 40%] Built target probtf_body_law
+Scanning dependencies of target probtf_moment_reverse
+[ 50%] Building CXX object CMakeFiles/probtf_moment_reverse.dir/native/moment_reverse.cpp.o
+[ 70%] Built target probtf_flexible_dynamics
+[ 90%] Built target probtf_auxiliary_equilibrium
+[100%] Linking CXX shared library /home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_moment_reverse.so
+[100%] Built target probtf_moment_reverse

@@ -99,11 +99,11 @@ class MovingInference:
         self.templates = tuple(deepcopy(item) for item in observation_templates)
         self.settings = settings
         if 'nonlinear_observation_update' in settings:
-            raise ValueError('Point-MAP/GN observation updates have been withdrawn; configure observation_update.method=propagated_moments.')
+            raise ValueError('Point-MAP/GN observation updates have been withdrawn; configure observation_update.method=variational_moments.')
         self.observation_update_settings = dict(settings.get('observation_update', {}))
         self.observation_update_method = self.observation_update_settings.get(
-            'method', 'propagated_moments')
-        if self.observation_update_method not in ('propagated_moments', 'affine_reference'):
+            'method', 'variational_moments')
+        if self.observation_update_method not in ('variational_moments','propagated_moments','affine_reference'):
             raise ValueError('Unknown body observation update method: '+str(self.observation_update_method))
         self.surprise_settings = dict(settings.get('bayes_factor_surprise', {}))
         self.surprise_enabled = bool(self.surprise_settings.get('enabled', False))
@@ -229,12 +229,17 @@ class MovingInference:
     def _run_observation_update(self, *args, **kwargs):
         """Choose the declared inference method, never a failure fallback.
 
-        The propagated-moment method uses the core's corrected mean,
-        covariance and full cross-covariance for one analytic conditioning.
-        Its joint posterior views are not fused a second time.
+        The variational method optimizes the full Gaussian using its fixed
+        original prior and the native likelihood once. Every trial's corrected
+        mean and full covariance are propagated and reverse differentiated.
+        Historical methods are explicit comparisons, never failure fallbacks.
         """
         if self.observation_update_method == 'affine_reference':
             result = run(*args, **kwargs)
+        elif self.observation_update_method == 'variational_moments':
+            from .variational_model import run as run_variational
+            result = run_variational(*args, **kwargs,
+                update_options=self.observation_update_settings)
         else:
             from .moment_model import run as run_moments
             result = run_moments(*args, **kwargs,
@@ -563,7 +568,12 @@ class MovingInference:
         if not np.isfinite(increment):
             raise ValueError('Candidate mass requires finite comparable observation evidence.')
         propagated = result.records.get('observation_update_method') == 'propagated_moments'
-        measure = ('arbitrary initial log-scale zero; Gaussian innovation evidence from the core Bingham-derived '
+        variational = result.records.get('observation_update_method') == 'variational_moments'
+        measure = ('arbitrary initial log-scale zero; negative optimized full-Gaussian variational free energy; '
+            'fixed original prior KL plus native Gaussian likelihood expectation from propagated high-concentration moments; '
+            'approximate nonlinear evidence, not a guaranteed exact lower bound'
+            if variational else
+            'arbitrary initial log-scale zero; Gaussian innovation evidence from the core Bingham-derived '
             'propagated corrected mean, full covariance and cross-covariance in fixed native observation charts'
             if propagated else
             'arbitrary initial log-scale zero; normalized linearized Bingham-derived '
@@ -588,15 +598,18 @@ class MovingInference:
             bayes_factor_hypothesis_scale=dict(normalized_proxy_views=True,
                 keep_log_total_mass=previous, reset_log_total_mass=previous,
                 reset_kernel_preserves_total_mass=True),
-            approximation='same analytic joint moment proxy; not exact raw-pixel Bayesian evidence',
+            approximation=('same full Gaussian variational proxy and moment-ELBO evidence; not exact raw-pixel Bayesian evidence'
+                if variational else 'same analytic joint moment proxy; not exact raw-pixel Bayesian evidence'),
             monte_carlo_used=False)
 
     def _project_internal_update(self, result, predicted_goals):
         """Keep one recursive internal law and the explicit current goal mixture.
 
         Moment matching occurs after the declared observation update in its
-        original joint prior charts. The propagated-moment path directly
-        conditions the joint prior once; the affine reference path uses lifted local
+        original joint prior charts. The variational path optimizes the full
+        Gaussian with a fixed prior and one likelihood; its raw Gaussian
+        is not a candidate-point MAP result. Historical propagated moments
+        condition once; the affine reference path uses lifted local
         posteriors and common-prior correction. The same
         projected body is used by stiffness, control, display and prediction.
         A fresh image constructs task goals by composing its native relative
@@ -608,11 +621,16 @@ class MovingInference:
         transition = bool(result.records.get('bayes_factor_surprise', {}).get('applied'))
         native_branches = result.frozen_body_branches
         projected_input = projection_input(result) if transition else result
-        projection = project_update(projected_input)
-        raw_stage = result.stages[-1]
         marker_observed = any(estimate.posterior is not None
                               and estimate.detector_result is not None
                               for estimate in result.local_estimates)
+        # These alternative marker|body laws are needed only until a task
+        # goal is available. A fresh image or retained root goal uses the
+        # canonical body directly; unused diagnostic Schur calculations
+        # must not gate that body's update.
+        projection = project_update(projected_input,
+            construct_conditional_goals=not (marker_observed or predicted_goals))
+        raw_stage = result.stages[-1]
         if marker_observed:
             goals, construction = fresh_marker_goals(result, projection.state,
                                                      marker_id=self.marker.edge_id)
@@ -622,7 +640,10 @@ class MovingInference:
                      retain_transition_goals(predicted_goals, result, projection) if transition else
                      retain_goal_components(predicted_goals, result.prior,
                                             projection.posterior, projection.state,
-                                            diagnostics=projection.record))
+                                            diagnostics=projection.record,
+                                            coupling_method=('gaussian_marginal_transport'
+                                                if self.observation_update_method=='variational_moments'
+                                                else 'schmidt')))
         internal = WeightedState(projection.state.component_id, 1., projection.state, 0.)
         stage = Stage('fused', (internal,), raw_stage.sensor_ids, tuple(goals))
         effective_raw = PosteriorComponent(internal.label, projection.posterior, 1.,
@@ -654,6 +675,8 @@ class MovingInference:
                                if predicted_goals else projection.record['goal_construction']),
             goal_policy=('all native fresh image modes composed through the shared captured camera/body; capture the root-fixed switch mixture'
                          if marker_observed else
+                         'root-fixed marker marginals and mixture masses; Gaussian marginal body transport, posterior-weighted keep cross and independent reset cross'
+                         if self.observation_update_method=='variational_moments' else
                          'root-fixed marker marginals and mixture masses; posterior-weighted keep-branch Schmidt cross and independent reset cross' if transition else
                          'root-fixed marker marginals and mixture masses; Schmidt body-side cross update only'),
             goal_retention_is_full_posterior_conditioning=False,
@@ -735,7 +758,9 @@ class MovingInference:
                 image_relative_source=result.records['fresh_goal_construction'],
                 marker_to_switch=dict(translation=offset.tolist(), rotation_wxyz=orientation.tolist()),
                 goal_components=components, sampling_used=False,
-                holding_policy=('fixed root marker marginal and all mixture masses; posterior-weighted continuation Schmidt cross and independent body-redraw cross' if self.surprise_enabled else
+                holding_policy=('fixed root marker marginal and all mixture masses; Gaussian marginal body transport; keep/reset cross mixed only for an actual change update'
+                    if self.observation_update_method=='variational_moments' else
+                    'fixed root marker marginal and all mixture masses; posterior-weighted continuation Schmidt cross and independent body-redraw cross' if self.surprise_enabled else
                     'fixed root marker marginal and all mixture masses; body-side Schmidt cross update without conditioning the recorded goal')))
             event = 'marker_observation_update'
         elif self.fixed_goal_memory is None:

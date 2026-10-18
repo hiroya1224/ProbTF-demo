@@ -2,9 +2,11 @@
 
 Raw observation hypotheses remain separate.  Only the retained internal state
 is approximated by common-chart Gaussian moments and the existing Bingham
-reexpression.  A new marker observation constructs goals from each conditional
-marker law under the common body marginal.  After capture, missing images keep
-the marker marginals fixed while a Schmidt cut updates the body's cross side.
+reexpression. Conditional marker|body alternatives are built only when the
+caller needs them. Fresh task goals use the original image observation and
+canonical body directly. Captured root goals retain their marginals under
+the declared body-side coupling; unused conditional diagnostics do not gate
+that update.
 """
 
 from dataclasses import dataclass, replace
@@ -19,7 +21,7 @@ from probtf.spherical_law.fusion import Gaussian
 from probtf.spherical_law.support import covariance_support, require_in_support
 
 from .model import component_log_weight
-from .immutable_body_cache import reexpress_state
+from .immutable_body_cache import reexpress_state, materialize_state_in_chart
 
 
 @dataclass(frozen=True)
@@ -122,8 +124,14 @@ def _source_record(item, reference_id):
                 log_weight=component_log_weight(item), source_prior_state_id=reference_id)
 
 
-def project_update(result):
-    """Approximate the internal joint law once, without dropping current modes."""
+def project_update(result, *, construct_conditional_goals=True):
+    """Approximate the joint law once, retaining every current raw mode.
+
+    The optional conditional alternatives are separate from the canonical
+    law. Skip their Schur complements/materialization when a caller builds
+    fresh task goals or retains existing goals instead. No body covariance,
+    raw hypothesis or actually consumed goal is changed by that omission.
+    """
     branches = tuple(result.frozen_body_branches)
     if len(branches) != 1:
         raise ValueError('A projected update requires one retained internal prior chart.')
@@ -140,6 +148,13 @@ def project_update(result):
     body, environment = _partition(reference, marker_id)
     raw = tuple(branch.posterior_components)
     displayed = tuple(result.stages[-1].components)
+    common_chart = bool(getattr(result, 'records', {}).get('bayes_factor_transport', {}).get(
+        'common_chart_materialization', False))
+    # A Keep/Reset mixture is expressed in one geometric chart. That chart
+    # does not impose Keep's probability support on the independent Reset
+    # law or their mixture. Original-prior Bayes checks remain in the
+    # branch updates and their source-state verification.
+    materialize = materialize_state_in_chart if common_chart else reexpress_state
     if not raw or len(raw) != len(displayed):
         raise ValueError('Every raw observation hypothesis needs its actual displayed source.')
     weights, normalizer = _check_weights(raw)
@@ -155,7 +170,7 @@ def project_update(result):
         identity = (np.array_equal(source.distribution.mean, reference.mean)
             and np.array_equal(source.distribution.covariance, reference.covariance)
             and actual.state.state_id == reference.state_id)
-        expected = reference if identity else reexpress_state(reference,
+        expected = reference if identity else materialize(reference,
             source.distribution.mean, source.distribution.covariance,
             version=actual.state.version, component_id=actual.state.component_id)
         if expected.state_id != actual.state.state_id:
@@ -170,7 +185,7 @@ def project_update(result):
         posterior, state = raw[0].distribution, displayed[0].state
         within = posterior.covariance
         between = np.zeros_like(within)
-        goals = displayed
+        goals = displayed if construct_conditional_goals else ()
         conditional_records = []
     else:
         mean = sum(weight*item.distribution.mean for weight, item in zip(weights, raw))
@@ -182,13 +197,13 @@ def project_update(result):
             between += weight*np.outer(difference, difference)
         posterior = Gaussian(mean, within+between)
         version = displayed[0].state.version
-        state = reexpress_state(reference, posterior.mean, posterior.covariance,
+        state = materialize(reference, posterior.mean, posterior.covariance,
             version=version, component_id='internal:{}'.format(version))
         goals, conditional_records = [], []
-        for source, actual in zip(raw, displayed):
+        for source, actual in (zip(raw, displayed) if construct_conditional_goals else ()):
             targeted, regression, conditional = _conditional_retarget(
                 source.distribution, posterior, body, environment)
-            goal = reexpress_state(reference, targeted.mean, targeted.covariance,
+            goal = materialize(reference, targeted.mean, targeted.covariance,
                 version=version, component_id=actual.state.component_id)
             _require_common_body(state, goal, marker_id)
             goals.append(replace(actual, state=goal))
@@ -211,20 +226,28 @@ def project_update(result):
         goal_state_ids=[item.state.state_id for item in goals],
         goal_labels=[item.label for item in goals],
         goal_log_weights=[component_log_weight(item) for item in goals],
-        goal_construction='each current raw marker|body conditional retained under the common projected body marginal',
+        goal_construction=('each current raw marker|body conditional retained under the common projected body marginal'
+            if construct_conditional_goals else
+            'conditional goal laws not requested; caller constructs or retains the task goal separately'),
+        conditional_goals_constructed=bool(construct_conditional_goals),
+        conditional_goal_omission_reason=(None if construct_conditional_goals else
+            'unused conditional-goal diagnostics omitted; canonical joint law and all raw source hypotheses retained'),
         original_goal_marginal_unchanged_claimed=False,
         conditional_transformations=conditional_records,
         version=state.version, stamp=state.stamp, command=list(state.command),
         sampling_used=False, numerical_differentiation_used=False,
         component_pruning_used=False, exact_group_bingham_moment_matching_claimed=False,
         single_component_identity=(len(raw) == 1),
+        common_chart_materialization=common_chart,
+        reference_affine_support_used_as_prior_constraint=not common_chart,
     )
     return Projection(state, posterior, goals, record)
 
 
 def retain_goal_components(prior_goal_components, predicted_internal_prior,
                            posterior_rawGaussian, effective_internal_state,
-                           *, marker_edge_id='marker', diagnostics=None):
+                           *, marker_edge_id='marker', diagnostics=None,
+                           coupling_method='schmidt'):
     """Hold the root marker law fixed while the body is updated without an image.
 
     This is a Schmidt-style cut update, not full posterior conditioning of the
@@ -234,6 +257,12 @@ def retain_goal_components(prior_goal_components, predicted_internal_prior,
     covariance, Bingham parameter, weights and log weights remain unchanged.
     The existing core reexpression Jacobian transports the body's side of the
     cross block; the body marginal is taken directly from the internal state.
+
+    The variational method instead explicitly requests a Gaussian marginal
+    transport: C_new=A C_old with A P_old A.T=P_new on the same support.
+    This fixed-goal cut also supports variance expansion without changing
+    either marginal or adding process noise. Historical callers retain the
+    default Schmidt coupling.
     """
     components = tuple(prior_goal_components)
     if not components:
@@ -247,8 +276,17 @@ def retain_goal_components(prior_goal_components, predicted_internal_prior,
     posterior_body = posterior_rawGaussian.covariance[np.ix_(body, body)]
     support = covariance_support(prior_body, 'fixed-goal prior body')
     contraction=_contraction_diagnostic(prior_body,posterior_body)
+    if coupling_method=='gaussian_marginal_transport':
+        from .gaussian_marginal_transport import covariance_transport
+        coupling,coupling_diagnostics=covariance_transport(prior_body,posterior_body)
+    elif coupling_method=='schmidt':
+        coupling=posterior_body@support.inverse
+        coupling_diagnostics=dict(method='historical Schmidt contraction')
+    else:
+        raise ValueError('Unknown fixed-goal body coupling: '+str(coupling_method))
     if diagnostics is not None:
         diagnostics['fixed_goal_covariance_contraction']=contraction
+        diagnostics['fixed_goal_coupling']=coupling_diagnostics
     for column in posterior_body.T:
         require_in_support(column, support, 'fixed-goal posterior body covariance')
     require_in_support(posterior_rawGaussian.mean[body], support,
@@ -280,7 +318,7 @@ def retain_goal_components(prior_goal_components, predicted_internal_prior,
             prior_cross = source.covariance[np.ix_(body, environment)]
             for column in prior_cross.T:
                 require_in_support(column, support, 'fixed-goal prior cross covariance')
-            cross = body_chart @ posterior_body @ support.inverse @ prior_cross
+            cross = body_chart @ coupling @ prior_cross
             covariance = effective_internal_state.covariance.copy()
             covariance[np.ix_(body, environment)] = cross
             covariance[np.ix_(environment, body)] = cross.T

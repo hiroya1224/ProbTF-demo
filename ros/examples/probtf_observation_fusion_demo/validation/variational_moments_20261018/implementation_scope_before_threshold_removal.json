@@ -1,0 +1,24 @@
+{
+  "parent_commit": "f067fe3104cb8a51b0182b12d7cad9e57e8d374c",
+  "moving_estimation_yaml_only_changed_key": "observation_update",
+  "other_config_values_identical": true,
+  "old_observation_update": {
+    "method": "propagated_moments"
+  },
+  "new_observation_update": {
+    "method": "variational_moments",
+    "max_iterations": 24,
+    "gradient_tolerance": 1e-06,
+    "max_line_search": 20
+  },
+  "regression_source_file_count": 194,
+  "regression_source_changes": [],
+  "full_regression_log": "logs/full_tests_before_threshold_removal.log",
+  "full_regression_passed": 1219,
+  "new_native_build_command": "catkin build probtf_observation_fusion_demo --no-deps --jobs 2 --make-args -j2",
+  "new_native_ABI": 1,
+  "new_native_library_sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f",
+  "note": "A previous covariance-contraction-only assertion was replaced by prior continuity/full information flow/same objective improvement without changing production covariances. Initial failed test log remains in /tmp; numerical details in hand_imu/summary.json.",
+  "regression_sources_manifest": "regression_sources_before_threshold_removal.json",
+  "historical_scope": "Before the subsequent explicit removal of concentration thresholds; not the final validation of unrestricted source."
+}

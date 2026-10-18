@@ -1,0 +1,19 @@
+{
+  "checked_host_wall_s": 1792318572.7908647,
+  "scope": "Exact saved owned PIDs and executable command lines inspected after shutdown; no process mutation or viewer operation.",
+  "marker": {
+    "master_pid": 4076816,
+    "master_port": 11889,
+    "rviz_pid": 4076832,
+    "loaded_rviz": "/tmp/probtf_variational_commonchart_180s_live_20261018/marker.rviz",
+    "alive": true
+  },
+  "imu_marker": {
+    "master_pid": 4076833,
+    "master_port": 11890,
+    "rviz_pid": 4076884,
+    "loaded_rviz": "/tmp/probtf_variational_commonchart_180s_live_20261018/imu_marker.rviz",
+    "alive": true
+  },
+  "demo_worker_nodes_gracefully_stopped": true
+}

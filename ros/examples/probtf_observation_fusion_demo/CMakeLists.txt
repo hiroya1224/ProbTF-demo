@@ -69,6 +69,12 @@ target_compile_features(probtf_body_law PRIVATE cxx_std_14)
 target_link_libraries(probtf_body_law PRIVATE pinocchio::pinocchio_default)
 install(TARGETS probtf_body_law LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 
+# Same propagated Gaussian moments with reverse derivatives of mean/full P.
+add_library(probtf_moment_reverse SHARED native/moment_reverse.cpp)
+target_compile_features(probtf_moment_reverse PRIVATE cxx_std_14)
+target_link_libraries(probtf_moment_reverse PRIVATE pinocchio::pinocchio_default)
+install(TARGETS probtf_moment_reverse LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+
 # Image-only central-board Bingham moments: unchanged deterministic integrals.
 add_library(probtf_marker_board_math SHARED native/marker_board_math.cpp)
 target_compile_features(probtf_marker_board_math PRIVATE cxx_std_14)

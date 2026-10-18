@@ -1,0 +1,72 @@
+{
+  "parent_commit": "f067fe3104cb8a51b0182b12d7cad9e57e8d374c",
+  "moving_estimation_yaml_only_changed_key": "observation_update",
+  "other_config_values_identical": true,
+  "old_observation_update": {
+    "method": "propagated_moments"
+  },
+  "new_observation_update": {
+    "method": "variational_moments",
+    "max_iterations": 24,
+    "gradient_tolerance": 1e-06,
+    "max_line_search": 20
+  },
+  "regression_source_file_count": 202,
+  "regression_source_changes": [],
+  "full_regression_log": "logs/final_full_tests.log",
+  "full_regression_passed": 1304,
+  "full_regression_wall_s": 207.59,
+  "core_equations_changed": false,
+  "core_source_files_changed_for_user_requested_threshold_removal": [
+    "ros/core/probtf_core/src/probtf/spherical_law/first_order.py",
+    "ros/core/probtf_core/test/test_first_order_bingham_queries.py"
+  ],
+  "concentration_criteria_removed": [
+    "0.1 rad^2 maximum width",
+    "relative simple-modal-gap threshold",
+    "numerical rank rejection in required positive 3x3 modal-gap/rotation covariance inverse"
+  ],
+  "actual_operation_failures_not_suppressed": true,
+  "new_native_build_command": "catkin build probtf_observation_fusion_demo --no-deps --jobs 2 --make-args -j2",
+  "native_ABI": 1,
+  "body_native_library_sha256": "d747c13bd8ff06354bd927fcf226c003f8e9abac3fccc1ab54ea4ff248580c53",
+  "moment_reverse_library_sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f",
+  "rviz_configuration_modified": false,
+  "covariance_floor_or_jitter_added": false,
+  "monte_carlo_inference_added": false,
+  "full_regression_source_manifest": "regression_sources.json",
+  "current_source_manifest": "regression_sources.json",
+  "optional_diagnostics_followup": {
+    "full_regression_rerun_after_followup": true,
+    "affected_existing_tests_passed": 130,
+    "new_exact_law_invariance_tests_passed": 5,
+    "targeted_tests_wall_s": 29.98,
+    "new_tests_wall_s": 2.89,
+    "numeric_propagation_or_posterior_formulas_changed": false,
+    "coverage_manifest": "optional_diagnostics/regression_coverage.json",
+    "canonical_law_task_goal_control_wire_unchanged": true
+  },
+  "body_materialization_extension_ABI": 1,
+  "common_chart_followup": {
+    "full_suite_rerun_after_followup": true,
+    "current_targeted_tests_passed": 280,
+    "current_targeted_wall_s": 42.92,
+    "coverage_manifest": "common_chart/regression_coverage.json",
+    "coordinate_materialization_restricted_by_keep_prior_support": false,
+    "original_branch_Bayes_support_checks_retained": true,
+    "density_ratio_body_measure_checks_unchanged": true,
+    "given_candidate_mean_covariance_or_mass_changed": false
+  },
+  "deferred_K_body_diagnostic": {
+    "added": true,
+    "control_acceptance_gate": false,
+    "additional_equilibrium_solves": 0,
+    "FK_evaluations_per_request": 1,
+    "K_density_objective_changed": false,
+    "included_in_final_full_regression": true,
+    "included_in_original_180_s_run": false,
+    "actual_last_used_candidate_identities_reconstructed_exactly": true
+  },
+  "historical_1263_test_source_manifest": "regression_sources_before_optional_diagnostics.json",
+  "final_regression_coverage": "final_regression_coverage.json"
+}

@@ -1,0 +1,62 @@
+{
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 6935,
+      "sha256": "d1224bc3efdb348f35245b3333648eedf6d52f4f07adff22e7b931a2268be74a"
+    },
+    {
+      "path": "benchmarks/actual66d_vjp_and_directional_fd.json",
+      "bytes": 2794,
+      "sha256": "4a9d56d657d43fdd2d6eea5dd7515e079e6f68517296d7daf2029f5998d68c69"
+    },
+    {
+      "path": "benchmarks/rank54_affine_prior_start_and_exact_seed.json",
+      "bytes": 3744,
+      "sha256": "3ec2ca992aaa353b9c16a7a428d4da4e7088141d523eeb13481357b82eaaf09a"
+    },
+    {
+      "path": "generic_warmstart_original_manifest.json",
+      "bytes": 2861,
+      "sha256": "6a0753269c2710ea162f42ed6916017f6259a96729b6ab3718099c8c76859ed6"
+    },
+    {
+      "path": "logs/generic_15.log",
+      "bytes": 99,
+      "sha256": "750e8fc7f82d0362413c811a25dd8018e93a29cf821384a50d297e2ffbfb3cfa"
+    },
+    {
+      "path": "logs/integrated_55.log",
+      "bytes": 567,
+      "sha256": "dead3cd1cdbadb49021756013bc70a579cf1fc1018ff494fcbd3067c9ef6516e"
+    },
+    {
+      "path": "logs/native_43_transport_16.log",
+      "bytes": 99,
+      "sha256": "5d7519853c28f56581899e092d3e3d6b822d1d03cd72ef2b4c9fa4635ec6ba07"
+    },
+    {
+      "path": "report.json",
+      "bytes": 17249,
+      "sha256": "24e02bbdee77832322080763a67abed6b7e7e57b4bb96da79e450b7739563a06"
+    },
+    {
+      "path": "reproduction/profile_actual66d_moment_vjp.py",
+      "bytes": 4092,
+      "sha256": "1334b647ed3da8769b32d442d638f0d74e1282861e2732099a789c81c398011a"
+    },
+    {
+      "path": "reproduction/profile_rank54_affine.py",
+      "bytes": 3395,
+      "sha256": "27279127c41ab98c266f6d04d85e2852da6dd458032e19e15aeb2502397c0ee2"
+    }
+  ],
+  "raw_data_copied": false,
+  "production_or_test_edits": false,
+  "total_bytes": 41835,
+  "editorial_change": {
+    "path": "README.md",
+    "original_sha256": "d06c0d980b1182aa54e4769d1dde1b48907b6fe44527efcbf0928b5b05f783f6",
+    "change": "Display math delimiters converted to inline math to comply with repository instructions. Mathematical tokens and numeric artifacts unchanged."
+  }
+}

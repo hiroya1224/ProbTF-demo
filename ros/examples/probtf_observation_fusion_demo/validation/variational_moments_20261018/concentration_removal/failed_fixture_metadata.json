@@ -1,0 +1,336 @@
+{
+  "schema": "failed-original-variational-event-fixture-v1",
+  "original_run": "/tmp/probtf_variational_moments_180s_live_20261018",
+  "previous_archive_reference_path": "/tmp/probtf_variational_moments_180s_live_20261018/imu_marker/stiffness_jobs/00000165_aea63d134d080c64.json",
+  "previous_archive_reference": {
+    "archived_wall_time_s": 1792314764.3235674,
+    "batch_id": "200eeabc43a3a5658b443731fd8f4bd77aac19c0233eae0752617747301a7957",
+    "initialize_only": false,
+    "job_sequence": 165,
+    "kind": "stiffness_job_reference",
+    "path": "/tmp/probtf_variational_moments_180s_live_20261018/imu_marker/stiffness_jobs/00000165_aea63d134d080c64.pickle",
+    "payload_bytes": 1648325,
+    "payload_sha256": "b46f2a4e346c9b0229144fa6382f4daace12ff5db0d936694816be5b3161b184",
+    "source_candidate_id": "2cc33dd242c407c10c40bc826d674f1a46af619b95f88088e178b8ddfcfe07df",
+    "source_command": [
+      -0.058233870505929035,
+      -1.7955238281674892,
+      2.2111256069215544,
+      -0.26647504854301857,
+      -0.9341135999905879,
+      0.059769878619402306
+    ],
+    "source_stamp": 1792080029.8672562,
+    "source_version": 7135,
+    "status": "pending"
+  },
+  "original_DB": "/tmp/probtf_variational_moments_180s_live_20261018/imu_marker/observations.sqlite3",
+  "original_event": {
+    "sequence": 1982,
+    "event_id": "imu:00002386",
+    "kind": "imu",
+    "stamp": 1792080029.9349635,
+    "command_json": "[-0.062325255495609126,-1.7914504503257134,2.211158973130686,-0.2653076856062256,-0.9359429267218083,0.06028117876841826]",
+    "payload_hash": "ce72cb1dc5da2314de8e7b176f386cfb82894369827c220cecf435ce7113ec42",
+    "payload_json": "{\"frame_index\":2386,\"gravity_in_sensor\":{\"__event_array__\":0,\"dtype\":\"<f8\",\"shape\":[3]},\"imu_sigma_rad\":0.012,\"imu_target_link\":\"link_3\",\"time\":29.934963524807245}",
+    "status": "failed"
+  },
+  "offline_replay_status_scope": "Original row remains failed. Only the API clone status is processing to permit replay; no q/t/ID/sequence/value/hash changed.",
+  "original_ledger_indices": [
+    2378,
+    2379,
+    2380,
+    2381,
+    2382,
+    2383,
+    2384,
+    2385
+  ],
+  "original_ledger_count": 8,
+  "expected_error": "Bingham rotation exceeds the declared first-order concentration domain (0.1 rad^2).",
+  "reproduced_failure": "ValueError: Bingham rotation exceeds the declared first-order concentration domain (0.1 rad^2).",
+  "fixture_bytes": 340925,
+  "fixture_sha256": "78ab81b770e88171b46477707849fd26c9f1280ada0a564add2383c7f0b07b85",
+  "raw_pixels_received": false,
+  "physical_truth_received": false,
+  "native_backend": {
+    "backend": "native_analytic_reverse",
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_moment_reverse.so",
+    "library_sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f",
+    "native_source_sha256": "133baaf99f57cb0c2a1357cd4ce2f70a3cf222173841481e80773150bd18ee75",
+    "binding_sha256": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "stochastic_sampling": false,
+    "runtime_compilation": false,
+    "reverse_derivatives": true,
+    "core_equations_changed": false
+  },
+  "branches": [
+    {
+      "source_state_id": "de9b4b36bc5a19aae59d6b57daea9ed457054e9cd446677415e36e77dee92061",
+      "source_component_id": "predicted:2386:0",
+      "source_stamp": 1792080029.9349635,
+      "source_command": [
+        -0.062325255495609126,
+        -1.7914504503257134,
+        2.211158973130686,
+        -0.2653076856062256,
+        -0.9359429267218083,
+        0.06028117876841826
+      ],
+      "log_evidence": 6.642495881564071,
+      "log_evidence_parts": [
+        6.642495881564071,
+        3.3306690738754696e-16
+      ],
+      "mean_sha256": "0202cde1d0882dce43303c494fa5fe39e8b7a702b26272dd4755c21caa3dcb6c",
+      "covariance_sha256": "f93575a46775c6c54be33f43e5da771043240e6c7c971c0f0972d1e6c350c622",
+      "rotation_widths": [
+        {
+          "edge_id": "link_1",
+          "original_chart_rotation_eigenvalues": [
+            0.00017417424370214557,
+            0.00044786259678789063,
+            0.07388017902762423
+          ]
+        },
+        {
+          "edge_id": "link_2",
+          "original_chart_rotation_eigenvalues": [
+            0.00039644812753816713,
+            0.0005899831290471056,
+            0.12371539414823134
+          ]
+        },
+        {
+          "edge_id": "link_3",
+          "original_chart_rotation_eigenvalues": [
+            0.00012178154078542591,
+            0.0017580396855129072,
+            0.013165490741581886
+          ]
+        },
+        {
+          "edge_id": "link_4",
+          "original_chart_rotation_eigenvalues": [
+            0.000595948487543169,
+            0.004986185654823845,
+            0.030481647486534546
+          ]
+        },
+        {
+          "edge_id": "link_5",
+          "original_chart_rotation_eigenvalues": [
+            0.001405427740452946,
+            0.003334007553483516,
+            0.04459617493915067
+          ]
+        },
+        {
+          "edge_id": "link_6",
+          "original_chart_rotation_eigenvalues": [
+            0.0006257913985876081,
+            0.0008585716338958503,
+            0.11033110308462293
+          ]
+        },
+        {
+          "edge_id": "tool0",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "press_rod",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "rod_tip",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "camera_optical_frame",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "marker",
+          "original_chart_rotation_eigenvalues": [
+            2.9467957797099754e-05,
+            3.646966867293208e-05,
+            5.643823808671269e-05
+          ]
+        }
+      ],
+      "final_gradient_inf": 7.097495158454235e-07,
+      "final_F": -6.642495881564071,
+      "initial_seed": {
+        "provided": true,
+        "considered": true,
+        "selected": true,
+        "proposal_only": true,
+        "used_as_new_prior": false,
+        "status": "evaluated on same fixed-prior objective",
+        "objective": -6.3291933477407225,
+        "objective_parts": [
+          -6.3291933477407225,
+          -2.2898349882893854e-16
+        ],
+        "gradient_inf": 1.1811356583414725
+      }
+    },
+    {
+      "source_state_id": "003044678e4371d44d242e26844e80a329ed334a57c7aacc73a8a3a5c4b751e1",
+      "source_component_id": "reset:7159",
+      "source_stamp": 1792080029.9349635,
+      "source_command": [
+        -0.062325255495609126,
+        -1.7914504503257134,
+        2.211158973130686,
+        -0.2653076856062256,
+        -0.9359429267218083,
+        0.06028117876841826
+      ],
+      "log_evidence": -8.962857431000401,
+      "log_evidence_parts": [
+        -8.962857431000401,
+        8.881784197001252e-16
+      ],
+      "mean_sha256": "40c2dcbb2dd4eb16fadc187e70f7fdb31f2f33a1a32f12dbad76e161b6961820",
+      "covariance_sha256": "5be2572373ab7329eae31e711122f00ab93ff5d6567e0ae3ec714a78327e352b",
+      "rotation_widths": [
+        {
+          "edge_id": "link_1",
+          "original_chart_rotation_eigenvalues": [
+            0.0007147059059711151,
+            0.0007202929703238387,
+            0.0010000001504716467
+          ]
+        },
+        {
+          "edge_id": "link_2",
+          "original_chart_rotation_eigenvalues": [
+            0.0007589042033143538,
+            0.0007589869014107623,
+            0.0011201111576877077
+          ]
+        },
+        {
+          "edge_id": "link_3",
+          "original_chart_rotation_eigenvalues": [
+            0.0007963942621974992,
+            0.0008042352690634072,
+            0.0012738440657051623
+          ]
+        },
+        {
+          "edge_id": "link_4",
+          "original_chart_rotation_eigenvalues": [
+            0.0014285714285714284,
+            0.0014285714285714284,
+            0.0014285714285714284
+          ]
+        },
+        {
+          "edge_id": "link_5",
+          "original_chart_rotation_eigenvalues": [
+            0.001666666666666667,
+            0.001666666666666667,
+            0.001666666666666667
+          ]
+        },
+        {
+          "edge_id": "link_6",
+          "original_chart_rotation_eigenvalues": [
+            0.002,
+            0.002,
+            0.002
+          ]
+        },
+        {
+          "edge_id": "tool0",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "press_rod",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "rod_tip",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "camera_optical_frame",
+          "original_chart_rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "marker",
+          "original_chart_rotation_eigenvalues": [
+            2.914208875938529e-05,
+            3.553236411641163e-05,
+            4.9403629100933003e-05
+          ]
+        }
+      ],
+      "final_gradient_inf": 2.7160157826611186e-05,
+      "final_F": 8.962857431000401,
+      "initial_seed": {
+        "provided": true,
+        "considered": true,
+        "selected": true,
+        "proposal_only": true,
+        "used_as_new_prior": false,
+        "status": "evaluated on same fixed-prior objective",
+        "objective": 9.454654455384597,
+        "objective_parts": [
+          9.454654455384597,
+          -7.771561172376096e-16
+        ],
+        "gradient_inf": 1.5967279545814548
+      }
+    }
+  ],
+  "source_sha256_before": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": "5391bc5a45ece4da657e6739da6d549bded7f597e4b03273cd29a7976e056504",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "64d3a11aadebcc4968adccab91707718094566d8970348b1006d01c2afa94a5d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "b8b9ac7e8af10d45c0d2135f90690adec04fcd79fa6d91c0f5bc117e37ada151"
+  },
+  "source_sha256_after": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": "5391bc5a45ece4da657e6739da6d549bded7f597e4b03273cd29a7976e056504",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "64d3a11aadebcc4968adccab91707718094566d8970348b1006d01c2afa94a5d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "b8b9ac7e8af10d45c0d2135f90690adec04fcd79fa6d91c0f5bc117e37ada151"
+  },
+  "source_unchanged": true
+}

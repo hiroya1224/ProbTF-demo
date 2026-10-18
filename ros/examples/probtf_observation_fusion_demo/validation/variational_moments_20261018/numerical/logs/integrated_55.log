@@ -1,0 +1,8 @@
+.......................................................                  [100%]
+=============================== warnings summary ===============================
+../../../.local/lib/python3.8/site-packages/cmeel.prefix/lib/python3.8/site-packages/hppfcl/__init__.py:3
+  /home/leus/.local/lib/python3.8/site-packages/cmeel.prefix/lib/python3.8/site-packages/hppfcl/__init__.py:3: DeprecationWarning: Please update your 'hppfcl' imports to 'coal'
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+55 passed, 1 warning in 13.64s

@@ -1,0 +1,103 @@
+{
+  "fixture": "synthetic deterministic affine n66/rank54/observation6; no Monte Carlo, no physical input",
+  "full_cholesky_plus_mean_parameter_count": 1539,
+  "observation_prior_covariance_eigenvalues": [
+    0.014408288374446528,
+    0.019722141251980404,
+    0.028517145380947597,
+    0.030275460372837817,
+    0.046951773806836995,
+    0.07084988189617732
+  ],
+  "noise_variances": [
+    2.5e-05,
+    2.5e-05,
+    2.5e-05,
+    0.0004,
+    0.0004,
+    0.0004
+  ],
+  "records": [
+    {
+      "max_iterations": 0,
+      "wall_seconds": 0.0008144499734044075,
+      "actual_iterations": 0,
+      "evaluator_calls": 1,
+      "gradient_inf": 1480.5811732764791,
+      "stationarity_verified": false,
+      "mean_max_abs_error": 0.025225005853406084,
+      "covariance_max_abs_error": 0.008276454622682769,
+      "affine_log_evidence_lower_bound_gap": 2579.5820825352926,
+      "optimizer_message": null
+    },
+    {
+      "max_iterations": 24,
+      "wall_seconds": 0.017627250868827105,
+      "actual_iterations": 24,
+      "evaluator_calls": 27,
+      "gradient_inf": 8.103117403953306,
+      "stationarity_verified": false,
+      "mean_max_abs_error": 0.0013398022096830688,
+      "covariance_max_abs_error": 0.005061474921793964,
+      "affine_log_evidence_lower_bound_gap": 3.4244682196865472,
+      "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT"
+    },
+    {
+      "max_iterations": 48,
+      "wall_seconds": 0.030777754727751017,
+      "actual_iterations": 48,
+      "evaluator_calls": 52,
+      "gradient_inf": 1.5451529074000545,
+      "stationarity_verified": false,
+      "mean_max_abs_error": 0.0003070206588508227,
+      "covariance_max_abs_error": 0.004771110987112536,
+      "affine_log_evidence_lower_bound_gap": 0.3683568169882987,
+      "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT"
+    },
+    {
+      "max_iterations": 96,
+      "wall_seconds": 0.05936048226431012,
+      "actual_iterations": 96,
+      "evaluator_calls": 102,
+      "gradient_inf": 0.5001581425761393,
+      "stationarity_verified": false,
+      "mean_max_abs_error": 0.0001687686629509473,
+      "covariance_max_abs_error": 0.0015696867318298058,
+      "affine_log_evidence_lower_bound_gap": 0.02722059016465206,
+      "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT"
+    },
+    {
+      "max_iterations": 192,
+      "wall_seconds": 0.11728670820593834,
+      "actual_iterations": 192,
+      "evaluator_calls": 200,
+      "gradient_inf": 0.010923048942061774,
+      "stationarity_verified": false,
+      "mean_max_abs_error": 7.5584454017983e-06,
+      "covariance_max_abs_error": 4.6092807763839505e-05,
+      "affine_log_evidence_lower_bound_gap": 3.168120316043854e-05,
+      "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT"
+    },
+    {
+      "max_iterations": 384,
+      "wall_seconds": 0.2340656709857285,
+      "actual_iterations": 384,
+      "evaluator_calls": 398,
+      "gradient_inf": 2.792226925951713e-05,
+      "stationarity_verified": false,
+      "mean_max_abs_error": 4.418052763910385e-09,
+      "covariance_max_abs_error": 6.508836681781704e-08,
+      "affine_log_evidence_lower_bound_gap": 5.965627991599831e-11,
+      "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT"
+    }
+  ],
+  "analytic_affine_seed_diagnostic_only": {
+    "objective_evaluation_seconds": 0.0005652713589370251,
+    "gradient_inf": 5.116389950599043e-12,
+    "evidence_error": 4.263256414560601e-14,
+    "method": "core condition_gaussian posterior converted to same original whitened full-Cholesky chart; not a production option",
+    "nonlinear_performance_or_improvement_claimed": false
+  },
+  "native_actual_backend_cost_excluded": true,
+  "production_changed": false
+}

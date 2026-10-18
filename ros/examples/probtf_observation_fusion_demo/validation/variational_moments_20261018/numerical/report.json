@@ -1,0 +1,302 @@
+{
+  "title": "Full-Gaussian propagated-moment variational update: numerical validation evidence",
+  "created_utc": "2026-10-18T09:09:03.472558Z",
+  "artifact_scope": "Small existing-log and benchmark consolidation; no new tests, production edits, live motion or estimator rerun performed while collecting.",
+  "source_hashes": {
+    "AGENTS.md": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/AGENTS.md",
+      "bytes": 84882,
+      "sha256": "0f39bba58c4202809d46851055a0a28107b4209b79ed4caac570bb0cfebe1822"
+    },
+    "ros/examples/probtf_observation_fusion_demo/VARIATIONAL_MOMENT_UPDATE.md": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/VARIATIONAL_MOMENT_UPDATE.md",
+      "bytes": 9079,
+      "sha256": "47580412808fb73acca06452f47bb7f6c448e8e280733057bbc6b39cd3554ed6"
+    },
+    "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+      "bytes": 4555,
+      "sha256": "0b1308f7831c431d457f4b78f5d3831862697bccf9311bd7e3097da1401faabe"
+    },
+    "ros/examples/probtf_observation_fusion_demo/CMakeLists.txt": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/CMakeLists.txt",
+      "bytes": 5058,
+      "sha256": "2f15623d11bb5902783acd76e9037c0784fa1920efd3c44d7b0ef3caa8373e05"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py",
+      "bytes": 17748,
+      "sha256": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py",
+      "bytes": 18273,
+      "sha256": "5391bc5a45ece4da657e6739da6d549bded7f597e4b03273cd29a7976e056504"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py",
+      "bytes": 13663,
+      "sha256": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_observation.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_observation.py",
+      "bytes": 9353,
+      "sha256": "a757b56d645222f54065d319a18b036f9726f149f8ce7b6c07b9b01c74758b1c"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+      "bytes": 50804,
+      "sha256": "64d3a11aadebcc4968adccab91707718094566d8970348b1006d01c2afa94a5d"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/gaussian_marginal_transport.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/gaussian_marginal_transport.py",
+      "bytes": 7373,
+      "sha256": "a89fa13de5f65a4c51299909bd038fe0953d2beb3b45b5655ce89932fdabd9e1"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+      "bytes": 17541,
+      "sha256": "6503f7ca653e5ee6b21d0f722df7eae22f70bd07fd648e8f5d2bca9fb21cf9ab"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+      "bytes": 18830,
+      "sha256": "48d4af84135dff95ec43422862c0b9807a1af2b312c9f5190e31246f3dfdbe00"
+    },
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/joint_batch_fusion.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/joint_batch_fusion.py",
+      "bytes": 24126,
+      "sha256": "b561f18bcf0240608a3c9dac70d29dd800ac583a769f6c22790df271d9bab49d"
+    },
+    "ros/examples/probtf_observation_fusion_demo/native/moment_reverse.cpp": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/native/moment_reverse.cpp",
+      "bytes": 20490,
+      "sha256": "133baaf99f57cb0c2a1357cd4ce2f70a3cf222173841481e80773150bd18ee75"
+    },
+    "ros/examples/probtf_observation_fusion_demo/tests/test_variational_conditioning.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/tests/test_variational_conditioning.py",
+      "bytes": 14477,
+      "sha256": "76c1687915cc645ad02fde4735886f96a5e26464cdb280c64f7d3070a47e4cde"
+    },
+    "ros/examples/probtf_observation_fusion_demo/tests/test_moment_reverse.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/tests/test_moment_reverse.py",
+      "bytes": 12438,
+      "sha256": "bb5d175b0899a0f0c3c5d626f054755712f765d57bb92c40190a07380a406f82"
+    },
+    "ros/examples/probtf_observation_fusion_demo/tests/test_gaussian_marginal_transport.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/tests/test_gaussian_marginal_transport.py",
+      "bytes": 5739,
+      "sha256": "8f087c1352ea4ed3e440a436548c39c3c9eb09a23768bd0176e5e93f9769c4c8"
+    },
+    "ros/examples/probtf_observation_fusion_demo/tests/test_variational_model.py": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/tests/test_variational_model.py",
+      "bytes": 18722,
+      "sha256": "132fbb4ef7ee8bfa88cdbdfcd40611f83457b7eb2184c9bb6b5618e96268a707"
+    }
+  },
+  "library": {
+    "path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_moment_reverse.so",
+    "bytes": 157464,
+    "sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f"
+  },
+  "input_evidence": [
+    {
+      "original": {
+        "path": "/tmp/probtf_variational_conditioning_warmstart_20261018.log",
+        "bytes": 99,
+        "sha256": "750e8fc7f82d0362413c811a25dd8018e93a29cf821384a50d297e2ffbfb3cfa"
+      },
+      "copied_as": "logs/generic_15.log"
+    },
+    {
+      "original": {
+        "path": "/tmp/probtf_moment_reverse_transport_tests_20261018.log",
+        "bytes": 99,
+        "sha256": "5d7519853c28f56581899e092d3e3d6b822d1d03cd72ef2b4c9fa4635ec6ba07"
+      },
+      "copied_as": "logs/native_43_transport_16.log"
+    },
+    {
+      "original": {
+        "path": "/tmp/probtf_variational_integrated_focused_final_20261018.log",
+        "bytes": 567,
+        "sha256": "dead3cd1cdbadb49021756013bc70a579cf1fc1018ff494fcbd3067c9ef6516e"
+      },
+      "copied_as": "logs/integrated_55.log"
+    },
+    {
+      "original": {
+        "path": "/tmp/probtf_variational_rank54_affine_benchmark_20261018.json",
+        "bytes": 3744,
+        "sha256": "3ec2ca992aaa353b9c16a7a428d4da4e7088141d523eeb13481357b82eaaf09a"
+      },
+      "copied_as": "benchmarks/rank54_affine_prior_start_and_exact_seed.json"
+    },
+    {
+      "original": {
+        "path": "/tmp/probtf_moment_reverse_benchmark_20261018.json",
+        "bytes": 2794,
+        "sha256": "4a9d56d657d43fdd2d6eea5dd7515e079e6f68517296d7daf2029f5998d68c69"
+      },
+      "copied_as": "benchmarks/actual66d_vjp_and_directional_fd.json"
+    },
+    {
+      "original": {
+        "path": "/tmp/probtf_variational_rank54_affine_benchmark_20261018.py",
+        "bytes": 3395,
+        "sha256": "27279127c41ab98c266f6d04d85e2852da6dd458032e19e15aeb2502397c0ee2"
+      },
+      "copied_as": "reproduction/profile_rank54_affine.py"
+    },
+    {
+      "original": {
+        "path": "/tmp/probtf_moment_reverse_benchmark_20261018.py",
+        "bytes": 4092,
+        "sha256": "1334b647ed3da8769b32d442d638f0d74e1282861e2732099a789c81c398011a"
+      },
+      "copied_as": "reproduction/profile_actual66d_moment_vjp.py"
+    },
+    {
+      "original": {
+        "path": "/tmp/probtf_variational_conditioning_warmstart_manifest_20261018.json",
+        "bytes": 2861,
+        "sha256": "6a0753269c2710ea162f42ed6916017f6259a96729b6ab3718099c8c76859ed6"
+      },
+      "copied_as": "generic_warmstart_original_manifest.json"
+    }
+  ],
+  "focused_tests": [
+    {
+      "group": "generic solver",
+      "count": 15,
+      "outcome": "passed",
+      "actual_log": "logs/generic_15.log",
+      "coverage": [
+        "anisotropic offdiagonal affine posterior and evidence",
+        "all whitened mean/lower-Cholesky derivatives",
+        "rank-deficient/Dirac support",
+        "fixed original prior and two-new-observation sequential accumulation",
+        "nonlinear moment callback reevaluated for both m and P",
+        "finite work budget continues; actual nonfinite initial evaluation fails",
+        "huge common likelihood constant and retained small evidence parts",
+        "affine seed exactness; seed is not a new prior; worse/unavailable seeds preserve fixed-prior comparison"
+      ]
+    },
+    {
+      "group": "native reverse",
+      "count": 43,
+      "outcome": "passed",
+      "actual_log": "logs/native_43_transport_16.log",
+      "coverage": [
+        "same core corrected mean/full covariance",
+        "analytic reverse derivatives for all m and symmetric P in deterministic independent finite-difference validation",
+        "reexpression and native chart dependence"
+      ]
+    },
+    {
+      "group": "fixed-goal Gaussian marginal transport",
+      "count": 16,
+      "outcome": "passed",
+      "actual_log": "logs/native_43_transport_16.log",
+      "coverage": [
+        "AP A.T=Q and unchanged marginals",
+        "variance expansion and rotated full covariance",
+        "singular support and exact Dirac coordinates",
+        "honest conditional-Schur caveat when rank decreases"
+      ]
+    },
+    {
+      "group": "variational model",
+      "count": 7,
+      "outcome": "owner-reported passed; no dedicated raw log retained",
+      "owner_reported_wall_seconds": 1.49,
+      "actual_combined_integration_log": "logs/integrated_55.log",
+      "raw_combined_log_count": 55,
+      "counting_note": "Do not sum 55 with the named suites; integration log overlaps them. The individual 7-test count was reported by owning agent, not reconstructed as a synthetic log. Final full regression is managed separately by root.",
+      "coverage": [
+        "affine precision oracle through model",
+        "trial fullcross expectation derivatives",
+        "all parent/native masses with huge common evidence and underflowed ordinary weights",
+        "empty/missing observation identity",
+        "new observation uses previous retained law once",
+        "acquisition t/q and same source law through snapshot/marker wire"
+      ]
+    }
+  ],
+  "math_contract": {
+    "q_family": "m=m0+B a, P=B L L.T B.T with P0=B B.T on its original support; positive log-diagonal full lower Cholesky",
+    "objective": "F(q)=KL(q||fixed p0)+sum_s E_q[-log native Gaussian L_s], each R normalizer once",
+    "mean_gradient_chain": "dF/da = a+B.T gradient_m",
+    "Cholesky_gradient_chain": "dF/dL=L-L^(-T)+2 B.T sym(gradient_P) B L; log-diagonal chain multiplies its diagonal by L_ii",
+    "affine_proof": "For exact affine-Gaussian likelihood, F(q)=KL(q||p(z|y))-log p(y). The Gaussian family contains the exact posterior; at the variational optimum q=p(z|y), -F=log p(y).",
+    "seed_role": "One analytic affine surrogate conditioning supplies only an optional starting q. Both q=p0 and seed pay KL to the same original p0 and are compared by the same propagated-moment F; no repeated observation multiplication.",
+    "sequential_proof": "After one completed event, its retained q is the fixed p0 for the next genuinely new event. In the affine exact limit this is ordinary recursive Bayes conditioning; finite optimizer errors can perturb later evidence.",
+    "native_mixture": "Each explicit prior/native combination has a separate optimized Gaussian; log alpha = log prior_mass+log native_mass-F, globally normalized before the existing canonical moment projection.",
+    "support_measure": "Whitening is the covariance square root U sqrt(D), not only the orthonormal support basis. KL is evaluated in the original supported Gaussian chart. Rank zero keeps the exact Dirac prior."
+  },
+  "actual66d_benchmark": {
+    "input_fixture": "M93 historical prior",
+    "joint_dimension": 66,
+    "support_rank": 42,
+    "input_payload_sha256": "f220b4e77aa9c3c6329c4445e910344b97936f84c44dd3df606b1d245c15dd9c",
+    "source_state_id": "3185bd9d470fb25e2350b3bf10ca64ea2c9d9daeb4e5171427cd8fdb3bd323ea",
+    "source_and_backend_match_current": {
+      "library": true,
+      "native_source": true,
+      "binding": true
+    },
+    "mean_max_abs_vs_independent_core": 7.771561172376096e-16,
+    "covariance_max_abs_vs_independent_core": 1.2709729373550777e-18,
+    "cost_abs_vs_independent_core": 3.163336259603966e-11,
+    "analytic_VJP_vs_core_FD": {
+      "kind": "four deterministic combined m/P support directions; not all parameters in this archived fixture",
+      "maximum_absolute_error": 9.284701192768807e-06,
+      "maximum_relative_error": 7.809936568110656e-08,
+      "FD_step": 2e-05,
+      "finite_difference_used_in_production": false
+    },
+    "timings": {
+      "native_moments_AND_reverse_gradient": {
+        "repeats": 50,
+        "median_wall_s": 0.0018309280276298523,
+        "median_cpu_s": 0.0018303159999999985,
+        "min_wall_s": 0.0017707603983581066
+      },
+      "Python_core_moments_ONLY": {
+        "repeats": 25,
+        "median_wall_s": 0.0065438272431492805,
+        "median_cpu_s": 0.006540312000000048,
+        "min_wall_s": 0.006458836141973734
+      },
+      "full_finite_difference_gradient_timing_measured": false,
+      "whole_inference_or_live_throughput_measured": false
+    },
+    "interpretation": "These timings are unequal-work baselines: native includes the gradient, Python core baseline does not. No VJP-vs-full-FD speed ratio, total estimator rate or motion-success claim follows."
+  },
+  "rank54_affine_profile": {
+    "status": "Historical diagnostic collected before the optional warmstart API was added; copied byte-for-byte without rewriting its old wording.",
+    "fixture": "deterministic synthetic n66/rank54/6-observation Gaussian; 1539 free Gaussian parameters; no sampling or physical input",
+    "prior_start_maxiter24": {
+      "gradient_inf": 8.103117403953306,
+      "mean_max_abs_error": 0.0013398022096830688,
+      "covariance_max_abs_error": 0.005061474921793964,
+      "affine_log_evidence_gap": 3.4244682196865472
+    },
+    "analytic_affine_seed_as_same_original_prior_chart": {
+      "gradient_inf": 5.116389950599043e-12,
+      "evidence_error": 4.263256414560601e-14
+    },
+    "interpretation": "Motivated optional seed selection; does not justify claiming default24 reaches stationarity in nonlinear cases. Actual native moment reverse cost excluded from this synthetic profile."
+  },
+  "limits": [
+    "Approximate high-concentration propagated moments mean -F is a moment-ELBO proxy, not guaranteed exact nonlinear evidence or a rigorous lower bound.",
+    "Finite iteration/nonstationarity is logged and finite best q is used; gradient_tolerance is not a pipeline stop gate.",
+    "The objective is Gaussian reverse-KL variational approximation, not candidate-point MAP/GN/Laplace, and no global optimum is certified.",
+    "Canonical within/between projection can change the final law relative to each optimized branch; fit of those stages must be audited separately.",
+    "Fixed-goal OT is an explicit cut/coupling convention on the original support, not a uniquely determined Bayesian update. AP A.T=Q proves joint PSD by congruence; conditional Schur equality additionally needs support-invertible A.",
+    "Preserving small mixture masses with high/low parts does not guarantee arbitrary-scale exact float64 matrix/quadratic arithmetic.",
+    "Current full regression and new180s live validation were not completed by this collector; old-run outcomes are not new-source motion evidence.",
+    "Raw image pixels, physical truth and true K are excluded from copied artifacts. Archived payload/index dependencies are references with hashes, not copied bulky raw data."
+  ],
+  "warmstart_job22": "Parent will separately select /tmp/probtf_variational_job22_audit_warmstart_20261018; this package does not duplicate the full packet/history."
+}

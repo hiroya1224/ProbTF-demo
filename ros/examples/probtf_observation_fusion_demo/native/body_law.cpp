@@ -139,17 +139,35 @@ static M3 rightj(const V3 &v) {
   return M3::Identity() - (1 - std::cos(a)) / (a * a) * S +
          (a - std::sin(a)) / (a * a * a) * S * S;
 }
+// A continuous rotation covariance/modal gap needs an actual PD inverse.
+// Do not use the Gaussian affine-support rank cutoff to discard a positive
+// but small axis of this required 3-by-3 inverse. No jitter or floor is used.
+static M3 positive_inverse3(const M3 &input, const char *name) {
+  finite(input);
+  if (!close(input, input.transpose(), 1e-12, 1e-12))
+    throw std::invalid_argument(std::string(name) + " must be symmetric.");
+  const M3 symmetric = .5 * input + .5 * input.transpose();
+  Eigen::LLT<M3> factor(symmetric);
+  if (factor.info() != Eigen::Success)
+    throw std::invalid_argument(std::string(name) +
+                                " requires a positive definite inverse.");
+  const M3 inverse = factor.solve(M3::Identity());
+  finite(inverse);
+  return .5 * inverse + .5 * inverse.transpose();
+}
 // first_order.py::bingham_rotation_coordinates:
 // C_A = 2 (lambda_max I - N(q)^T A N(q))^{-1}, N(q)=L(q)[:,1:4].
 static std::pair<V4, M3> coordinates(const M4 &input) {
+  finite(input);
   if (!close(input, input.transpose(), 1e-12, 1e-12))
     throw std::invalid_argument("Bingham parameter must be symmetric.");
   M4 A = input - .25 * input.trace() * M4::Identity();
   Eigen::SelfAdjointEigenSolver<M4> e(A);
   if (e.info() != Eigen::Success)
     throw std::runtime_error("Bingham eigensystem unavailable.");
-  double scale = std::max(1., e.eigenvalues().cwiseAbs().maxCoeff());
-  if (e.eigenvalues()[3] - e.eigenvalues()[2] <= 1e-12 * scale)
+  if (!e.eigenvalues().allFinite())
+    throw std::invalid_argument("Bingham eigenvalues must be finite.");
+  if (!(e.eigenvalues()[3] > e.eigenvalues()[2]))
     throw std::invalid_argument(
         "A single-pose proxy needs a simple maximum Bingham eigenvalue.");
   V4 q = normq(e.eigenvectors().col(3));
@@ -158,16 +176,16 @@ static std::pair<V4, M3> coordinates(const M4 &input) {
   if (q[pivot] < 0.)
     q = -q;
   auto N = left(q).rightCols<3>().eval();
-  auto s = support(e.eigenvalues()[3] * M3::Identity() - N.transpose() * A * N);
-  if (s.values.size() != 3)
-    throw std::invalid_argument(
-        "A continuous unobserved orientation is not a single-pose Bingham.");
-  M3 C = 2 * s.inverse;
-  Eigen::SelfAdjointEigenSolver<M3> ce(C);
-  if (ce.eigenvalues().maxCoeff() > .1)
-    throw std::invalid_argument(
-        "Bingham rotation exceeds the declared first-order concentration "
-        "domain (0.1 rad^2).");
+  // A is validated symmetric above, so N^T A N is symmetric analytically.
+  // Assemble that structural symmetry before the required PD inverse, as
+  // the core does. Product-roundoff skew is not an invalid input law.
+  const M3 raw_gap =
+      e.eigenvalues()[3] * M3::Identity() - N.transpose() * A * N;
+  const M3 gap = .5 * raw_gap + .5 * raw_gap.transpose();
+  M3 C = 2 * positive_inverse3(gap, "Bingham modal gap");
+  // Concentration is an approximation-quality diagnostic, not an algebraic
+  // prerequisite. The user explicitly removed the former 0.1 rad^2 gate;
+  // retain the same finite coordinates and covariance without clipping.
   return {q, C};
 }
 static void error(char *out, size_t n, const std::exception &e) {
@@ -179,13 +197,12 @@ static void error(char *out, size_t n, const std::exception &e) {
 extern "C" int probtf_body_abi_version() { return 1; }
 // first_order.py::reexpress_state: move all means simultaneously, transport
 // the complete covariance as G P G^T, then use A=-2 N Omega^{-1} N^T.
-extern "C" int probtf_body_reexpress(int edges, const double *tin,
-                                     const double *qin,
-                                     const unsigned char *random,
-                                     const double *sourceP, const double *mean,
-                                     const double *posteriorP, double *tout,
-                                     double *qout, double *Aout, double *Pout,
-                                     char *err, size_t errn) {
+static int reexpress_kernel(int edges, const double *tin, const double *qin,
+                            const unsigned char *random, const double *sourceP,
+                            const double *mean, const double *posteriorP,
+                            double *tout, double *qout, double *Aout,
+                            double *Pout, char *err, size_t errn,
+                            bool check_source_support) {
   try {
     if (edges < 0)
       throw std::invalid_argument("A transform count cannot be negative.");
@@ -196,13 +213,15 @@ extern "C" int probtf_body_reexpress(int edges, const double *tin,
     finite(t);
     finite(qs);
     finite(m);
-    auto src = support(P);
     auto post = support(C);
     (void)post;
-    Vec residual = m - src.basis * (src.basis.transpose() * m);
-    if (residual.norm() > 1e-10 * std::max(1., m.norm()))
-      throw std::invalid_argument("posterior body mean shift lies outside the "
-                                  "reference affine support.");
+    if (check_source_support) {
+      auto src = support(P);
+      Vec residual = m - src.basis * (src.basis.transpose() * m);
+      if (residual.norm() > 1e-10 * std::max(1., m.norm()))
+        throw std::invalid_argument("posterior body mean shift lies outside the "
+                                    "reference affine support.");
+    }
     Mat G = Mat::Identity(n, n);
     for (int i = 0; i < edges; ++i)
       if (random[i])
@@ -213,16 +232,17 @@ extern "C" int probtf_body_reexpress(int edges, const double *tin,
     for (int i = 0; i < edges; ++i) {
       to.row(i) = t.row(i) + m.segment<3>(6 * i).transpose();
       V4 q = mul(qs.row(i).transpose(), rvq(m.segment<3>(6 * i + 3)));
-      M3 Rc = transported.block<3, 3>(6 * i + 3, 6 * i + 3);
+      const M3 raw_Rc = transported.block<3, 3>(6 * i + 3, 6 * i + 3);
+      // The supplied C was validated before computing G C G^T. Preserve
+      // that complete transported matrix verbatim; only its internally
+      // assembled rotation quadratic is symmetrized for the PD inverse.
+      const M3 Rc = .5 * raw_Rc + .5 * raw_Rc.transpose();
       Eigen::Map<Row> A(Aout + 16 * i, 4, 4);
       A.setZero();
       if (random[i]) {
-        auto s = support(Rc);
-        if (s.values.size() != 3)
-          throw std::invalid_argument(
-              "A continuous Bingham reexpression needs full rotation support.");
+        const M3 inverse = positive_inverse3(Rc, "rotation covariance");
         auto N = left(q).rightCols<3>().eval();
-        M4 parameter = -2 * N * s.inverse * N.transpose();
+        M4 parameter = -2 * N * inverse * N.transpose();
         parameter = .5 * (parameter + parameter.transpose()).eval();
         A = parameter;
         auto b = coordinates(parameter);
@@ -230,7 +250,7 @@ extern "C" int probtf_body_reexpress(int edges, const double *tin,
         if (!close(Rc, b.second))
           throw std::invalid_argument(
               "The Bingham and joint rotation marginal disagree.");
-      } else if ((Rc.array() != 0.).any())
+      } else if ((raw_Rc.array() != 0.).any())
         throw std::invalid_argument(
             "A known fixed rotation cannot carry a random rotation block.");
       qo.row(i) = q.transpose();
@@ -242,6 +262,28 @@ extern "C" int probtf_body_reexpress(int edges, const double *tin,
     error(err, errn, e);
     return 1;
   }
+}
+// Existing ABI and strict Bayesian-posterior support contract are unchanged.
+extern "C" int probtf_body_reexpress(
+    int edges, const double *tin, const double *qin, const unsigned char *random,
+    const double *sourceP, const double *mean, const double *posteriorP,
+    double *tout, double *qout, double *Aout, double *Pout, char *err,
+    size_t errn) {
+  return reexpress_kernel(edges, tin, qin, random, sourceP, mean, posteriorP,
+                          tout, qout, Aout, Pout, err, errn, true);
+}
+// A common coordinate chart is geometry, not the support of the OTHER law
+// being expressed there. This separate extension omits only that unrelated
+// reference-prior absolute-continuity test. All supplied-covariance, finite,
+// fixed-rotation and required-PD-inverse checks remain in the shared kernel.
+extern "C" int probtf_body_materialize_in_chart_abi_version() { return 1; }
+extern "C" int probtf_body_materialize_in_chart(
+    int edges, const double *tin, const double *qin, const unsigned char *random,
+    const double *sourceP, const double *mean, const double *posteriorP,
+    double *tout, double *qout, double *Aout, double *Pout, char *err,
+    size_t errn) {
+  return reexpress_kernel(edges, tin, qin, random, sourceP, mean, posteriorP,
+                          tout, qout, Aout, Pout, err, errn, false);
 }
 // first_order.py::conditional_total_covariance: use the support-aware Schur
 // within/between sum as the returned covariance; J P J^T is only its check.

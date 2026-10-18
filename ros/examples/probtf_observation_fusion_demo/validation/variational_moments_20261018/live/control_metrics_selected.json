@@ -1,0 +1,451 @@
+{
+  "cases": {
+    "marker": {
+      "actual_interval_count_with_factors": 6605,
+      "intervals_without_factor_record": 49,
+      "task_gradient_norm": {
+        "count": 6605,
+        "median": 128188.98976659846,
+        "p95": 1079916.2459793265,
+        "maximum": 3577675.7725151875
+      },
+      "weighted_view_gradient_norm": {
+        "count": 6605,
+        "median": 27888.23454915078,
+        "p95": 158944.73062003858,
+        "maximum": 385512.0941351736
+      },
+      "weighted_view_to_task_norm_ratio": {
+        "count": 6605,
+        "median": 0.20904266829984777,
+        "p95": 1.1012624385828826,
+        "maximum": 6.252832968918878
+      },
+      "task_weighted_view_cosine_where_both_nonzero": {
+        "count": 5272,
+        "median": -0.36303343840087277,
+        "p95": 0.8707354365551279,
+        "maximum": 0.9528207426552664
+      },
+      "opposing_nonzero_gradient_intervals": 3761,
+      "latest_actual_integrated_interval": {
+        "physical_interval_index": 6653,
+        "end_stamp": 1792080180.0,
+        "end_command": [
+          -0.2974581762666584,
+          -1.5500471403905574,
+          1.6154792548567372,
+          -0.25832869222521304,
+          -0.7370084331397768,
+          0.04353408017780334
+        ],
+        "gradient_packet_id": "6810de238c9e237169693c6aebe7f6c943f43eda3a1ac37ae81b396bebc096dc",
+        "gradient_source_stamp": 1792080179.7585378,
+        "gradient_source_age_s": 0.24146223068237305,
+        "gradient_source_command_distance_l2": 0.0015022575225251548,
+        "observation_source_stamps": [
+          1792080146.6726673
+        ],
+        "source_ids": {
+          "body_observation_source_stamp": 1792080146.6726673,
+          "body_state_ids": [
+            "820060213d2f0bfb790f58efadfe750083ebcce34ad58a0796d5432969d3c02a"
+          ],
+          "camera_relative_marker_path": [
+            [
+              "camera_optical_frame",
+              true
+            ],
+            [
+              "tool0",
+              true
+            ],
+            [
+              "link_6",
+              true
+            ],
+            [
+              "link_5",
+              true
+            ],
+            [
+              "link_4",
+              true
+            ],
+            [
+              "link_3",
+              true
+            ],
+            [
+              "link_2",
+              true
+            ],
+            [
+              "link_1",
+              true
+            ],
+            [
+              "marker",
+              false
+            ]
+          ],
+          "evaluation_command": [
+            -0.2983345037930645,
+            -1.5508778545970119,
+            1.6162604814705175,
+            -0.25861667330500726,
+            -0.7367223280946581,
+            0.043380335531065635
+          ],
+          "evaluation_state_ids": [
+            "d99252e5379cd5eb918600f63349f7e2e54772cc663853f3c3fb806b7e293a50"
+          ],
+          "goal_observation_source_stamp": 1792080146.6726673,
+          "goal_state_ids": [
+            "d99252e5379cd5eb918600f63349f7e2e54772cc663853f3c3fb806b7e293a50"
+          ],
+          "parameter_density_id": "26f0c3f3a09abdb1747411492c48a74f9550f1edb12fe2516d0d09e3393db029",
+          "selected_K": [
+            105.3304775699503,
+            56.586935532765146,
+            461.9350462862762,
+            107.9750551227683,
+            103.26389546269,
+            104.95091367177459
+          ],
+          "source_command": [
+            -0.2983345037930645,
+            -1.5508778545970119,
+            1.6162604814705175,
+            -0.25861667330500726,
+            -0.7367223280946581,
+            0.043380335531065635
+          ],
+          "source_stamp": 1792080179.7585378
+        },
+        "task_gradient_norm": 49066.04734439543,
+        "weighted_view_gradient_norm": 0.0,
+        "weighted_view_to_task_norm_ratio": 0.0,
+        "task_weighted_view_cosine": null,
+        "log_task_factor": -5961.368445790345,
+        "log_view_factor": -0.0,
+        "view_penalty": 0.0,
+        "parameter_density_id": "26f0c3f3a09abdb1747411492c48a74f9550f1edb12fe2516d0d09e3393db029",
+        "captured_K_source_stamp": 1792080032.9318008,
+        "selected_K": [
+          105.3304775699503,
+          56.586935532765146,
+          461.9350462862762,
+          107.9750551227683,
+          103.26389546269,
+          104.95091367177459
+        ],
+        "actual_used_K_record": {
+          "job_sequence": 73,
+          "density_id": "26f0c3f3a09abdb1747411492c48a74f9550f1edb12fe2516d0d09e3393db029",
+          "source_stamp": 1792080032.9318008,
+          "source_command": [
+            -0.1676188792163095,
+            -1.9317515005264416,
+            2.1854127717127003,
+            -0.20806971891572748,
+            -0.7731242081032323,
+            0.07672121114675944
+          ],
+          "selected_K": [
+            105.3304775699503,
+            56.586935532765146,
+            461.9350462862762,
+            107.9750551227683,
+            103.26389546269,
+            104.95091367177459
+          ],
+          "factor_count": 73,
+          "refinement_iterations": 1,
+          "maximum_iterations": 1,
+          "selected_density_score": [
+            -0.6420484464659365,
+            1000.2191540877645,
+            40.19013553124861,
+            5.218576410635057,
+            48.2897724545765,
+            -2.288380223191417
+          ],
+          "selected_density_score_inf": 1000.2191540877645,
+          "termination_reason": "bounded local iteration budget",
+          "convergence_claimed": false
+        },
+        "K_source_age_s": 147.06819915771484,
+        "body_observation_age_s": 33.327332735061646,
+        "goal_observation_age_s": 33.327332735061646
+      },
+      "used_K_selected_density_score_inf": {
+        "count": 73,
+        "median": 55.29620763272233,
+        "p95": 723.8935214243696,
+        "maximum": 2316.0147096016813
+      },
+      "last_completed_K_after_drain": {
+        "job_sequence": 78,
+        "density_id": "839ac630bce29888b2863c552f86e22244ad3715ac5d94d95a12387438f25e6c",
+        "source_stamp": 1792080038.260958,
+        "source_command": [
+          -0.255535375392657,
+          -1.9389181505571125,
+          2.144661193545853,
+          -0.19381998660847916,
+          -0.8361207281127608,
+          0.09709506542350489
+        ],
+        "selected_K": [
+          102.98309049069364,
+          104.69682215274979,
+          307.9299329986477,
+          120.16143091816457,
+          48.824071488295864,
+          98.90116479554402
+        ],
+        "factor_count": 78,
+        "refinement_iterations": 1,
+        "maximum_iterations": 1,
+        "selected_density_score": [
+          -0.6327114322446776,
+          -41.28414770884726,
+          35.27026811382697,
+          3.662763922571497,
+          12.878908331533474,
+          -2.7999420443633083
+        ],
+        "selected_density_score_inf": 41.28414770884726,
+        "termination_reason": "bounded local iteration budget",
+        "convergence_claimed": false
+      },
+      "used_K_representative_csv": "used_K_representatives_marker.csv"
+    },
+    "imu_marker": {
+      "actual_interval_count_with_factors": 6012,
+      "intervals_without_factor_record": 64,
+      "task_gradient_norm": {
+        "count": 6012,
+        "median": 114022.88327570492,
+        "p95": 806228.8224498882,
+        "maximum": 2249945.416438722
+      },
+      "weighted_view_gradient_norm": {
+        "count": 6012,
+        "median": 8761.841703031248,
+        "p95": 90702.33109288808,
+        "maximum": 151333.48147291667
+      },
+      "weighted_view_to_task_norm_ratio": {
+        "count": 6012,
+        "median": 0.05298617810836887,
+        "p95": 1.2432874469592163,
+        "maximum": 37.063531393977804
+      },
+      "task_weighted_view_cosine_where_both_nonzero": {
+        "count": 3990,
+        "median": -0.13506196930279274,
+        "p95": 0.6146732716350448,
+        "maximum": 0.9810409017574377
+      },
+      "opposing_nonzero_gradient_intervals": 2293,
+      "latest_actual_integrated_interval": {
+        "physical_interval_index": 6075,
+        "end_stamp": 1792080180.0,
+        "end_command": [
+          -0.1228832625577972,
+          -1.320557604745511,
+          1.328811255272563,
+          -0.1594464644945088,
+          -0.7938670207638725,
+          0.157358460196348
+        ],
+        "gradient_packet_id": "15a3531d9b2581960b193d8998c0a9842f849a08855f7ca4cc629e2e22d0d869",
+        "gradient_source_stamp": 1792080179.7007382,
+        "gradient_source_age_s": 0.29926180839538574,
+        "gradient_source_command_distance_l2": 0.0010139788374994437,
+        "observation_source_stamps": [
+          1792080153.6920106,
+          1792080153.7438068
+        ],
+        "source_ids": {
+          "body_observation_source_stamp": 1792080153.7438068,
+          "body_state_ids": [
+            "b4f6f03a4ef5f8ae7e5f08d79466dae1a286bb5aa2b93eb58e5a54bc6383a577"
+          ],
+          "camera_relative_marker_path": [
+            [
+              "camera_optical_frame",
+              true
+            ],
+            [
+              "tool0",
+              true
+            ],
+            [
+              "link_6",
+              true
+            ],
+            [
+              "link_5",
+              true
+            ],
+            [
+              "link_4",
+              true
+            ],
+            [
+              "link_3",
+              true
+            ],
+            [
+              "link_2",
+              true
+            ],
+            [
+              "link_1",
+              true
+            ],
+            [
+              "marker",
+              false
+            ]
+          ],
+          "evaluation_command": [
+            -0.12299337421753119,
+            -1.3207959027879592,
+            1.3295102028343082,
+            -0.15964664566298442,
+            -0.7945086544885259,
+            0.15722080658267112
+          ],
+          "evaluation_state_ids": [
+            "f82963cef68c72819ac50fe261001dc5cd6ca84e265159cec2c6d081c59b9d3e"
+          ],
+          "goal_observation_source_stamp": 1792080153.6920106,
+          "goal_state_ids": [
+            "f82963cef68c72819ac50fe261001dc5cd6ca84e265159cec2c6d081c59b9d3e"
+          ],
+          "parameter_density_id": "bde14bfc53dbe342ad7cb12b3fcc1aae368c3bea7db0b9c8dac3ae2d7b4fa270",
+          "selected_K": [
+            105.68579865854828,
+            113.43652076926342,
+            175.29268398698557,
+            109.39618018408137,
+            181.1625255746241,
+            105.10640425939953
+          ],
+          "source_command": [
+            -0.12299337421753119,
+            -1.3207959027879592,
+            1.3295102028343082,
+            -0.15964664566298442,
+            -0.7945086544885259,
+            0.15722080658267112
+          ],
+          "source_stamp": 1792080179.7007382
+        },
+        "task_gradient_norm": 27236.369455883163,
+        "weighted_view_gradient_norm": 0.0,
+        "weighted_view_to_task_norm_ratio": 0.0,
+        "task_weighted_view_cosine": null,
+        "log_task_factor": -3325.4576318224636,
+        "log_view_factor": -0.0,
+        "view_penalty": 0.0,
+        "parameter_density_id": "bde14bfc53dbe342ad7cb12b3fcc1aae368c3bea7db0b9c8dac3ae2d7b4fa270",
+        "captured_K_source_stamp": 1792080011.5010986,
+        "selected_K": [
+          105.68579865854828,
+          113.43652076926342,
+          175.29268398698557,
+          109.39618018408137,
+          181.1625255746241,
+          105.10640425939953
+        ],
+        "actual_used_K_record": {
+          "job_sequence": 74,
+          "density_id": "bde14bfc53dbe342ad7cb12b3fcc1aae368c3bea7db0b9c8dac3ae2d7b4fa270",
+          "source_stamp": 1792080011.5010986,
+          "source_command": [
+            0.08600712917678444,
+            -1.8159269251534436,
+            2.32008191125272,
+            0.030409461485650238,
+            -0.9421777907327331,
+            0.005862248164177727
+          ],
+          "selected_K": [
+            105.68579865854828,
+            113.43652076926342,
+            175.29268398698557,
+            109.39618018408137,
+            181.1625255746241,
+            105.10640425939953
+          ],
+          "factor_count": 74,
+          "refinement_iterations": 1,
+          "maximum_iterations": 1,
+          "selected_density_score": [
+            -0.6434436190214149,
+            -1809.1209017070694,
+            -1940.0606774560972,
+            -76.20344199417721,
+            473.4738554482605,
+            -49.169478620447286
+          ],
+          "selected_density_score_inf": 1940.0606774560972,
+          "termination_reason": "bounded local iteration budget",
+          "convergence_claimed": false
+        },
+        "K_source_age_s": 168.4989013671875,
+        "body_observation_age_s": 26.256193161010742,
+        "goal_observation_age_s": 26.307989358901978
+      },
+      "used_K_selected_density_score_inf": {
+        "count": 74,
+        "median": 234.5177637832747,
+        "p95": 1039.756385692027,
+        "maximum": 2084.49885902503
+      },
+      "last_completed_K_after_drain": {
+        "job_sequence": 77,
+        "density_id": "d7d3ea2d4737b645cd710b4da9e90216d27a8dd6f315abb12a6e3ec33baeed4c",
+        "source_stamp": 1792080012.602255,
+        "source_command": [
+          0.11519572376014865,
+          -1.7663365261582529,
+          2.3057051833898514,
+          0.07913340496542352,
+          -0.9441137502355728,
+          0.0048736176444713125
+        ],
+        "selected_K": [
+          105.67471547658758,
+          112.37242022485002,
+          143.09393823347116,
+          107.8064712119977,
+          195.78170432988068,
+          104.34290151865986
+        ],
+        "factor_count": 77,
+        "refinement_iterations": 1,
+        "maximum_iterations": 1,
+        "selected_density_score": [
+          -0.6434001716914586,
+          900.7071070603753,
+          -439.8346881819812,
+          -92.3503695443751,
+          454.52920285320005,
+          -37.705851610863185
+        ],
+        "selected_density_score_inf": 900.7071070603753,
+        "termination_reason": "bounded local iteration budget",
+        "convergence_claimed": false
+      },
+      "used_K_representative_csv": "used_K_representatives_imu_marker.csv"
+    }
+  },
+  "scope": "Actual integrated physical command intervals only for ages/factor gradients. Ratios are per-interval unweighted samples, not a proof of the oscillation cause. K selected-density score is at its original acquired body law; it is not a current-body geometry residual. Last-completed-after-drain is a distinct report and was not necessarily executed.",
+  "native_or_truth_evaluations_performed": false
+}

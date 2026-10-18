@@ -1,0 +1,67 @@
+{
+  "scope": "Single archived full-cross 11-edge/66-coordinate geometry. Native computes moments AND analytic reverse likelihood gradient; Python comparison computes only existing reexpression/query moments. This is not whole-inference throughput or a live accuracy result.",
+  "original_fixture": "M93 historical prior",
+  "fixture_index_sha256": "f6909fdab6d619decda59da6a89514502f641ba95971e5a2e1174f575196b35f",
+  "payload_sha256": "f220b4e77aa9c3c6329c4445e910344b97936f84c44dd3df606b1d245c15dd9c",
+  "joint_dimension": 66,
+  "support_rank": 42,
+  "source_state_id": "3185bd9d470fb25e2350b3bf10ca64ea2c9d9daeb4e5171427cd8fdb3bd323ea",
+  "backend": {
+    "backend": "native_analytic_reverse",
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_moment_reverse.so",
+    "library_sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f",
+    "native_source_sha256": "133baaf99f57cb0c2a1357cd4ce2f70a3cf222173841481e80773150bd18ee75",
+    "binding_sha256": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "stochastic_sampling": false,
+    "runtime_compilation": false,
+    "reverse_derivatives": true,
+    "core_equations_changed": false
+  },
+  "tape_nodes": 69893,
+  "mean_max_abs_vs_core": 7.771561172376096e-16,
+  "covariance_max_abs_vs_core": 1.2709729373550777e-18,
+  "cost_abs_vs_core": 3.163336259603966e-11,
+  "gradient_directions": [
+    {
+      "analytic": 82.67292738060497,
+      "core_central_difference": 82.67292837835782,
+      "absolute_error": 9.977528492299825e-07,
+      "relative_error": 1.2068676757931015e-08
+    },
+    {
+      "analytic": 118.88317384741123,
+      "core_central_difference": 118.88318313211242,
+      "absolute_error": 9.284701192768807e-06,
+      "relative_error": 7.809936568110656e-08
+    },
+    {
+      "analytic": 45.792778536745615,
+      "core_central_difference": 45.79277531675529,
+      "absolute_error": 3.2199903259311213e-06,
+      "relative_error": 7.031655765910626e-08
+    },
+    {
+      "analytic": -69.39928617638165,
+      "core_central_difference": -69.3992836858115,
+      "absolute_error": 2.490570153668159e-06,
+      "relative_error": 3.5887548421156823e-08
+    }
+  ],
+  "native_moments_and_reverse": {
+    "repeats": 50,
+    "median_wall_s": 0.0018309280276298523,
+    "median_cpu_s": 0.0018303159999999985,
+    "min_wall_s": 0.0017707603983581066
+  },
+  "core_moments_only": {
+    "repeats": 25,
+    "median_wall_s": 0.0065438272431492805,
+    "median_cpu_s": 0.006540312000000048,
+    "min_wall_s": 0.006458836141973734
+  },
+  "source_unchanged": true,
+  "backend_unchanged": true,
+  "stochastic_sampling": false,
+  "production_edited": false,
+  "script_sha256": "1334b647ed3da8769b32d442d638f0d74e1282861e2732099a789c81c398011a"
+}

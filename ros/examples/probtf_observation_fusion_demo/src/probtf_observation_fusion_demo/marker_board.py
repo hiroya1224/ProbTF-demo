@@ -1,8 +1,9 @@
 """Known board geometry and image-only assumed-density central-pose fusion.
 
 Every decoded marker keeps its native observation mixture. Only derived
-central-board laws are reduced, when their single high-concentration chart
-is valid. Otherwise all branches continue through the next marker product.
+central-board laws are reduced, when a unique modal chart and its required
+inverse can actually be formed. Finite width is not a rejection criterion.
+Otherwise all branches continue through the next marker product.
 This is order-dependent assumed-density filtering of image-only local
 Laplace laws, not an exact product of all native combinations on SE(3).
 """
@@ -192,6 +193,7 @@ def _project_central(branches, reference, integration_steps, arithmetic_backend=
     target = sum(weight*moment for weight, moment in zip(weights, moments))
     fit_method = 'single branch Bingham preserved exactly'
     refinement_evaluations = 0
+    refinement_skip_reason = None
     core_fit_max_error = None
     if len(branches) == 1:
         # This branch already is one Bingham. Preserve its parameters exactly;
@@ -217,24 +219,32 @@ def _project_central(branches, reference, integration_steps, arithmetic_backend=
             # concentrated laws; independent log concentrations also avoid
             # its tied-gap initialization issue. No core default is changed.
             eigenvalues, basis = np.linalg.eigh(target)
-            concentrations = -np.linalg.eigvalsh(parameter)[:3]
+            spectrum = np.linalg.eigvalsh(parameter)
+            concentrations = spectrum[-1]-spectrum[:3]
             if np.any(concentrations <= 0.):
-                raise ValueError('The initial central Bingham fit has invalid concentrations.')
-            def residual(log_concentrations):
-                diagonal = np.r_[-np.exp(log_concentrations), 0.]
-                if arithmetic_backend == 'native':
-                    diagonal_moment = diagonal_second_moment(diagonal, integration_steps)
-                else:
-                    diagonal_moment = np.diag(moment_function(
-                        np.diag(diagonal), integration_steps=integration_steps))
-                return np.log(diagonal_moment[:3]/eigenvalues[:3])
-            refined = least_squares(residual, np.log(concentrations),
-                ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=100)
-            diagonal = np.r_[-np.exp(refined.x), 0.]
-            parameter = basis @ np.diag(diagonal) @ basis.T
-            parameter = .5*(parameter+parameter.T)
-            refinement_evaluations = int(refined.nfev)
-            fit_method += '; deterministic relative-moment concentration refinement'
+                # A finite Bingham with tied maxima is a valid law. This
+                # optional log-gap parameterization cannot represent zero;
+                # retain the fit and let the actual modal-chart operation
+                # below decide whether all Gaussian branches must continue.
+                refinement_skip_reason = ('optional log-concentration refinement cannot '
+                    'represent a zero modal gap; finite fitted Bingham retained unchanged')
+                fit_method += '; optional log-concentration refinement skipped'
+            else:
+                def residual(log_concentrations):
+                    diagonal = np.r_[-np.exp(log_concentrations), 0.]
+                    if arithmetic_backend == 'native':
+                        diagonal_moment = diagonal_second_moment(diagonal, integration_steps)
+                    else:
+                        diagonal_moment = np.diag(moment_function(
+                            np.diag(diagonal), integration_steps=integration_steps))
+                    return np.log(diagonal_moment[:3]/eigenvalues[:3])
+                refined = least_squares(residual, np.log(concentrations),
+                    ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=100)
+                diagonal = np.r_[-np.exp(refined.x), 0.]
+                parameter = basis @ np.diag(diagonal) @ basis.T
+                parameter = .5*(parameter+parameter.T)
+                refinement_evaluations = int(refined.nfev)
+                fit_method += '; deterministic relative-moment concentration refinement'
     fitted = moment_function(parameter, integration_steps=integration_steps)
     if not all(np.all(np.isfinite(item)) for item in (parameter, target, fitted)):
         raise ValueError('The central Bingham fit contains nonfinite parameters or moments.')
@@ -243,10 +253,10 @@ def _project_central(branches, reference, integration_steps, arithmetic_backend=
     try:
         quaternion, omega = bingham_rotation_coordinates(parameter)
         domain_reason = None
-    except ValueError as error:
-        # A fitted Bingham can be valid while a single high-concentration
-        # chart is inappropriate. Preserve every full branch for the next
-        # tag instead of reducing its variance or dropping an image mode.
+    except (ValueError, np.linalg.LinAlgError) as error:
+        # An actual nonunique mode or unavailable inverse cannot provide
+        # this single chart. Preserve every full branch for the next tag;
+        # finite covariance width alone never defers the projection.
         quaternion = omega = None
         domain_reason = str(error)
     product_covariance = None
@@ -273,6 +283,7 @@ def _project_central(branches, reference, integration_steps, arithmetic_backend=
             'The finite central Bingham fit exceeds the diagnostic second-moment residual tolerance.'),
         bingham_fit_method=fit_method, core_bingham_fit_max_error=core_fit_max_error,
         bingham_fit_refinement_used=refinement_evaluations > 0,
+        bingham_fit_refinement_skipped_reason=refinement_skip_reason,
         bingham_fit_refinement_function_evaluations=refinement_evaluations,
         bingham_parameter=parameter.tolist(), product_translation_mean=mean[:3].tolist(),
         product_translation_covariance=covariance[:3, :3].tolist(),
@@ -280,6 +291,9 @@ def _project_central(branches, reference, integration_steps, arithmetic_backend=
         product_covariance=None if product_covariance is None else product_covariance.tolist(),
         applied=domain_reason is None, deferred=domain_reason is not None,
         single_proxy_domain_reason=domain_reason,
+        concentration_threshold_applied=False,
+        maximum_local_rotation_variance_rad2=(None if omega is None else
+            float(np.max(np.linalg.eigvalsh(omega)))),
         approximation=('central derived law only: translation moment Gaussian times a single Bingham fitted to quaternion second moments with its residual recorded; position/orientation cross discarded here'
             if domain_reason is None else 'single central approximation not applied; every full correlated Gaussian branch and normalized log mass retained'))
     if domain_reason is not None:
@@ -395,9 +409,9 @@ def fuse_marker_board(detections, settings, *, stamp=None, integration_steps=120
     if proxy is not None:
         output_proxies.append(dict(proxy, lineage=tuple(item['label'] for item in branches)))
     else:
-        # Reduction was optional. Keep every narrow derived branch as its
-        # own Gaussian x Bingham if their global moment-matched Bingham is
-        # too broad for a single core chart. No mixture mode is selected.
+        # Reduction was unavailable. Keep every derived branch as its own
+        # Gaussian x Bingham when the aggregate has no unique modal chart
+        # or required inverse. No mixture mode is selected by its width.
         for branch in prior_branches:
             law = branch['law']
             quaternion = quat_mul(reference, rotation_vector_to_quaternion(law.mean[3:]))
@@ -418,7 +432,8 @@ def fuse_marker_board(detections, settings, *, stamp=None, integration_steps=120
     final_weights = np.exp(final_log_weights)
     record.update(central_component_count=len(output_proxies),
         final_mixture_fallback_used=proxy is None,
-        central_reduction_policy='single proxy only within the unchanged core concentration domain; otherwise preserve every narrow final branch as a mixture',
+        central_reduction_policy='single moment-matched proxy whenever its unique modal chart and required inverse are available; no concentration threshold; otherwise preserve every final branch as a mixture',
+        concentration_threshold_applied=False,
         final_position_orientation_cross_discarded_per_output_component=True)
     signature = hashlib.sha256(json.dumps(record, sort_keys=True, allow_nan=False).encode()).hexdigest()
     edge_id = parent+'__to__marker'

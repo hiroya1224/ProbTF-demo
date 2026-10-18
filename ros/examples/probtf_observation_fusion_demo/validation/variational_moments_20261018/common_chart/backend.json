@@ -1,0 +1,16 @@
+{
+  "backend": "native",
+  "core_equations_changed": false,
+  "stochastic_sampling": false,
+  "common_chart_materialization_supported": true,
+  "common_chart_materialization_abi": 1,
+  "strict_reexpression_prior_support_check_preserved": true,
+  "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so",
+  "library_sha256": "d91ded4cf9204b15023c46735c50aacbab51b3df4e92d9ad346620e71827751f",
+  "sources": {
+    "native/body_law.cpp": "bfc1a9005d2fbd5ba1c6e4d050d0c1dd70be4d02177c2610ae70f16c6489f215",
+    "src/probtf_observation_fusion_demo/body_native.py": "290d7e0c0d92fcd8e446f3d3bc52d2ee3fbfe3ca1b443a3a9f838429a50b99ca",
+    "src/probtf_observation_fusion_demo/immutable_body_cache.py": "57c7be9c27d2b2242aefb3e17bf5df462552e6f77477e86ff998c917486ecd9e",
+    "tests/test_body_materialization.py": "3b393ed9db24ec394574afa3676bf4c3959a173236fdcd8a7e490a5cb651d24c"
+  }
+}

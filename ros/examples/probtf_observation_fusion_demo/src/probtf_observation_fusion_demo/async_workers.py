@@ -363,6 +363,8 @@ def artifact_worker(requests, replies, description, urdf, templates, output):
     monitor = RuntimeMonitor(output,'artifacts')
     try:
         inference = MovingInference(description,templates)
+        from .stiffness_body_consistency import KBodyConsistencyEvaluator
+        consistency_evaluator = KBodyConsistencyEvaluator(urdf)
         while True:
             item = requests.get()
             if item is None:
@@ -370,7 +372,8 @@ def artifact_worker(requests, replies, description, urdf, templates, output):
             job = thaw_work_item(item,'control_artifact_job')
             monitor.mark('artifact_received',request_id=job['request'].get('request_id'),
                          candidate_id=job['candidate_id'])
-            reply = construct_control_artifacts(job,inference.common,output,monitor)
+            reply = construct_control_artifacts(job,inference.common,output,monitor,
+                consistency_evaluator=consistency_evaluator)
             replies.put(reply)
             monitor.mark('artifact_ready_enqueued',request_id=reply['request_id'],
                          candidate_id=reply['candidate_id'])

@@ -10,7 +10,7 @@ import yaml
 from scipy.special import logsumexp
 
 from probtf.spherical_law.first_order import (
-    BinghamTransform, JointTransformState, MAX_FIRST_ORDER_ROTATION_VARIANCE,
+    BinghamTransform, JointTransformState,
 )
 from .body_native import point_query
 from probtf.spherical_law.fusion import (
@@ -377,7 +377,8 @@ def run(common, observations, image=None, *, prior=None, paths=None, prior_compo
         "valid_observation_count": len({item.observation_id for item in posteriors}),
         "observation_ids": list(fused.observation_ids),
         "approximation": "Bingham-derived S2 Gaussian proxy, global first order in covariance",
-        "maximum_rotation_variance_domain_rad2": MAX_FIRST_ORDER_ROTATION_VARIANCE,
+        "maximum_rotation_variance_domain_rad2": None,
+        "concentration_threshold_is_update_gate": False,
         "support_policy": {"absolute_roundoff_tolerance": SUPPORT_ATOL,
             "relative_roundoff_tolerance": SUPPORT_RTOL,
             "operation": "solve only on covariance range; no jitter or eigenvalue floor"},

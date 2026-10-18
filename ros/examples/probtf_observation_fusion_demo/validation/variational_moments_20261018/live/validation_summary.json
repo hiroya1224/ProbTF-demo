@@ -1,0 +1,167 @@
+{
+  "status": "both 180 physical seconds completed; both physical reach conditions unmet; later IMU inference drain failed",
+  "physical_end_capture_host_wall": 1792317592.665754,
+  "drain_failure_host_wall": 1792317605.5205228,
+  "drain_seconds_before_failure_detection": 12.854768753051758,
+  "drain_error": "Bingham modal gap must be symmetric",
+  "source_checks_passed_through_shutdown": true,
+  "cases": {
+    "marker": {
+      "physical_elapsed_s": 180.0,
+      "physical_reached": false,
+      "final_physical_distance_m": 0.2137891971556039,
+      "target_Hz": {
+        "target_physics_hz": 120.0,
+        "target_joint_hz": 40.0,
+        "target_imu_hz": 30.0,
+        "target_image_hz": 12.0
+      },
+      "actual_Hz": {
+        "actual_motion_hz": 36.95364662969184,
+        "actual_joint_hz": 24.887193914889536,
+        "actual_imu_hz": 21.81051880964621,
+        "actual_camera_hz": 10.352584411239006,
+        "actual_control_hz": 5.1342076306890245,
+        "actual_estimate_hz": 0.661970114452147
+      },
+      "K_jobs_at_fixed_physical_end": {
+        "submitted": 107,
+        "completed": 74,
+        "includes_initial_no_evidence_job": true
+      },
+      "raw_requests_at_shutdown": 10275,
+      "DB_rows_at_shutdown": 9979,
+      "committed_payloads_at_shutdown": 9978,
+      "DB_status": {
+        "completed": 9739,
+        "pending": 239,
+        "awaiting_payload": 1
+      },
+      "body_accounting": {
+        "evaluated_no_effective_observation": 8,
+        "sensor not enabled in this comparison case": 3722,
+        "effective_fused": 108,
+        "command notification": 4274,
+        "temporal_thinning": 1627
+      },
+      "effective_fused": 108,
+      "archived_K_jobs": 109,
+      "completed_K_job_adoptions": 78,
+      "pending_archived_K_jobs": 31,
+      "coordinator_pending_K_jobs": 29,
+      "raw_correspondence_errors": [],
+      "body_full_numeric_identity_matches": 109,
+      "K_ledger_intervals_checked": 6163,
+      "wire_groups": {
+        "through_physical_end": {
+          "saved_artifacts": 920,
+          "wire_bytes": 194717514,
+          "exact_wire_matches": 920,
+          "complete_numeric_candidate_identity_matches": 920,
+          "adopted_gradient_packet_matches": 920,
+          "display_adopted": 920,
+          "publication_acknowledged": 920
+        },
+        "after_physical_end": {
+          "saved_artifacts": 7,
+          "wire_bytes": 1481686,
+          "exact_wire_matches": 7,
+          "complete_numeric_candidate_identity_matches": 7,
+          "adopted_gradient_packet_matches": 7,
+          "display_adopted": 7,
+          "publication_acknowledged": 7
+        },
+        "artifact_finish_stamp_missing": {
+          "saved_artifacts": 0,
+          "wire_bytes": 0,
+          "exact_wire_matches": 0,
+          "complete_numeric_candidate_identity_matches": 0,
+          "adopted_gradient_packet_matches": 0,
+          "display_adopted": 0,
+          "publication_acknowledged": 0
+        }
+      },
+      "wire_errors": []
+    },
+    "imu_marker": {
+      "physical_elapsed_s": 180.0,
+      "physical_reached": false,
+      "final_physical_distance_m": 0.038739988941373045,
+      "target_Hz": {
+        "target_physics_hz": 120.0,
+        "target_joint_hz": 40.0,
+        "target_imu_hz": 30.0,
+        "target_image_hz": 12.0
+      },
+      "actual_Hz": {
+        "actual_motion_hz": 33.74176033355012,
+        "actual_joint_hz": 23.24762142142454,
+        "actual_imu_hz": 20.682052604474737,
+        "actual_camera_hz": 10.041085668726234,
+        "actual_control_hz": 4.787566565724108,
+        "actual_estimate_hz": 2.6212059761519293
+      },
+      "K_jobs_at_fixed_physical_end": {
+        "submitted": 443,
+        "completed": 75,
+        "includes_initial_no_evidence_job": true
+      },
+      "raw_requests_at_shutdown": 9721,
+      "DB_rows_at_shutdown": 9721,
+      "committed_payloads_at_shutdown": 9721,
+      "DB_status": {
+        "completed": 9551,
+        "failed": 1,
+        "processing": 169
+      },
+      "body_accounting": {
+        "evaluated_no_effective_observation": 1,
+        "effective_fused": 456,
+        "command notification": 4123,
+        "temporal_thinning": 4971
+      },
+      "effective_fused": 456,
+      "archived_K_jobs": 457,
+      "completed_K_job_adoptions": 77,
+      "pending_archived_K_jobs": 380,
+      "coordinator_pending_K_jobs": 380,
+      "raw_correspondence_errors": [],
+      "body_full_numeric_identity_matches": 457,
+      "K_ledger_intervals_checked": 5980,
+      "wire_groups": {
+        "through_physical_end": {
+          "saved_artifacts": 862,
+          "wire_bytes": 182439483,
+          "exact_wire_matches": 862,
+          "complete_numeric_candidate_identity_matches": 862,
+          "adopted_gradient_packet_matches": 862,
+          "display_adopted": 862,
+          "publication_acknowledged": 860
+        },
+        "after_physical_end": {
+          "saved_artifacts": 17,
+          "wire_bytes": 3597919,
+          "exact_wire_matches": 17,
+          "complete_numeric_candidate_identity_matches": 17,
+          "adopted_gradient_packet_matches": 17,
+          "display_adopted": 16,
+          "publication_acknowledged": 16
+        },
+        "artifact_finish_stamp_missing": {
+          "saved_artifacts": 0,
+          "wire_bytes": 0,
+          "exact_wire_matches": 0,
+          "complete_numeric_candidate_identity_matches": 0,
+          "adopted_gradient_packet_matches": 0,
+          "display_adopted": 0,
+          "publication_acknowledged": 0
+        }
+      },
+      "wire_errors": []
+    }
+  },
+  "scope": "Available-record correspondence PASS is not acquisition/drain completeness. Marker tail227 acquired numeric readings remain in original spool and70 image requests had not been rendered into pixels at shutdown. Separate labeled recovery archive now exists. The wire audit covers saved control artifacts and publication acknowledgments separately, not every ungenerated candidate.",
+  "raw_recovery_archive": "/tmp/probtf_commonchart_acquisition_recovery_20261018",
+  "new_native_saved_event_fix_only": "/tmp/probtf_variational_modal_gap_fixed_event_20261018",
+  "later_source_changes_do_not_change_runtime_identity": true
+}

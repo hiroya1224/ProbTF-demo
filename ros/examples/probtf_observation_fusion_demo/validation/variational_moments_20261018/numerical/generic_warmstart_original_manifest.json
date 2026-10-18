@@ -1,0 +1,40 @@
+{
+  "owned_sources": [
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py",
+      "bytes": 17748,
+      "sha256": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44"
+    },
+    {
+      "path": "ros/examples/probtf_observation_fusion_demo/tests/test_variational_conditioning.py",
+      "bytes": 14477,
+      "sha256": "76c1687915cc645ad02fde4735886f96a5e26464cdb280c64f7d3070a47e4cde"
+    }
+  ],
+  "api": "condition_variational(prior,evaluate,*,max_iterations=24,gradient_tolerance=1e-6,max_line_search=20,initial_distribution=None)",
+  "callback_contract": {
+    "expected_negative_log_likelihood": "finite scalar; native Gaussian normalizer included once",
+    "gradient_mean": "original-prior chart n-vector",
+    "gradient_covariance": "original-prior chart nxn symmetric Frobenius cotangent; paired offdiagonal change has factor2",
+    "diagnostics": "optional JSON-compatible evaluator/source/moments metadata",
+    "expected_negative_log_likelihood_terms": "optional additive finite terms retained for numerical scale cancellation"
+  },
+  "tests": {
+    "passed": 15,
+    "seconds": 0.23,
+    "log": "/tmp/probtf_variational_conditioning_warmstart_20261018.log",
+    "log_sha256": "750e8fc7f82d0362413c811a25dd8018e93a29cf821384a50d297e2ffbfb3cfa"
+  },
+  "parameterization": "fixed B=U sqrt(D) from original P0 support; m=m0+B a; P=B L L.T B.T; every lower-triangular entry optimized; diag L=exp(logdiag)",
+  "prior_is_fixed": true,
+  "warmstart": "Original prior and optional analytic proposal evaluated against the SAME KL-to-original-prior plus expected-NLL objective; best finite start. Proposal never becomes the prior. Rank0/iteration0 ignores proposal and retains prior exactly.",
+  "numerical_policy": "Finite nonstationarity/worklimit returns best finite Gaussian. Unavailable trial is recorded with +inf and undefined gradient, never zero information; unavailable optional proposal retains original-prior start with reason. Actual invalid initial objective fails. No jitter/covariance clipping.",
+  "evidence": "log_evidence_parts=-F_parts; moment-ELBO proxy, no strict exact nonlinear lower-bound claim. Affine exactness is at the full variational optimum, finite solver errors diagnosed.",
+  "implementation_scope": "Only generic solver and its tests; native moment VJP and model/source integration owned by other agents.",
+  "rank54_prior_start_profile": "/tmp/probtf_variational_rank54_affine_benchmark_20261018.json",
+  "limitations": [
+    "Synthetic affine timing excludes actual native moment/reverse cost, IPC, K, and live contention.",
+    "Prior-start24iterations can be far from stationary in rank54case; warmstart was approved and added after this diagnostic.",
+    "No current live jump/reaching/throughput result established here."
+  ]
+}

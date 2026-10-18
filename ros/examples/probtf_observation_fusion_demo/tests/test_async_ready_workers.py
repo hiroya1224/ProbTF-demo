@@ -130,6 +130,7 @@ def test_gradient_ready_precedes_all_artifacts_and_cached_K_preserves_identity(d
         assert 'snapshot' not in first and 'markers_wire' not in first and 'packet' not in first
         assert len(pickle.dumps(first,protocol=pickle.HIGHEST_PROTOCOL)) < 256*1024
         assert not (value['output']/'control.jsonl').exists()
+        assert not (value['output']/'K_body_consistency.jsonl').exists()
         assert not list(value['output'].glob('*.markers.bin'))
         # The consumer can request another gradient without running rendering.
         jobs.put(dict(request,request_id=2,packet=None,
@@ -157,6 +158,55 @@ def test_gradient_ready_precedes_all_artifacts_and_cached_K_preserves_identity(d
         from probtf_observation_fusion_demo.moving_inference import MovingInference
         display = MovingInference(value['description'],value['templates']).common['display']
         assert verify_wire_identity(artifact['snapshot'],message,seed=display['seed'],point_size=display['point_size'])
+    consistency = [json.loads(line) for line in
+        (value['output']/'K_body_consistency.jsonl').read_text().splitlines()]
+    assert len(consistency) == 2
+    assert [item['candidate_id'] for item in consistency] == [
+        first['candidate_id'], second['candidate_id']]
+    assert [item['request_id'] for item in consistency] == [1, 2]
+    assert all(item['status'] in ('available', 'partial') for item in consistency), consistency
+
+
+def test_optional_K_diagnostic_failure_leaves_candidate_and_wire_unchanged(
+        deferred_body, tmp_path):
+    from probtf_observation_fusion_demo.async_artifacts import construct_control_artifacts, thaw_work_item
+    from probtf_observation_fusion_demo.runtime_monitor import RuntimeMonitor
+    from probtf_observation_fusion_demo.moving_inference import MovingInference
+    estimated = complete_K(deferred_body)
+    result = deferred_body['observed'][0]['result']
+    jobs, replies, artifacts = Queue(), Queue(), Queue()
+    jobs.put(dict(result=result, packet=estimated['packet'], action_packet=None,
+        steps=(), stamp=result.prior.stamp, index=0, capture_index=0,
+        request_id=7, event_id='image:0', snapshot_update_count=2, velocity=np.zeros(6)))
+    jobs.put(None)
+    async_workers.control_worker(jobs, replies, deferred_body['description'],
+        str(deferred_body['urdf']), deferred_body['templates'], str(deferred_body['output']),
+        .5, 'running_gradient', {'enabled': True, 'weight': 2000000.}, artifacts)
+    ready = replies.get_nowait()
+    assert ready['kind'] == 'control_gradient_ready', ready
+    job = thaw_work_item(artifacts.get_nowait(), 'control_artifact_job')
+    result = job['result']
+    expected = job['candidate_identity']
+    common = MovingInference(deferred_body['description'], deferred_body['templates']).common
+    outputs = [tmp_path/'without_diagnostic', tmp_path/'failed_diagnostic']
+    for path in outputs:
+        path.mkdir()
+
+    class FailedDiagnostic:
+        def evaluate(self, *args, **kwargs):
+            raise ValueError('unavailable optional model fit')
+
+    baseline = construct_control_artifacts(job, common, outputs[0], RuntimeMonitor(outputs[0], 'artifacts'))
+    actual = construct_control_artifacts(job, common, outputs[1], RuntimeMonitor(outputs[1], 'artifacts'),
+        consistency_evaluator=FailedDiagnostic())
+    assert actual['markers_wire'] == baseline['markers_wire']
+    assert actual['candidate_identity'] == baseline['candidate_identity'] == expected
+    assert actual['gradient_evaluation'] == baseline['gradient_evaluation'] == job['gradient_evaluation']
+    assert capture_candidate_identity(result, parameter_identity=expected['parameter']) == expected
+    diagnostic = json.loads((outputs[1]/'K_body_consistency.jsonl').read_text())
+    assert diagnostic['status'] == 'unavailable'
+    assert diagnostic['diagnostic_is_control_acceptance_gate'] is False
+    assert diagnostic['candidate_id'] == job['candidate_id']
 
 
 def test_numeric_cross_covariance_hash_detects_same_ID_but_different_law(deferred_body):

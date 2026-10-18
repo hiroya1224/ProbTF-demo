@@ -1,0 +1,393 @@
+{
+  "schema": "saved-raw-gaussians-unrestricted-materialization-v1",
+  "input_fixture": "/tmp/probtf_variational_failed_event_fixture_20261018/fixture.pickle",
+  "input_fixture_sha256": "78ab81b770e88171b46477707849fd26c9f1280ada0a564add2383c7f0b07b85",
+  "event_id": "imu:00002386",
+  "sequence": 1982,
+  "original_event_stamp": 1792080029.9349635,
+  "original_event_command": [
+    -0.062325255495609126,
+    -1.7914504503257134,
+    2.211158973130686,
+    -0.2653076856062256,
+    -0.9359429267218083,
+    0.06028117876841826
+  ],
+  "payload_sha256": "ce72cb1dc5da2314de8e7b176f386cfb82894369827c220cecf435ce7113ec42",
+  "actual_ledger_count": 8,
+  "actual_ledger_indices": [
+    2378,
+    2379,
+    2380,
+    2381,
+    2382,
+    2383,
+    2384,
+    2385
+  ],
+  "native_backend": {
+    "backend": "native",
+    "core_equations_changed": false,
+    "stochastic_sampling": false,
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so",
+    "library_sha256": "f77798c03b9ef1f49266aa1ba804f2a29355cfbe0af9d6afab01570092685275"
+  },
+  "branches": [
+    {
+      "source_state_id": "de9b4b36bc5a19aae59d6b57daea9ed457054e9cd446677415e36e77dee92061",
+      "source_component_id": "predicted:2386:0",
+      "original_stamp": 1792080029.9349635,
+      "original_command": [
+        -0.062325255495609126,
+        -1.7914504503257134,
+        2.211158973130686,
+        -0.2653076856062256,
+        -0.9359429267218083,
+        0.06028117876841826
+      ],
+      "original_prior_and_saved_q_arrays_bitwise_unchanged": true,
+      "old_optimized_mean_sha256": "0202cde1d0882dce43303c494fa5fe39e8b7a702b26272dd4755c21caa3dcb6c",
+      "old_optimized_covariance_sha256": "f93575a46775c6c54be33f43e5da771043240e6c7c971c0f0972d1e6c350c622",
+      "native_and_python_materialized": true,
+      "materialized_covariance_native_vs_python_max_abs": 1.1481701006621492e-16,
+      "modal_translation_native_vs_python_max_abs": 0.0,
+      "modal_quaternion_native_vs_python_max_abs": 1.0818819798363855e-14,
+      "query_mean_native_vs_core_max_abs": 1.74721348500384e-14,
+      "query_covariance_native_vs_core_max_abs": 5.481997234629832e-17,
+      "query_full_cross_native_vs_core_max_abs": 8.044780119842443e-16,
+      "materialized_rotation_widths": [
+        {
+          "edge_id": "link_1",
+          "rotation_eigenvalues": [
+            0.00017417286391609852,
+            0.00044785905233476266,
+            0.07388017798109459
+          ]
+        },
+        {
+          "edge_id": "link_2",
+          "rotation_eigenvalues": [
+            0.0003964412912114289,
+            0.0005899729492701931,
+            0.12371539275248611
+          ]
+        },
+        {
+          "edge_id": "link_3",
+          "rotation_eigenvalues": [
+            0.00012178134905162653,
+            0.0017580369107346346,
+            0.013165490565510984
+          ]
+        },
+        {
+          "edge_id": "link_4",
+          "rotation_eigenvalues": [
+            0.0005959480710060495,
+            0.004986185457928595,
+            0.03048162644692986
+          ]
+        },
+        {
+          "edge_id": "link_5",
+          "rotation_eigenvalues": [
+            0.0014054196351936427,
+            0.003333988351487506,
+            0.0445961741459228
+          ]
+        },
+        {
+          "edge_id": "link_6",
+          "rotation_eigenvalues": [
+            0.0006257848282997373,
+            0.0008585626197970183,
+            0.1103311016416586
+          ]
+        },
+        {
+          "edge_id": "tool0",
+          "rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "press_rod",
+          "rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "rod_tip",
+          "rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "camera_optical_frame",
+          "rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "marker",
+          "rotation_eigenvalues": [
+            2.946795773087116e-05,
+            3.6469668589789895e-05,
+            5.643823807662431e-05
+          ]
+        }
+      ],
+      "likelihood": {
+        "label": "gravity",
+        "sensor": "imu",
+        "sensor_id": "imu_link_3",
+        "observation_id": "imu:00002386",
+        "path": [
+          [
+            "link_3",
+            true
+          ],
+          [
+            "link_2",
+            true
+          ],
+          [
+            "link_1",
+            true
+          ]
+        ],
+        "observed_mean": [
+          -3.755685204129262e-16,
+          -1.3213882686828633e-16
+        ],
+        "covariance": [
+          [
+            0.000144,
+            0.0
+          ],
+          [
+            0.0,
+            0.000144
+          ]
+        ],
+        "log_weight": 0.0,
+        "rotation_wxyz": null,
+        "root_direction": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "observed_direction": [
+          0.658668803680432,
+          0.00473207740836931,
+          -0.7524181114922672
+        ],
+        "basis": [
+          [
+            0.11561413970217096,
+            0.7434976649318513
+          ],
+          [
+            -0.9887417066337938,
+            0.1495574973255914
+          ],
+          [
+            0.09499056934148763,
+            0.6518004121160024
+          ]
+        ],
+        "fixed_native_chart": true,
+        "prior_dependent_native_likelihood": false,
+        "point_dependent_chart_volume_applied": false
+      }
+    },
+    {
+      "source_state_id": "003044678e4371d44d242e26844e80a329ed334a57c7aacc73a8a3a5c4b751e1",
+      "source_component_id": "reset:7159",
+      "original_stamp": 1792080029.9349635,
+      "original_command": [
+        -0.062325255495609126,
+        -1.7914504503257134,
+        2.211158973130686,
+        -0.2653076856062256,
+        -0.9359429267218083,
+        0.06028117876841826
+      ],
+      "original_prior_and_saved_q_arrays_bitwise_unchanged": true,
+      "old_optimized_mean_sha256": "40c2dcbb2dd4eb16fadc187e70f7fdb31f2f33a1a32f12dbad76e161b6961820",
+      "old_optimized_covariance_sha256": "5be2572373ab7329eae31e711122f00ab93ff5d6567e0ae3ec714a78327e352b",
+      "native_and_python_materialized": true,
+      "materialized_covariance_native_vs_python_max_abs": 1.3010426069826053e-18,
+      "modal_translation_native_vs_python_max_abs": 0.0,
+      "modal_quaternion_native_vs_python_max_abs": 6.661338147750939e-16,
+      "query_mean_native_vs_core_max_abs": 2.688821387764051e-16,
+      "query_covariance_native_vs_core_max_abs": 5.692061405548898e-19,
+      "query_full_cross_native_vs_core_max_abs": 2.0057740190981832e-18,
+      "materialized_rotation_widths": [
+        {
+          "edge_id": "link_1",
+          "rotation_eigenvalues": [
+            0.0007147059059636636,
+            0.0007198556515524638,
+            0.0009993930102346852
+          ]
+        },
+        {
+          "edge_id": "link_2",
+          "rotation_eigenvalues": [
+            0.0007584174913667288,
+            0.0007589047370282784,
+            0.0011192716107774202
+          ]
+        },
+        {
+          "edge_id": "link_3",
+          "rotation_eigenvalues": [
+            0.0007956388425383984,
+            0.0008042352688637897,
+            0.0012726357607915103
+          ]
+        },
+        {
+          "edge_id": "link_4",
+          "rotation_eigenvalues": [
+            0.0014285714285714284,
+            0.0014285714285714284,
+            0.0014285714285714284
+          ]
+        },
+        {
+          "edge_id": "link_5",
+          "rotation_eigenvalues": [
+            0.001666666666666667,
+            0.001666666666666667,
+            0.001666666666666667
+          ]
+        },
+        {
+          "edge_id": "link_6",
+          "rotation_eigenvalues": [
+            0.002,
+            0.002,
+            0.002
+          ]
+        },
+        {
+          "edge_id": "tool0",
+          "rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "press_rod",
+          "rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "rod_tip",
+          "rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "camera_optical_frame",
+          "rotation_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "edge_id": "marker",
+          "rotation_eigenvalues": [
+            2.914208875938529e-05,
+            3.553236411641163e-05,
+            4.9403629100933003e-05
+          ]
+        }
+      ],
+      "likelihood": {
+        "label": "gravity",
+        "sensor": "imu",
+        "sensor_id": "imu_link_3",
+        "observation_id": "imu:00002386",
+        "path": [
+          [
+            "link_3",
+            true
+          ],
+          [
+            "link_2",
+            true
+          ],
+          [
+            "link_1",
+            true
+          ]
+        ],
+        "observed_mean": [
+          -3.755685204129262e-16,
+          -1.3213882686828633e-16
+        ],
+        "covariance": [
+          [
+            0.000144,
+            0.0
+          ],
+          [
+            0.0,
+            0.000144
+          ]
+        ],
+        "log_weight": 0.0,
+        "rotation_wxyz": null,
+        "root_direction": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "observed_direction": [
+          0.658668803680432,
+          0.00473207740836931,
+          -0.7524181114922672
+        ],
+        "basis": [
+          [
+            0.11561413970217096,
+            0.7434976649318513
+          ],
+          [
+            -0.9887417066337938,
+            0.1495574973255914
+          ],
+          [
+            0.09499056934148763,
+            0.6518004121160024
+          ]
+        ],
+        "fixed_native_chart": true,
+        "prior_dependent_native_likelihood": false,
+        "point_dependent_chart_volume_applied": false
+      }
+    }
+  ],
+  "covariance_clipping_or_regularization": false,
+  "reoptimization": false,
+  "physical_truth_received": false,
+  "result_scope": "The EXACT saved old optimizer q and prior arrays were passed to both backends without alteration. Broad approximation accuracy is not certified by successful materialization."
+}

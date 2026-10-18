@@ -1,0 +1,34 @@
+{
+  "marker": {
+    "outer_physical_ticks": 6655,
+    "final_time_s": 180.0,
+    "final_distance_m": 0.2137891971556039,
+    "sampled_minimum": {
+      "distance_m": 0.2137891971556039,
+      "time_s": 180.0,
+      "stamp": 1792080180.0
+    },
+    "ever_reached": false,
+    "reach_condition_records": [
+      "distance_only_collision_unchecked"
+    ],
+    "collision_checking_enabled": false,
+    "minimum_scope": "minimum over saved outer physical ticks only, not an analytic continuous-path minimum"
+  },
+  "imu_marker": {
+    "outer_physical_ticks": 6077,
+    "final_time_s": 180.0,
+    "final_distance_m": 0.038739988941373045,
+    "sampled_minimum": {
+      "distance_m": 0.038739988941373045,
+      "time_s": 180.0,
+      "stamp": 1792080180.0
+    },
+    "ever_reached": false,
+    "reach_condition_records": [
+      "distance_only_collision_unchecked"
+    ],
+    "collision_checking_enabled": false,
+    "minimum_scope": "minimum over saved outer physical ticks only, not an analytic continuous-path minimum"
+  }
+}

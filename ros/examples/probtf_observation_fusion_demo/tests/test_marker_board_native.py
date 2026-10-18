@@ -59,7 +59,7 @@ def test_recorded_nine_tag_and_blurred_partial_native_mixtures_keep_same_law(rec
     assert differences['native_center_query_covariance'] < 2e-13
 
 
-def test_underflowed_mode_and_broad_fallback_retain_all_branches_in_native_path():
+def test_underflowed_mode_and_broad_single_fit_use_all_native_branches_in_both_backends():
     observations = {17: detection(17, center=(0., 0., .8), angles=(0.,)),
         18: detection(18, center=(0., 0., .8), angles=(0., 0.),
             offsets=([1., 0., 0.], [0., 0., 0.]), log_masses=(0., -1000.))}
@@ -73,10 +73,37 @@ def test_underflowed_mode_and_broad_fallback_retain_all_branches_in_native_path(
     broad = {21: detection(21, angles=(-1.2, 1.2), log_masses=np.log([.17, .83]))}
     reference = fuse_marker_board(broad, SETTINGS, arithmetic_backend='python')
     actual = fuse_marker_board(broad, SETTINGS, arithmetic_backend='native')
-    assert actual.record['final_mixture_fallback_used']
-    assert actual.record['central_component_count'] == 2
+    # Width alone no longer forces a final mixture. Every original image
+    # mode still enters the central moment fit and remains in the raw trace.
+    assert not actual.record['final_mixture_fallback_used']
+    assert not actual.record['concentration_threshold_applied']
+    assert actual.record['central_component_count'] == 1
+    step = actual.record['steps'][0]
+    projection = step['projection']
+    assert projection['applied'] and not projection['deferred']
+    assert projection['maximum_local_rotation_variance_rad2'] > .1
+    assert projection['branch_count'] == len(step['branch_products']) == 2
+    assert len(projection['branch_log_weights']) == 2
+    assert all(np.isfinite(projection['branch_log_weights']))
+    raw = actual.record['raw_observations'][0]
+    assert raw['native_component_count'] == len(raw['components']) == 2
+    for saved, component, log_mass, weight in zip(raw['components'],
+            broad[21].record.distribution.components, broad[21].log_masses, broad[21].weights):
+        assert saved['native_log_mass'] == log_mass and saved['weight'] == weight
+        np.testing.assert_array_equal(saved['native_bingham'], component.orientation.parameter_matrix())
+    assert actual.record['central_distribution']['lineage'] == [
+        item['product_branch_label'] for item in step['branch_products']]
+    assert actual.detected.weights == (1.,) and actual.detected.log_masses == (0.,)
     assert actual.detected.log_masses == pytest.approx(reference.detected.log_masses, abs=1e-12)
-    assert all(BENCH.numerical_comparison(reference, actual)['structural_checks'].values())
+    comparison = BENCH.numerical_comparison(reference, actual)
+    assert all(comparison['structural_checks'].values())
+    differences = comparison['maximum_absolute_differences']
+    assert differences['translation'] < 2e-12
+    assert differences['covariance'] < 2e-10
+    assert differences['quaternion_second_moment'] < 2e-10
+    assert differences['projection_log_mass'] < 2e-8
+    assert differences['native_center_query_mean'] < 2e-12
+    assert differences['native_center_query_covariance'] < 2e-13
 
 
 def test_explicit_python_reference_environment_and_cached_backend_metadata(monkeypatch):

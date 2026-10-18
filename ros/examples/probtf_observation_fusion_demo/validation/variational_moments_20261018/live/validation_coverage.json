@@ -1,0 +1,46 @@
+{
+  "strategy": "Actual prior full 1263-test PASS plus actual relevant scoped regression PASS for the explicitly listed diagnostic-only delta; not a claim of a repeated full suite on the final delta.",
+  "logs": [
+    {
+      "role": "prior_full_suite",
+      "path": "/tmp/probtf_variational_unrestricted_full_tests_final_20261018.log",
+      "sha256": "50776b3019119847ee822bf49cf39fe2d4d044b34b319015052f78e1af532c2d",
+      "pytest_passed_groups": [
+        1263
+      ]
+    },
+    {
+      "role": "current_scoped_suite",
+      "path": "/tmp/probtf_commonchart_integration_regression_final_20261018.log",
+      "sha256": "e2e368ac8d299a906329cc8b1a2aab6f8aee9de1c3b0dcc0e0c3dc1bf7b1cae9",
+      "pytest_passed_groups": [
+        280
+      ]
+    }
+  ],
+  "prior_full_source_manifest": {
+    "path": "/tmp/probtf_variational_unrestricted_pre_regression_sources_20261018.json",
+    "sha256": "0bedb4053fe0a80ce6f315cdbcb624c7f48ec7eadcac2458bc65e17fcf77b815"
+  },
+  "current_source_manifest": {
+    "path": "/tmp/probtf_variational_commonchart_pre_regression_sources_20261018.json",
+    "sha256": "ff1e23f2376da6ac5f979088126581bde48b17d678a12b49b740d885fa6d7283"
+  },
+  "changed_sources": [
+    "ros/examples/probtf_observation_fusion_demo/native/body_law.cpp",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/immutable_body_cache.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_body_materialization.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_common_chart_materialization.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_optional_goal_diagnostics.py"
+  ],
+  "no_pass_log_fabricated": true,
+  "root_declared_coverage": {
+    "path": "/tmp/probtf_variational_commonchart_regression_coverage_20261018.json",
+    "sha256": "fe5a4dc5514608c4e6914e55d7f37fb4e78778c10994d25bbdab5da8ad7d9f07"
+  }
+}

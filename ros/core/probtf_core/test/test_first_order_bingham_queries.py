@@ -34,7 +34,9 @@ def test_concentrated_bingham_reexpression_preserves_symmetry_and_the_same_quadr
     np.testing.assert_array_equal(parameter, parameter.T)
     tangent = quat_left_matrix(quat_normalize(quaternion))[:, 1:]
     raw = -2.*tangent @ support_inverse(covariance)[0] @ tangent.T
-    np.testing.assert_array_equal(parameter, .5*(raw+raw.T))
+    # Cholesky's actual positive inverse and the old eigensystem inverse
+    # implement the same expression; their last rounding bits can differ.
+    np.testing.assert_allclose(parameter, .5*(raw+raw.T), rtol=0., atol=1e-11)
     for direction in ([1., 0., 0., 0.], [0., 1., 0., 0.],
                       [1., 2., 3., 4.], [-1., 3., -2., 4.]):
         q = quat_normalize(direction)
@@ -178,9 +180,44 @@ def test_pose_query_and_bingham_joint_reexpression_keep_cross_blocks():
     assert np.linalg.norm(point_query(posterior, ["a", "b"], [.1, 0., 0.]).covariance-point_query(lost_dependency, ["a", "b"], [.1, 0., 0.]).covariance) > 1e-8
 
 
-def test_outside_concentration_domain_and_different_state_queries_are_rejected():
-    with pytest.raises(ValueError, match="concentration"):
-        law("too_broad", covariance=.2*np.eye(3))
+@pytest.mark.parametrize('variance', [.099, .101, .2, 2., 20., 1e15])
+def test_finite_rotation_variance_has_no_concentration_ceiling(variance):
+    covariance=variance*np.diag([1., 1.5, 2.])
+    edge=law('broad', covariance=covariance)
+    quaternion,recovered=bingham_rotation_coordinates(edge.bingham)
+    np.testing.assert_allclose(recovered,covariance,rtol=2e-14,atol=0.)
+    np.testing.assert_allclose(np.abs(quaternion),[1.,0.,0.,0.],atol=1e-14)
+    state=JointTransformState.from_independent([edge])
+    query=point_query(state,['broad'],[.1,.2,.3])
+    np.testing.assert_allclose(query.covariance,
+        query.jacobian@state.covariance@query.jacobian.T,rtol=1e-13,atol=1e-14)
+    assert np.all(np.isfinite(query.mean)) and np.all(np.isfinite(query.covariance))
+
+
+def test_broad_positive_modal_precision_is_inverted_without_a_numerical_rank_ceiling():
+    parameter=np.diag([-2e-15,-4e-15,-6e-15,0.])
+    quaternion,covariance=bingham_rotation_coordinates(parameter)
+    assert np.all(np.isfinite(covariance))
+    roundtrip=bingham_from_rotation_coordinates(quaternion,covariance)
+    # Bingham's additive scalar gauge is irrelevant to the same quadratic law.
+    expected=parameter-np.trace(parameter)/4.*np.eye(4)
+    actual=roundtrip-np.trace(roundtrip)/4.*np.eye(4)
+    np.testing.assert_allclose(actual,expected,rtol=2e-14,atol=1e-29)
+
+
+@pytest.mark.parametrize('parameter', [np.zeros((4,4)),np.diag([-2.,-1.,0.,0.])])
+def test_an_actual_nonunique_mode_cannot_define_the_required_single_pose(parameter):
+    with pytest.raises(ValueError,match='simple maximum'):
+        bingham_rotation_coordinates(parameter)
+
+
+@pytest.mark.parametrize('covariance', [np.diag([1.,0.,2.]),np.diag([1.,-1.,2.])])
+def test_actual_unavailable_positive_rotation_inverse_still_fails(covariance):
+    with pytest.raises(np.linalg.LinAlgError):
+        bingham_from_rotation_coordinates([1.,0.,0.,0.],covariance)
+
+
+def test_different_state_queries_are_rejected():
     state = JointTransformState.from_independent([law("a")], version=4, stamp=1.2, command=(.3,))
     a = point_query(state, ["a"], [.1, 0., 0.])
     other = JointTransformState(state.transforms, state.covariance, version=4, stamp=1.2, command=(.3,), component_id="different")

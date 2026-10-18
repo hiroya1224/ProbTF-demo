@@ -1,0 +1,84 @@
+{
+  "scope": "Re-materialize both EXACT saved full Gaussian outputs, not rerun or modify their variational optimizer/native observations/original prior. This proves the failed original event materializes; it is not a new runtime trajectory or completed drain.",
+  "fixture_sha256": "bf67078865df359eac731e370eafce645238927b5c880ed6c386fa64d5eea06a",
+  "event_id": "imu:00006013",
+  "source_stamp": 1792080173.402229,
+  "source_command": [
+    -0.12572809146930813,
+    -1.3267114910398243,
+    1.3456992281781797,
+    -0.1668953401814478,
+    -0.8079064114426089,
+    0.1507414209134739
+  ],
+  "original_failure": "ValueError: Bingham modal gap must be symmetric.",
+  "native_backend": {
+    "backend": "native",
+    "core_equations_changed": false,
+    "stochastic_sampling": false,
+    "common_chart_materialization_supported": true,
+    "common_chart_materialization_abi": 1,
+    "strict_reexpression_prior_support_check_preserved": true,
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_body_law.so",
+    "library_sha256": "d747c13bd8ff06354bd927fcf226c003f8e9abac3fccc1ab54ea4ff248580c53"
+  },
+  "branches": [
+    {
+      "source_state_id": "109b41d29139d9cbc074daa3bec4ebbf75134af820b097925fcb07cbb29ace86",
+      "source_component_id": "predicted:6013:0",
+      "source_stamp": 1792080173.402229,
+      "source_command": [
+        -0.12572809146930813,
+        -1.3267114910398243,
+        1.3456992281781797,
+        -0.1668953401814478,
+        -0.8079064114426089,
+        0.1507414209134739
+      ],
+      "final_F": -5.160958290985816,
+      "log_evidence": 5.160958290985816,
+      "log_evidence_parts": [
+        5.160958290985816,
+        -2.7755575615628914e-17
+      ],
+      "mean_sha256": "ae0e8c725e739e70bc352de7dead118d9f9ebdb303beb2c698316db6a55bc384",
+      "covariance_sha256": "1cd56098bf5423d1708a763cc35c74233a875a3af8aa65be1fa71c6878ce5145",
+      "materialization_succeeded": true,
+      "original_m_P_and_reference_unchanged": true,
+      "full_covariance_max_abs_vs_core": 1.2728533504979822e-16,
+      "maximum_rotation_matrix_abs_vs_core": 1.4988010832439613e-15,
+      "core_query_finite": true,
+      "all_arrays_readonly": true
+    },
+    {
+      "source_state_id": "e0b5b9c07f9e47c595a5363c7fa237ad7e85defd89004c1dfe89f2a81d30c036",
+      "source_component_id": "reset:18040",
+      "source_stamp": 1792080173.402229,
+      "source_command": [
+        -0.12572809146930813,
+        -1.3267114910398243,
+        1.3456992281781797,
+        -0.1668953401814478,
+        -0.8079064114426089,
+        0.1507414209134739
+      ],
+      "final_F": 33.77035102216166,
+      "log_evidence": -33.77035102216166,
+      "log_evidence_parts": [
+        -33.77035102216166,
+        -2.1094237467877974e-15
+      ],
+      "mean_sha256": "3a55fc56d9e993c5e29b57abc792ba9b05195700549a53b48fc7ab42007f789b",
+      "covariance_sha256": "3f80258ab172c052e0b3cdeb4bfcd3d76c86290db93d5901ec6d0a39a48f8e63",
+      "materialization_succeeded": true,
+      "original_m_P_and_reference_unchanged": true,
+      "full_covariance_max_abs_vs_core": 4.336808689942018e-19,
+      "maximum_rotation_matrix_abs_vs_core": 8.881784197001252e-16,
+      "core_query_finite": true,
+      "all_arrays_readonly": true
+    }
+  ],
+  "physical_truth_received": false,
+  "monte_carlo_used": false,
+  "script_sha256": "f7f69706d0cd6483330ba6b9be00b888e6eaf5a2e6693e16531b8eb2a245c81f"
+}

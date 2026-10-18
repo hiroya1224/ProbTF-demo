@@ -1,0 +1,16 @@
+{
+  "marker": {
+    "request_id": 925,
+    "candidate_id": "8c973f9da665aee83e74c95d0bc2f70edbabd0293c81bde85c408298b603e83d",
+    "source_stamp": 1792080179.7585378,
+    "parent_stamp": 1792080146.6726673,
+    "matching_archive_count": 1
+  },
+  "imu_marker": {
+    "request_id": 863,
+    "candidate_id": "5efb7f82633ff05fe5786a526bcc6419f2e2e75aa1c9196d2c20514dc7862aa0",
+    "source_stamp": 1792080179.7007382,
+    "parent_stamp": 1792080153.7438068,
+    "matching_archive_count": 1
+  }
+}

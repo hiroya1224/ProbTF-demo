@@ -1,0 +1,14 @@
+{
+  "protected_file_count": 184,
+  "rviz_file_count": 43,
+  "protected_changed": [],
+  "source_file_count": 202,
+  "source_changes_during_final_checks": [],
+  "moving_estimation_config_changed_keys": [
+    "observation_update"
+  ],
+  "core_edits_limited_to_explicitly_authorized_threshold_removal": true,
+  "particle_image_axis_or_RViz_settings_changed": false,
+  "core_file_count": 142,
+  "final_full_regression_passed": 1304
+}

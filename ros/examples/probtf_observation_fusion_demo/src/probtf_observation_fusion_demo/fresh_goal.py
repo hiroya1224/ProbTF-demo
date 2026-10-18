@@ -250,9 +250,9 @@ def fresh_marker_goals(result, canonical_state, *, marker_id='marker'):
         component_record_semantics=('the legacy native_* keys below describe the derived central input, not a raw detector Hessian; raw native modes are retained in marker_board_fusion.raw_observations'
             if is_board else 'native_* keys describe the raw individual marker image modes'),
         goal_component_count=len(goals),
-        mixture_semantics=('derived board-center components after image-only fusion; concentrated central law is moment-projected once, unresolved broad central laws retain every narrow branch; raw per-marker mixtures remain in the board record; keep/reset already projected into the common body'
+        mixture_semantics=('derived board-center components after image-only fusion; central law is moment-projected when its unique modal chart and required inverse exist without a concentration threshold, otherwise every branch is retained; raw per-marker mixtures remain in the board record; keep/reset already projected into the common body'
             if is_board else 'one component per native image mode; keep/reset parent hypotheses have already been projected into the shared internal body, not multiplied into this fresh task mixture'),
-        goal_weights_source=('derived board-center normalized weights and log masses after image-only fusion, with central projection only within the existing concentration domain; no retained-map prior overlap reweighting'
+        goal_weights_source=('derived board-center normalized weights and log masses after image-only fusion; central projection has no concentration threshold; no retained-map prior overlap reweighting'
             if is_board else 'native detector float weights and normalized image log masses; no retained-map prior overlap reweighting'),
         old_internal_marker_used_for_goal_construction=False,
         internal_unknown_marker_and_all_cross_covariances_retained=True,

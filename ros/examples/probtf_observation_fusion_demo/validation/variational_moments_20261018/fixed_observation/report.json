@@ -1,0 +1,4604 @@
+{
+  "approximation": "Gaussian KL plus high-concentration propagated moment likelihood expectation; not exact nonlinear evidence/lower bound",
+  "cases": [
+    {
+      "branches": [
+        {
+          "covariance_trace": 0.022049588389287497,
+          "diagnostics": {
+            "Gauss_Newton_used": false,
+            "affine_limit": "exact Gaussian posterior/evidence at the variational optimum; finite optimization error recorded",
+            "body_Laplace_evidence_used": false,
+            "completed_iterations": 24,
+            "covariance_clip_applied": false,
+            "covariance_gradient_convention": "full symmetric Frobenius; paired off-diagonal perturbation contributes twice",
+            "covariance_regularization_added": false,
+            "evidence_method": "negative optimized moment-ELBO proxy objective; not a Laplace normalizer",
+            "exact_nonlinear_evidence_claimed": false,
+            "final_KL": 5.1263893259853095,
+            "final_expected_negative_log_likelihood": -34.32415801409679,
+            "final_expected_negative_log_likelihood_terms": [
+              1.0770167643380821,
+              1.441713648814259,
+              -36.84288842724913
+            ],
+            "final_gradient_inf": 1.7622166980581309,
+            "final_objective": -29.197768688111477,
+            "final_objective_parts": [
+              -29.197768688111477,
+              -1.1102230246251565e-15
+            ],
+            "finite_nonstationary_iterate_used": true,
+            "full_joint_cross_covariance_optimized": true,
+            "gradient_tolerance": 1e-06,
+            "initial_distribution": {
+              "considered": true,
+              "gradient_inf": 2254.6994531741657,
+              "objective": 9952.955365231295,
+              "objective_parts": [
+                9952.955365231295,
+                -7.318590178329032e-13
+              ],
+              "proposal_only": true,
+              "provided": true,
+              "selected": false,
+              "status": "evaluated on same fixed-prior objective",
+              "used_as_new_prior": false
+            },
+            "initial_objective": 690.8811698542874,
+            "invalid_trial_count": 0,
+            "invalid_trials": [],
+            "joint_dimension": 66,
+            "likelihood_terms_scalar_discrepancy": 0.0,
+            "log_evidence": 29.197768688111477,
+            "log_evidence_parts": [
+              29.197768688111477,
+              1.1102230246251565e-15
+            ],
+            "max_iterations": 24,
+            "max_line_search": 20,
+            "method": "full-Gaussian fixed-prior propagated-moment variational conditioning",
+            "monte_carlo_used": false,
+            "numerical_quality_is_stop_gate": false,
+            "objective_definition": "KL(q||original p0)+expected native Gaussian negative log likelihood including normalizer",
+            "objective_history": [
+              {
+                "best": true,
+                "evaluation": 0,
+                "expected_negative_log_likelihood": 690.8811698542874,
+                "gradient_inf": 240.5261416915257,
+                "kl": 0.0,
+                "objective": 690.8811698542874
+              },
+              {
+                "best": false,
+                "evaluation": 1,
+                "expected_negative_log_likelihood": 9865.788896754158,
+                "gradient_inf": 2254.6994531741657,
+                "initial_proposal": true,
+                "kl": 87.1664684771352,
+                "objective": 9952.955365231295
+              },
+              {
+                "best": true,
+                "evaluation": 2,
+                "expected_negative_log_likelihood": 253.47157662905246,
+                "gradient_inf": 284.4819014341446,
+                "kl": 0.7822625115329293,
+                "objective": 254.2538391405854
+              },
+              {
+                "best": false,
+                "evaluation": 3,
+                "expected_negative_log_likelihood": 357262.895819597,
+                "gradient_inf": 1274608.6136324976,
+                "kl": 153.43989314171833,
+                "objective": 357416.3357127387
+              },
+              {
+                "best": true,
+                "evaluation": 4,
+                "expected_negative_log_likelihood": 42.728530190034476,
+                "gradient_inf": 556.9354605621825,
+                "kl": 5.328952063840381,
+                "objective": 48.05748225387486
+              },
+              {
+                "best": false,
+                "evaluation": 5,
+                "expected_negative_log_likelihood": 51.87853357381767,
+                "gradient_inf": 270.6429362074576,
+                "kl": 2.093823741157498,
+                "objective": 53.97235731497516
+              },
+              {
+                "best": false,
+                "evaluation": 6,
+                "expected_negative_log_likelihood": 66811.86564532667,
+                "gradient_inf": 260594.83581249946,
+                "kl": 66.85633953199776,
+                "objective": 66878.72198485867
+              },
+              {
+                "best": false,
+                "evaluation": 7,
+                "expected_negative_log_likelihood": 46.32717351315212,
+                "gradient_inf": 679.4277639656804,
+                "kl": 5.4434577506449715,
+                "objective": 51.77063126379709
+              },
+              {
+                "best": true,
+                "evaluation": 8,
+                "expected_negative_log_likelihood": 1.1237073392533041,
+                "gradient_inf": 184.86177751001242,
+                "kl": 2.862026831333228,
+                "objective": 3.9857341705865323
+              },
+              {
+                "best": false,
+                "evaluation": 9,
+                "expected_negative_log_likelihood": 43.61232408826774,
+                "gradient_inf": 709.9587538613739,
+                "kl": 5.479368963902329,
+                "objective": 49.091693052170065
+              },
+              {
+                "best": true,
+                "evaluation": 10,
+                "expected_negative_log_likelihood": -18.090124629684627,
+                "gradient_inf": 21.878953922154935,
+                "kl": 3.6335581059889748,
+                "objective": -14.456566523695653
+              },
+              {
+                "best": true,
+                "evaluation": 11,
+                "expected_negative_log_likelihood": -19.477261941034833,
+                "gradient_inf": 27.219548263650474,
+                "kl": 3.818398726319124,
+                "objective": -15.658863214715707
+              },
+              {
+                "best": true,
+                "evaluation": 12,
+                "expected_negative_log_likelihood": -20.942669406234884,
+                "gradient_inf": 36.03102736352763,
+                "kl": 3.8663611787373444,
+                "objective": -17.07630822749754
+              },
+              {
+                "best": true,
+                "evaluation": 13,
+                "expected_negative_log_likelihood": -25.352916024747998,
+                "gradient_inf": 26.196706167242095,
+                "kl": 3.9446801696909226,
+                "objective": -21.408235855057075
+              },
+              {
+                "best": true,
+                "evaluation": 14,
+                "expected_negative_log_likelihood": -26.907325749602364,
+                "gradient_inf": 23.27967196725396,
+                "kl": 3.997233130939674,
+                "objective": -22.91009261866269
+              },
+              {
+                "best": true,
+                "evaluation": 15,
+                "expected_negative_log_likelihood": -28.44781640763495,
+                "gradient_inf": 13.328698784136487,
+                "kl": 3.973838069022028,
+                "objective": -24.473978338612923
+              },
+              {
+                "best": true,
+                "evaluation": 16,
+                "expected_negative_log_likelihood": -29.648023194135035,
+                "gradient_inf": 23.161714912248744,
+                "kl": 4.08880860622988,
+                "objective": -25.559214587905156
+              },
+              {
+                "best": true,
+                "evaluation": 17,
+                "expected_negative_log_likelihood": -31.10982386051836,
+                "gradient_inf": 10.707949048762528,
+                "kl": 4.401311600577803,
+                "objective": -26.70851225994056
+              },
+              {
+                "best": true,
+                "evaluation": 18,
+                "expected_negative_log_likelihood": -31.795719642878606,
+                "gradient_inf": 2.9901123478862983,
+                "kl": 4.618632835684725,
+                "objective": -27.17708680719388
+              },
+              {
+                "best": true,
+                "evaluation": 19,
+                "expected_negative_log_likelihood": -32.058342958218994,
+                "gradient_inf": 6.061387375644228,
+                "kl": 4.696944046641856,
+                "objective": -27.361398911577137
+              },
+              {
+                "best": true,
+                "evaluation": 20,
+                "expected_negative_log_likelihood": -32.362201048617095,
+                "gradient_inf": 8.430663025398431,
+                "kl": 4.759866432941549,
+                "objective": -27.60233461567555
+              },
+              {
+                "best": true,
+                "evaluation": 21,
+                "expected_negative_log_likelihood": -32.71777694936991,
+                "gradient_inf": 5.4935165215878,
+                "kl": 4.816892146482365,
+                "objective": -27.90088480288755
+              },
+              {
+                "best": true,
+                "evaluation": 22,
+                "expected_negative_log_likelihood": -32.96506712418092,
+                "gradient_inf": 6.920544289405261,
+                "kl": 4.870171883903748,
+                "objective": -28.09489524027717
+              },
+              {
+                "best": false,
+                "evaluation": 23,
+                "expected_negative_log_likelihood": -30.40887644118504,
+                "gradient_inf": 83.69436829220604,
+                "kl": 4.819252240144079,
+                "objective": -25.589624201040962
+              },
+              {
+                "best": true,
+                "evaluation": 24,
+                "expected_negative_log_likelihood": -33.00238758544091,
+                "gradient_inf": 6.747399800058677,
+                "kl": 4.84843854333938,
+                "objective": -28.153949042101523
+              },
+              {
+                "best": true,
+                "evaluation": 25,
+                "expected_negative_log_likelihood": -33.1626916209491,
+                "gradient_inf": 5.74917108795514,
+                "kl": 4.894131162804864,
+                "objective": -28.268560458144233
+              },
+              {
+                "best": true,
+                "evaluation": 26,
+                "expected_negative_log_likelihood": -33.460444042866996,
+                "gradient_inf": 2.0461182692517483,
+                "kl": 4.972551290840568,
+                "objective": -28.487892752026426
+              },
+              {
+                "best": true,
+                "evaluation": 27,
+                "expected_negative_log_likelihood": -33.86844230914524,
+                "gradient_inf": 2.813157157933181,
+                "kl": 5.128172292396517,
+                "objective": -28.74027001674872
+              },
+              {
+                "best": true,
+                "evaluation": 28,
+                "expected_negative_log_likelihood": -33.96377975779166,
+                "gradient_inf": 5.351263926576124,
+                "kl": 5.146212553788146,
+                "objective": -28.817567204003517
+              },
+              {
+                "best": true,
+                "evaluation": 29,
+                "expected_negative_log_likelihood": -34.03339897139173,
+                "gradient_inf": 1.8543773350946795,
+                "kl": 5.1158708235280725,
+                "objective": -28.91752814786366
+              },
+              {
+                "best": true,
+                "evaluation": 30,
+                "expected_negative_log_likelihood": -34.10118338052299,
+                "gradient_inf": 1.8765478173654917,
+                "kl": 5.093336342380004,
+                "objective": -29.007847038142984
+              },
+              {
+                "best": true,
+                "evaluation": 31,
+                "expected_negative_log_likelihood": -34.32415801409679,
+                "gradient_inf": 1.7622166980581309,
+                "kl": 5.1263893259853095,
+                "objective": -29.197768688111477
+              }
+            ],
+            "observation_added_once": true,
+            "optimization_centering": "subtract fixed initial objective scale with retained addition residual",
+            "optimization_start_is_original_prior": true,
+            "optimization_start_objective": 690.8811698542874,
+            "optimized_variables": "whitened Gaussian mean and every lower-triangular Cholesky entry; diagonal logarithms",
+            "optimizer_exception": null,
+            "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT",
+            "optimizer_method": "unbounded L-BFGS-B; no parameter clipping",
+            "optimizer_status": 1,
+            "optimizer_success": false,
+            "optimizer_warnings": [],
+            "original_prior_held_fixed": true,
+            "original_prior_numeric_sha256": "f3436bb7525676526333c6045dd89bffe478f0d6a623aaa433d1ceaa6e979c82",
+            "parameter_count": 945,
+            "point_MAP_used": false,
+            "prior_support_rank": 42,
+            "repeated_observation_multiplication": false,
+            "source_evaluator_diagnostics": {
+              "core_O_P_mean_used": true,
+              "full_covariance_and_cross_differentiated": true,
+              "monte_carlo_used": false,
+              "physical_truth_received": false,
+              "propagated_observations": [
+                {
+                  "expected_negative_log_likelihood": -34.32415801409679,
+                  "expected_negative_log_likelihood_terms": [
+                    1.0770167643380821,
+                    1.441713648814259,
+                    -36.84288842724913
+                  ],
+                  "moment_reverse_diagnostics": {
+                    "O_P_mean_correction": true,
+                    "all_parameter_dependence_differentiated": true,
+                    "backend": "native_analytic_reverse",
+                    "core_equations_changed": false,
+                    "cost_mode": "expected_gaussian_negative_log_likelihood",
+                    "covariance_gradient_convention": "symmetric full-matrix Frobenius",
+                    "full_joint_covariance": true,
+                    "kind": "pose",
+                    "native_chart_fixed": true,
+                    "numerical_parameter_differences": false,
+                    "original_reference_chart": true,
+                    "path": [
+                      [
+                        "camera_optical_frame",
+                        true
+                      ],
+                      [
+                        "tool0",
+                        true
+                      ],
+                      [
+                        "link_6",
+                        true
+                      ],
+                      [
+                        "link_5",
+                        true
+                      ],
+                      [
+                        "link_4",
+                        true
+                      ],
+                      [
+                        "link_3",
+                        true
+                      ],
+                      [
+                        "link_2",
+                        true
+                      ],
+                      [
+                        "link_1",
+                        true
+                      ],
+                      [
+                        "marker",
+                        false
+                      ]
+                    ],
+                    "stochastic_sampling": false,
+                    "tape_nodes": 69893
+                  },
+                  "native_component_label": "camera__to__marker:board_adf:4df9debe7f9791c7:0",
+                  "observation_id": "image:00000149",
+                  "observation_normalizer": -36.84288842724913,
+                  "observed_mean": [
+                    -0.007681791436287966,
+                    0.09212803876036728,
+                    0.756272888656032,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "predicted_covariance": [
+                    [
+                      1.1350298030574094e-08,
+                      6.414347989786224e-10,
+                      3.293537253844939e-09,
+                      -1.5527904781967422e-09,
+                      -1.5671584499079296e-08,
+                      4.58734758458834e-09
+                    ],
+                    [
+                      6.414347983979294e-10,
+                      1.6280772870305805e-08,
+                      3.394516050805122e-08,
+                      -2.1256865252475463e-09,
+                      3.586312939559358e-09,
+                      -7.321634491309199e-09
+                    ],
+                    [
+                      3.2935372537401833e-09,
+                      3.394516050807646e-08,
+                      1.8961705649420546e-07,
+                      4.962583874892955e-09,
+                      1.193638338762535e-08,
+                      2.021483200263333e-08
+                    ],
+                    [
+                      -1.552790477691748e-09,
+                      -2.125686525678336e-09,
+                      4.962583874849045e-09,
+                      6.927992834429234e-06,
+                      3.3952907976742394e-07,
+                      -4.5221693603181997e-07
+                    ],
+                    [
+                      -1.56715844995539e-08,
+                      3.586312940127834e-09,
+                      1.1936383387736553e-08,
+                      3.395290797671434e-07,
+                      7.775366559112925e-06,
+                      1.1645843027845787e-06
+                    ],
+                    [
+                      4.5873475846886205e-09,
+                      -7.321634491431192e-09,
+                      2.0214832002451894e-08,
+                      -4.5221693603159116e-07,
+                      1.1645843027833471e-06,
+                      7.62754583005458e-07
+                    ]
+                  ],
+                  "predicted_mean": [
+                    -0.007696341909256946,
+                    0.09198293213660805,
+                    0.7554446383604061,
+                    -0.0016075974916129776,
+                    -0.0066056041122179105,
+                    -0.0009503782248740141
+                  ],
+                  "source_command": [
+                    -0.1433375488072816,
+                    -1.858023321606855,
+                    2.3328958632151253,
+                    -0.0023305417196216884,
+                    -0.9565524121490214,
+                    0.0013575076269680111
+                  ],
+                  "source_stamp": 1792080001.3467875,
+                  "source_state_id": "086b0f7ab13f18cbd0203720aa8ac1fce5b385a279b935ef65d7b5309d45ae6f"
+                }
+              ]
+            },
+            "stationarity_verified": false,
+            "strict_exact_model_lower_bound_claimed": false,
+            "termination_reason": "L-BFGS-B returned the best finite full Gaussian candidate",
+            "valid_evaluator_calls": 32,
+            "whitening": "B=U sqrt(D), P0=B B.T; fixed original support, not an orthonormal basis alone"
+          },
+          "elapsed_seconds": 0.08632285008206964,
+          "final_materialized": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 5.037460826693045,
+            "full_joint_covariance_trace": 0.022049430510884368,
+            "maximum_local_rotation_variance": 0.003585355933372517,
+            "native_position_residual_m": 0.00084099120133727,
+            "native_rotation_chart_residual_rad": 0.00686451703710455,
+            "predicted_covariance": [
+              [
+                1.1350298032699975e-08,
+                6.414347957820391e-10,
+                3.2935372529101915e-09,
+                -1.55279047486606e-09,
+                -1.567158449953487e-08,
+                4.587347582160561e-09
+              ],
+              [
+                6.414347953895666e-10,
+                1.6280772873262112e-08,
+                3.3945160508776714e-08,
+                -2.1256865280492178e-09,
+                3.5863129417369296e-09,
+                -7.321634489050946e-09
+              ],
+              [
+                3.2935372527800822e-09,
+                3.394516050889166e-08,
+                1.8961705649447416e-07,
+                4.962583874397778e-09,
+                1.193638338817838e-08,
+                2.0214832003249518e-08
+              ],
+              [
+                -1.55279047482075e-09,
+                -2.125686528333118e-09,
+                4.962583874513232e-09,
+                6.927992834431289e-06,
+                3.3952907976566603e-07,
+                -4.522169360336301e-07
+              ],
+              [
+                -1.5671584499402572e-08,
+                3.586312941463955e-09,
+                1.193638338805808e-08,
+                3.3952907976564e-07,
+                7.775366559112224e-06,
+                1.1645843027856085e-06
+              ],
+              [
+                4.58734758156759e-09,
+                -7.321634489249714e-09,
+                2.0214832003402232e-08,
+                -4.5221693603360234e-07,
+                1.164584302785629e-06,
+                7.627545830084215e-07
+              ]
+            ],
+            "predicted_mean": [
+              -0.007696341909256249,
+              0.0919829321366086,
+              0.7554446383604061,
+              -0.001607597491612843,
+              -0.00660560411221745,
+              -0.0009503782248739942
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "7620de172b296f124a4b58df0956e01f666a1049064b04d4e4808d73ae6597ad",
+            "whitened_squared_mean_residual": 2.1540335286767576
+          },
+          "log_evidence": 29.197768688111477,
+          "log_evidence_parts": [
+            29.197768688111477,
+            1.1102230246251565e-15
+          ],
+          "mean_shift_norm": 0.025768765155840173,
+          "old_frozen_posterior": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 19805.263569441275,
+            "full_joint_covariance_trace": 0.010776166066074302,
+            "maximum_local_rotation_variance": 0.0010150107444703328,
+            "native_position_residual_m": 0.015318406653731739,
+            "native_rotation_chart_residual_rad": 0.015032487204948026,
+            "predicted_covariance": [
+              [
+                1.2645018535118017e-05,
+                -9.503646640775351e-07,
+                -2.8244284213544156e-06,
+                -2.4825999859526584e-06,
+                -8.355568597870202e-06,
+                1.1271903056086036e-06
+              ],
+              [
+                -9.503646640774806e-07,
+                1.1591520400336721e-05,
+                -7.179174205072892e-07,
+                -7.953145442091308e-06,
+                1.5587538453836727e-06,
+                -6.880033604334141e-07
+              ],
+              [
+                -2.8244284213544156e-06,
+                -7.179174205071735e-07,
+                1.9150654838383487e-06,
+                1.719858608871983e-06,
+                1.8731109158229501e-06,
+                7.305932626674504e-07
+              ],
+              [
+                -2.4825999859526304e-06,
+                -7.953145442090883e-06,
+                1.7198586088719959e-06,
+                1.3508752070340788e-05,
+                1.738277445263032e-06,
+                -4.933781129417263e-07
+              ],
+              [
+                -8.355568597870282e-06,
+                1.558753845383711e-06,
+                1.8731109158229878e-06,
+                1.7382774452630577e-06,
+                1.3704245833618307e-05,
+                -7.719250423926667e-07
+              ],
+              [
+                1.1271903056087444e-06,
+                -6.880033604333091e-07,
+                7.305932626674632e-07,
+                -4.933781129417079e-07,
+                -7.719250423926323e-07,
+                7.950512723551982e-06
+              ]
+            ],
+            "predicted_mean": [
+              0.0018600313348543735,
+              0.1032325647087203,
+              0.7517677023029988,
+              -0.011039860254851937,
+              -0.009701172876299426,
+              -0.0031598104285572174
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "209133d86d41b21023ec588e1bc3174b1b703b59c16bad0533a28b76a42626ab",
+            "whitened_squared_mean_residual": 17869.92024899838
+          },
+          "optimizer_vs_materialized_covariance_max_abs": 3.3306822343190153e-18,
+          "optimizer_vs_materialized_mean_max_abs": 6.973588373426765e-16,
+          "parent_label": "predicted:149:0",
+          "posterior_log_weight": 0.0,
+          "posterior_weight": 1.0,
+          "prior": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 1455.44811656352,
+            "full_joint_covariance_trace": 0.01261290850283653,
+            "maximum_local_rotation_variance": 0.0010626971096304905,
+            "native_position_residual_m": 0.00458343905190514,
+            "native_rotation_chart_residual_rad": 0.008574000300246812,
+            "predicted_covariance": [
+              [
+                2.0273705757925112e-07,
+                -3.358153087398266e-08,
+                8.124633605891151e-09,
+                1.2468754912219865e-10,
+                -2.062498196196686e-07,
+                -1.3215413523094954e-07
+              ],
+              [
+                -3.3581530874049717e-08,
+                9.386443670043462e-08,
+                3.770444579029745e-08,
+                -5.5670406203713944e-08,
+                3.9579463443845005e-08,
+                5.12696431850236e-08
+              ],
+              [
+                8.12463360599895e-09,
+                3.7704445790322143e-08,
+                2.2186393807908982e-07,
+                1.1041475180508422e-08,
+                5.174027304986236e-09,
+                1.9131888250173344e-08
+              ],
+              [
+                1.2468754911108887e-10,
+                -5.5670406204067196e-08,
+                1.1041475180500556e-08,
+                8.298959677287075e-06,
+                4.4515116945442634e-07,
+                -5.40361518678213e-07
+              ],
+              [
+                -2.0624981961961404e-07,
+                3.957946344386768e-08,
+                5.1740273050357235e-09,
+                4.451511694543764e-07,
+                9.68534149999284e-06,
+                1.5352525430189948e-06
+              ],
+              [
+                -1.3215413523107116e-07,
+                5.1269643184965874e-08,
+                1.9131888250170367e-08,
+                -5.403615186782005e-07,
+                1.5352525430189331e-06,
+                9.76111617127538e-07
+              ]
+            ],
+            "predicted_mean": [
+              -0.005449468046030723,
+              0.09539198372267099,
+              0.7539552801673326,
+              -0.0026759623476858207,
+              -0.008031112431919622,
+              -0.0013615945682420685
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "086b0f7ab13f18cbd0203720aa8ac1fce5b385a279b935ef65d7b5309d45ae6f",
+            "whitened_squared_mean_residual": 1431.0394961609302
+          },
+          "prior_numeric_sha256": "f3436bb7525676526333c6045dd89bffe478f0d6a623aaa433d1ceaa6e979c82",
+          "prior_unchanged": true,
+          "raw_posterior_local_rotation_shift_norms": [
+            0.011405290046813359,
+            0.012342595688595883,
+            0.010508182004136656,
+            0.006758141737491174,
+            0.012410663091547171,
+            0.007965531985799704,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0007046727305525254
+          ],
+          "raw_posterior_numeric_sha256": "488693e272d33f3e33d01d90c76b6b854d8b5f6e440ecff442037e2c9de1e2f5",
+          "reference_state_id": "086b0f7ab13f18cbd0203720aa8ac1fce5b385a279b935ef65d7b5309d45ae6f"
+        },
+        {
+          "covariance_trace": 0.019486496273711126,
+          "diagnostics": {
+            "Gauss_Newton_used": false,
+            "affine_limit": "exact Gaussian posterior/evidence at the variational optimum; finite optimization error recorded",
+            "body_Laplace_evidence_used": false,
+            "completed_iterations": 24,
+            "covariance_clip_applied": false,
+            "covariance_gradient_convention": "full symmetric Frobenius; paired off-diagonal perturbation contributes twice",
+            "covariance_regularization_added": false,
+            "evidence_method": "negative optimized moment-ELBO proxy objective; not a Laplace normalizer",
+            "exact_nonlinear_evidence_claimed": false,
+            "final_KL": 31.832131644346852,
+            "final_expected_negative_log_likelihood": 3.3089582857074396,
+            "final_expected_negative_log_likelihood_terms": [
+              2.8979583517821217,
+              37.25388836117445,
+              -36.84288842724913
+            ],
+            "final_gradient_inf": 195.02384538311162,
+            "final_objective": 35.14108993005429,
+            "final_objective_parts": [
+              35.14108993005429,
+              -8.881784197001252e-16
+            ],
+            "finite_nonstationary_iterate_used": true,
+            "full_joint_cross_covariance_optimized": true,
+            "gradient_tolerance": 1e-06,
+            "initial_distribution": {
+              "considered": true,
+              "gradient_inf": 55087.01903866772,
+              "objective": 18593.425574114215,
+              "objective_parts": [
+                18593.425574114215,
+                1.6200374375330284e-12
+              ],
+              "proposal_only": true,
+              "provided": true,
+              "selected": true,
+              "status": "evaluated on same fixed-prior objective",
+              "used_as_new_prior": false
+            },
+            "initial_objective": 6339514.82969197,
+            "invalid_trial_count": 0,
+            "invalid_trials": [],
+            "joint_dimension": 66,
+            "likelihood_terms_scalar_discrepancy": 0.0,
+            "log_evidence": -35.14108993005429,
+            "log_evidence_parts": [
+              -35.14108993005429,
+              8.881784197001252e-16
+            ],
+            "max_iterations": 24,
+            "max_line_search": 20,
+            "method": "full-Gaussian fixed-prior propagated-moment variational conditioning",
+            "monte_carlo_used": false,
+            "numerical_quality_is_stop_gate": false,
+            "objective_definition": "KL(q||original p0)+expected native Gaussian negative log likelihood including normalizer",
+            "objective_history": [
+              {
+                "best": true,
+                "evaluation": 0,
+                "expected_negative_log_likelihood": 6339514.82969197,
+                "gradient_inf": 1246474.1855632067,
+                "kl": 0.0,
+                "objective": 6339514.82969197
+              },
+              {
+                "best": true,
+                "evaluation": 1,
+                "expected_negative_log_likelihood": 18561.468483854635,
+                "gradient_inf": 55087.01903866772,
+                "initial_proposal": true,
+                "kl": 31.957090259583786,
+                "objective": 18593.425574114215
+              },
+              {
+                "best": false,
+                "evaluation": 2,
+                "expected_negative_log_likelihood": 238300.4452718726,
+                "gradient_inf": 211553.3884929231,
+                "kl": 32.943265078372185,
+                "objective": 238333.38853695095
+              },
+              {
+                "best": true,
+                "evaluation": 3,
+                "expected_negative_log_likelihood": 2308.593457160142,
+                "gradient_inf": 2883.7261239639,
+                "kl": 32.077692674217516,
+                "objective": 2340.6711498343593
+              },
+              {
+                "best": true,
+                "evaluation": 4,
+                "expected_negative_log_likelihood": 2211.1444565082493,
+                "gradient_inf": 1597.8624215355078,
+                "kl": 32.07822346848661,
+                "objective": 2243.222679976736
+              },
+              {
+                "best": true,
+                "evaluation": 5,
+                "expected_negative_log_likelihood": 2172.1242303123463,
+                "gradient_inf": 983.635493699277,
+                "kl": 32.07020328978891,
+                "objective": 2204.194433602135
+              },
+              {
+                "best": true,
+                "evaluation": 6,
+                "expected_negative_log_likelihood": 2156.1892407043724,
+                "gradient_inf": 782.2273617361955,
+                "kl": 32.063362279816324,
+                "objective": 2188.252602984189
+              },
+              {
+                "best": true,
+                "evaluation": 7,
+                "expected_negative_log_likelihood": 2135.3890994346457,
+                "gradient_inf": 1188.5664269407323,
+                "kl": 32.03451099124149,
+                "objective": 2167.423610425887
+              },
+              {
+                "best": true,
+                "evaluation": 8,
+                "expected_negative_log_likelihood": 2108.638082455146,
+                "gradient_inf": 1355.1929766149435,
+                "kl": 32.00174065654546,
+                "objective": 2140.6398231116914
+              },
+              {
+                "best": true,
+                "evaluation": 9,
+                "expected_negative_log_likelihood": 2060.1563183575126,
+                "gradient_inf": 2302.3527354798794,
+                "kl": 31.930338735817898,
+                "objective": 2092.0866570933304
+              },
+              {
+                "best": true,
+                "evaluation": 10,
+                "expected_negative_log_likelihood": 1931.0761525011062,
+                "gradient_inf": 4132.417456770832,
+                "kl": 31.6695271585993,
+                "objective": 1962.7456796597055
+              },
+              {
+                "best": true,
+                "evaluation": 11,
+                "expected_negative_log_likelihood": 1731.9222694935347,
+                "gradient_inf": 5013.2951859880195,
+                "kl": 31.386917488558712,
+                "objective": 1763.3091869820935
+              },
+              {
+                "best": true,
+                "evaluation": 12,
+                "expected_negative_log_likelihood": 1453.7296003189726,
+                "gradient_inf": 3880.0548216761817,
+                "kl": 31.10890792434412,
+                "objective": 1484.8385082433167
+              },
+              {
+                "best": false,
+                "evaluation": 13,
+                "expected_negative_log_likelihood": 1872.483107539848,
+                "gradient_inf": 9112.530356405026,
+                "kl": 30.90760288342894,
+                "objective": 1903.3907104232771
+              },
+              {
+                "best": true,
+                "evaluation": 14,
+                "expected_negative_log_likelihood": 1317.7337151444062,
+                "gradient_inf": 2509.638331750328,
+                "kl": 30.979328019955773,
+                "objective": 1348.7130431643618
+              },
+              {
+                "best": true,
+                "evaluation": 15,
+                "expected_negative_log_likelihood": 1133.9713196955383,
+                "gradient_inf": 845.5795902393352,
+                "kl": 30.891924244756222,
+                "objective": 1164.8632439402945
+              },
+              {
+                "best": true,
+                "evaluation": 16,
+                "expected_negative_log_likelihood": 1098.5056170583694,
+                "gradient_inf": 742.0380251246359,
+                "kl": 30.891166963201247,
+                "objective": 1129.3967840215705
+              },
+              {
+                "best": true,
+                "evaluation": 17,
+                "expected_negative_log_likelihood": 1005.3824856331763,
+                "gradient_inf": 1455.7807426727397,
+                "kl": 30.88029559974626,
+                "objective": 1036.2627812329226
+              },
+              {
+                "best": true,
+                "evaluation": 18,
+                "expected_negative_log_likelihood": 901.3641539813665,
+                "gradient_inf": 2816.164044149277,
+                "kl": 30.87498551414881,
+                "objective": 932.2391394955152
+              },
+              {
+                "best": true,
+                "evaluation": 19,
+                "expected_negative_log_likelihood": 722.6750089369898,
+                "gradient_inf": 4037.321113129183,
+                "kl": 30.882623832526363,
+                "objective": 753.5576327695161
+              },
+              {
+                "best": true,
+                "evaluation": 20,
+                "expected_negative_log_likelihood": 329.1613560135461,
+                "gradient_inf": 4737.545147496481,
+                "kl": 31.242333448354408,
+                "objective": 360.4036894619005
+              },
+              {
+                "best": false,
+                "evaluation": 21,
+                "expected_negative_log_likelihood": 638.8700010141278,
+                "gradient_inf": 5765.49617535331,
+                "kl": 32.48522334232155,
+                "objective": 671.3552243564493
+              },
+              {
+                "best": true,
+                "evaluation": 22,
+                "expected_negative_log_likelihood": 167.79565922056207,
+                "gradient_inf": 3897.9066213326682,
+                "kl": 31.593711879783903,
+                "objective": 199.38937110034598
+              },
+              {
+                "best": true,
+                "evaluation": 23,
+                "expected_negative_log_likelihood": 46.16334502314476,
+                "gradient_inf": 1902.1334513730708,
+                "kl": 31.817742166652664,
+                "objective": 77.98108718979742
+              },
+              {
+                "best": true,
+                "evaluation": 24,
+                "expected_negative_log_likelihood": 18.79613544439062,
+                "gradient_inf": 739.5340733196067,
+                "kl": 31.84093143507446,
+                "objective": 50.63706687946508
+              },
+              {
+                "best": true,
+                "evaluation": 25,
+                "expected_negative_log_likelihood": 11.72849349941739,
+                "gradient_inf": 546.5130738447795,
+                "kl": 31.828383860270016,
+                "objective": 43.556877359687405
+              },
+              {
+                "best": true,
+                "evaluation": 26,
+                "expected_negative_log_likelihood": 7.779507705448891,
+                "gradient_inf": 316.4199078649277,
+                "kl": 31.822050796887197,
+                "objective": 39.60155850233609
+              },
+              {
+                "best": true,
+                "evaluation": 27,
+                "expected_negative_log_likelihood": 5.6227055017955845,
+                "gradient_inf": 185.88844000018656,
+                "kl": 31.826348031564855,
+                "objective": 37.44905353336044
+              },
+              {
+                "best": true,
+                "evaluation": 28,
+                "expected_negative_log_likelihood": 3.3089582857074396,
+                "gradient_inf": 195.02384538311162,
+                "kl": 31.832131644346852,
+                "objective": 35.14108993005429
+              }
+            ],
+            "observation_added_once": true,
+            "optimization_centering": "subtract fixed initial objective scale with retained addition residual",
+            "optimization_start_is_original_prior": false,
+            "optimization_start_objective": 18593.425574114215,
+            "optimized_variables": "whitened Gaussian mean and every lower-triangular Cholesky entry; diagonal logarithms",
+            "optimizer_exception": null,
+            "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT",
+            "optimizer_method": "unbounded L-BFGS-B; no parameter clipping",
+            "optimizer_status": 1,
+            "optimizer_success": false,
+            "optimizer_warnings": [],
+            "original_prior_held_fixed": true,
+            "original_prior_numeric_sha256": "ba3f1a9ae840bd539d6513a3fc6a7e76529365e21589b5aa0e621a9fb438c866",
+            "parameter_count": 945,
+            "point_MAP_used": false,
+            "prior_support_rank": 42,
+            "repeated_observation_multiplication": false,
+            "source_evaluator_diagnostics": {
+              "core_O_P_mean_used": true,
+              "full_covariance_and_cross_differentiated": true,
+              "monte_carlo_used": false,
+              "physical_truth_received": false,
+              "propagated_observations": [
+                {
+                  "expected_negative_log_likelihood": 3.3089582857074396,
+                  "expected_negative_log_likelihood_terms": [
+                    2.8979583517821217,
+                    37.25388836117445,
+                    -36.84288842724913
+                  ],
+                  "moment_reverse_diagnostics": {
+                    "O_P_mean_correction": true,
+                    "all_parameter_dependence_differentiated": true,
+                    "backend": "native_analytic_reverse",
+                    "core_equations_changed": false,
+                    "cost_mode": "expected_gaussian_negative_log_likelihood",
+                    "covariance_gradient_convention": "symmetric full-matrix Frobenius",
+                    "full_joint_covariance": true,
+                    "kind": "pose",
+                    "native_chart_fixed": true,
+                    "numerical_parameter_differences": false,
+                    "original_reference_chart": true,
+                    "path": [
+                      [
+                        "camera_optical_frame",
+                        true
+                      ],
+                      [
+                        "tool0",
+                        true
+                      ],
+                      [
+                        "link_6",
+                        true
+                      ],
+                      [
+                        "link_5",
+                        true
+                      ],
+                      [
+                        "link_4",
+                        true
+                      ],
+                      [
+                        "link_3",
+                        true
+                      ],
+                      [
+                        "link_2",
+                        true
+                      ],
+                      [
+                        "link_1",
+                        true
+                      ],
+                      [
+                        "marker",
+                        false
+                      ]
+                    ],
+                    "stochastic_sampling": false,
+                    "tape_nodes": 69791
+                  },
+                  "native_component_label": "camera__to__marker:board_adf:4df9debe7f9791c7:0",
+                  "observation_id": "image:00000149",
+                  "observation_normalizer": -36.84288842724913,
+                  "observed_mean": [
+                    -0.007681791436287966,
+                    0.09212803876036728,
+                    0.756272888656032,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "predicted_covariance": [
+                    [
+                      2.717421361318239e-08,
+                      1.6836327271715677e-08,
+                      9.236469215230241e-08,
+                      -1.3808842662966896e-07,
+                      -3.1345536454838143e-07,
+                      -7.550674193742105e-08
+                    ],
+                    [
+                      1.6836327271746646e-08,
+                      1.42891345557706e-07,
+                      6.532630031229049e-07,
+                      -1.3898278055766138e-06,
+                      -1.2360250510909565e-07,
+                      4.621281840238205e-07
+                    ],
+                    [
+                      9.236469215228189e-08,
+                      6.532630031229238e-07,
+                      3.4261391533428643e-06,
+                      -7.188846492308998e-06,
+                      -5.985866319672913e-07,
+                      1.3810764986647952e-06
+                    ],
+                    [
+                      -1.380884266296791e-07,
+                      -1.3898278055760385e-06,
+                      -7.188846492308958e-06,
+                      2.329371793007224e-05,
+                      1.5819487006914817e-08,
+                      -3.861543921241007e-06
+                    ],
+                    [
+                      -3.134553645479919e-07,
+                      -1.2360250510912246e-07,
+                      -5.985866319674039e-07,
+                      1.5819487006967313e-08,
+                      3.338002016720254e-05,
+                      1.749012017043283e-06
+                    ],
+                    [
+                      -7.550674193745426e-08,
+                      4.6212818402396267e-07,
+                      1.3810764986647723e-06,
+                      -3.861543921241074e-06,
+                      1.7490120170433803e-06,
+                      6.676413880561557e-05
+                    ]
+                  ],
+                  "predicted_mean": [
+                    -0.007748694383380673,
+                    0.0919195496550821,
+                    0.755214640127214,
+                    0.005143822131462008,
+                    -0.01049402619483861,
+                    -0.002550135669206764
+                  ],
+                  "source_command": [
+                    -0.1433375488072816,
+                    -1.858023321606855,
+                    2.3328958632151253,
+                    -0.0023305417196216884,
+                    -0.9565524121490214,
+                    0.0013575076269680111
+                  ],
+                  "source_stamp": 1792080001.3467875,
+                  "source_state_id": "8406a81033bebffbf9e7ba52126d739a897de49bf872e84ba50125aade72b28e"
+                }
+              ]
+            },
+            "stationarity_verified": false,
+            "strict_exact_model_lower_bound_claimed": false,
+            "termination_reason": "L-BFGS-B returned the best finite full Gaussian candidate",
+            "valid_evaluator_calls": 29,
+            "whitening": "B=U sqrt(D), P0=B B.T; fixed original support, not an orthonormal basis alone"
+          },
+          "elapsed_seconds": 0.07507594721391797,
+          "final_materialized": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 80.30369342601,
+            "full_joint_covariance_trace": 0.019482446293064642,
+            "maximum_local_rotation_variance": 0.001607812034382415,
+            "native_position_residual_m": 0.001080663527698672,
+            "native_rotation_chart_residual_rad": 0.011961884626989347,
+            "predicted_covariance": [
+              [
+                2.717421361537941e-08,
+                1.6836327271809426e-08,
+                9.236469215166574e-08,
+                -1.380884266298072e-07,
+                -3.1345536455090437e-07,
+                -7.550674193693521e-08
+              ],
+              [
+                1.683632727181124e-08,
+                1.4289134555656448e-07,
+                6.532630031227012e-07,
+                -1.3898278055755025e-06,
+                -1.236025051094635e-07,
+                4.621281840241423e-07
+              ],
+              [
+                9.23646921517474e-08,
+                6.532630031226877e-07,
+                3.426139153343002e-06,
+                -7.188846492308937e-06,
+                -5.985866319666981e-07,
+                1.3810764986644962e-06
+              ],
+              [
+                -1.3808842662986796e-07,
+                -1.3898278055759267e-06,
+                -7.188846492308929e-06,
+                2.3293717930072137e-05,
+                1.5819487007163957e-08,
+                -3.861543921241065e-06
+              ],
+              [
+                -3.1345536455074434e-07,
+                -1.2360250510945617e-07,
+                -5.98586631966607e-07,
+                1.5819487007137792e-08,
+                3.33800201672052e-05,
+                1.7490120170430868e-06
+              ],
+              [
+                -7.550674193698667e-08,
+                4.621281840241413e-07,
+                1.3810764986644716e-06,
+                -3.861543921241153e-06,
+                1.7490120170429246e-06,
+                6.676413880561557e-05
+              ]
+            ],
+            "predicted_mean": [
+              -0.007748694383380748,
+              0.09191954965508278,
+              0.7552146401272137,
+              0.005143822131461464,
+              -0.01049402619483719,
+              -0.002550135669207071
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "ac0dcc53dd66b22bf997083a68ffeab3c3c05f7251b164b70213ada42e9225bd",
+            "whitened_squared_mean_residual": 5.79591670356425
+          },
+          "log_evidence": -35.14108993005429,
+          "log_evidence_parts": [
+            -35.14108993005429,
+            8.881784197001252e-16
+          ],
+          "mean_shift_norm": 0.16047587757060575,
+          "old_frozen_posterior": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 37196.622744563516,
+            "full_joint_covariance_trace": 0.019179142740402368,
+            "maximum_local_rotation_variance": 0.0015347767910760773,
+            "native_position_residual_m": 0.05513874722059494,
+            "native_rotation_chart_residual_rad": 0.003311787660952514,
+            "predicted_covariance": [
+              [
+                8.81293234980323e-05,
+                -7.287285267921436e-06,
+                -1.4540368813223485e-05,
+                4.207383195621851e-06,
+                -6.76186613962e-05,
+                -3.8119657337162965e-05
+              ],
+              [
+                -7.287285267921463e-06,
+                3.44274651550006e-06,
+                1.4839778877797563e-06,
+                -4.526204351847685e-06,
+                1.759605732156662e-06,
+                9.22069491288478e-06
+              ],
+              [
+                -1.4540368813223481e-05,
+                1.4839778877797633e-06,
+                7.597401699000281e-06,
+                -8.889498394981753e-06,
+                1.1382110768614403e-05,
+                6.227796260880229e-06
+              ],
+              [
+                4.207383195621917e-06,
+                -4.526204351847328e-06,
+                -8.889498394981763e-06,
+                3.292344322036472e-05,
+                1.7860645677701622e-06,
+                -1.1794748555260479e-05
+              ],
+              [
+                -6.761866139620007e-05,
+                1.7596057321566214e-06,
+                1.1382110768614503e-05,
+                1.7860645677701709e-06,
+                0.00010114325388060552,
+                1.2895019529406554e-05
+              ],
+              [
+                -3.8119657337163114e-05,
+                9.220694912884787e-06,
+                6.2277962608802115e-06,
+                -1.1794748555260513e-05,
+                1.2895019529406686e-05,
+                5.430228629706209e-05
+              ]
+            ],
+            "predicted_mean": [
+              -0.025907904469371978,
+              0.08673232627689986,
+              0.7045140581480147,
+              0.0031003382713599794,
+              0.0009223151959683587,
+              0.0007107564939300853
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "0f8a09f0e05e512aa9bb820e2bb439d08c92cceddee76e0f1ed0572066141d39",
+            "whitened_squared_mean_residual": 29799.651704371292
+          },
+          "optimizer_vs_materialized_covariance_max_abs": 2.752433562102849e-18,
+          "optimizer_vs_materialized_mean_max_abs": 1.420738526825005e-15,
+          "parent_label": "reset:448",
+          "posterior_log_weight": -65.43747090683388,
+          "posterior_weight": 3.8094955926492093e-29,
+          "prior": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 12679103.345160808,
+            "full_joint_covariance_trace": 0.026480002843689936,
+            "maximum_local_rotation_variance": 0.0019999999999999996,
+            "native_position_residual_m": 0.3811731892032217,
+            "native_rotation_chart_residual_rad": 0.3056616457745194,
+            "predicted_covariance": [
+              [
+                0.010426456596038084,
+                -0.0006921819029493694,
+                -0.0015600658701752342,
+                0.0004323444667431038,
+                -0.009238600848550025,
+                -0.0006959104880622014
+              ],
+              [
+                -0.0006921819029493693,
+                0.008187210210452746,
+                -0.0039021360202706576,
+                -0.008148621989225252,
+                0.00023111145169880059,
+                -0.0002735898098233236
+              ],
+              [
+                -0.0015600658701752342,
+                -0.0039021360202706576,
+                0.0025984352171530127,
+                0.004134848333588432,
+                0.001595432454945642,
+                0.00025555017144588565
+              ],
+              [
+                0.0004323444667431036,
+                -0.008148621989225252,
+                0.004134848333588432,
+                0.008505757440106019,
+                3.8206138911135395e-05,
+                -2.9274699934834387e-05
+              ],
+              [
+                -0.009238600848550027,
+                0.00023111145169880059,
+                0.001595432454945642,
+                3.820613891113536e-05,
+                0.008832080175281943,
+                -0.00016341106954434554
+              ],
+              [
+                -0.0006959104880622012,
+                -0.0002735898098233236,
+                0.00025555017144588576,
+                -2.9274699934834356e-05,
+                -0.0001634110695443455,
+                0.008643363100641644
+              ]
+            ],
+            "predicted_mean": [
+              -0.020508586925839557,
+              0.4478699468924331,
+              0.6199784710029927,
+              -0.3005711735911801,
+              0.012684210330629008,
+              -0.05408439804506288
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "8406a81033bebffbf9e7ba52126d739a897de49bf872e84ba50125aade72b28e",
+            "whitened_squared_mean_residual": 11088825.094407763
+          },
+          "prior_numeric_sha256": "ba3f1a9ae840bd539d6513a3fc6a7e76529365e21589b5aa0e621a9fb438c866",
+          "prior_unchanged": true,
+          "raw_posterior_local_rotation_shift_norms": [
+            0.0702005512500471,
+            0.07697113128413557,
+            0.10529302797832019,
+            0.05188986948604209,
+            0.02392945161607604,
+            0.022433955077139703,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0014784773570230899
+          ],
+          "raw_posterior_numeric_sha256": "bf97c8ab6acca9bbb68fd983df9743a0cb9becf0cc7cd57c9184b36bc4d7e5c5",
+          "reference_state_id": "8406a81033bebffbf9e7ba52126d739a897de49bf872e84ba50125aade72b28e"
+        }
+      ],
+      "canonical": {
+        "command": [
+          -0.1433375488072816,
+          -1.858023321606855,
+          2.3328958632151253,
+          -0.0023305417196216884,
+          -0.9565524121490214,
+          0.0013575076269680111
+        ],
+        "expected_whitened_squared_residual": 5.037460826693045,
+        "full_joint_covariance_trace": 0.022049430510884368,
+        "maximum_local_rotation_variance": 0.003585355933372517,
+        "native_position_residual_m": 0.00084099120133727,
+        "native_rotation_chart_residual_rad": 0.00686451703710455,
+        "predicted_covariance": [
+          [
+            1.1350298032699975e-08,
+            6.414347957820391e-10,
+            3.2935372529101915e-09,
+            -1.55279047486606e-09,
+            -1.567158449953487e-08,
+            4.587347582160561e-09
+          ],
+          [
+            6.414347953895666e-10,
+            1.6280772873262112e-08,
+            3.3945160508776714e-08,
+            -2.1256865280492178e-09,
+            3.5863129417369296e-09,
+            -7.321634489050946e-09
+          ],
+          [
+            3.2935372527800822e-09,
+            3.394516050889166e-08,
+            1.8961705649447416e-07,
+            4.962583874397778e-09,
+            1.193638338817838e-08,
+            2.0214832003249518e-08
+          ],
+          [
+            -1.55279047482075e-09,
+            -2.125686528333118e-09,
+            4.962583874513232e-09,
+            6.927992834431289e-06,
+            3.3952907976566603e-07,
+            -4.522169360336301e-07
+          ],
+          [
+            -1.5671584499402572e-08,
+            3.586312941463955e-09,
+            1.193638338805808e-08,
+            3.3952907976564e-07,
+            7.775366559112224e-06,
+            1.1645843027856085e-06
+          ],
+          [
+            4.58734758156759e-09,
+            -7.321634489249714e-09,
+            2.0214832003402232e-08,
+            -4.5221693603360234e-07,
+            1.164584302785629e-06,
+            7.627545830084215e-07
+          ]
+        ],
+        "predicted_mean": [
+          -0.007696341909256249,
+          0.0919829321366086,
+          0.7554446383604061,
+          -0.001607597491612843,
+          -0.00660560411221745,
+          -0.0009503782248739942
+        ],
+        "stamp": 1792080001.3467875,
+        "state_id": "bb7a955364c7129475497a55226ab5d0e27dbd19739bb3e4fb7ed90c7fa1e2ad",
+        "whitened_squared_mean_residual": 2.1540335286767576
+      },
+      "canonical_source_count": 2,
+      "log_total_evidence": 28.910086615659697,
+      "log_total_evidence_parts": [
+        28.910086615659697,
+        1.1102230246251565e-16
+      ],
+      "max_iterations": 24
+    },
+    {
+      "branches": [
+        {
+          "covariance_trace": 0.021851165402115433,
+          "diagnostics": {
+            "Gauss_Newton_used": false,
+            "affine_limit": "exact Gaussian posterior/evidence at the variational optimum; finite optimization error recorded",
+            "body_Laplace_evidence_used": false,
+            "completed_iterations": 100,
+            "covariance_clip_applied": false,
+            "covariance_gradient_convention": "full symmetric Frobenius; paired off-diagonal perturbation contributes twice",
+            "covariance_regularization_added": false,
+            "evidence_method": "negative optimized moment-ELBO proxy objective; not a Laplace normalizer",
+            "exact_nonlinear_evidence_claimed": false,
+            "final_KL": 4.825358516679577,
+            "final_expected_negative_log_likelihood": -34.7612949371146,
+            "final_expected_negative_log_likelihood_terms": [
+              0.730211964602993,
+              1.3513815255315396,
+              -36.84288842724913
+            ],
+            "final_gradient_inf": 0.06919506536076114,
+            "final_objective": -29.93593642043502,
+            "final_objective_parts": [
+              -29.93593642043502,
+              6.661338147750939e-16
+            ],
+            "finite_nonstationary_iterate_used": true,
+            "full_joint_cross_covariance_optimized": true,
+            "gradient_tolerance": 1e-06,
+            "initial_distribution": {
+              "considered": true,
+              "gradient_inf": 2254.6994531741657,
+              "objective": 9952.955365231295,
+              "objective_parts": [
+                9952.955365231295,
+                -7.318590178329032e-13
+              ],
+              "proposal_only": true,
+              "provided": true,
+              "selected": false,
+              "status": "evaluated on same fixed-prior objective",
+              "used_as_new_prior": false
+            },
+            "initial_objective": 690.8811698542874,
+            "invalid_trial_count": 0,
+            "invalid_trials": [],
+            "joint_dimension": 66,
+            "likelihood_terms_scalar_discrepancy": 0.0,
+            "log_evidence": 29.93593642043502,
+            "log_evidence_parts": [
+              29.93593642043502,
+              -6.661338147750939e-16
+            ],
+            "max_iterations": 100,
+            "max_line_search": 20,
+            "method": "full-Gaussian fixed-prior propagated-moment variational conditioning",
+            "monte_carlo_used": false,
+            "numerical_quality_is_stop_gate": false,
+            "objective_definition": "KL(q||original p0)+expected native Gaussian negative log likelihood including normalizer",
+            "objective_history": [
+              {
+                "best": true,
+                "evaluation": 0,
+                "expected_negative_log_likelihood": 690.8811698542874,
+                "gradient_inf": 240.5261416915257,
+                "kl": 0.0,
+                "objective": 690.8811698542874
+              },
+              {
+                "best": false,
+                "evaluation": 1,
+                "expected_negative_log_likelihood": 9865.788896754158,
+                "gradient_inf": 2254.6994531741657,
+                "initial_proposal": true,
+                "kl": 87.1664684771352,
+                "objective": 9952.955365231295
+              },
+              {
+                "best": true,
+                "evaluation": 2,
+                "expected_negative_log_likelihood": 253.47157662905246,
+                "gradient_inf": 284.4819014341446,
+                "kl": 0.7822625115329293,
+                "objective": 254.2538391405854
+              },
+              {
+                "best": false,
+                "evaluation": 3,
+                "expected_negative_log_likelihood": 357262.895819597,
+                "gradient_inf": 1274608.6136324976,
+                "kl": 153.43989314171833,
+                "objective": 357416.3357127387
+              },
+              {
+                "best": true,
+                "evaluation": 4,
+                "expected_negative_log_likelihood": 42.728530190034476,
+                "gradient_inf": 556.9354605621825,
+                "kl": 5.328952063840381,
+                "objective": 48.05748225387486
+              },
+              {
+                "best": false,
+                "evaluation": 5,
+                "expected_negative_log_likelihood": 51.87853357381767,
+                "gradient_inf": 270.6429362074576,
+                "kl": 2.093823741157498,
+                "objective": 53.97235731497516
+              },
+              {
+                "best": false,
+                "evaluation": 6,
+                "expected_negative_log_likelihood": 66811.86564532667,
+                "gradient_inf": 260594.83581249946,
+                "kl": 66.85633953199776,
+                "objective": 66878.72198485867
+              },
+              {
+                "best": false,
+                "evaluation": 7,
+                "expected_negative_log_likelihood": 46.32717351315212,
+                "gradient_inf": 679.4277639656804,
+                "kl": 5.4434577506449715,
+                "objective": 51.77063126379709
+              },
+              {
+                "best": true,
+                "evaluation": 8,
+                "expected_negative_log_likelihood": 1.1237073392533041,
+                "gradient_inf": 184.86177751001242,
+                "kl": 2.862026831333228,
+                "objective": 3.9857341705865323
+              },
+              {
+                "best": false,
+                "evaluation": 9,
+                "expected_negative_log_likelihood": 43.61232408826774,
+                "gradient_inf": 709.9587538613739,
+                "kl": 5.479368963902329,
+                "objective": 49.091693052170065
+              },
+              {
+                "best": true,
+                "evaluation": 10,
+                "expected_negative_log_likelihood": -18.090124629684627,
+                "gradient_inf": 21.878953922154935,
+                "kl": 3.6335581059889748,
+                "objective": -14.456566523695653
+              },
+              {
+                "best": true,
+                "evaluation": 11,
+                "expected_negative_log_likelihood": -19.477261941034833,
+                "gradient_inf": 27.219548263650474,
+                "kl": 3.818398726319124,
+                "objective": -15.658863214715707
+              },
+              {
+                "best": true,
+                "evaluation": 12,
+                "expected_negative_log_likelihood": -20.942669406234884,
+                "gradient_inf": 36.03102736352763,
+                "kl": 3.8663611787373444,
+                "objective": -17.07630822749754
+              },
+              {
+                "best": true,
+                "evaluation": 13,
+                "expected_negative_log_likelihood": -25.352916024747998,
+                "gradient_inf": 26.196706167242095,
+                "kl": 3.9446801696909226,
+                "objective": -21.408235855057075
+              },
+              {
+                "best": true,
+                "evaluation": 14,
+                "expected_negative_log_likelihood": -26.907325749602364,
+                "gradient_inf": 23.27967196725396,
+                "kl": 3.997233130939674,
+                "objective": -22.91009261866269
+              },
+              {
+                "best": true,
+                "evaluation": 15,
+                "expected_negative_log_likelihood": -28.44781640763495,
+                "gradient_inf": 13.328698784136487,
+                "kl": 3.973838069022028,
+                "objective": -24.473978338612923
+              },
+              {
+                "best": true,
+                "evaluation": 16,
+                "expected_negative_log_likelihood": -29.648023194135035,
+                "gradient_inf": 23.161714912248744,
+                "kl": 4.08880860622988,
+                "objective": -25.559214587905156
+              },
+              {
+                "best": true,
+                "evaluation": 17,
+                "expected_negative_log_likelihood": -31.10982386051836,
+                "gradient_inf": 10.707949048762528,
+                "kl": 4.401311600577803,
+                "objective": -26.70851225994056
+              },
+              {
+                "best": true,
+                "evaluation": 18,
+                "expected_negative_log_likelihood": -31.795719642878606,
+                "gradient_inf": 2.9901123478862983,
+                "kl": 4.618632835684725,
+                "objective": -27.17708680719388
+              },
+              {
+                "best": true,
+                "evaluation": 19,
+                "expected_negative_log_likelihood": -32.058342958218994,
+                "gradient_inf": 6.061387375644228,
+                "kl": 4.696944046641856,
+                "objective": -27.361398911577137
+              },
+              {
+                "best": true,
+                "evaluation": 20,
+                "expected_negative_log_likelihood": -32.362201048617095,
+                "gradient_inf": 8.430663025398431,
+                "kl": 4.759866432941549,
+                "objective": -27.60233461567555
+              },
+              {
+                "best": true,
+                "evaluation": 21,
+                "expected_negative_log_likelihood": -32.71777694936991,
+                "gradient_inf": 5.4935165215878,
+                "kl": 4.816892146482365,
+                "objective": -27.90088480288755
+              },
+              {
+                "best": true,
+                "evaluation": 22,
+                "expected_negative_log_likelihood": -32.96506712418092,
+                "gradient_inf": 6.920544289405261,
+                "kl": 4.870171883903748,
+                "objective": -28.09489524027717
+              },
+              {
+                "best": false,
+                "evaluation": 23,
+                "expected_negative_log_likelihood": -30.40887644118504,
+                "gradient_inf": 83.69436829220604,
+                "kl": 4.819252240144079,
+                "objective": -25.589624201040962
+              },
+              {
+                "best": true,
+                "evaluation": 24,
+                "expected_negative_log_likelihood": -33.00238758544091,
+                "gradient_inf": 6.747399800058677,
+                "kl": 4.84843854333938,
+                "objective": -28.153949042101523
+              },
+              {
+                "best": true,
+                "evaluation": 25,
+                "expected_negative_log_likelihood": -33.1626916209491,
+                "gradient_inf": 5.74917108795514,
+                "kl": 4.894131162804864,
+                "objective": -28.268560458144233
+              },
+              {
+                "best": true,
+                "evaluation": 26,
+                "expected_negative_log_likelihood": -33.460444042866996,
+                "gradient_inf": 2.0461182692517483,
+                "kl": 4.972551290840568,
+                "objective": -28.487892752026426
+              },
+              {
+                "best": true,
+                "evaluation": 27,
+                "expected_negative_log_likelihood": -33.86844230914524,
+                "gradient_inf": 2.813157157933181,
+                "kl": 5.128172292396517,
+                "objective": -28.74027001674872
+              },
+              {
+                "best": true,
+                "evaluation": 28,
+                "expected_negative_log_likelihood": -33.96377975779166,
+                "gradient_inf": 5.351263926576124,
+                "kl": 5.146212553788146,
+                "objective": -28.817567204003517
+              },
+              {
+                "best": true,
+                "evaluation": 29,
+                "expected_negative_log_likelihood": -34.03339897139173,
+                "gradient_inf": 1.8543773350946795,
+                "kl": 5.1158708235280725,
+                "objective": -28.91752814786366
+              },
+              {
+                "best": true,
+                "evaluation": 30,
+                "expected_negative_log_likelihood": -34.10118338052299,
+                "gradient_inf": 1.8765478173654917,
+                "kl": 5.093336342380004,
+                "objective": -29.007847038142984
+              },
+              {
+                "best": true,
+                "evaluation": 31,
+                "expected_negative_log_likelihood": -34.32415801409679,
+                "gradient_inf": 1.7622166980581309,
+                "kl": 5.1263893259853095,
+                "objective": -29.197768688111477
+              },
+              {
+                "best": true,
+                "evaluation": 32,
+                "expected_negative_log_likelihood": -34.509948926828805,
+                "gradient_inf": 9.69934026268238,
+                "kl": 5.223031382082656,
+                "objective": -29.28691754474615
+              },
+              {
+                "best": true,
+                "evaluation": 33,
+                "expected_negative_log_likelihood": -34.46894843804725,
+                "gradient_inf": 1.2219287475288827,
+                "kl": 5.106392125757071,
+                "objective": -29.362556312290174
+              },
+              {
+                "best": true,
+                "evaluation": 34,
+                "expected_negative_log_likelihood": -34.529103162682084,
+                "gradient_inf": 0.6595083709903838,
+                "kl": 5.141938586122709,
+                "objective": -29.38716457655937
+              },
+              {
+                "best": true,
+                "evaluation": 35,
+                "expected_negative_log_likelihood": -34.55332228074175,
+                "gradient_inf": 0.7129538709019438,
+                "kl": 5.146869036638183,
+                "objective": -29.40645324410357
+              },
+              {
+                "best": false,
+                "evaluation": 36,
+                "expected_negative_log_likelihood": -34.23018895126245,
+                "gradient_inf": 8.02889579055955,
+                "kl": 4.847319681215714,
+                "objective": -29.382869270046736
+              },
+              {
+                "best": true,
+                "evaluation": 37,
+                "expected_negative_log_likelihood": -34.457825035600635,
+                "gradient_inf": 4.178902944951797,
+                "kl": 5.00773189013913,
+                "objective": -29.450093145461505
+              },
+              {
+                "best": true,
+                "evaluation": 38,
+                "expected_negative_log_likelihood": -34.55962119191176,
+                "gradient_inf": 6.456103736614165,
+                "kl": 5.04314883338914,
+                "objective": -29.51647235852262
+              },
+              {
+                "best": true,
+                "evaluation": 39,
+                "expected_negative_log_likelihood": -34.52385740815972,
+                "gradient_inf": 1.099497793303718,
+                "kl": 4.956552579952371,
+                "objective": -29.56730482820735
+              },
+              {
+                "best": true,
+                "evaluation": 40,
+                "expected_negative_log_likelihood": -34.51197640277667,
+                "gradient_inf": 0.5270730129125958,
+                "kl": 4.91668877897626,
+                "objective": -29.595287623800406
+              },
+              {
+                "best": true,
+                "evaluation": 41,
+                "expected_negative_log_likelihood": -34.539761596358474,
+                "gradient_inf": 0.49312851469107,
+                "kl": 4.928675189455411,
+                "objective": -29.611086406903063
+              },
+              {
+                "best": true,
+                "evaluation": 42,
+                "expected_negative_log_likelihood": -34.580098347246356,
+                "gradient_inf": 1.4603053206127647,
+                "kl": 4.931637689190326,
+                "objective": -29.648460658056027
+              },
+              {
+                "best": true,
+                "evaluation": 43,
+                "expected_negative_log_likelihood": -34.60864798544039,
+                "gradient_inf": 1.1328452432351774,
+                "kl": 4.9168928150267766,
+                "objective": -29.691755170413618
+              },
+              {
+                "best": true,
+                "evaluation": 44,
+                "expected_negative_log_likelihood": -34.672671599634356,
+                "gradient_inf": 4.688875043564918,
+                "kl": 4.944479278834198,
+                "objective": -29.728192320800158
+              },
+              {
+                "best": false,
+                "evaluation": 45,
+                "expected_negative_log_likelihood": -34.55379614483225,
+                "gradient_inf": 3.764522577822233,
+                "kl": 4.8267624989347695,
+                "objective": -29.727033645897478
+              },
+              {
+                "best": true,
+                "evaluation": 46,
+                "expected_negative_log_likelihood": -34.63394458422271,
+                "gradient_inf": 0.567108782425416,
+                "kl": 4.882703257070045,
+                "objective": -29.75124132715267
+              },
+              {
+                "best": true,
+                "evaluation": 47,
+                "expected_negative_log_likelihood": -34.64480601615252,
+                "gradient_inf": 0.5686462750551641,
+                "kl": 4.885086028018997,
+                "objective": -29.759719988133522
+              },
+              {
+                "best": true,
+                "evaluation": 48,
+                "expected_negative_log_likelihood": -34.662991378255626,
+                "gradient_inf": 0.2801301743116248,
+                "kl": 4.888751349726872,
+                "objective": -29.77424002852876
+              },
+              {
+                "best": true,
+                "evaluation": 49,
+                "expected_negative_log_likelihood": -34.70961783411602,
+                "gradient_inf": 1.10721221790043,
+                "kl": 4.9153797616154815,
+                "objective": -29.794238072500537
+              },
+              {
+                "best": true,
+                "evaluation": 50,
+                "expected_negative_log_likelihood": -34.7519796183836,
+                "gradient_inf": 0.8841651419443737,
+                "kl": 4.941295274074983,
+                "objective": -29.810684344308616
+              },
+              {
+                "best": true,
+                "evaluation": 51,
+                "expected_negative_log_likelihood": -34.743909193405706,
+                "gradient_inf": 0.464589889468255,
+                "kl": 4.919231754607284,
+                "objective": -29.824677438798425
+              },
+              {
+                "best": true,
+                "evaluation": 52,
+                "expected_negative_log_likelihood": -34.77404166435934,
+                "gradient_inf": 0.8614703149537191,
+                "kl": 4.944096675939116,
+                "objective": -29.829944988420223
+              },
+              {
+                "best": true,
+                "evaluation": 53,
+                "expected_negative_log_likelihood": -34.76456906042897,
+                "gradient_inf": 0.5498917125308768,
+                "kl": 4.929962595292839,
+                "objective": -29.83460646513613
+              },
+              {
+                "best": true,
+                "evaluation": 54,
+                "expected_negative_log_likelihood": -34.76360912631747,
+                "gradient_inf": 0.5305102812657145,
+                "kl": 4.923038232901622,
+                "objective": -29.84057089341585
+              },
+              {
+                "best": true,
+                "evaluation": 55,
+                "expected_negative_log_likelihood": -34.75973019733065,
+                "gradient_inf": 0.523860643280497,
+                "kl": 4.90290194016843,
+                "objective": -29.856828257162217
+              },
+              {
+                "best": true,
+                "evaluation": 56,
+                "expected_negative_log_likelihood": -34.734487894921635,
+                "gradient_inf": 0.5873701805671727,
+                "kl": 4.867436731709958,
+                "objective": -29.86705116321168
+              },
+              {
+                "best": false,
+                "evaluation": 57,
+                "expected_negative_log_likelihood": -34.80328558924765,
+                "gradient_inf": 2.5826493107064943,
+                "kl": 4.944588566397606,
+                "objective": -29.85869702285004
+              },
+              {
+                "best": true,
+                "evaluation": 58,
+                "expected_negative_log_likelihood": -34.76362696806535,
+                "gradient_inf": 0.26896121147419927,
+                "kl": 4.892585072677293,
+                "objective": -29.87104189538806
+              },
+              {
+                "best": true,
+                "evaluation": 59,
+                "expected_negative_log_likelihood": -34.76745413219267,
+                "gradient_inf": 0.2221070490125842,
+                "kl": 4.892388695832603,
+                "objective": -29.875065436360064
+              },
+              {
+                "best": true,
+                "evaluation": 60,
+                "expected_negative_log_likelihood": -34.775357356875226,
+                "gradient_inf": 0.32092405684150604,
+                "kl": 4.895066546241987,
+                "objective": -29.88029081063324
+              },
+              {
+                "best": true,
+                "evaluation": 61,
+                "expected_negative_log_likelihood": -34.745327731349384,
+                "gradient_inf": 0.42053029901183736,
+                "kl": 4.855875928000047,
+                "objective": -29.889451803349342
+              },
+              {
+                "best": true,
+                "evaluation": 62,
+                "expected_negative_log_likelihood": -34.755543508013226,
+                "gradient_inf": 0.4927535588399114,
+                "kl": 4.864638580245019,
+                "objective": -29.890904927768204
+              },
+              {
+                "best": true,
+                "evaluation": 63,
+                "expected_negative_log_likelihood": -34.75134786115893,
+                "gradient_inf": 0.12647427359153773,
+                "kl": 4.857123753172539,
+                "objective": -29.894224107986393
+              },
+              {
+                "best": true,
+                "evaluation": 64,
+                "expected_negative_log_likelihood": -34.75356198990155,
+                "gradient_inf": 0.170514848980745,
+                "kl": 4.858392733497036,
+                "objective": -29.89516925640451
+              },
+              {
+                "best": true,
+                "evaluation": 65,
+                "expected_negative_log_likelihood": -34.749285957141,
+                "gradient_inf": 0.1518118758509173,
+                "kl": 4.85191023622498,
+                "objective": -29.897375720916013
+              },
+              {
+                "best": true,
+                "evaluation": 66,
+                "expected_negative_log_likelihood": -34.74165549847236,
+                "gradient_inf": 0.32376691912047983,
+                "kl": 4.841426775047863,
+                "objective": -29.900228723424497
+              },
+              {
+                "best": true,
+                "evaluation": 67,
+                "expected_negative_log_likelihood": -34.7458334491239,
+                "gradient_inf": 0.13408320713426425,
+                "kl": 4.842764995862506,
+                "objective": -29.903068453261394
+              },
+              {
+                "best": true,
+                "evaluation": 68,
+                "expected_negative_log_likelihood": -34.72576796681059,
+                "gradient_inf": 0.19551050659823724,
+                "kl": 4.820347769877631,
+                "objective": -29.905420196932955
+              },
+              {
+                "best": true,
+                "evaluation": 69,
+                "expected_negative_log_likelihood": -34.72824619481984,
+                "gradient_inf": 0.34251818071647844,
+                "kl": 4.820849712047973,
+                "objective": -29.907396482771862
+              },
+              {
+                "best": true,
+                "evaluation": 70,
+                "expected_negative_log_likelihood": -34.740953130604,
+                "gradient_inf": 0.1664966507987778,
+                "kl": 4.831461377770218,
+                "objective": -29.90949175283378
+              },
+              {
+                "best": true,
+                "evaluation": 71,
+                "expected_negative_log_likelihood": -34.751466833623816,
+                "gradient_inf": 0.1325537448728751,
+                "kl": 4.840533795571,
+                "objective": -29.910933038052814
+              },
+              {
+                "best": true,
+                "evaluation": 72,
+                "expected_negative_log_likelihood": -34.7560115419824,
+                "gradient_inf": 0.1162892617858792,
+                "kl": 4.843813813586475,
+                "objective": -29.912197728395924
+              },
+              {
+                "best": true,
+                "evaluation": 73,
+                "expected_negative_log_likelihood": -34.763690904708966,
+                "gradient_inf": 0.2952063408812871,
+                "kl": 4.8470870873942635,
+                "objective": -29.916603817314698
+              },
+              {
+                "best": false,
+                "evaluation": 74,
+                "expected_negative_log_likelihood": -34.78452187810494,
+                "gradient_inf": 1.1635910459756769,
+                "kl": 4.868638019056872,
+                "objective": -29.91588385904807
+              },
+              {
+                "best": true,
+                "evaluation": 75,
+                "expected_negative_log_likelihood": -34.77442738286622,
+                "gradient_inf": 0.3156047246737732,
+                "kl": 4.856202858248704,
+                "objective": -29.91822452461752
+              },
+              {
+                "best": true,
+                "evaluation": 76,
+                "expected_negative_log_likelihood": -34.76219410073354,
+                "gradient_inf": 0.22370190463185952,
+                "kl": 4.842683668165518,
+                "objective": -29.919510432568018
+              },
+              {
+                "best": true,
+                "evaluation": 77,
+                "expected_negative_log_likelihood": -34.7608541815945,
+                "gradient_inf": 0.10408747354698855,
+                "kl": 4.840681780797458,
+                "objective": -29.920172400797046
+              },
+              {
+                "best": true,
+                "evaluation": 78,
+                "expected_negative_log_likelihood": -34.75877842612312,
+                "gradient_inf": 0.09463983644746787,
+                "kl": 4.8378688412856885,
+                "objective": -29.920909584837432
+              },
+              {
+                "best": true,
+                "evaluation": 79,
+                "expected_negative_log_likelihood": -34.7533467264326,
+                "gradient_inf": 0.17978057729303765,
+                "kl": 4.83137800868529,
+                "objective": -29.921968717747315
+              },
+              {
+                "best": true,
+                "evaluation": 80,
+                "expected_negative_log_likelihood": -34.75068124505641,
+                "gradient_inf": 0.1434683435655293,
+                "kl": 4.82770723784082,
+                "objective": -29.92297400721559
+              },
+              {
+                "best": true,
+                "evaluation": 81,
+                "expected_negative_log_likelihood": -34.74457500009832,
+                "gradient_inf": 0.1797117186359245,
+                "kl": 4.8204837652354335,
+                "objective": -29.924091234862892
+              },
+              {
+                "best": true,
+                "evaluation": 82,
+                "expected_negative_log_likelihood": -34.74826782381139,
+                "gradient_inf": 0.098999453055185,
+                "kl": 4.822957031944794,
+                "objective": -29.925310791866597
+              },
+              {
+                "best": true,
+                "evaluation": 83,
+                "expected_negative_log_likelihood": -34.74464392644089,
+                "gradient_inf": 0.15865587381001567,
+                "kl": 4.818213437235008,
+                "objective": -29.92643048920588
+              },
+              {
+                "best": true,
+                "evaluation": 84,
+                "expected_negative_log_likelihood": -34.748420183816016,
+                "gradient_inf": 0.1297548998189587,
+                "kl": 4.821013727238524,
+                "objective": -29.92740645657749
+              },
+              {
+                "best": true,
+                "evaluation": 85,
+                "expected_negative_log_likelihood": -34.748910301490085,
+                "gradient_inf": 0.09056841679000396,
+                "kl": 4.820588022937613,
+                "objective": -29.92832227855247
+              },
+              {
+                "best": true,
+                "evaluation": 86,
+                "expected_negative_log_likelihood": -34.74597605851343,
+                "gradient_inf": 0.3179452278500973,
+                "kl": 4.816669524261067,
+                "objective": -29.929306534252365
+              },
+              {
+                "best": false,
+                "evaluation": 87,
+                "expected_negative_log_likelihood": -34.752463772369694,
+                "gradient_inf": 0.6909064277602468,
+                "kl": 4.8231930384287125,
+                "objective": -29.92927073394098
+              },
+              {
+                "best": true,
+                "evaluation": 88,
+                "expected_negative_log_likelihood": -34.74962610318787,
+                "gradient_inf": 0.172528282062155,
+                "kl": 4.8197414340580025,
+                "objective": -29.92988466912987
+              },
+              {
+                "best": true,
+                "evaluation": 89,
+                "expected_negative_log_likelihood": -34.749037469805266,
+                "gradient_inf": 0.11868634750271388,
+                "kl": 4.818673182224453,
+                "objective": -29.930364287580815
+              },
+              {
+                "best": true,
+                "evaluation": 90,
+                "expected_negative_log_likelihood": -34.7519329021672,
+                "gradient_inf": 0.1668662011482073,
+                "kl": 4.820636117497664,
+                "objective": -29.93129678466953
+              },
+              {
+                "best": false,
+                "evaluation": 91,
+                "expected_negative_log_likelihood": -34.74121106530448,
+                "gradient_inf": 0.6420979531969766,
+                "kl": 4.813779025798023,
+                "objective": -29.927432039506456
+              },
+              {
+                "best": true,
+                "evaluation": 92,
+                "expected_negative_log_likelihood": -34.75036074582477,
+                "gradient_inf": 0.06277554592351475,
+                "kl": 4.818619866807149,
+                "objective": -29.931740879017624
+              },
+              {
+                "best": true,
+                "evaluation": 93,
+                "expected_negative_log_likelihood": -34.75309235695057,
+                "gradient_inf": 0.049590682010332454,
+                "kl": 4.8209496966083645,
+                "objective": -29.9321426603422
+              },
+              {
+                "best": true,
+                "evaluation": 94,
+                "expected_negative_log_likelihood": -34.75845931888471,
+                "gradient_inf": 0.04955169757117166,
+                "kl": 4.82571272966843,
+                "objective": -29.932746589216283
+              },
+              {
+                "best": true,
+                "evaluation": 95,
+                "expected_negative_log_likelihood": -34.758133267209395,
+                "gradient_inf": 0.0592281840399137,
+                "kl": 4.8250179920515315,
+                "objective": -29.933115275157867
+              },
+              {
+                "best": true,
+                "evaluation": 96,
+                "expected_negative_log_likelihood": -34.759642276865,
+                "gradient_inf": 0.07931571128301668,
+                "kl": 4.826029299092704,
+                "objective": -29.9336129777723
+              },
+              {
+                "best": true,
+                "evaluation": 97,
+                "expected_negative_log_likelihood": -34.75500256541625,
+                "gradient_inf": 0.09821990664512449,
+                "kl": 4.820938943214723,
+                "objective": -29.934063622201528
+              },
+              {
+                "best": true,
+                "evaluation": 98,
+                "expected_negative_log_likelihood": -34.75294098256536,
+                "gradient_inf": 0.08694297328405294,
+                "kl": 4.818573193327383,
+                "objective": -29.934367789237978
+              },
+              {
+                "best": true,
+                "evaluation": 99,
+                "expected_negative_log_likelihood": -34.751109152385716,
+                "gradient_inf": 0.09838712024565438,
+                "kl": 4.816343850024038,
+                "objective": -29.934765302361676
+              },
+              {
+                "best": false,
+                "evaluation": 100,
+                "expected_negative_log_likelihood": -34.747938874500605,
+                "gradient_inf": 0.3190916234126774,
+                "kl": 4.813335728953895,
+                "objective": -29.934603145546713
+              },
+              {
+                "best": true,
+                "evaluation": 101,
+                "expected_negative_log_likelihood": -34.750171614172,
+                "gradient_inf": 0.04003713828862887,
+                "kl": 4.8153562358323505,
+                "objective": -29.934815378339646
+              },
+              {
+                "best": true,
+                "evaluation": 102,
+                "expected_negative_log_likelihood": -34.7507822242717,
+                "gradient_inf": 0.03345305466518245,
+                "kl": 4.8159069937856875,
+                "objective": -29.934875230486018
+              },
+              {
+                "best": true,
+                "evaluation": 103,
+                "expected_negative_log_likelihood": -34.752547890685044,
+                "gradient_inf": 0.0424869659872778,
+                "kl": 4.817553707574719,
+                "objective": -29.934994183110327
+              },
+              {
+                "best": true,
+                "evaluation": 104,
+                "expected_negative_log_likelihood": -34.754132442776424,
+                "gradient_inf": 0.05811775314617835,
+                "kl": 4.819000984525709,
+                "objective": -29.935131458250712
+              },
+              {
+                "best": false,
+                "evaluation": 105,
+                "expected_negative_log_likelihood": -34.75450495761722,
+                "gradient_inf": 0.2072916043031,
+                "kl": 4.819701775916954,
+                "objective": -29.934803181700268
+              },
+              {
+                "best": true,
+                "evaluation": 106,
+                "expected_negative_log_likelihood": -34.754357982957735,
+                "gradient_inf": 0.03744196015957926,
+                "kl": 4.819175585221099,
+                "objective": -29.935182397736636
+              },
+              {
+                "best": true,
+                "evaluation": 107,
+                "expected_negative_log_likelihood": -34.755495855404,
+                "gradient_inf": 0.02225827580617068,
+                "kl": 4.820228163546159,
+                "objective": -29.935267691857838
+              },
+              {
+                "best": true,
+                "evaluation": 108,
+                "expected_negative_log_likelihood": -34.75598149921103,
+                "gradient_inf": 0.012423787309325862,
+                "kl": 4.820667373385824,
+                "objective": -29.93531412582521
+              },
+              {
+                "best": true,
+                "evaluation": 109,
+                "expected_negative_log_likelihood": -34.75822876394364,
+                "gradient_inf": 0.01903922196526786,
+                "kl": 4.822761058248827,
+                "objective": -29.935467705694812
+              },
+              {
+                "best": true,
+                "evaluation": 110,
+                "expected_negative_log_likelihood": -34.761257677079016,
+                "gradient_inf": 0.052079336169547075,
+                "kl": 4.825646963021927,
+                "objective": -29.935610714057088
+              },
+              {
+                "best": true,
+                "evaluation": 111,
+                "expected_negative_log_likelihood": -34.76426470346166,
+                "gradient_inf": 0.050181287891954536,
+                "kl": 4.828542338221325,
+                "objective": -29.935722365240338
+              },
+              {
+                "best": true,
+                "evaluation": 112,
+                "expected_negative_log_likelihood": -34.76437433773124,
+                "gradient_inf": 0.047623868785758174,
+                "kl": 4.8285657538531845,
+                "objective": -29.935808583878053
+              },
+              {
+                "best": true,
+                "evaluation": 113,
+                "expected_negative_log_likelihood": -34.76307985506893,
+                "gradient_inf": 0.028984695394765482,
+                "kl": 4.827233183815188,
+                "objective": -29.935846671253746
+              },
+              {
+                "best": true,
+                "evaluation": 114,
+                "expected_negative_log_likelihood": -34.7622357976563,
+                "gradient_inf": 0.02795732754003301,
+                "kl": 4.8263492462334385,
+                "objective": -29.93588655142286
+              },
+              {
+                "best": true,
+                "evaluation": 115,
+                "expected_negative_log_likelihood": -34.7612949371146,
+                "gradient_inf": 0.06919506536076114,
+                "kl": 4.825358516679577,
+                "objective": -29.93593642043502
+              }
+            ],
+            "observation_added_once": true,
+            "optimization_centering": "subtract fixed initial objective scale with retained addition residual",
+            "optimization_start_is_original_prior": true,
+            "optimization_start_objective": 690.8811698542874,
+            "optimized_variables": "whitened Gaussian mean and every lower-triangular Cholesky entry; diagonal logarithms",
+            "optimizer_exception": null,
+            "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT",
+            "optimizer_method": "unbounded L-BFGS-B; no parameter clipping",
+            "optimizer_status": 1,
+            "optimizer_success": false,
+            "optimizer_warnings": [],
+            "original_prior_held_fixed": true,
+            "original_prior_numeric_sha256": "f3436bb7525676526333c6045dd89bffe478f0d6a623aaa433d1ceaa6e979c82",
+            "parameter_count": 945,
+            "point_MAP_used": false,
+            "prior_support_rank": 42,
+            "repeated_observation_multiplication": false,
+            "source_evaluator_diagnostics": {
+              "core_O_P_mean_used": true,
+              "full_covariance_and_cross_differentiated": true,
+              "monte_carlo_used": false,
+              "physical_truth_received": false,
+              "propagated_observations": [
+                {
+                  "expected_negative_log_likelihood": -34.7612949371146,
+                  "expected_negative_log_likelihood_terms": [
+                    0.730211964602993,
+                    1.3513815255315396,
+                    -36.84288842724913
+                  ],
+                  "moment_reverse_diagnostics": {
+                    "O_P_mean_correction": true,
+                    "all_parameter_dependence_differentiated": true,
+                    "backend": "native_analytic_reverse",
+                    "core_equations_changed": false,
+                    "cost_mode": "expected_gaussian_negative_log_likelihood",
+                    "covariance_gradient_convention": "symmetric full-matrix Frobenius",
+                    "full_joint_covariance": true,
+                    "kind": "pose",
+                    "native_chart_fixed": true,
+                    "numerical_parameter_differences": false,
+                    "original_reference_chart": true,
+                    "path": [
+                      [
+                        "camera_optical_frame",
+                        true
+                      ],
+                      [
+                        "tool0",
+                        true
+                      ],
+                      [
+                        "link_6",
+                        true
+                      ],
+                      [
+                        "link_5",
+                        true
+                      ],
+                      [
+                        "link_4",
+                        true
+                      ],
+                      [
+                        "link_3",
+                        true
+                      ],
+                      [
+                        "link_2",
+                        true
+                      ],
+                      [
+                        "link_1",
+                        true
+                      ],
+                      [
+                        "marker",
+                        false
+                      ]
+                    ],
+                    "stochastic_sampling": false,
+                    "tape_nodes": 69893
+                  },
+                  "native_component_label": "camera__to__marker:board_adf:4df9debe7f9791c7:0",
+                  "observation_id": "image:00000149",
+                  "observation_normalizer": -36.84288842724913,
+                  "observed_mean": [
+                    -0.007681791436287966,
+                    0.09212803876036728,
+                    0.756272888656032,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "predicted_covariance": [
+                    [
+                      1.158918930561303e-08,
+                      3.2491384800465286e-10,
+                      3.2018266108489622e-09,
+                      -1.8861714766480014e-09,
+                      -1.0337194307222808e-08,
+                      -2.375234481303465e-09
+                    ],
+                    [
+                      3.249138473302711e-10,
+                      1.655176925578923e-08,
+                      3.591763342611494e-08,
+                      -2.6359559296350114e-09,
+                      3.927087020969631e-09,
+                      1.9248064609857934e-09
+                    ],
+                    [
+                      3.201826611245548e-09,
+                      3.591763342616955e-08,
+                      1.8826705165666041e-07,
+                      3.948489462771558e-09,
+                      1.7528684870975756e-08,
+                      -6.5395090544380366e-09
+                    ],
+                    [
+                      -1.8861714756888743e-09,
+                      -2.635955930191823e-09,
+                      3.9484894629886395e-09,
+                      6.680955803908865e-06,
+                      3.568611220223481e-07,
+                      -4.294339298118602e-07
+                    ],
+                    [
+                      -1.0337194307765257e-08,
+                      3.92708702100159e-09,
+                      1.7528684871513784e-08,
+                      3.568611220224996e-07,
+                      7.676429712162574e-06,
+                      1.149066735779998e-06
+                    ],
+                    [
+                      -2.3752344823727713e-09,
+                      1.9248064605382953e-09,
+                      -6.539509053956975e-09,
+                      -4.294339298113681e-07,
+                      1.1490667357792314e-06,
+                      6.03727343054512e-07
+                    ]
+                  ],
+                  "predicted_mean": [
+                    -0.007685064227989707,
+                    0.09202689413741509,
+                    0.7556942970082541,
+                    -0.0014555643815334543,
+                    -0.006089788025900248,
+                    -0.000837280857315175
+                  ],
+                  "source_command": [
+                    -0.1433375488072816,
+                    -1.858023321606855,
+                    2.3328958632151253,
+                    -0.0023305417196216884,
+                    -0.9565524121490214,
+                    0.0013575076269680111
+                  ],
+                  "source_stamp": 1792080001.3467875,
+                  "source_state_id": "086b0f7ab13f18cbd0203720aa8ac1fce5b385a279b935ef65d7b5309d45ae6f"
+                }
+              ]
+            },
+            "stationarity_verified": false,
+            "strict_exact_model_lower_bound_claimed": false,
+            "termination_reason": "L-BFGS-B returned the best finite full Gaussian candidate",
+            "valid_evaluator_calls": 116,
+            "whitening": "B=U sqrt(D), P0=B B.T; fixed original support, not an orthonormal basis alone"
+          },
+          "elapsed_seconds": 0.2956560240127146,
+          "final_materialized": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 4.163186980213877,
+            "full_joint_covariance_trace": 0.021851051313253985,
+            "maximum_local_rotation_variance": 0.00361286740219554,
+            "native_position_residual_m": 0.0005873748724592635,
+            "native_rotation_chart_residual_rad": 0.00631705826340176,
+            "predicted_covariance": [
+              [
+                1.1589189304324348e-08,
+                3.249138480501197e-10,
+                3.2018266111969306e-09,
+                -1.8861714766105276e-09,
+                -1.033719430638178e-08,
+                -2.3752344807546654e-09
+              ],
+              [
+                3.2491384793382965e-10,
+                1.6551769256359846e-08,
+                3.5917633425871175e-08,
+                -2.635955930230407e-09,
+                3.9270870212502424e-09,
+                1.9248064591209647e-09
+              ],
+              [
+                3.2018266112457442e-09,
+                3.591763342582156e-08,
+                1.8826705165669554e-07,
+                3.948489463159787e-09,
+                1.7528684871261815e-08,
+                -6.539509054204358e-09
+              ],
+              [
+                -1.8861714762598606e-09,
+                -2.635955930194273e-09,
+                3.948489463036652e-09,
+                6.680955803908709e-06,
+                3.568611220222439e-07,
+                -4.294339298103892e-07
+              ],
+              [
+                -1.033719430601232e-08,
+                3.927087021194361e-09,
+                1.752868487121779e-08,
+                3.5686112202240325e-07,
+                7.676429712162043e-06,
+                1.1490667357790974e-06
+              ],
+              [
+                -2.375234481163477e-09,
+                1.9248064590128952e-09,
+                -6.53950905422503e-09,
+                -4.2943392981029794e-07,
+                1.1490667357791169e-06,
+                6.037273430529078e-07
+              ]
+            ],
+            "predicted_mean": [
+              -0.007685064227990477,
+              0.09202689413741412,
+              0.7556942970082539,
+              -0.0014555643815326845,
+              -0.006089788025900434,
+              -0.0008372808573146339
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "048333019ef342e0a29d454ac444f448c4f68f964a92fdbc4e5270f481584910",
+            "whitened_squared_mean_residual": 1.4604239292045964
+          },
+          "log_evidence": 29.93593642043502,
+          "log_evidence_parts": [
+            29.93593642043502,
+            -6.661338147750939e-16
+          ],
+          "mean_shift_norm": 0.02117233362687002,
+          "old_frozen_posterior": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 19805.263569441275,
+            "full_joint_covariance_trace": 0.010776166066074302,
+            "maximum_local_rotation_variance": 0.0010150107444703328,
+            "native_position_residual_m": 0.015318406653731739,
+            "native_rotation_chart_residual_rad": 0.015032487204948026,
+            "predicted_covariance": [
+              [
+                1.2645018535118017e-05,
+                -9.503646640775351e-07,
+                -2.8244284213544156e-06,
+                -2.4825999859526584e-06,
+                -8.355568597870202e-06,
+                1.1271903056086036e-06
+              ],
+              [
+                -9.503646640774806e-07,
+                1.1591520400336721e-05,
+                -7.179174205072892e-07,
+                -7.953145442091308e-06,
+                1.5587538453836727e-06,
+                -6.880033604334141e-07
+              ],
+              [
+                -2.8244284213544156e-06,
+                -7.179174205071735e-07,
+                1.9150654838383487e-06,
+                1.719858608871983e-06,
+                1.8731109158229501e-06,
+                7.305932626674504e-07
+              ],
+              [
+                -2.4825999859526304e-06,
+                -7.953145442090883e-06,
+                1.7198586088719959e-06,
+                1.3508752070340788e-05,
+                1.738277445263032e-06,
+                -4.933781129417263e-07
+              ],
+              [
+                -8.355568597870282e-06,
+                1.558753845383711e-06,
+                1.8731109158229878e-06,
+                1.7382774452630577e-06,
+                1.3704245833618307e-05,
+                -7.719250423926667e-07
+              ],
+              [
+                1.1271903056087444e-06,
+                -6.880033604333091e-07,
+                7.305932626674632e-07,
+                -4.933781129417079e-07,
+                -7.719250423926323e-07,
+                7.950512723551982e-06
+              ]
+            ],
+            "predicted_mean": [
+              0.0018600313348543735,
+              0.1032325647087203,
+              0.7517677023029988,
+              -0.011039860254851937,
+              -0.009701172876299426,
+              -0.0031598104285572174
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "209133d86d41b21023ec588e1bc3174b1b703b59c16bad0533a28b76a42626ab",
+            "whitened_squared_mean_residual": 17869.92024899838
+          },
+          "optimizer_vs_materialized_covariance_max_abs": 1.8648286465737414e-18,
+          "optimizer_vs_materialized_mean_max_abs": 9.71445146547012e-16,
+          "parent_label": "predicted:149:0",
+          "posterior_log_weight": -1.1102230246251504e-14,
+          "posterior_weight": 0.9999999999999889,
+          "prior": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 1455.44811656352,
+            "full_joint_covariance_trace": 0.01261290850283653,
+            "maximum_local_rotation_variance": 0.0010626971096304905,
+            "native_position_residual_m": 0.00458343905190514,
+            "native_rotation_chart_residual_rad": 0.008574000300246812,
+            "predicted_covariance": [
+              [
+                2.0273705757925112e-07,
+                -3.358153087398266e-08,
+                8.124633605891151e-09,
+                1.2468754912219865e-10,
+                -2.062498196196686e-07,
+                -1.3215413523094954e-07
+              ],
+              [
+                -3.3581530874049717e-08,
+                9.386443670043462e-08,
+                3.770444579029745e-08,
+                -5.5670406203713944e-08,
+                3.9579463443845005e-08,
+                5.12696431850236e-08
+              ],
+              [
+                8.12463360599895e-09,
+                3.7704445790322143e-08,
+                2.2186393807908982e-07,
+                1.1041475180508422e-08,
+                5.174027304986236e-09,
+                1.9131888250173344e-08
+              ],
+              [
+                1.2468754911108887e-10,
+                -5.5670406204067196e-08,
+                1.1041475180500556e-08,
+                8.298959677287075e-06,
+                4.4515116945442634e-07,
+                -5.40361518678213e-07
+              ],
+              [
+                -2.0624981961961404e-07,
+                3.957946344386768e-08,
+                5.1740273050357235e-09,
+                4.451511694543764e-07,
+                9.68534149999284e-06,
+                1.5352525430189948e-06
+              ],
+              [
+                -1.3215413523107116e-07,
+                5.1269643184965874e-08,
+                1.9131888250170367e-08,
+                -5.403615186782005e-07,
+                1.5352525430189331e-06,
+                9.76111617127538e-07
+              ]
+            ],
+            "predicted_mean": [
+              -0.005449468046030723,
+              0.09539198372267099,
+              0.7539552801673326,
+              -0.0026759623476858207,
+              -0.008031112431919622,
+              -0.0013615945682420685
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "086b0f7ab13f18cbd0203720aa8ac1fce5b385a279b935ef65d7b5309d45ae6f",
+            "whitened_squared_mean_residual": 1431.0394961609302
+          },
+          "prior_numeric_sha256": "f3436bb7525676526333c6045dd89bffe478f0d6a623aaa433d1ceaa6e979c82",
+          "prior_unchanged": true,
+          "raw_posterior_local_rotation_shift_norms": [
+            0.010339497956332558,
+            0.011565102929754618,
+            0.009641899041477345,
+            0.004527267420831626,
+            0.007883456336100004,
+            0.005047238074669341,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0008642285292491342
+          ],
+          "raw_posterior_numeric_sha256": "cbf5191e521a80979779c0f0abdf1ef4985de83e38afb32429c6faf79f2ed705",
+          "reference_state_id": "086b0f7ab13f18cbd0203720aa8ac1fce5b385a279b935ef65d7b5309d45ae6f"
+        },
+        {
+          "covariance_trace": 0.01934618407609703,
+          "diagnostics": {
+            "Gauss_Newton_used": false,
+            "affine_limit": "exact Gaussian posterior/evidence at the variational optimum; finite optimization error recorded",
+            "body_Laplace_evidence_used": false,
+            "completed_iterations": 100,
+            "covariance_clip_applied": false,
+            "covariance_gradient_convention": "full symmetric Frobenius; paired off-diagonal perturbation contributes twice",
+            "covariance_regularization_added": false,
+            "evidence_method": "negative optimized moment-ELBO proxy objective; not a Laplace normalizer",
+            "exact_nonlinear_evidence_claimed": false,
+            "final_KL": 31.8490299464924,
+            "final_expected_negative_log_likelihood": -30.748279398157262,
+            "final_expected_negative_log_likelihood_terms": [
+              1.5705584636151106,
+              4.524050565476756,
+              -36.84288842724913
+            ],
+            "final_gradient_inf": 9.608881272670926,
+            "final_objective": 1.1007505483351385,
+            "final_objective_parts": [
+              1.1007505483351385,
+              0.0
+            ],
+            "finite_nonstationary_iterate_used": true,
+            "full_joint_cross_covariance_optimized": true,
+            "gradient_tolerance": 1e-06,
+            "initial_distribution": {
+              "considered": true,
+              "gradient_inf": 55087.01903866772,
+              "objective": 18593.425574114215,
+              "objective_parts": [
+                18593.425574114215,
+                1.6200374375330284e-12
+              ],
+              "proposal_only": true,
+              "provided": true,
+              "selected": true,
+              "status": "evaluated on same fixed-prior objective",
+              "used_as_new_prior": false
+            },
+            "initial_objective": 6339514.82969197,
+            "invalid_trial_count": 0,
+            "invalid_trials": [],
+            "joint_dimension": 66,
+            "likelihood_terms_scalar_discrepancy": 0.0,
+            "log_evidence": -1.1007505483351385,
+            "log_evidence_parts": [
+              -1.1007505483351385,
+              -0.0
+            ],
+            "max_iterations": 100,
+            "max_line_search": 20,
+            "method": "full-Gaussian fixed-prior propagated-moment variational conditioning",
+            "monte_carlo_used": false,
+            "numerical_quality_is_stop_gate": false,
+            "objective_definition": "KL(q||original p0)+expected native Gaussian negative log likelihood including normalizer",
+            "objective_history": [
+              {
+                "best": true,
+                "evaluation": 0,
+                "expected_negative_log_likelihood": 6339514.82969197,
+                "gradient_inf": 1246474.1855632067,
+                "kl": 0.0,
+                "objective": 6339514.82969197
+              },
+              {
+                "best": true,
+                "evaluation": 1,
+                "expected_negative_log_likelihood": 18561.468483854635,
+                "gradient_inf": 55087.01903866772,
+                "initial_proposal": true,
+                "kl": 31.957090259583786,
+                "objective": 18593.425574114215
+              },
+              {
+                "best": false,
+                "evaluation": 2,
+                "expected_negative_log_likelihood": 238300.4452718726,
+                "gradient_inf": 211553.3884929231,
+                "kl": 32.943265078372185,
+                "objective": 238333.38853695095
+              },
+              {
+                "best": true,
+                "evaluation": 3,
+                "expected_negative_log_likelihood": 2308.593457160142,
+                "gradient_inf": 2883.7261239639,
+                "kl": 32.077692674217516,
+                "objective": 2340.6711498343593
+              },
+              {
+                "best": true,
+                "evaluation": 4,
+                "expected_negative_log_likelihood": 2211.1444565082493,
+                "gradient_inf": 1597.8624215355078,
+                "kl": 32.07822346848661,
+                "objective": 2243.222679976736
+              },
+              {
+                "best": true,
+                "evaluation": 5,
+                "expected_negative_log_likelihood": 2172.1242303123463,
+                "gradient_inf": 983.635493699277,
+                "kl": 32.07020328978891,
+                "objective": 2204.194433602135
+              },
+              {
+                "best": true,
+                "evaluation": 6,
+                "expected_negative_log_likelihood": 2156.1892407043724,
+                "gradient_inf": 782.2273617361955,
+                "kl": 32.063362279816324,
+                "objective": 2188.252602984189
+              },
+              {
+                "best": true,
+                "evaluation": 7,
+                "expected_negative_log_likelihood": 2135.3890994346457,
+                "gradient_inf": 1188.5664269407323,
+                "kl": 32.03451099124149,
+                "objective": 2167.423610425887
+              },
+              {
+                "best": true,
+                "evaluation": 8,
+                "expected_negative_log_likelihood": 2108.638082455146,
+                "gradient_inf": 1355.1929766149435,
+                "kl": 32.00174065654546,
+                "objective": 2140.6398231116914
+              },
+              {
+                "best": true,
+                "evaluation": 9,
+                "expected_negative_log_likelihood": 2060.1563183575126,
+                "gradient_inf": 2302.3527354798794,
+                "kl": 31.930338735817898,
+                "objective": 2092.0866570933304
+              },
+              {
+                "best": true,
+                "evaluation": 10,
+                "expected_negative_log_likelihood": 1931.0761525011062,
+                "gradient_inf": 4132.417456770832,
+                "kl": 31.6695271585993,
+                "objective": 1962.7456796597055
+              },
+              {
+                "best": true,
+                "evaluation": 11,
+                "expected_negative_log_likelihood": 1731.9222694935347,
+                "gradient_inf": 5013.2951859880195,
+                "kl": 31.386917488558712,
+                "objective": 1763.3091869820935
+              },
+              {
+                "best": true,
+                "evaluation": 12,
+                "expected_negative_log_likelihood": 1453.7296003189726,
+                "gradient_inf": 3880.0548216761817,
+                "kl": 31.10890792434412,
+                "objective": 1484.8385082433167
+              },
+              {
+                "best": false,
+                "evaluation": 13,
+                "expected_negative_log_likelihood": 1872.483107539848,
+                "gradient_inf": 9112.530356405026,
+                "kl": 30.90760288342894,
+                "objective": 1903.3907104232771
+              },
+              {
+                "best": true,
+                "evaluation": 14,
+                "expected_negative_log_likelihood": 1317.7337151444062,
+                "gradient_inf": 2509.638331750328,
+                "kl": 30.979328019955773,
+                "objective": 1348.7130431643618
+              },
+              {
+                "best": true,
+                "evaluation": 15,
+                "expected_negative_log_likelihood": 1133.9713196955383,
+                "gradient_inf": 845.5795902393352,
+                "kl": 30.891924244756222,
+                "objective": 1164.8632439402945
+              },
+              {
+                "best": true,
+                "evaluation": 16,
+                "expected_negative_log_likelihood": 1098.5056170583694,
+                "gradient_inf": 742.0380251246359,
+                "kl": 30.891166963201247,
+                "objective": 1129.3967840215705
+              },
+              {
+                "best": true,
+                "evaluation": 17,
+                "expected_negative_log_likelihood": 1005.3824856331763,
+                "gradient_inf": 1455.7807426727397,
+                "kl": 30.88029559974626,
+                "objective": 1036.2627812329226
+              },
+              {
+                "best": true,
+                "evaluation": 18,
+                "expected_negative_log_likelihood": 901.3641539813665,
+                "gradient_inf": 2816.164044149277,
+                "kl": 30.87498551414881,
+                "objective": 932.2391394955152
+              },
+              {
+                "best": true,
+                "evaluation": 19,
+                "expected_negative_log_likelihood": 722.6750089369898,
+                "gradient_inf": 4037.321113129183,
+                "kl": 30.882623832526363,
+                "objective": 753.5576327695161
+              },
+              {
+                "best": true,
+                "evaluation": 20,
+                "expected_negative_log_likelihood": 329.1613560135461,
+                "gradient_inf": 4737.545147496481,
+                "kl": 31.242333448354408,
+                "objective": 360.4036894619005
+              },
+              {
+                "best": false,
+                "evaluation": 21,
+                "expected_negative_log_likelihood": 638.8700010141278,
+                "gradient_inf": 5765.49617535331,
+                "kl": 32.48522334232155,
+                "objective": 671.3552243564493
+              },
+              {
+                "best": true,
+                "evaluation": 22,
+                "expected_negative_log_likelihood": 167.79565922056207,
+                "gradient_inf": 3897.9066213326682,
+                "kl": 31.593711879783903,
+                "objective": 199.38937110034598
+              },
+              {
+                "best": true,
+                "evaluation": 23,
+                "expected_negative_log_likelihood": 46.16334502314476,
+                "gradient_inf": 1902.1334513730708,
+                "kl": 31.817742166652664,
+                "objective": 77.98108718979742
+              },
+              {
+                "best": true,
+                "evaluation": 24,
+                "expected_negative_log_likelihood": 18.79613544439062,
+                "gradient_inf": 739.5340733196067,
+                "kl": 31.84093143507446,
+                "objective": 50.63706687946508
+              },
+              {
+                "best": true,
+                "evaluation": 25,
+                "expected_negative_log_likelihood": 11.72849349941739,
+                "gradient_inf": 546.5130738447795,
+                "kl": 31.828383860270016,
+                "objective": 43.556877359687405
+              },
+              {
+                "best": true,
+                "evaluation": 26,
+                "expected_negative_log_likelihood": 7.779507705448891,
+                "gradient_inf": 316.4199078649277,
+                "kl": 31.822050796887197,
+                "objective": 39.60155850233609
+              },
+              {
+                "best": true,
+                "evaluation": 27,
+                "expected_negative_log_likelihood": 5.6227055017955845,
+                "gradient_inf": 185.88844000018656,
+                "kl": 31.826348031564855,
+                "objective": 37.44905353336044
+              },
+              {
+                "best": true,
+                "evaluation": 28,
+                "expected_negative_log_likelihood": 3.3089582857074396,
+                "gradient_inf": 195.02384538311162,
+                "kl": 31.832131644346852,
+                "objective": 35.14108993005429
+              },
+              {
+                "best": true,
+                "evaluation": 29,
+                "expected_negative_log_likelihood": -3.2143152857658737,
+                "gradient_inf": 505.2339292868474,
+                "kl": 31.83786250254557,
+                "objective": 28.623547216779695
+              },
+              {
+                "best": true,
+                "evaluation": 30,
+                "expected_negative_log_likelihood": -11.03614807370052,
+                "gradient_inf": 894.5817867267057,
+                "kl": 31.842226318760318,
+                "objective": 20.806078245059798
+              },
+              {
+                "best": true,
+                "evaluation": 31,
+                "expected_negative_log_likelihood": -19.78225942291929,
+                "gradient_inf": 649.1190614947283,
+                "kl": 31.837541449942165,
+                "objective": 12.055282027022876
+              },
+              {
+                "best": true,
+                "evaluation": 32,
+                "expected_negative_log_likelihood": -25.794862781591128,
+                "gradient_inf": 143.05118718147492,
+                "kl": 31.828900955002787,
+                "objective": 6.034038173411659
+              },
+              {
+                "best": true,
+                "evaluation": 33,
+                "expected_negative_log_likelihood": -26.072799475582322,
+                "gradient_inf": 179.25690059933618,
+                "kl": 31.83407524147732,
+                "objective": 5.761275765894996
+              },
+              {
+                "best": true,
+                "evaluation": 34,
+                "expected_negative_log_likelihood": -26.61899660016195,
+                "gradient_inf": 139.4816647803079,
+                "kl": 31.833085457179696,
+                "objective": 5.214088857017744
+              },
+              {
+                "best": true,
+                "evaluation": 35,
+                "expected_negative_log_likelihood": -26.78669839673488,
+                "gradient_inf": 127.98762213494045,
+                "kl": 31.83446407816163,
+                "objective": 5.047765681426748
+              },
+              {
+                "best": true,
+                "evaluation": 36,
+                "expected_negative_log_likelihood": -27.272665752197906,
+                "gradient_inf": 99.56388756126084,
+                "kl": 31.841364329716754,
+                "objective": 4.568698577518847
+              },
+              {
+                "best": true,
+                "evaluation": 37,
+                "expected_negative_log_likelihood": -27.890146849514526,
+                "gradient_inf": 165.07492869227704,
+                "kl": 31.85166907615308,
+                "objective": 3.961522226638554
+              },
+              {
+                "best": true,
+                "evaluation": 38,
+                "expected_negative_log_likelihood": -28.89520222288991,
+                "gradient_inf": 199.7789865355705,
+                "kl": 31.86938486311072,
+                "objective": 2.97418264022081
+              },
+              {
+                "best": false,
+                "evaluation": 39,
+                "expected_negative_log_likelihood": -22.976146243374732,
+                "gradient_inf": 658.5573529647581,
+                "kl": 31.900870208762058,
+                "objective": 8.924723965387326
+              },
+              {
+                "best": true,
+                "evaluation": 40,
+                "expected_negative_log_likelihood": -29.085692838521815,
+                "gradient_inf": 173.50430490693338,
+                "kl": 31.873987509887556,
+                "objective": 2.78829467136574
+              },
+              {
+                "best": true,
+                "evaluation": 41,
+                "expected_negative_log_likelihood": -29.541352917819157,
+                "gradient_inf": 111.67495313510274,
+                "kl": 31.8820917258284,
+                "objective": 2.3407388080092417
+              },
+              {
+                "best": true,
+                "evaluation": 42,
+                "expected_negative_log_likelihood": -29.657103722478844,
+                "gradient_inf": 36.19532993335666,
+                "kl": 31.882727352121435,
+                "objective": 2.2256236296425906
+              },
+              {
+                "best": true,
+                "evaluation": 43,
+                "expected_negative_log_likelihood": -29.683069500317448,
+                "gradient_inf": 23.268281887476018,
+                "kl": 31.881844449754613,
+                "objective": 2.1987749494371647
+              },
+              {
+                "best": true,
+                "evaluation": 44,
+                "expected_negative_log_likelihood": -29.711298217519253,
+                "gradient_inf": 35.55049031563457,
+                "kl": 31.881450932938826,
+                "objective": 2.1701527154195714
+              },
+              {
+                "best": true,
+                "evaluation": 45,
+                "expected_negative_log_likelihood": -29.7574966195682,
+                "gradient_inf": 63.23307373782349,
+                "kl": 31.881792976043013,
+                "objective": 2.1242963564748134
+              },
+              {
+                "best": true,
+                "evaluation": 46,
+                "expected_negative_log_likelihood": -29.83222212415079,
+                "gradient_inf": 71.34224402584147,
+                "kl": 31.883524944675976,
+                "objective": 2.051302820525188
+              },
+              {
+                "best": true,
+                "evaluation": 47,
+                "expected_negative_log_likelihood": -29.944614930251735,
+                "gradient_inf": 70.83307279757192,
+                "kl": 31.888411008024022,
+                "objective": 1.9437960777722885
+              },
+              {
+                "best": true,
+                "evaluation": 48,
+                "expected_negative_log_likelihood": -30.013156433471483,
+                "gradient_inf": 45.01233854002998,
+                "kl": 31.890922012633304,
+                "objective": 1.877765579161822
+              },
+              {
+                "best": true,
+                "evaluation": 49,
+                "expected_negative_log_likelihood": -30.041047499933526,
+                "gradient_inf": 23.918470657969873,
+                "kl": 31.89137891888508,
+                "objective": 1.8503314189515554
+              },
+              {
+                "best": true,
+                "evaluation": 50,
+                "expected_negative_log_likelihood": -30.05223002127246,
+                "gradient_inf": 13.517272204637607,
+                "kl": 31.891750344104338,
+                "objective": 1.8395203228318768
+              },
+              {
+                "best": true,
+                "evaluation": 51,
+                "expected_negative_log_likelihood": -30.062697490703467,
+                "gradient_inf": 17.381062574138415,
+                "kl": 31.891578924970908,
+                "objective": 1.828881434267439
+              },
+              {
+                "best": true,
+                "evaluation": 52,
+                "expected_negative_log_likelihood": -30.076863770593892,
+                "gradient_inf": 28.818392769791704,
+                "kl": 31.891138240829193,
+                "objective": 1.8142744702352993
+              },
+              {
+                "best": true,
+                "evaluation": 53,
+                "expected_negative_log_likelihood": -30.09759107567285,
+                "gradient_inf": 50.96524460262386,
+                "kl": 31.89042001001608,
+                "objective": 1.792828934343229
+              },
+              {
+                "best": true,
+                "evaluation": 54,
+                "expected_negative_log_likelihood": -30.125377609149105,
+                "gradient_inf": 50.322531603199415,
+                "kl": 31.88983911696896,
+                "objective": 1.7644615078198567
+              },
+              {
+                "best": true,
+                "evaluation": 55,
+                "expected_negative_log_likelihood": -30.163603741549686,
+                "gradient_inf": 32.47600927739645,
+                "kl": 31.889677759465762,
+                "objective": 1.7260740179160754
+              },
+              {
+                "best": true,
+                "evaluation": 56,
+                "expected_negative_log_likelihood": -30.18823066671103,
+                "gradient_inf": 23.062270408622663,
+                "kl": 31.88990543775737,
+                "objective": 1.7016747710463425
+              },
+              {
+                "best": true,
+                "evaluation": 57,
+                "expected_negative_log_likelihood": -30.198512206890157,
+                "gradient_inf": 20.34674969177757,
+                "kl": 31.8911227334867,
+                "objective": 1.6926105265965423
+              },
+              {
+                "best": true,
+                "evaluation": 58,
+                "expected_negative_log_likelihood": -30.207694479004147,
+                "gradient_inf": 11.174597697198958,
+                "kl": 31.891501248503065,
+                "objective": 1.6838067694989185
+              },
+              {
+                "best": true,
+                "evaluation": 59,
+                "expected_negative_log_likelihood": -30.210494343085827,
+                "gradient_inf": 11.748159291376997,
+                "kl": 31.891709451032774,
+                "objective": 1.6812151079469473
+              },
+              {
+                "best": true,
+                "evaluation": 60,
+                "expected_negative_log_likelihood": -30.213731270436533,
+                "gradient_inf": 10.912706399825703,
+                "kl": 31.892051694172466,
+                "objective": 1.6783204237359315
+              },
+              {
+                "best": true,
+                "evaluation": 61,
+                "expected_negative_log_likelihood": -30.218444226734274,
+                "gradient_inf": 9.027254907790184,
+                "kl": 31.89252131865512,
+                "objective": 1.674077091920847
+              },
+              {
+                "best": true,
+                "evaluation": 62,
+                "expected_negative_log_likelihood": -30.223087203222832,
+                "gradient_inf": 10.570564101506077,
+                "kl": 31.892966779314577,
+                "objective": 1.6698795760917458
+              },
+              {
+                "best": true,
+                "evaluation": 63,
+                "expected_negative_log_likelihood": -30.22690719507589,
+                "gradient_inf": 17.119519218502326,
+                "kl": 31.8929765363439,
+                "objective": 1.6660693412680139
+              },
+              {
+                "best": true,
+                "evaluation": 64,
+                "expected_negative_log_likelihood": -30.234784102128906,
+                "gradient_inf": 29.098327428285096,
+                "kl": 31.892730345864244,
+                "objective": 1.6579462437353385
+              },
+              {
+                "best": true,
+                "evaluation": 65,
+                "expected_negative_log_likelihood": -30.243665425418236,
+                "gradient_inf": 34.53698630895268,
+                "kl": 31.89239332367655,
+                "objective": 1.6487278982583162
+              },
+              {
+                "best": true,
+                "evaluation": 66,
+                "expected_negative_log_likelihood": -30.265073353289196,
+                "gradient_inf": 38.99711383978604,
+                "kl": 31.891504301118573,
+                "objective": 1.6264309478293768
+              },
+              {
+                "best": true,
+                "evaluation": 67,
+                "expected_negative_log_likelihood": -30.28447459760836,
+                "gradient_inf": 43.33693400996122,
+                "kl": 31.88953769817839,
+                "objective": 1.6050631005700318
+              },
+              {
+                "best": true,
+                "evaluation": 68,
+                "expected_negative_log_likelihood": -30.317086547790684,
+                "gradient_inf": 38.63246051164019,
+                "kl": 31.88863959133746,
+                "objective": 1.5715530435467733
+              },
+              {
+                "best": true,
+                "evaluation": 69,
+                "expected_negative_log_likelihood": -30.338403779834852,
+                "gradient_inf": 36.763202640487236,
+                "kl": 31.88772643917478,
+                "objective": 1.549322659339928
+              },
+              {
+                "best": true,
+                "evaluation": 70,
+                "expected_negative_log_likelihood": -30.35233833940894,
+                "gradient_inf": 29.19645292982565,
+                "kl": 31.88654010877407,
+                "objective": 1.5342017693651304
+              },
+              {
+                "best": true,
+                "evaluation": 71,
+                "expected_negative_log_likelihood": -30.368530868175867,
+                "gradient_inf": 18.988693117024653,
+                "kl": 31.88458747500826,
+                "objective": 1.5160566068323924
+              },
+              {
+                "best": true,
+                "evaluation": 72,
+                "expected_negative_log_likelihood": -30.38186409236323,
+                "gradient_inf": 23.779896749824594,
+                "kl": 31.88238462506181,
+                "objective": 1.500520532698581
+              },
+              {
+                "best": true,
+                "evaluation": 73,
+                "expected_negative_log_likelihood": -30.391909378534955,
+                "gradient_inf": 23.168434607331783,
+                "kl": 31.881340962608135,
+                "objective": 1.4894315840731813
+              },
+              {
+                "best": true,
+                "evaluation": 74,
+                "expected_negative_log_likelihood": -30.401175655501945,
+                "gradient_inf": 24.730228928166966,
+                "kl": 31.880547600242334,
+                "objective": 1.4793719447403892
+              },
+              {
+                "best": true,
+                "evaluation": 75,
+                "expected_negative_log_likelihood": -30.4115981009122,
+                "gradient_inf": 20.613733069980526,
+                "kl": 31.879897433074667,
+                "objective": 1.468299332162468
+              },
+              {
+                "best": true,
+                "evaluation": 76,
+                "expected_negative_log_likelihood": -30.42697482393024,
+                "gradient_inf": 31.364471084286755,
+                "kl": 31.878249848604,
+                "objective": 1.4512750246737574
+              },
+              {
+                "best": true,
+                "evaluation": 77,
+                "expected_negative_log_likelihood": -30.42992884049462,
+                "gradient_inf": 36.5335420197713,
+                "kl": 31.87594592389165,
+                "objective": 1.4460170833970272
+              },
+              {
+                "best": true,
+                "evaluation": 78,
+                "expected_negative_log_likelihood": -30.445384795254977,
+                "gradient_inf": 29.529867860044558,
+                "kl": 31.875813991678857,
+                "objective": 1.430429196423881
+              },
+              {
+                "best": true,
+                "evaluation": 79,
+                "expected_negative_log_likelihood": -30.45431055281923,
+                "gradient_inf": 28.42988402983582,
+                "kl": 31.875383321672174,
+                "objective": 1.421072768852946
+              },
+              {
+                "best": true,
+                "evaluation": 80,
+                "expected_negative_log_likelihood": -30.470310611377904,
+                "gradient_inf": 27.087638889958683,
+                "kl": 31.87427843887951,
+                "objective": 1.4039678275016076
+              },
+              {
+                "best": true,
+                "evaluation": 81,
+                "expected_negative_log_likelihood": -30.500128940544048,
+                "gradient_inf": 36.741936018524704,
+                "kl": 31.872009531110137,
+                "objective": 1.371880590566088
+              },
+              {
+                "best": true,
+                "evaluation": 82,
+                "expected_negative_log_likelihood": -30.543213833992848,
+                "gradient_inf": 45.583842006521515,
+                "kl": 31.86896044392478,
+                "objective": 1.325746609931934
+              },
+              {
+                "best": false,
+                "evaluation": 83,
+                "expected_negative_log_likelihood": -30.3324554891269,
+                "gradient_inf": 128.83710353318256,
+                "kl": 31.865044260173487,
+                "objective": 1.5325887710465855
+              },
+              {
+                "best": true,
+                "evaluation": 84,
+                "expected_negative_log_likelihood": -30.55194512310318,
+                "gradient_inf": 44.02942623336745,
+                "kl": 31.868279222533083,
+                "objective": 1.3163340994299035
+              },
+              {
+                "best": true,
+                "evaluation": 85,
+                "expected_negative_log_likelihood": -30.58228889449552,
+                "gradient_inf": 31.877927384468926,
+                "kl": 31.86635321705459,
+                "objective": 1.284064322559071
+              },
+              {
+                "best": true,
+                "evaluation": 86,
+                "expected_negative_log_likelihood": -30.59698454618963,
+                "gradient_inf": 18.758511681893,
+                "kl": 31.86597553388897,
+                "objective": 1.2689909876993382
+              },
+              {
+                "best": true,
+                "evaluation": 87,
+                "expected_negative_log_likelihood": -30.607043903628416,
+                "gradient_inf": 9.964685179695776,
+                "kl": 31.866053918698324,
+                "objective": 1.259010015069907
+              },
+              {
+                "best": true,
+                "evaluation": 88,
+                "expected_negative_log_likelihood": -30.61630391474443,
+                "gradient_inf": 16.38081257500179,
+                "kl": 31.866032225442364,
+                "objective": 1.2497283106979329
+              },
+              {
+                "best": true,
+                "evaluation": 89,
+                "expected_negative_log_likelihood": -30.63248459595631,
+                "gradient_inf": 24.135968851370144,
+                "kl": 31.865538934667292,
+                "objective": 1.2330543387109814
+              },
+              {
+                "best": true,
+                "evaluation": 90,
+                "expected_negative_log_likelihood": -30.650064366412096,
+                "gradient_inf": 29.60358763908123,
+                "kl": 31.863820921688752,
+                "objective": 1.213756555276655
+              },
+              {
+                "best": true,
+                "evaluation": 91,
+                "expected_negative_log_likelihood": -30.67162760897238,
+                "gradient_inf": 27.380496608629592,
+                "kl": 31.862365692772187,
+                "objective": 1.190738083799809
+              },
+              {
+                "best": true,
+                "evaluation": 92,
+                "expected_negative_log_likelihood": -30.679838472099963,
+                "gradient_inf": 16.542120932775045,
+                "kl": 31.861388284156376,
+                "objective": 1.181549812056415
+              },
+              {
+                "best": true,
+                "evaluation": 93,
+                "expected_negative_log_likelihood": -30.68616840310039,
+                "gradient_inf": 20.607153740993816,
+                "kl": 31.860532137808633,
+                "objective": 1.1743637347082425
+              },
+              {
+                "best": true,
+                "evaluation": 94,
+                "expected_negative_log_likelihood": -30.69333703047284,
+                "gradient_inf": 28.86003783987759,
+                "kl": 31.859593534790065,
+                "objective": 1.1662565043172257
+              },
+              {
+                "best": true,
+                "evaluation": 95,
+                "expected_negative_log_likelihood": -30.70138006054411,
+                "gradient_inf": 26.156067226025094,
+                "kl": 31.858614941543582,
+                "objective": 1.1572348809994717
+              },
+              {
+                "best": true,
+                "evaluation": 96,
+                "expected_negative_log_likelihood": -30.713931824476337,
+                "gradient_inf": 40.34951951457282,
+                "kl": 31.855989331267132,
+                "objective": 1.1420575067907959
+              },
+              {
+                "best": true,
+                "evaluation": 97,
+                "expected_negative_log_likelihood": -30.725833008060178,
+                "gradient_inf": 32.1322486508558,
+                "kl": 31.854203312489233,
+                "objective": 1.1283703044290552
+              },
+              {
+                "best": true,
+                "evaluation": 98,
+                "expected_negative_log_likelihood": -30.73257945218335,
+                "gradient_inf": 19.257735886834993,
+                "kl": 31.853796385777283,
+                "objective": 1.1212169335939313
+              },
+              {
+                "best": true,
+                "evaluation": 99,
+                "expected_negative_log_likelihood": -30.736217172207546,
+                "gradient_inf": 8.078371271747162,
+                "kl": 31.85301755432003,
+                "objective": 1.1168003821124817
+              },
+              {
+                "best": true,
+                "evaluation": 100,
+                "expected_negative_log_likelihood": -30.73707949997945,
+                "gradient_inf": 11.3174109899901,
+                "kl": 31.852300597137777,
+                "objective": 1.1152210971583267
+              },
+              {
+                "best": true,
+                "evaluation": 101,
+                "expected_negative_log_likelihood": -30.738492881499837,
+                "gradient_inf": 8.227120676058712,
+                "kl": 31.85197307563356,
+                "objective": 1.1134801941337216
+              },
+              {
+                "best": true,
+                "evaluation": 102,
+                "expected_negative_log_likelihood": -30.74023546349696,
+                "gradient_inf": 6.369433214710678,
+                "kl": 31.851340944203756,
+                "objective": 1.1111054807067955
+              },
+              {
+                "best": true,
+                "evaluation": 103,
+                "expected_negative_log_likelihood": -30.74147184318454,
+                "gradient_inf": 6.6242983907135375,
+                "kl": 31.85095295980211,
+                "objective": 1.1094811166175709
+              },
+              {
+                "best": true,
+                "evaluation": 104,
+                "expected_negative_log_likelihood": -30.743711768868007,
+                "gradient_inf": 7.795785660784653,
+                "kl": 31.84947448507447,
+                "objective": 1.1057627162064638
+              },
+              {
+                "best": true,
+                "evaluation": 105,
+                "expected_negative_log_likelihood": -30.745718498778345,
+                "gradient_inf": 9.126424563908897,
+                "kl": 31.84888550309678,
+                "objective": 1.1031670043184378
+              },
+              {
+                "best": true,
+                "evaluation": 106,
+                "expected_negative_log_likelihood": -30.748279398157262,
+                "gradient_inf": 9.608881272670926,
+                "kl": 31.8490299464924,
+                "objective": 1.1007505483351385
+              }
+            ],
+            "observation_added_once": true,
+            "optimization_centering": "subtract fixed initial objective scale with retained addition residual",
+            "optimization_start_is_original_prior": false,
+            "optimization_start_objective": 18593.425574114215,
+            "optimized_variables": "whitened Gaussian mean and every lower-triangular Cholesky entry; diagonal logarithms",
+            "optimizer_exception": null,
+            "optimizer_message": "STOP: TOTAL NO. of ITERATIONS REACHED LIMIT",
+            "optimizer_method": "unbounded L-BFGS-B; no parameter clipping",
+            "optimizer_status": 1,
+            "optimizer_success": false,
+            "optimizer_warnings": [],
+            "original_prior_held_fixed": true,
+            "original_prior_numeric_sha256": "ba3f1a9ae840bd539d6513a3fc6a7e76529365e21589b5aa0e621a9fb438c866",
+            "parameter_count": 945,
+            "point_MAP_used": false,
+            "prior_support_rank": 42,
+            "repeated_observation_multiplication": false,
+            "source_evaluator_diagnostics": {
+              "core_O_P_mean_used": true,
+              "full_covariance_and_cross_differentiated": true,
+              "monte_carlo_used": false,
+              "physical_truth_received": false,
+              "propagated_observations": [
+                {
+                  "expected_negative_log_likelihood": -30.748279398157262,
+                  "expected_negative_log_likelihood_terms": [
+                    1.5705584636151106,
+                    4.524050565476756,
+                    -36.84288842724913
+                  ],
+                  "moment_reverse_diagnostics": {
+                    "O_P_mean_correction": true,
+                    "all_parameter_dependence_differentiated": true,
+                    "backend": "native_analytic_reverse",
+                    "core_equations_changed": false,
+                    "cost_mode": "expected_gaussian_negative_log_likelihood",
+                    "covariance_gradient_convention": "symmetric full-matrix Frobenius",
+                    "full_joint_covariance": true,
+                    "kind": "pose",
+                    "native_chart_fixed": true,
+                    "numerical_parameter_differences": false,
+                    "original_reference_chart": true,
+                    "path": [
+                      [
+                        "camera_optical_frame",
+                        true
+                      ],
+                      [
+                        "tool0",
+                        true
+                      ],
+                      [
+                        "link_6",
+                        true
+                      ],
+                      [
+                        "link_5",
+                        true
+                      ],
+                      [
+                        "link_4",
+                        true
+                      ],
+                      [
+                        "link_3",
+                        true
+                      ],
+                      [
+                        "link_2",
+                        true
+                      ],
+                      [
+                        "link_1",
+                        true
+                      ],
+                      [
+                        "marker",
+                        false
+                      ]
+                    ],
+                    "stochastic_sampling": false,
+                    "tape_nodes": 69791
+                  },
+                  "native_component_label": "camera__to__marker:board_adf:4df9debe7f9791c7:0",
+                  "observation_id": "image:00000149",
+                  "observation_normalizer": -36.84288842724913,
+                  "observed_mean": [
+                    -0.007681791436287966,
+                    0.09212803876036728,
+                    0.756272888656032,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "predicted_covariance": [
+                    [
+                      1.3735270230153937e-08,
+                      1.036611481661948e-08,
+                      5.3573019631753305e-08,
+                      -9.045612989912671e-08,
+                      1.689570951598874e-08,
+                      6.2871999534739985e-09
+                    ],
+                    [
+                      1.0366114816637933e-08,
+                      1.1871208503885359e-07,
+                      5.507031159160673e-07,
+                      -8.924066456971283e-07,
+                      1.338878474657886e-07,
+                      8.898087230646434e-08
+                    ],
+                    [
+                      5.35730196317278e-08,
+                      5.507031159159704e-07,
+                      2.929735622888881e-06,
+                      -4.688822990904347e-06,
+                      7.199761738443466e-07,
+                      4.574471081324e-07
+                    ],
+                    [
+                      -9.045612989912106e-08,
+                      -8.924066456975405e-07,
+                      -4.688822990904436e-06,
+                      1.9590688839476637e-05,
+                      -9.842439508759687e-07,
+                      -1.6790590072872907e-06
+                    ],
+                    [
+                      1.6895709515780356e-08,
+                      1.3388784746578952e-07,
+                      7.19976173844416e-07,
+                      -9.842439508759583e-07,
+                      3.753648560435009e-05,
+                      6.082051212245463e-06
+                    ],
+                    [
+                      6.287199953559175e-09,
+                      8.898087230659954e-08,
+                      4.5744710813235785e-07,
+                      -1.6790590072873568e-06,
+                      6.0820512122453975e-06,
+                      2.1745230410083095e-06
+                    ]
+                  ],
+                  "predicted_mean": [
+                    -0.007682634008209559,
+                    0.09215165962500049,
+                    0.7563814694832062,
+                    0.00510626808923239,
+                    -0.009490532077881595,
+                    -0.001910498227678946
+                  ],
+                  "source_command": [
+                    -0.1433375488072816,
+                    -1.858023321606855,
+                    2.3328958632151253,
+                    -0.0023305417196216884,
+                    -0.9565524121490214,
+                    0.0013575076269680111
+                  ],
+                  "source_stamp": 1792080001.3467875,
+                  "source_state_id": "8406a81033bebffbf9e7ba52126d739a897de49bf872e84ba50125aade72b28e"
+                }
+              ]
+            },
+            "stationarity_verified": false,
+            "strict_exact_model_lower_bound_claimed": false,
+            "termination_reason": "L-BFGS-B returned the best finite full Gaussian candidate",
+            "valid_evaluator_calls": 107,
+            "whitening": "B=U sqrt(D), P0=B B.T; fixed original support, not an orthonormal basis alone"
+          },
+          "elapsed_seconds": 0.27280859695747495,
+          "final_materialized": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 12.18921805827221,
+            "full_joint_covariance_trace": 0.019342066242665216,
+            "maximum_local_rotation_variance": 0.0014952269573927583,
+            "native_position_residual_m": 0.0001111235852700351,
+            "native_rotation_chart_residual_rad": 0.01094505259915921,
+            "predicted_covariance": [
+              [
+                1.3735270231585244e-08,
+                1.0366114816216704e-08,
+                5.3573019631311703e-08,
+                -9.045612989889232e-08,
+                1.6895709515030427e-08,
+                6.287199952237225e-09
+              ],
+              [
+                1.0366114816185218e-08,
+                1.187120850385865e-07,
+                5.507031159163467e-07,
+                -8.924066456971616e-07,
+                1.3388784746607312e-07,
+                8.898087230679938e-08
+              ],
+              [
+                5.357301963122142e-08,
+                5.507031159163161e-07,
+                2.9297356228889877e-06,
+                -4.688822990904507e-06,
+                7.199761738446848e-07,
+                4.574471081327055e-07
+              ],
+              [
+                -9.045612989888282e-08,
+                -8.924066456970282e-07,
+                -4.688822990904516e-06,
+                1.9590688839476267e-05,
+                -9.842439508761137e-07,
+                -1.6790590072873985e-06
+              ],
+              [
+                1.6895709515468648e-08,
+                1.3388784746605784e-07,
+                7.19976173844559e-07,
+                -9.842439508760964e-07,
+                3.75364856043503e-05,
+                6.0820512122461565e-06
+              ],
+              [
+                6.287199952173951e-09,
+                8.898087230675675e-08,
+                4.574471081327192e-07,
+                -1.6790590072874226e-06,
+                6.0820512122462615e-06,
+                2.1745230410091744e-06
+              ]
+            ],
+            "predicted_mean": [
+              -0.007682634008209467,
+              0.09215165962500119,
+              0.756381469483206,
+              0.0051062680892323496,
+              -0.009490532077880845,
+              -0.0019104982276788095
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "14b8743b888a558f471915513118cd2d28ef7d15a8c2ec2fd1cbcfed403ee3e6",
+            "whitened_squared_mean_residual": 3.141116927230094
+          },
+          "log_evidence": -1.1007505483351385,
+          "log_evidence_parts": [
+            -1.1007505483351385,
+            -0.0
+          ],
+          "mean_shift_norm": 0.1611571594513845,
+          "old_frozen_posterior": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 37196.622744563516,
+            "full_joint_covariance_trace": 0.019179142740402368,
+            "maximum_local_rotation_variance": 0.0015347767910760773,
+            "native_position_residual_m": 0.05513874722059494,
+            "native_rotation_chart_residual_rad": 0.003311787660952514,
+            "predicted_covariance": [
+              [
+                8.81293234980323e-05,
+                -7.287285267921436e-06,
+                -1.4540368813223485e-05,
+                4.207383195621851e-06,
+                -6.76186613962e-05,
+                -3.8119657337162965e-05
+              ],
+              [
+                -7.287285267921463e-06,
+                3.44274651550006e-06,
+                1.4839778877797563e-06,
+                -4.526204351847685e-06,
+                1.759605732156662e-06,
+                9.22069491288478e-06
+              ],
+              [
+                -1.4540368813223481e-05,
+                1.4839778877797633e-06,
+                7.597401699000281e-06,
+                -8.889498394981753e-06,
+                1.1382110768614403e-05,
+                6.227796260880229e-06
+              ],
+              [
+                4.207383195621917e-06,
+                -4.526204351847328e-06,
+                -8.889498394981763e-06,
+                3.292344322036472e-05,
+                1.7860645677701622e-06,
+                -1.1794748555260479e-05
+              ],
+              [
+                -6.761866139620007e-05,
+                1.7596057321566214e-06,
+                1.1382110768614503e-05,
+                1.7860645677701709e-06,
+                0.00010114325388060552,
+                1.2895019529406554e-05
+              ],
+              [
+                -3.8119657337163114e-05,
+                9.220694912884787e-06,
+                6.2277962608802115e-06,
+                -1.1794748555260513e-05,
+                1.2895019529406686e-05,
+                5.430228629706209e-05
+              ]
+            ],
+            "predicted_mean": [
+              -0.025907904469371978,
+              0.08673232627689986,
+              0.7045140581480147,
+              0.0031003382713599794,
+              0.0009223151959683587,
+              0.0007107564939300853
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "0f8a09f0e05e512aa9bb820e2bb439d08c92cceddee76e0f1ed0572066141d39",
+            "whitened_squared_mean_residual": 29799.651704371292
+          },
+          "optimizer_vs_materialized_covariance_max_abs": 1.4313070098474561e-18,
+          "optimizer_vs_materialized_mean_max_abs": 7.494005416219807e-16,
+          "parent_label": "reset:448",
+          "posterior_log_weight": -32.135299257438284,
+          "posterior_weight": 1.1061572195377393e-14,
+          "prior": {
+            "command": [
+              -0.1433375488072816,
+              -1.858023321606855,
+              2.3328958632151253,
+              -0.0023305417196216884,
+              -0.9565524121490214,
+              0.0013575076269680111
+            ],
+            "expected_whitened_squared_residual": 12679103.345160808,
+            "full_joint_covariance_trace": 0.026480002843689936,
+            "maximum_local_rotation_variance": 0.0019999999999999996,
+            "native_position_residual_m": 0.3811731892032217,
+            "native_rotation_chart_residual_rad": 0.3056616457745194,
+            "predicted_covariance": [
+              [
+                0.010426456596038084,
+                -0.0006921819029493694,
+                -0.0015600658701752342,
+                0.0004323444667431038,
+                -0.009238600848550025,
+                -0.0006959104880622014
+              ],
+              [
+                -0.0006921819029493693,
+                0.008187210210452746,
+                -0.0039021360202706576,
+                -0.008148621989225252,
+                0.00023111145169880059,
+                -0.0002735898098233236
+              ],
+              [
+                -0.0015600658701752342,
+                -0.0039021360202706576,
+                0.0025984352171530127,
+                0.004134848333588432,
+                0.001595432454945642,
+                0.00025555017144588565
+              ],
+              [
+                0.0004323444667431036,
+                -0.008148621989225252,
+                0.004134848333588432,
+                0.008505757440106019,
+                3.8206138911135395e-05,
+                -2.9274699934834387e-05
+              ],
+              [
+                -0.009238600848550027,
+                0.00023111145169880059,
+                0.001595432454945642,
+                3.820613891113536e-05,
+                0.008832080175281943,
+                -0.00016341106954434554
+              ],
+              [
+                -0.0006959104880622012,
+                -0.0002735898098233236,
+                0.00025555017144588576,
+                -2.9274699934834356e-05,
+                -0.0001634110695443455,
+                0.008643363100641644
+              ]
+            ],
+            "predicted_mean": [
+              -0.020508586925839557,
+              0.4478699468924331,
+              0.6199784710029927,
+              -0.3005711735911801,
+              0.012684210330629008,
+              -0.05408439804506288
+            ],
+            "stamp": 1792080001.3467875,
+            "state_id": "8406a81033bebffbf9e7ba52126d739a897de49bf872e84ba50125aade72b28e",
+            "whitened_squared_mean_residual": 11088825.094407763
+          },
+          "prior_numeric_sha256": "ba3f1a9ae840bd539d6513a3fc6a7e76529365e21589b5aa0e621a9fb438c866",
+          "prior_unchanged": true,
+          "raw_posterior_local_rotation_shift_norms": [
+            0.06938321444393032,
+            0.07683154121929761,
+            0.10690166521674586,
+            0.05228073855394453,
+            0.0234856983488128,
+            0.022348959544071727,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0014979977175466187
+          ],
+          "raw_posterior_numeric_sha256": "d2d8696e2d6c4741e1abc0e446c0189547417f1ca00347e3da3a0f51bf0533f0",
+          "reference_state_id": "8406a81033bebffbf9e7ba52126d739a897de49bf872e84ba50125aade72b28e"
+        }
+      ],
+      "canonical": {
+        "command": [
+          -0.1433375488072816,
+          -1.858023321606855,
+          2.3328958632151253,
+          -0.0023305417196216884,
+          -0.9565524121490214,
+          0.0013575076269680111
+        ],
+        "expected_whitened_squared_residual": 4.163186980110634,
+        "full_joint_covariance_trace": 0.021851051313254034,
+        "maximum_local_rotation_variance": 0.00361286740219551,
+        "native_position_residual_m": 0.0005873748724588812,
+        "native_rotation_chart_residual_rad": 0.0063170582634020185,
+        "predicted_covariance": [
+          [
+            1.1589189304496573e-08,
+            3.2491384820444365e-10,
+            3.2018266112227825e-09,
+            -1.8861714768202994e-09,
+            -1.0337194306150315e-08,
+            -2.3752344805869343e-09
+          ],
+          [
+            3.249138480705926e-10,
+            1.6551769254679955e-08,
+            3.5917633425418886e-08,
+            -2.6359559289379716e-09,
+            3.927087021476739e-09,
+            1.924806457948609e-09
+          ],
+          [
+            3.201826611364184e-09,
+            3.591763342559559e-08,
+            1.8826705165666007e-07,
+            3.948489463202625e-09,
+            1.7528684870953154e-08,
+            -6.539509054458937e-09
+          ],
+          [
+            -1.8861714766248544e-09,
+            -2.6359559290753625e-09,
+            3.948489463326103e-09,
+            6.680955803908568e-06,
+            3.568611220220111e-07,
+            -4.294339298099203e-07
+          ],
+          [
+            -1.0337194306256014e-08,
+            3.92708702129007e-09,
+            1.75286848710953e-08,
+            3.568611220221698e-07,
+            7.676429712162647e-06,
+            1.1490667357784668e-06
+          ],
+          [
+            -2.375234480261892e-09,
+            1.9248064581126473e-09,
+            -6.53950905442339e-09,
+            -4.2943392980977775e-07,
+            1.149066735778641e-06,
+            6.037273430511197e-07
+          ]
+        ],
+        "predicted_mean": [
+          -0.00768506422799005,
+          0.09202689413741633,
+          0.7556942970082539,
+          -0.0014555643815348973,
+          -0.006089788025900182,
+          -0.0008372808573145682
+        ],
+        "stamp": 1792080001.3467875,
+        "state_id": "207fb73d8909da1f49de9353de2341a8ec3120f9b9fbb2516dcb9e73a528ab5c",
+        "whitened_squared_mean_residual": 1.4604239292075905
+      },
+      "canonical_source_count": 2,
+      "log_total_evidence": 29.64825434798325,
+      "log_total_evidence_parts": [
+        29.64825434798325,
+        -1.2212453270877337e-15
+      ],
+      "max_iterations": 100
+    }
+  ],
+  "command_ledger_count": 0,
+  "current_backend": {
+    "backend": "native_analytic_reverse",
+    "binding_sha256": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "core_equations_changed": false,
+    "library_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_moment_reverse.so",
+    "library_sha256": "7bff6e04b6698207f01a1970b9369c03aef6ab83aff0b2dfaaa03ab922f0825f",
+    "native_source_sha256": "133baaf99f57cb0c2a1357cd4ce2f70a3cf222173841481e80773150bd18ee75",
+    "reverse_derivatives": true,
+    "runtime_compilation": false,
+    "stochastic_sampling": false
+  },
+  "historical_prior_operator": "propagated_moments",
+  "initialization": "production affine Gaussian initial candidate, compared using the same F and original fixed prior",
+  "native_likelihood": {
+    "basis": null,
+    "covariance": [
+      [
+        1.2701789399003048e-08,
+        2.3400569460486845e-09,
+        1.0955525703164689e-08,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        2.3400569460486845e-09,
+        3.7059660687457895e-08,
+        1.269181416104099e-07,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        1.0955525703164689e-08,
+        1.269181416104099e-07,
+        6.749055546695384e-07,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        3.4969899786831296e-05,
+        1.9470046840323865e-06,
+        -2.1406526335642194e-06
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.947004684032385e-06,
+        4.0388257111760024e-05,
+        6.181529554650432e-06
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        -2.1406526335642194e-06,
+        6.181529554650433e-06,
+        2.148697276133611e-06
+      ]
+    ],
+    "fixed_native_chart": true,
+    "label": "camera__to__marker:board_adf:4df9debe7f9791c7:0",
+    "log_weight": 0.0,
+    "observation_id": "image:00000149",
+    "observed_direction": null,
+    "observed_mean": [
+      -0.007681791436287966,
+      0.09212803876036728,
+      0.756272888656032,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "path": [
+      [
+        "camera_optical_frame",
+        true
+      ],
+      [
+        "tool0",
+        true
+      ],
+      [
+        "link_6",
+        true
+      ],
+      [
+        "link_5",
+        true
+      ],
+      [
+        "link_4",
+        true
+      ],
+      [
+        "link_3",
+        true
+      ],
+      [
+        "link_2",
+        true
+      ],
+      [
+        "link_1",
+        true
+      ],
+      [
+        "marker",
+        false
+      ]
+    ],
+    "point_dependent_chart_volume_applied": false,
+    "prior_dependent_native_likelihood": false,
+    "root_direction": null,
+    "rotation_wxyz": [
+      0.20489269100462143,
+      0.9765036173967386,
+      -0.003751605124788942,
+      -0.06667530159629442
+    ],
+    "sensor": "marker",
+    "sensor_id": "hand_camera"
+  },
+  "original_archive": {
+    "archived_wall_time_s": 1792309717.5958736,
+    "batch_id": "a5161dcdc5ad5a33022b42459d2932ff7ae5c136fcc0c67942f4dddef5b7da52",
+    "initialize_only": false,
+    "job_sequence": 22,
+    "kind": "stiffness_job_reference",
+    "path": "/tmp/probtf_propagated_moments_180s_live_20261018/imu_marker/stiffness_jobs/00000022_4796ca64621e3006.pickle",
+    "payload_bytes": 1693345,
+    "payload_sha256": "a8c3e5e3531b7353e1252d463696f870af91c41eb542ab0e653909cac701d2fa",
+    "reference_path": "/tmp/probtf_propagated_moments_180s_live_20261018/imu_marker/stiffness_jobs/00000022_4796ca64621e3006.json",
+    "source_candidate_id": "93f1ba3196acbaa1c01726782bec44cb51aae0c5eb3d7c4c1bfb77161fb1f95c",
+    "source_command": [
+      -0.1433375488072816,
+      -1.858023321606855,
+      2.3328958632151253,
+      -0.0023305417196216884,
+      -0.9565524121490214,
+      0.0013575076269680111
+    ],
+    "source_stamp": 1792080001.3467875,
+    "source_version": 448,
+    "status": "pending"
+  },
+  "original_event": {
+    "command": [
+      -0.1433375488072816,
+      -1.858023321606855,
+      2.3328958632151253,
+      -0.0023305417196216884,
+      -0.9565524121490214,
+      0.0013575076269680111
+    ],
+    "event_id": "image:00000149",
+    "frame_index": 149,
+    "kind": "image",
+    "payload_hash": "972e184d2987bddecfdd7580a69ed6289a29e52f00b0dfa1681297775930fcfb",
+    "sequence": 109,
+    "stamp": 1792080001.3467875
+  },
+  "original_prior_fixed": true,
+  "raw_pixels_received": false,
+  "schema": "original-job22-fixed-prior-variational-audit-v1",
+  "source_sha256_after": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/native/moment_reverse.cpp": "133baaf99f57cb0c2a1357cd4ce2f70a3cf222173841481e80773150bd18ee75",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py": "0e0872159ef8bd15da10d449483e5cd6668a35385566b81c950f5e36e23cfc5e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "a9e4895ed02a8d8ca037933fce3f95eb6b1e485eb0132eb11420313077047c81",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py": "9bd190400abbdf35e8a7b47e0ae2355608af14c7ef57709a71b51bacb46747f9",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_observation.py": "a757b56d645222f54065d319a18b036f9726f149f8ce7b6c07b9b01c74758b1c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": "626b4ced368ef3c12530b0376657a61ea791884ded3b14da77300a968c9caa26"
+  },
+  "source_sha256_before": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/native/moment_reverse.cpp": "133baaf99f57cb0c2a1357cd4ce2f70a3cf222173841481e80773150bd18ee75",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py": "0e0872159ef8bd15da10d449483e5cd6668a35385566b81c950f5e36e23cfc5e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_native.py": "a9e4895ed02a8d8ca037933fce3f95eb6b1e485eb0132eb11420313077047c81",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py": "9bd190400abbdf35e8a7b47e0ae2355608af14c7ef57709a71b51bacb46747f9",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_observation.py": "a757b56d645222f54065d319a18b036f9726f149f8ce7b6c07b9b01c74758b1c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moment_reverse.py": "46f3b59e9954899eb98be0d6fc1415f2e6830a155c58c0942b36d6fe75989148",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_conditioning.py": "e5a3b6f088e1cc933215d96d7b4798157573a51228f03e5150e958e0a4d06d44",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/variational_model.py": "626b4ced368ef3c12530b0376657a61ea791884ded3b14da77300a968c9caa26"
+  },
+  "source_unchanged": true,
+  "truth_received": false
+}

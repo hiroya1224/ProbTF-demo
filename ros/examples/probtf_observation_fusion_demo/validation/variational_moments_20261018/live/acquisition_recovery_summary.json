@@ -1,0 +1,46 @@
+{
+  "source_run": "/tmp/probtf_variational_commonchart_180s_live_20261018",
+  "source_DB_read_only": true,
+  "original_manifests_unchanged": true,
+  "source_spool_sha256": "135f22d91c790ec9076b3c2724ba08c8db2361778a4b723a39f5db0ab51724bb",
+  "frozen_scene_config_sha256": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a",
+  "texture_sha256": "b0a0efc194899432b88e858f8b6607868e16c3cde023dac1c00b30b8ba2dfdde",
+  "renderer_source_sha256": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/vision.py": "f3a1980ed04f53f6ca809feb33edf75b29abcc89a86eb904e8561ac54560b7e2",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778"
+  },
+  "requests": 10275,
+  "source_DB_rows": 9979,
+  "original_committed_payloads": 9978,
+  "recovered_counts": {
+    "image": 70,
+    "joint": 114,
+    "imu": 113
+  },
+  "recovered_total": 297,
+  "deterministic_camera_bitwise_control_frames": [
+    {
+      "event_id": "image:00000000",
+      "sequence": 3,
+      "matched_image_sha256": "c3ee68aff8b32bf88fb413ca0fa36cc4ee65eb444108f6eb94153d761c1b9f64"
+    },
+    {
+      "event_id": "image:00000011",
+      "sequence": 9,
+      "matched_image_sha256": "0371f316d113711ee8382b7b66caf37d213b1f2fda460b3ddfc84b915b610f52"
+    },
+    {
+      "event_id": "image:00006533",
+      "sequence": 9968,
+      "matched_image_sha256": "a1a37fa91f1d90b1f805a93e98185ae81d1e58368c883aacb05df3058412de25"
+    },
+    {
+      "event_id": "image:00006535",
+      "sequence": 9972,
+      "matched_image_sha256": "60cdd43f394a4f946d78a044be5f650412e5917d4066ccf56ed985be6a9366d6"
+    }
+  ],
+  "wall_seconds": 16.26078701019287,
+  "import_policy": "Do not append into original DB or count as original acquisition completion. To resume, backup original SQLite to a separate replay DB, fill its existing awaiting_payload row and append subsequent rows in this immutable sequence, retaining original acquisition q/t/ID/received stamp and explicit recovery provenance. Estimation replay must resume from last completed body frontier with original execution ledger; no duplicate fusion.",
+  "truth_boundary": "Camera world poses/history are physical renderer inputs only. They are not included in exported observation payloads or supplied to estimation. No physical K/actual joints are used."
+}

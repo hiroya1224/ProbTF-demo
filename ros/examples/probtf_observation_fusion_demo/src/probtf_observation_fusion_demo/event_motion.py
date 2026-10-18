@@ -95,6 +95,9 @@ class AsyncMotionSession:
         self.enabled_sensors = {item['sensor'] for item in self.templates}
         from .body_native import backend_record
         self.inference_numeric_backend = dict(body=backend_record())
+        if self.inference_description.observation_update_method == 'variational_moments':
+            from .moment_reverse import backend_record as reverse_backend_record
+            self.inference_numeric_backend['moment_reverse'] = reverse_backend_record()
         if 'marker' in self.enabled_sensors and self.settings.get('marker_board', {}).get('enabled'):
             from .marker_board_native import backend_record as marker_backend_record
             self.inference_numeric_backend['marker_board'] = marker_backend_record()

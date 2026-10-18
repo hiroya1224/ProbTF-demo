@@ -1,0 +1,119 @@
+{
+  "scope": "posthoc diagnostic instrumentation; original archived body and trajectory law/IDs/weights/K are unchanged",
+  "source_run": "/tmp/probtf_variational_commonchart_180s_live_20261018",
+  "input_cases": {
+    "marker": {
+      "diagnostic_numeric_and_source_fields_reproduced_exactly": true,
+      "excluded_wall_time_field": "computation_seconds",
+      "original_run_case": "/tmp/probtf_variational_commonchart_180s_live_20261018/marker",
+      "request_id": 925,
+      "used_gradient_packet_id": "6810de238c9e237169693c6aebe7f6c943f43eda3a1ac37ae81b396bebc096dc",
+      "candidate_id": "8c973f9da665aee83e74c95d0bc2f70edbabd0293c81bde85c408298b603e83d",
+      "archive_job": {
+        "path": "/tmp/probtf_variational_commonchart_180s_live_20261018/marker/stiffness_jobs/00000106_630e45f77a57bc89.pickle",
+        "sha256": "4ea7ed1e9453cb51b2e2f3490f24fd3d2d344164bea7d9bd9763a3578f57e3d0",
+        "bytes": 4608037,
+        "sequence": 106
+      },
+      "actual_ledger_reference": {
+        "path": "commands.jsonl",
+        "start_index": 6002,
+        "end_index_exclusive": 6649,
+        "step_count": 647,
+        "prefix_chain_sha256": "8889d22c42ced8c64eb973490c8e514b85ddc2ea5255c42053b64012dddec920",
+        "source_prefix_chain_sha256": "40d424e5582bcb2959afbe90cbc4cd590c57fd238831b7c07c6c11189843f2ba"
+      },
+      "URDF": {
+        "path": "/tmp/probtf_variational_commonchart_180s_live_20261018/marker/robot.urdf",
+        "sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2"
+      },
+      "original_large_control_jsonl_not_copied_or_hashed": true,
+      "original_control_identity_verified_against_archived_law_and_full_actual_ledger": true,
+      "metadata_only_final_regeneration": "interpretation wording clarified, computation wall time updated; all other diagnostic fields exact"
+    },
+    "imu_marker": {
+      "diagnostic_numeric_and_source_fields_reproduced_exactly": true,
+      "excluded_wall_time_field": "computation_seconds",
+      "original_run_case": "/tmp/probtf_variational_commonchart_180s_live_20261018/imu_marker",
+      "request_id": 863,
+      "used_gradient_packet_id": "15a3531d9b2581960b193d8998c0a9842f849a08855f7ca4cc629e2e22d0d869",
+      "candidate_id": "5efb7f82633ff05fe5786a526bcc6419f2e2e75aa1c9196d2c20514dc7862aa0",
+      "archive_job": {
+        "path": "/tmp/probtf_variational_commonchart_180s_live_20261018/imu_marker/stiffness_jobs/00000442_69fa75de32a9eeb7.pickle",
+        "sha256": "a877b940c2dae04075640609408929d2bbadd62e09f69475cd76f19c9475263c",
+        "bytes": 1472017,
+        "sequence": 442
+      },
+      "actual_ledger_reference": {
+        "path": "commands.jsonl",
+        "start_index": 5682,
+        "end_index_exclusive": 6069,
+        "step_count": 387,
+        "prefix_chain_sha256": "05cd8a20f484d7f8fd1e354730b7671b3542aec6a04050352e64dbf44340c86a",
+        "source_prefix_chain_sha256": "d77c541c005f877f14ed3eaf9db69438f1cf0b9dd16ea86b176351156cb8c554"
+      },
+      "URDF": {
+        "path": "/tmp/probtf_variational_commonchart_180s_live_20261018/imu_marker/robot.urdf",
+        "sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2"
+      },
+      "original_large_control_jsonl_not_copied_or_hashed": true,
+      "original_control_identity_verified_against_archived_law_and_full_actual_ledger": true,
+      "metadata_only_final_regeneration": "interpretation wording clarified, computation wall time updated; all other diagnostic fields exact"
+    }
+  },
+  "file_hashes": {
+    "REPORT.md": {
+      "bytes": 3972,
+      "sha256": "39c0b2278929d515787527f461145e0d6a3723b91372220d674d558c4d061041"
+    },
+    "focused_tests.log": {
+      "bytes": 575,
+      "sha256": "fb5d73b31e5f8bbb809b5f856ad8b3caf763dd22894969e23b270218ca8d1191"
+    },
+    "imu_marker_control_source.json": {
+      "bytes": 52809,
+      "sha256": "15ab18af27df85491adb9b4f7d0bef16f1c54fb333d67cdad230c6ecd70afc96"
+    },
+    "imu_marker_last_used_request_diagnostic.json": {
+      "bytes": 100691,
+      "sha256": "bcd0ce6a88e4134d359f3d42f9dbd3cff5a0b2030dc554aa138ba162c189970d"
+    },
+    "marker_control_source.json": {
+      "bytes": 52774,
+      "sha256": "bb76d4b7d96b5ef59f00cdacd35619693eec8b64d8a377eec7b627743bd27c2b"
+    },
+    "marker_last_used_request_diagnostic.json": {
+      "bytes": 100997,
+      "sha256": "8562848e0706b40c469e7ca4527b8d3dd7d93eda2d6bfe36ca18e627d9a8b32a"
+    },
+    "reproduce_last_used_request.py": {
+      "bytes": 6217,
+      "sha256": "cb8cb162895b8c510733041a58efb39c04a6ac56971a51cfd08fcc73bc322a92"
+    },
+    "reproduction.log": {
+      "bytes": 741,
+      "sha256": "53c362d6df682ab712e1ea7e2016112d3c1c4a252bdb4b070cdfd9d487ecc658"
+    },
+    "source_index.json": {
+      "bytes": 490,
+      "sha256": "192a1b5fd2e27d0398ccd1d5d034bd171a1cf4575eed229afeb4b4478c2b421f"
+    },
+    "summary.json": {
+      "bytes": 21709,
+      "sha256": "e56c92a838055d0556565d530ad674ab41209d16097b76e0ee98515088d33829"
+    }
+  },
+  "reproduce_output": "/tmp/probtf_K_body_consistency_final_reproduction_20261018",
+  "large_raw_in_Git": false,
+  "physical_truth_used": false,
+  "new_equilibrium_solve": false,
+  "new_sensor_update": false,
+  "sampling_used": false,
+  "production_tests_log": "focused_tests.log",
+  "exact_scope": "exact source/law reconstruction and deterministic diagnostic reproducibility; no claim of an exact posterior approximation or physical-model correctness",
+  "current_helper_source": {
+    "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_body_consistency.py",
+    "sha256": "fc2946c27c99915bb2a5c3f5670784d338da00c111fb4ba15ec08f8980978cc0",
+    "bytes": 15758
+  }
+}

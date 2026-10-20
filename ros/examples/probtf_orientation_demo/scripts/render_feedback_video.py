@@ -45,9 +45,11 @@ def observed_unit_vectors(arrays):
     return vectors / np.linalg.norm(vectors, axis=-1, keepdims=True)
 
 
-def observation_axes_in_sensor_frame(rotations):
-    """The same native orientation law, shown as world axes in the sensor frame."""
-    return np.swapaxes(rotations, -1, -2)
+def observation_reference_vectors_world(summary):
+    """Fixed known world directions defining the two observation likelihoods."""
+    vectors = np.stack((comparison.original.SPECIFIC_FORCE_REFERENCE_WORLD,
+                        summary['reference_magnetic_world_unit']))
+    return vectors / np.linalg.norm(vectors, axis=-1, keepdims=True)
 
 
 def render(input_directory, output, fps=4., samples=180, duration=None):
@@ -69,6 +71,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         raise ValueError('The saved six conditions differ from the current comparison.')
     observation_parameters = single_observation_parameters(arrays, summary)
     observed_vectors = observed_unit_vectors(arrays)
+    reference_vectors = observation_reference_vectors_world(summary)
     observation_labels = ('加速度のみ (単独観測)', '地磁気のみ (単独観測)')
     t = arrays['time_seconds']
     end = float(t[-1]) if duration is None else min(float(t[-1]), duration)
@@ -135,12 +138,11 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
             comparison.CASE_COLORS[case], comparison.CASE_STYLES[case], comparison.CASE_MARKERS[case], title_labels[case])
     cursor = timeline.axvline(0., color='black', lw=1.)
     timeline.set_xlim(0., t[-1])
-    timeline.set_ylim(0., max(10., float(arrays['error_deg'].max())*1.05))
+    timeline.set_ylim(0., 5.)
     timeline.set_xlabel('経過時間 [s]', fontsize=20, labelpad=8)
     timeline.set_ylabel('3軸の合成誤差\n[deg]', fontsize=20, labelpad=8)
     timeline.tick_params(labelsize=18)
-    from matplotlib.ticker import MaxNLocator
-    timeline.yaxis.set_major_locator(MaxNLocator(nbins=4))
+    timeline.set_yticks(np.arange(0., 6.))
     timeline.grid(alpha=.2)
     legend_axis = figure.add_axes([.05, .012, .93, .095])
     legend_axis.set_axis_off()
@@ -148,7 +150,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         fontsize=20, frameon=False, handlelength=2.2, columnspacing=2., labelspacing=.8)
     clock = figure.text(.5, .985, '', ha='center', va='top', fontsize=28)
     explanation = ('点群：Bingham 分布の軸端点　左6条件：実線＝モード軸・黒破線＝'+reference_label
-        +'\n右列：センサ座標で表示　太矢印＝観測ベクトル方向'
+        +'\n全画面：世界座標で表示　右列の太矢印＝観測に対応する固定参照方向'
         if measured_observation_view else
         '点群：Bingham 分布の軸端点\n実線：左6条件のモード軸　黒破線：'+reference_label)
     figure.text(.5, .942, explanation,
@@ -174,12 +176,11 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
                 if case < 6:
                     mode = comparison.original.rotations_from_wxyz(arrays['mode_wxyz'][index, case]).as_matrix()
                 elif measured_observation_view:
-                    rotations = observation_axes_in_sensor_frame(rotations)
                     channel = case-6
                     if observation_arrows[channel] is not None:
                         observation_arrows[channel].remove()
                     observation_arrows[channel] = axes[case].quiver(
-                        0., 0., 0., *observed_vectors[index, channel],
+                        0., 0., 0., *reference_vectors[channel],
                         color='#202020', linewidth=4., arrow_length_ratio=.2)
                     stamp_key = 'magnetic_measurement_stamps' if channel else 'measurement_stamps'
                     source_stamp = arrays.get(stamp_key, arrays['measurement_stamps'])[index]
@@ -215,6 +216,8 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     report = dict(frames=len(indices), fps=fps, width=width, height=height,
         displayed_start_seconds=float(t[indices[0]]), displayed_end_seconds=float(t[indices[-1]]),
         samples_per_distribution_per_frame=samples, condition_labels=labels,
+        combined_error_ylim_deg=[0., 5.],
+        combined_error_yticks_deg=timeline.get_yticks().tolist(),
         coordinate_colors=summary['coordinate_colors'], mocap_reference='black dashed axes', axis_label_color='black',
         plot_style=['science','no-latex'], unit_format='square brackets',
         visualizer='third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s',
@@ -236,6 +239,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     observation_file = output/'single_observation_distributions.npz'
     np.savez_compressed(observation_file, display_parameter=observation_parameters,
         observed_unit_vectors=observed_vectors,
+        reference_unit_vectors_world=reference_vectors,
         **{key: arrays[key] for key in ('time_seconds', 'measurement_stamps',
             'measurement_stamp_ns', 'bag_record_stamp_ns', 'bag_elapsed_seconds',
             'magnetic_observed', 'magnetic_source_index', 'magnetic_measurement_stamps',
@@ -251,15 +255,15 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         vector_noise_calibration=summary.get('vector_noise_calibration'),
         assumed_sensor_noise=summary.get('assumed_sensor_noise'),
         law='normalized native single-direction likelihood; no prior, gyro or temporal accumulation',
-        plotted_coordinates=('sensor frame; inverse of the sampled body-to-world rotation maps world axes into sensor coordinates'
-            if measured_observation_view else 'world frame; body-to-world rotation'),
-        observed_direction_arrow=(dict(source='normalized raw measured vector in sensor coordinates',
+        plotted_coordinates='world frame; body-to-world rotation in all eight panels',
+        observed_direction_arrow=(dict(source='fixed known world reference of each native direction likelihood',
+            vectors_world=reference_vectors.tolist(), fixed_in_world=True,
+            raw_sensor_vectors_file='single_observation_distributions.npz:observed_unit_vectors',
             color='#202020', linewidth=4., arrow_length_ratio=.2) if measured_observation_view else None),
         reference_attitude_axes_drawn=not measured_observation_view,
         stale_observation='right column holds last actual observation with its original timestamp and age; no repeated fusion',
         mode_axes_drawn=False,
-        unobserved_rotation=('native body-to-world law: about world reference; inverse view: about measured sensor-frame direction'
-            if measured_observation_view else 'about the respective reference direction'),
+        unobserved_rotation='about the respective world reference direction',
         parameters_file=observation_file.name, parameters_sha256=hashlib.sha256(observation_file.read_bytes()).hexdigest(),
         vertical_divider='black dashed; between columns3 and4')
     (output/'video.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n')

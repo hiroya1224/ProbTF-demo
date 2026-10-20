@@ -120,4 +120,4 @@ export MPLBACKEND=Agg OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONDONTWRITEBY
 /usr/bin/python3 "$run_src/render_feedback_video.py" --input "$run_out/analysis" --output "$run_out/video" --fps 4 --samples 180
 ```
 
-生成した測定・真値・ノイズは `input_data.npz`、両側の設定は `simulation_settings.json` に保存する。同じノイズ実現値で再計算するには `--dataset /path/to/saved/analysis` を付ける。推定中に乱数を引かない。左6条件の黒破線は「人工真値」と明記する。右列の単独観測は同じ方位lawの逆回転で世界軸をセンサ座標へ写し、生観測の単位方向を太い矢印で重ねる。右列に真値の姿勢軸は描かない。出力のみに地磁気を使う2条件は新規地磁気取得時だけを評価し、動画の全画面も共通の地磁気取得時刻に揃える。実測版の保存データ・動画は保持する。
+生成した測定・真値・ノイズは `input_data.npz`、両側の設定は `simulation_settings.json` に保存する。同じノイズ実現値で再計算するには `--dataset /path/to/saved/analysis` を付ける。推定中に乱数を引かない。左6条件の黒破線は「人工真値」と明記する。右列も同じ方位lawのセンサ→世界回転でセンサ軸を描き、全8画面を世界座標へ揃える。右列の太い矢印は観測尤度の既知の世界参照方向に固定する。動画下段の3軸の合成誤差の縦軸は0〜5 degとする。右列に真値の姿勢軸は描かない。出力のみに地磁気を使う2条件は新規地磁気取得時だけを評価し、動画の全画面も共通の地磁気取得時刻に揃える。実測版の保存データ・動画は保持する。

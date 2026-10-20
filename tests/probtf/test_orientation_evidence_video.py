@@ -158,7 +158,7 @@ class ObservationEvidenceVideoTest(unittest.TestCase):
                  vector_noise_calibration=object()))
         np.testing.assert_array_equal(actual, expected)
 
-    def test_observation_arrows_are_measured_unit_vectors_without_attitude_truth(self):
+    def test_saved_sensor_vectors_are_measured_unit_vectors_without_attitude_truth(self):
         actual = renderer.observed_unit_vectors(self.arrays)
         for channel, key in enumerate(('acceleration_m_s2', 'magnetic_raw')):
             values = self.arrays[key]
@@ -166,16 +166,17 @@ class ObservationEvidenceVideoTest(unittest.TestCase):
         changed = dict(self.arrays, mocap_wxyz=object(), truth_wxyz=object(), mode_wxyz=object())
         np.testing.assert_array_equal(renderer.observed_unit_vectors(changed), actual)
 
-    def test_native_observation_modes_align_the_measured_arrow_in_sensor_coordinates(self):
+    def test_native_observation_modes_map_measured_vectors_to_fixed_world_references(self):
         parameters = renderer.single_observation_parameters(self.arrays, self.summary)
         vectors = renderer.observed_unit_vectors(self.arrays)
+        references = renderer.observation_reference_vectors_world(self.summary)
         for index in range(3):
             for channel, reference in enumerate(self.directions()):
                 rotation, _ = Rotation.align_vectors(reference[None], vectors[index, channel][None])
                 q = quaternion_wxyz(rotation)
                 self.assertAlmostEqual(float(q @ parameters[index, channel] @ q), 0.0, places=11)
-                displayed = renderer.observation_axes_in_sensor_frame(rotation.as_matrix())
-                np.testing.assert_allclose(displayed @ reference, vectors[index, channel], atol=1e-14)
+                np.testing.assert_allclose(rotation.apply(vectors[index, channel]), references[channel], atol=1e-14)
+        np.testing.assert_allclose(references, self.directions(), atol=1e-14)
 
 
 if __name__ == '__main__':

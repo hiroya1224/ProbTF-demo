@@ -108,9 +108,10 @@ class FeedbackComparisonTest(unittest.TestCase):
         def prediction(parameter, gyro, dt, noise_covariance, integration_steps):
             captured.append((gyro.copy(), dt, noise_covariance.copy()))
             return parameter.copy(), 0.
-        # Both the legacy gyro-only group and the calibrated observation groups
-        # must receive the same raw-sample covariance, with no extra dt or N factor.
-        with patch.object(comparison.original, 'propagate', prediction):
+        # All groups must use the requested numerical inverse, including the
+        # gyro-only group; falling back there used to erase small noise growth.
+        with patch.object(comparison.original, 'propagate',
+                          side_effect=AssertionError('The requested inverse was bypassed')):
             comparison.compare_six(self.gyro, self.acc, self.mag, self.times,
                 self.q, self.reference, gyro_covariance=covariance,
                 propagation=prediction, **self.options)

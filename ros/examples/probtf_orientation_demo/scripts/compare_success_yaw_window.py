@@ -182,7 +182,7 @@ def main():
             median=float(np.median(window_arrays[sensor+'_direction_concentration'])),
             maximum=float(window_arrays[sensor+'_direction_concentration'].max()))
         for sensor in ('acceleration', 'magnetic')}
-    metadata['moment_inverse'] = 'unbounded scaled Bingham dual using the unchanged core normalizer and second moments'
+    metadata['moment_inverse'] = 'scaled Bingham moment equations with the unchanged core moments and analytic Jacobian; same inverse in all three groups'
     metadata.update(bag_path=str(bag.resolve()), bag_sha256=actual_hash,
         bag_size_bytes=bag.stat().st_size, bag_start_ns=selected['bag_start_ns'],
         window_selection=selected['selection'], selection_sha256=sha256(args.selection_json),

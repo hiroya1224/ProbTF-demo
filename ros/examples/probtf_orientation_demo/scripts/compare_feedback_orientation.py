@@ -95,10 +95,9 @@ def compare_six(gyro, acceleration, magnetic, timestamps, initial, reference,
             if interval <= 0:
                 raise ValueError('Measurement timestamps must strictly increase.')
             for group in range(3):
-                # Preserve the original gyro-only control calculation.  The
-                # observed groups can use an inverse supporting calibrated,
-                # highly concentrated direction likelihoods.
-                propagate = original.propagate if group == 0 or propagation is None else propagation
+                # Use the same specified moment inverse in all three groups,
+                # including small noise increments in the gyro-only group.
+                propagate = original.propagate if propagation is None else propagation
                 states[group], residuals[k,group] = propagate(
                     states[group],gyro[k],interval,covariance,integration_steps)
         states[1] = original.canonical_bingham_parameter(states[1] + gravity[k])

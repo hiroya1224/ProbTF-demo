@@ -1,4 +1,4 @@
-"""Unbounded numerical inversion of the existing public Bingham moments.
+"""Unbounded numerical inversion of the existing Bingham moments.
 
 This example keeps the core probability law, normalizer, moments and gyro
 product unchanged. Only the numerical inverse map differs from the core's
@@ -7,13 +7,13 @@ used as a reason to reject the next filter update.
 """
 
 import numpy as np
-from scipy.optimize import minimize
 
 from probtf.bingham import (
     bingham_log_normalizer,
     bingham_second_moment,
     canonical_bingham_parameter,
     quaternion_product_second_moment,
+    _moment_eigenvalues_and_jacobian,
 )
 from probtf_estimators.orientation_imu import delta_quaternion_second_moment
 
@@ -36,7 +36,7 @@ def fit_bingham_second_moment(second_moment, integration_steps=120,
                               initial_eigenvalues=None, max_iterations=80):
     """Return a finite fitted parameter and diagnostics for the target moment.
 
-    In the target eigenbasis minimize ``log Z(A) - tr(A M)``. The last
+    In the target eigenbasis solve ``moment(A) = eigenvalues(M)``. The last
     eigenvalue is fixed to zero to remove the scalar gauge. The other three
     eigenvalues are free real numbers, with no ordering, gap floor or upper
     concentration bound. ``lambda_i = scale_i * coordinate_i`` merely
@@ -45,7 +45,7 @@ def fit_bingham_second_moment(second_moment, integration_steps=120,
     The usual positive target eigenvalues give ``scale_i = 1/(2 m_i)``.
     For zero/nonpositive target eigenvalues, or an unrepresentable reciprocal,
     use unit coordinate scale. Such a boundary target can lack a finite
-    inverse; the finite optimizer result and its actual residual are still
+    inverse; the finite numerical result and its actual residual are still
     returned. The target eigenvalues themselves are never clipped or renormalized.
     """
     target = np.asarray(second_moment, dtype=float)
@@ -76,14 +76,64 @@ def fit_bingham_second_moment(second_moment, integration_steps=120,
         initial_values = np.sort(initial_values)
         initial = (initial_values - initial_values[-1])[:3]
     coordinates = initial / scale
-    result = minimize(
-        _dual_value_gradient, coordinates,
-        args=(eigenvalues, scale, integration_steps), jac=True,
-        method='L-BFGS-B', bounds=None,
-        options={'maxiter': iterations, 'ftol': 1e-14, 'gtol': 1e-10})
-    if not np.isfinite(result.x).all():
-        raise FloatingPointError('Bingham inverse optimizer returned non-finite coordinates.')
-    fitted_values = np.r_[result.x * scale, 0.0]
+    denominator = np.where(eigenvalues[:3] > 0.0, eigenvalues[:3], 1.0)
+    evaluations = 0
+
+    def evaluate(point):
+        nonlocal evaluations
+        values = np.r_[point * scale, 0.0]
+        if not np.isfinite(values).all():
+            raise FloatingPointError('Bingham inverse produced non-finite eigenvalues.')
+        moments, jacobian = _moment_eigenvalues_and_jacobian(values, integration_steps)
+        evaluations += 1
+        residual = (moments[:3] - eigenvalues[:3]) / denominator
+        derivative = jacobian[:3, :3] * scale[None, :] / denominator[:, None]
+        if not np.isfinite(moments).all() or not np.isfinite(residual).all():
+            raise FloatingPointError('Bingham moment inverse returned non-finite moments.')
+        return moments, residual, derivative
+
+    moments, relative_residual, derivative = evaluate(coordinates)
+    reason = 'maximum_iterations_finite_result_retained'
+    updates = 0
+    # This controls only the numerical inverse iteration. An unfinished finite
+    # inverse remains usable and never rejects the following filter update.
+    tolerance = 512.0 * np.finfo(float).eps
+    for iteration in range(iterations):
+        residual_norm = float(np.linalg.norm(relative_residual))
+        if residual_norm <= tolerance:
+            reason = 'moment_equations_at_floating_precision'
+            break
+        try:
+            step = np.linalg.solve(derivative, -relative_residual)
+        except np.linalg.LinAlgError:
+            reason = 'singular_moment_jacobian_finite_result_retained'
+            break
+        if not np.isfinite(step).all():
+            reason = 'nonfinite_newton_step_finite_result_retained'
+            break
+        accepted = False
+        for exponent in range(24):
+            trial = coordinates + (2.0 ** -exponent) * step
+            if np.array_equal(trial, coordinates):
+                continue
+            try:
+                trial_moments, trial_residual, trial_derivative = evaluate(trial)
+            except (FloatingPointError, ValueError):
+                continue
+            # Compare the moment equations directly. The dual objective can
+            # round to the same float even when a gyro noise increment matters.
+            if np.linalg.norm(trial_residual) < residual_norm:
+                coordinates, moments = trial, trial_moments
+                relative_residual, derivative = trial_residual, trial_derivative
+                updates += 1
+                accepted = True
+                break
+        if not accepted:
+            reason = 'moment_residual_no_longer_decreases_finite_result_retained'
+            break
+    if np.linalg.norm(relative_residual) <= tolerance:
+        reason = 'moment_equations_at_floating_precision'
+    fitted_values = np.r_[coordinates * scale, 0.0]
     assembled = eigenvectors @ np.diag(fitted_values) @ eigenvectors.T
     # A mathematically symmetric spectral product can have absolute roundoff
     # skew above the core input tolerance at million-scale concentration.
@@ -98,12 +148,14 @@ def fit_bingham_second_moment(second_moment, integration_steps=120,
     log_ratios = [float(np.log(fitted_diagonal[i] / eigenvalues[i])) if positive[i] else None
                   for i in range(4)]
     diagnostics = dict(
-        method='unbounded_bingham_log_normalizer_dual_in_target_eigenbasis',
-        optimizer='L-BFGS-B without bounds',
-        optimizer_success=bool(result.success), optimizer_status=int(result.status),
-        optimizer_message=str(result.message), iterations=int(result.nit),
-        function_evaluations=int(result.nfev), maximum_iterations=iterations,
-        objective=float(result.fun), target_trace=float(np.trace(target)),
+        method='scaled_bingham_moment_equations_in_target_eigenbasis',
+        optimizer='Newton with analytic moment Jacobian and residual backtracking',
+        optimizer_success=reason == 'moment_equations_at_floating_precision',
+        optimizer_status=0 if reason == 'moment_equations_at_floating_precision' else 1,
+        optimizer_message=reason, iterations=updates,
+        function_evaluations=evaluations, maximum_iterations=iterations,
+        relative_moment_equation_residual=float(np.linalg.norm(relative_residual)),
+        target_trace=float(np.trace(target)),
         target_skew_norm=float(np.linalg.norm(target - target.T)),
         target_moment_eigenvalues=eigenvalues.tolist(),
         fitted_moment_in_target_basis=fitted_diagonal.tolist(),

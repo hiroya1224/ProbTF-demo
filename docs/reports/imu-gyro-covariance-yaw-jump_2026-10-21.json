@@ -1,0 +1,1569 @@
+{
+  "schema": "imu-gyro-covariance-yaw-jump-investigation/v1",
+  "date": "2026-10-21",
+  "base_commit": "fdf493ef7ae2a96b4fbe406485dffaf21af05d83",
+  "input": {
+    "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag",
+    "bag_sha256": "5e3f40a2c9cdf22938195a1c7a3c95d2a11e942875b0e7c87315005d235ef407",
+    "bag_bytes": 138286727,
+    "bag_start_ns": 1781325843201566950,
+    "stationary_sample_count": 200,
+    "stationary_actual_bag_extent_s": [
+      0.053691563,
+      1.048691563
+    ],
+    "mocap_use": "Existing initial orientation and stationary-prefix fixed magnetic reference; no per-tick mocap updates. Full timestamps used for after-the-fact error evaluation."
+  },
+  "previous_change_audit": {
+    "compared_commits": {
+      "before": "10b4df4",
+      "after": "fdf493e"
+    },
+    "changed_paths": [
+      "ros/examples/probtf_orientation_demo/README.md",
+      "ros/examples/probtf_orientation_demo/scripts/compare_feedback_orientation.py",
+      "ros/examples/probtf_orientation_demo/scripts/compare_rolling_bag.py",
+      "ros/examples/probtf_orientation_demo/scripts/compare_success_yaw_window.py",
+      "ros/examples/probtf_orientation_demo/scripts/static_vector_noise.py",
+      "tests/probtf/test_orientation_feedback_comparison.py",
+      "tests/probtf/test_orientation_static_noise.py",
+      "tests/probtf/test_rolling_orientation_comparison.py"
+    ],
+    "runtime_changes": [
+      "compare_success_yaw_window.py estimates the full gyro sample covariance from the same existing stationary calibration and passes it as gyro_covariance; records it without bias subtraction or dt scaling.",
+      "compare_feedback_orientation.py adds an optional covariance matrix argument, copies it, and passes that same matrix to each of the three existing propagation calls. The default old scalar variance path remains available.",
+      "static_vector_noise.py extracts the shared raw mean/covariance calculation into estimate_vector_noise; the existing isotropic acceleration/magnetic adapter returns the same numeric values.",
+      "compare_rolling_bag.py removes finite residual >1e-3 rejection but retains its numerical retry and nonfinite rejection. The recorded full run never reached the removed threshold, so this gate change did not select a different numeric result."
+    ],
+    "unintended_runtime_changes_found": [],
+    "checks": {
+      "core_no_diff_between_commits": true,
+      "expected_only_four_runtime_source_files": true,
+      "raw_clocks_and_input_values_unchanged": true,
+      "same_acc_mag_calibration_and_weights": true,
+      "same_initial_attitude_and_fixed_reference": true,
+      "no_gyro_mean_subtraction": true,
+      "same_full_covariance_passed_all_three_groups": true,
+      "new_covariance_matches_independent_original_bag_estimate": true,
+      "Madgwick_modes_unchanged": true,
+      "right_observation_laws_unchanged": true,
+      "known_finite_quality_gate_not_hit_in_recorded_run": true
+    },
+    "all_provenance_checks_passed": true
+  },
+  "covariance_only_prefix_comparison": {
+    "schema": "gyro-covariance-short-prefix-causality-replay/v1",
+    "source_commit": "fdf493e",
+    "frozen_source_sha256": {
+      "compare_feedback_orientation.py": "672c5bbe7440b2e241c45e411bb0e996299dd8e92586004ba2c3241ebe7c3d27",
+      "compare_success_yaw_window.py": "ca53f340066b535c8c1e2a864bfb8512797755004d7e2af22fc0fbdcf39b8530",
+      "compare_rolling_bag.py": "5e71eea40f7d6d8e25f340fdac1dcfaf27aa7c384dd4ed00351123b7b9ceb179",
+      "compare_madgwick_rolling.py": "2a470241ba49037e441cf95d8961ded2e79132906c9d761149744ad1d863b60a",
+      "static_vector_noise.py": "c565aa9ec5ca0e19dd298fcd9da4e426a817a05712fc9b26e3ade9873326382c",
+      "bingham_moment_inverse.py": "d25f43f4cbc07b674a3e3122d2bfa2ddf83d62bef4b47435f20e2a1bb494eea0"
+    },
+    "cases": {
+      "old_1e-4_I": {
+        "N": 1200,
+        "covariance": [
+          [
+            0.0001,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0001,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0001
+          ]
+        ],
+        "yaw_rms_deg": 0.17046498008069544,
+        "SO3_rms_deg": 0.45341654123210984,
+        "max_abs_yaw_error_deg": 0.568330160700043,
+        "final_signed_yaw_error_deg": -0.22610635467373186,
+        "max_residual": 1.1325814384572418e-11,
+        "max_abs_parameter_eigenvalue": 68499911.09755239,
+        "final_parameter_eigenvalues": [
+          -66579621.72854373,
+          -66579621.72491116,
+          -99.98446641556421,
+          -2.9951234520015738e-12
+        ]
+      },
+      "measured_full": {
+        "N": 1200,
+        "covariance": [
+          [
+            6.478144133955731e-07,
+            -5.356531501343634e-09,
+            -1.2324445742989155e-08
+          ],
+          [
+            -5.356531501343634e-09,
+            3.5189947789546463e-07,
+            4.5283211066537416e-08
+          ],
+          [
+            -1.2324445742989155e-08,
+            4.5283211066537416e-08,
+            3.48278089386577e-07
+          ]
+        ],
+        "yaw_rms_deg": 105.91774561603339,
+        "SO3_rms_deg": 105.91682417102169,
+        "max_abs_yaw_error_deg": 179.97242627602884,
+        "final_signed_yaw_error_deg": -176.63858339641797,
+        "max_residual": 4.990149561391266e-09,
+        "max_abs_parameter_eigenvalue": 1076298253.1645768,
+        "final_parameter_eigenvalues": [
+          -1075499456.54706,
+          -799805130.1844792,
+          -175.27786728997626,
+          -2.936309609573537e-12
+        ]
+      },
+      "measured_isotropic_trace": {
+        "N": 1200,
+        "covariance": [
+          [
+            4.493306602258716e-07,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.493306602258716e-07,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            4.493306602258716e-07
+          ]
+        ],
+        "yaw_rms_deg": 0.1705178550574062,
+        "SO3_rms_deg": 0.4865347374067204,
+        "max_abs_yaw_error_deg": 0.5681055449768451,
+        "final_signed_yaw_error_deg": -0.22587938627242465,
+        "max_residual": 1.7732452950166277e-10,
+        "max_abs_parameter_eigenvalue": 959388715.9834421,
+        "final_parameter_eigenvalues": [
+          -957515968.2797928,
+          -957515958.5409286,
+          -99.99931267215516,
+          4.452004241847091e-11
+        ]
+      }
+    },
+    "comparisons": {
+      "measured_full_vs_old": {
+        "maximum_attitude_difference_deg": 179.9893610883837,
+        "onset_thresholds_deg": {
+          "0.1": {
+            "sample_index": 136,
+            "bag_elapsed_s": 1.7355270385742188,
+            "difference_deg": 0.10215769214766257
+          },
+          "1.0": {
+            "sample_index": 169,
+            "bag_elapsed_s": 1.900527000427246,
+            "difference_deg": 1.0499772141048949
+          },
+          "5.0": {
+            "sample_index": 202,
+            "bag_elapsed_s": 2.0655269622802734,
+            "difference_deg": 5.082503187241185
+          },
+          "30.0": {
+            "sample_index": 413,
+            "bag_elapsed_s": 3.1205270290374756,
+            "difference_deg": 30.129058110211645
+          },
+          "90.0": {
+            "sample_index": 593,
+            "bag_elapsed_s": 4.019427299499512,
+            "difference_deg": 90.03759730479078
+          }
+        }
+      },
+      "measured_isotropic_trace_vs_old": {
+        "maximum_attitude_difference_deg": 0.0878731744420925,
+        "onset_thresholds_deg": {
+          "0.1": null,
+          "1.0": null,
+          "5.0": null,
+          "30.0": null,
+          "90.0": null
+        }
+      },
+      "full_vs_isotropic": {
+        "maximum_attitude_difference_deg": 179.98926021068607
+      }
+    },
+    "prefix_bag_elapsed_extent_s": [
+      1.0536913871765137,
+      7.048657655715942
+    ],
+    "wall_seconds": 36.336610361002386,
+    "policy": "Only the acceleration-retaining group is replayed with the unchanged fdf493e numerical inverse and current calibrated acceleration factors. Variants change only gyro covariance. Isotropic-trace covariance is diagnostic, not adopted. No result-dependent filtering, observation updates, bias subtraction, randomness, theory changes or full long replay."
+  },
+  "precision_and_integration_comparison": {
+    "schema": "precision-inverse-and-quadrature-prefix-comparison/v1",
+    "N": 1200,
+    "same_full_covariance_and_raw_factors": true,
+    "precision_120": {
+      "yaw_rms_deg": 105.91644853336973,
+      "maximum_absolute_yaw_error_deg": 179.97436229098463,
+      "final_signed_yaw_error_deg": -176.63651289528664,
+      "SO3_rms_deg": 105.91552713309386,
+      "wall_seconds": 4.051765191368759,
+      "maximum_relative_diagonal_moment_residual": 1.1289361604933646e-13
+    },
+    "precision_480": {
+      "yaw_rms_deg": 105.91640578573832,
+      "maximum_absolute_yaw_error_deg": 179.974084719087,
+      "final_signed_yaw_error_deg": -176.63682626169805,
+      "SO3_rms_deg": 105.91548438589163,
+      "wall_seconds": 8.222358589991927,
+      "maximum_relative_diagonal_moment_residual": 1.1246782599435704e-13
+    },
+    "maximum_attitude_difference_120_vs_480_deg": 0.0003133664524495437,
+    "rms_attitude_difference_120_vs_480_deg": 8.024517970027589e-05,
+    "conclusion": "Neither the precision moment-root inverse nor increasing unchanged-core integration resolution from 120 to 480 removes the motor-off prefix heading divergence. The old inverse stopping rule and N=120 quadrature resolution are insufficient explanations by themselves for this local reproduction. A projection/representation or other common numerical-kernel effect remains to investigate; no unique cause is asserted.",
+    "artifacts_sha256": {
+      "precision_inverse_prototype.py": "42bacaba236a82e806918ad725b1c6fa472012b70b4cacfff5c073f0db24ae2d",
+      "precision_prefix_replay.json": "c88f8ae6ebe424b25257bfc5478f76b2e502ccaceafe50532ffbb27da7e65356",
+      "precision_prefix_replay.npz": "311ccafdf6c5cf8a6d20d7882f53ced6830dced0508876bd00eab53181bed6df",
+      "precision_prefix_replay_480.json": "5f56fc661b2372f8ab3bf007c095acb704ccc77cb0911c9333beb11dfe765b3d",
+      "precision_prefix_replay_480.npz": "97d0286b3f83b6270fce47ba28229347aa58627a8f23f9f53d4b2b044cef8ac2"
+    },
+    "source_and_core_edited": false,
+    "isotropic_covariance_adopted": false,
+    "integration_480_adopted": false
+  },
+  "quaternion_product_direct_check": {
+    "method": "Exact finite sums on deterministic weighted full-rank quaternion supports, direct Hamilton q_left*q_right vs core independent second-moment product.",
+    "left_support_count": 7,
+    "right_support_count": 6,
+    "left_moment_eigenvalues": [
+      0.059885371538266056,
+      0.19902494146654356,
+      0.3171231361748555,
+      0.42396655082033485
+    ],
+    "right_moment_eigenvalues": [
+      0.10418529651211425,
+      0.1679123900988849,
+      0.27404116972620307,
+      0.4538611436627975
+    ],
+    "maximum_absolute_error": 3.3306690738754696e-16,
+    "frobenius_error": 5.194461375748411e-16
+  },
+  "projection_shape_check": {
+    "schema": "single-Bingham-world-yaw-curvature-projection-audit/v1",
+    "formula_check": {
+      "negative_log_finite_difference": -0.5388888439927797,
+      "analytic_qDq": -0.5388888888888889,
+      "absolute_error": 4.4896109163694575e-08,
+      "epsilon": 0.001
+    },
+    "summary": {
+      "120_old_1e-4_I": {
+        "first_tick_previous_global": 49.99999999999999,
+        "first_tick_component_globals": [
+          50.0,
+          49.99999999999997,
+          49.99999999999998,
+          50.0,
+          50.00000000000002,
+          50.00000000000002
+        ],
+        "first_tick_fit_global": 49.99998916433307,
+        "first_tick_fit_mode_local": 49.99961813068244,
+        "first_tick_acc_global": 49.99998916433306,
+        "first_tick_component_mixture_moment_vs_core_target_norm": 2.222169830371288e-16,
+        "first_tick_exact_mixture_at_fitted_mode_curvature": 49.99961777798432,
+        "tick2_fit_global": 49.99997390006548,
+        "tick5_fit_global": 49.99990734733749,
+        "tick20_fit_global": 49.999578469652874,
+        "tick20_fit_mode_local": 49.999536544604275,
+        "max_gravity_D_norm": 0.0,
+        "max_relative_diagonal_moment_fit_residual": 1.068882369136327e-13
+      },
+      "120_measured_full": {
+        "first_tick_previous_global": 49.99999999999999,
+        "first_tick_component_globals": [
+          50.00000000000003,
+          49.99999999999999,
+          50.0,
+          49.99999999999999,
+          50.000000000000014,
+          50.00000000000001
+        ],
+        "first_tick_fit_global": 50.00771154642202,
+        "first_tick_fit_mode_local": 49.99962417086519,
+        "first_tick_acc_global": 50.007711546422016,
+        "first_tick_component_mixture_moment_vs_core_target_norm": 8.89102685473771e-16,
+        "first_tick_exact_mixture_at_fitted_mode_curvature": 49.99962417068027,
+        "tick2_fit_global": 240.73624395258244,
+        "tick5_fit_global": 2646.5596603786894,
+        "tick20_fit_global": 136751.33042249843,
+        "tick20_fit_mode_local": 49.99961568449182,
+        "max_gravity_D_norm": 0.0,
+        "max_relative_diagonal_moment_fit_residual": 1.0647740635689393e-13
+      },
+      "120_measured_isotropic_trace": {
+        "first_tick_previous_global": 49.99999999999999,
+        "first_tick_component_globals": [
+          50.000000000000014,
+          50.0,
+          50.0,
+          49.999999999999986,
+          49.99999999999997,
+          50.0
+        ],
+        "first_tick_fit_global": 49.99999994997937,
+        "first_tick_fit_mode_local": 49.99962416461942,
+        "first_tick_acc_global": 49.99999994997937,
+        "first_tick_component_mixture_moment_vs_core_target_norm": 1.2215810471568649e-15,
+        "first_tick_exact_mixture_at_fitted_mode_curvature": 49.999624164306134,
+        "tick2_fit_global": 49.99999988125977,
+        "tick5_fit_global": 49.99999955229169,
+        "tick20_fit_global": 49.999995307639836,
+        "tick20_fit_mode_local": 49.9996654945432,
+        "max_gravity_D_norm": 0.0,
+        "max_relative_diagonal_moment_fit_residual": 1.1114797372156682e-13
+      },
+      "480_old_1e-4_I": {
+        "first_tick_previous_global": 49.99999999999999,
+        "first_tick_component_globals": [
+          50.0,
+          49.99999999999997,
+          49.99999999999998,
+          50.0,
+          50.00000000000002,
+          50.00000000000002
+        ],
+        "first_tick_fit_global": 49.99998916431467,
+        "first_tick_fit_mode_local": 49.999618130678655,
+        "first_tick_acc_global": 49.99998916431467,
+        "first_tick_component_mixture_moment_vs_core_target_norm": 2.231737515204503e-16,
+        "first_tick_exact_mixture_at_fitted_mode_curvature": 49.999617777984334,
+        "tick2_fit_global": 49.999973902747264,
+        "tick5_fit_global": 49.99990736119245,
+        "tick20_fit_global": 49.99957846014553,
+        "tick20_fit_mode_local": 49.99953653528261,
+        "max_gravity_D_norm": 0.0,
+        "max_relative_diagonal_moment_fit_residual": 1.0476349758599704e-13
+      },
+      "480_measured_full": {
+        "first_tick_previous_global": 49.99999999999999,
+        "first_tick_component_globals": [
+          50.00000000000003,
+          49.99999999999999,
+          50.0,
+          49.99999999999999,
+          50.000000000000014,
+          50.00000000000001
+        ],
+        "first_tick_fit_global": 50.00771190731068,
+        "first_tick_fit_mode_local": 49.999624170865296,
+        "first_tick_acc_global": 50.00771190730875,
+        "first_tick_component_mixture_moment_vs_core_target_norm": 4.453511071407104e-16,
+        "first_tick_exact_mixture_at_fitted_mode_curvature": 49.99962417068025,
+        "tick2_fit_global": 240.7363971639694,
+        "tick5_fit_global": 2646.5617088213235,
+        "tick20_fit_global": 136751.5006121121,
+        "tick20_fit_mode_local": 49.999615666578876,
+        "max_gravity_D_norm": 0.0,
+        "max_relative_diagonal_moment_fit_residual": 1.0492385503193959e-13
+      },
+      "480_measured_isotropic_trace": {
+        "first_tick_previous_global": 49.99999999999999,
+        "first_tick_component_globals": [
+          50.000000000000014,
+          50.0,
+          50.0,
+          49.999999999999986,
+          49.99999999999997,
+          50.0
+        ],
+        "first_tick_fit_global": 49.99999995003307,
+        "first_tick_fit_mode_local": 49.99962416461834,
+        "first_tick_acc_global": 49.99999995003304,
+        "first_tick_component_mixture_moment_vs_core_target_norm": 7.774136552390316e-16,
+        "first_tick_exact_mixture_at_fitted_mode_curvature": 49.999624164306155,
+        "tick2_fit_global": 49.9999998789168,
+        "tick5_fit_global": 49.9999995379152,
+        "tick20_fit_global": 49.99999529377519,
+        "tick20_fit_mode_local": 49.99966547311758,
+        "max_gravity_D_norm": 0.0,
+        "max_relative_diagonal_moment_fit_residual": 1.0463124880549727e-13
+      }
+    },
+    "findings": [
+      "The algebraic 1/2 factor and sign in D are verified independently by a centered finite difference on a moderate deterministic matrix. Right action matrices commute with J, and their explicit equal-weight moment mixture matches the unchanged core target to roundoff.",
+      "Under full measured covariance, the first precision single-Bingham fit raises the global curvature bound from 50 to about 50.0077. All six pre-fit rotated components retain the bound to around 4e-14. The next gravity addition has D=0 and does not account for this increase.",
+      "Repeated moment projection amplifies the global operator bound rapidly (about 240.7 at tick2, 2646.6 at tick5, 136751 at tick20), while curvature at the fitted mode stays near 50 during these first20ticks. Global and modal-local curvature must not be interchanged.",
+      "Using the same precise inverse with integration480 retains this conclusion. The two isotropic covariance controls retain global curvature around or below50 during this tested interval.",
+      "The exact positive-mixture curvature identity certifies the yaw curvature bound for the unprojected recurrence. This finite counterexample identifies the single-Bingham projection stage as the first stage departing from that bound; it does not authorize a replacement probability model or closure."
+    ]
+  },
+  "precision_fix_review": {
+    "all_checks_passed": true,
+    "checks": [
+      {
+        "name": "actual_measured_micro_noise_False",
+        "passed": true,
+        "noise_target_norm": 9.656709084232193e-12,
+        "noise_actual_norm": 9.657218985313362e-12,
+        "difference_error_norm": 5.649333875196429e-16,
+        "target_fit_error": 1.096713351175171e-16,
+        "iterations": 1,
+        "evaluations": 2
+      },
+      {
+        "name": "matches_reviewed_prototype_False",
+        "passed": true,
+        "matrix_maxabs": 0.0
+      },
+      {
+        "name": "inputs_unmodified_False",
+        "passed": true
+      },
+      {
+        "name": "actual_measured_micro_noise_True",
+        "passed": true,
+        "noise_target_norm": 9.656831293878445e-12,
+        "noise_actual_norm": 9.656636724789643e-12,
+        "difference_error_norm": 6.356193468451321e-16,
+        "target_fit_error": 3.8410710850258253e-16,
+        "iterations": 1,
+        "evaluations": 2
+      },
+      {
+        "name": "matches_reviewed_prototype_True",
+        "passed": true,
+        "matrix_maxabs": 0.0
+      },
+      {
+        "name": "inputs_unmodified_True",
+        "passed": true
+      },
+      {
+        "name": "hundred_micro_noise_increments_accumulate",
+        "passed": true,
+        "error_norm": 1.134440602919612e-16,
+        "noise_increase_norm": 9.656960549568437e-10
+      },
+      {
+        "name": "maxiter1_real_update_finite_unfinished_returned",
+        "passed": true,
+        "diagnostics": {
+          "method": "scaled_bingham_moment_equations_in_target_eigenbasis",
+          "optimizer": "Newton with analytic moment Jacobian and residual backtracking",
+          "optimizer_success": false,
+          "optimizer_status": 1,
+          "optimizer_message": "maximum_iterations_finite_result_retained",
+          "iterations": 1,
+          "function_evaluations": 2,
+          "maximum_iterations": 1,
+          "relative_moment_equation_residual": 1.6862047821654091,
+          "target_trace": 1.0,
+          "target_skew_norm": 0.0,
+          "target_moment_eigenvalues": [
+            0.02589076529291923,
+            0.053906362954310005,
+            0.1992385486907721,
+            0.7209643230619986
+          ],
+          "fitted_moment_in_target_basis": [
+            0.06657223680661098,
+            0.06972801224372903,
+            0.0922708806758494,
+            0.7714288702738107
+          ],
+          "initial_parameter_eigenvalues": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "fitted_parameter_eigenvalues": [
+            -8.340884120484569,
+            -8.00469689102099,
+            -6.260710363760099,
+            0.0
+          ],
+          "coordinate_scale": [
+            19.311905011040487,
+            9.27534288343271,
+            2.5095545178660394
+          ],
+          "unit_coordinate_scale_indices": [],
+          "moment_residual_frobenius": 0.1260716432692166,
+          "log_moment_ratios": [
+            0.9444012731398398,
+            0.257353612307072,
+            -0.7697742378550438,
+            0.06765481740528656
+          ],
+          "score_in_free_eigenvalues": [
+            0.04068147151369175,
+            0.015821649289419024,
+            -0.10696766801492269
+          ],
+          "score_in_scaled_coordinates": [
+            0.7856367135817646,
+            0.14675122214078093,
+            -0.26844119453244386
+          ],
+          "finite_iteration_result_used": true,
+          "target_moment_modified": false,
+          "concentration_bounds": null
+        }
+      },
+      {
+        "name": "singular_jacobian_returns_finite_no_filter_error",
+        "passed": true,
+        "diagnostics": {
+          "method": "scaled_bingham_moment_equations_in_target_eigenbasis",
+          "optimizer": "Newton with analytic moment Jacobian and residual backtracking",
+          "optimizer_success": false,
+          "optimizer_status": 1,
+          "optimizer_message": "singular_moment_jacobian_finite_result_retained",
+          "iterations": 0,
+          "function_evaluations": 1,
+          "maximum_iterations": 1,
+          "relative_moment_equation_residual": 9.39271413103637,
+          "target_trace": 1.0,
+          "target_skew_norm": 0.0,
+          "target_moment_eigenvalues": [
+            0.02589076529291923,
+            0.053906362954310005,
+            0.1992385486907721,
+            0.7209643230619986
+          ],
+          "fitted_moment_in_target_basis": [
+            0.25,
+            0.25,
+            0.25,
+            0.25
+          ],
+          "initial_parameter_eigenvalues": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "fitted_parameter_eigenvalues": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "coordinate_scale": [
+            19.311905011040487,
+            9.27534288343271,
+            2.5095545178660394
+          ],
+          "unit_coordinate_scale_indices": [],
+          "moment_residual_frobenius": 0.5595192419453204,
+          "log_moment_ratios": [
+            2.2675745651336148,
+            1.5342123958144065,
+            0.22695807390989295,
+            -1.0591287356214214
+          ],
+          "score_in_free_eigenvalues": [
+            0.22410923470708077,
+            0.19609363704569,
+            0.050761451309227906
+          ],
+          "score_in_scaled_coordinates": [
+            4.327976252760122,
+            1.8188357208581776,
+            0.12738862946650986
+          ],
+          "finite_iteration_result_used": true,
+          "target_moment_modified": false,
+          "concentration_bounds": null
+        }
+      },
+      {
+        "name": "unchanged_moment_root_uniform",
+        "passed": true,
+        "residual": 0.0,
+        "diagnostics": {
+          "method": "scaled_bingham_moment_equations_in_target_eigenbasis",
+          "optimizer": "Newton with analytic moment Jacobian and residual backtracking",
+          "optimizer_success": true,
+          "optimizer_status": 0,
+          "optimizer_message": "moment_equations_at_floating_precision",
+          "iterations": 0,
+          "function_evaluations": 1,
+          "maximum_iterations": 80,
+          "relative_moment_equation_residual": 0.0,
+          "target_trace": 1.0,
+          "target_skew_norm": 0.0,
+          "target_moment_eigenvalues": [
+            0.25,
+            0.25,
+            0.25,
+            0.25
+          ],
+          "fitted_moment_in_target_basis": [
+            0.25,
+            0.25,
+            0.25,
+            0.25
+          ],
+          "initial_parameter_eigenvalues": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "fitted_parameter_eigenvalues": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "coordinate_scale": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "unit_coordinate_scale_indices": [],
+          "moment_residual_frobenius": 0.0,
+          "log_moment_ratios": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "score_in_free_eigenvalues": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "score_in_scaled_coordinates": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "finite_iteration_result_used": true,
+          "target_moment_modified": false,
+          "concentration_bounds": null
+        }
+      },
+      {
+        "name": "unchanged_moment_root_repeated",
+        "passed": true,
+        "residual": 4.415885040048117e-17,
+        "diagnostics": {
+          "method": "scaled_bingham_moment_equations_in_target_eigenbasis",
+          "optimizer": "Newton with analytic moment Jacobian and residual backtracking",
+          "optimizer_success": true,
+          "optimizer_status": 0,
+          "optimizer_message": "moment_equations_at_floating_precision",
+          "iterations": 4,
+          "function_evaluations": 5,
+          "maximum_iterations": 80,
+          "relative_moment_equation_residual": 3.532706726627768e-15,
+          "target_trace": 1.0,
+          "target_skew_norm": 0.0,
+          "target_moment_eigenvalues": [
+            0.012500004619017466,
+            0.012500004619017466,
+            0.48749999538098254,
+            0.48749999538098254
+          ],
+          "fitted_moment_in_target_basis": [
+            0.012500004619017497,
+            0.012500004619017497,
+            0.48749999538098254,
+            0.48749999538098254
+          ],
+          "initial_parameter_eigenvalues": [
+            -38.97434418379069,
+            -38.97434418379069,
+            0.0,
+            0.0
+          ],
+          "fitted_parameter_eigenvalues": [
+            -40.000000000000114,
+            -40.000000000000114,
+            -2.479459742605948e-16,
+            0.0
+          ],
+          "coordinate_scale": [
+            39.99998521914957,
+            39.99998521914957,
+            1.0256410353588796
+          ],
+          "unit_coordinate_scale_indices": [],
+          "moment_residual_frobenius": 4.415885040048117e-17,
+          "log_moment_ratios": [
+            2.4424906541753412e-15,
+            2.4424906541753412e-15,
+            0.0,
+            0.0
+          ],
+          "score_in_free_eigenvalues": [
+            3.122502256758253e-17,
+            3.122502256758253e-17,
+            0.0
+          ],
+          "score_in_scaled_coordinates": [
+            1.2490004411709128e-15,
+            1.2490004411709128e-15,
+            0.0
+          ],
+          "finite_iteration_result_used": true,
+          "target_moment_modified": false,
+          "concentration_bounds": null
+        }
+      },
+      {
+        "name": "unchanged_moment_root_high_anisotropy",
+        "passed": true,
+        "residual": 5.030698080332806e-17,
+        "diagnostics": {
+          "method": "scaled_bingham_moment_equations_in_target_eigenbasis",
+          "optimizer": "Newton with analytic moment Jacobian and residual backtracking",
+          "optimizer_success": true,
+          "optimizer_status": 0,
+          "optimizer_message": "moment_equations_at_floating_precision",
+          "iterations": 3,
+          "function_evaluations": 4,
+          "maximum_iterations": 80,
+          "relative_moment_equation_residual": 1.7433914099313956e-14,
+          "target_trace": 1.0,
+          "target_skew_norm": 0.0,
+          "target_moment_eigenvalues": [
+            5.00000512294056e-10,
+            6.250006404460864e-10,
+            0.005025521474206338,
+            0.9949744774007925
+          ],
+          "fitted_moment_in_target_basis": [
+            5.00000512294051e-10,
+            6.2500064044608e-10,
+            0.005025521474206388,
+            0.9949744774007925
+          ],
+          "initial_parameter_eigenvalues": [
+            -999998974.9104123,
+            -799999179.727324,
+            -98.98963721432965,
+            0.0
+          ],
+          "fitted_parameter_eigenvalues": [
+            -999999999.9999834,
+            -799999999.9999995,
+            -99.99999999999777,
+            0.0
+          ],
+          "coordinate_scale": [
+            999998975.4129378,
+            799999180.2298495,
+            99.49216266735048
+          ],
+          "unit_coordinate_scale_indices": [],
+          "moment_residual_frobenius": 5.030698080332806e-17,
+          "log_moment_ratios": [
+            -9.880984919163942e-15,
+            -1.0214051826551492e-14,
+            9.992007221626358e-15,
+            0.0
+          ],
+          "score_in_free_eigenvalues": [
+            -4.963083675318166e-24,
+            -6.4106497472859645e-24,
+            5.0306980803327406e-17
+          ],
+          "score_in_scaled_coordinates": [
+            -4.963078590206844e-15,
+            -5.128514542569463e-15,
+            5.005150317387928e-15
+          ],
+          "finite_iteration_result_used": true,
+          "target_moment_modified": false,
+          "concentration_bounds": null
+        }
+      },
+      {
+        "name": "numeric_iteration_does_not_compare_dual_objective",
+        "passed": true
+      },
+      {
+        "name": "same_core_product_not_new_model",
+        "passed": true
+      },
+      {
+        "name": "finite_residual_is_diagnostic_no_threshold_rejection",
+        "passed": true
+      },
+      {
+        "name": "same_inverse_all_three_groups",
+        "passed": true
+      },
+      {
+        "name": "same_sample_covariance_passed_no_rescale",
+        "passed": true
+      },
+      {
+        "name": "core_unchanged_bingham.py",
+        "passed": true,
+        "sha256": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38"
+      },
+      {
+        "name": "core_unchanged_orientation_imu.py",
+        "passed": true,
+        "sha256": "87f21e6a777460579e0b5f0dad2bb2813a967ff0417b0ff82fef68d6da0aa109"
+      }
+    ],
+    "blocking_findings": [],
+    "known_limitations": [
+      "For highly anisotropic dense parameters, matrix reconstruction and eigendecomposition have separate double-precision representation errors; production reports the actual final matrix moment residual without rejecting a finite update.",
+      "This is numerical inversion of the unchanged moment equation, not a research-model alteration."
+    ]
+  },
+  "production_short_replay": {
+    "schema": "production-three-group-short-prefix-replay/v1",
+    "policy": "Existing full stationary gyro covariance, fixed stationary acceleration/magnetic calibration, original initial quaternion and all timestamped raw observations; only numerical moment inverse is changed. No image/video generation, decimation, noise/model changes or long prefix replay.",
+    "source_sha256": {
+      "bingham_moment_inverse.py": "f3c4c758489170d3374d71c390bef2fd25afb6f6787665909a89e2318ff9a043",
+      "compare_feedback_orientation.py": "ddb3008ac5f11e7f97580e76f5dfb9035f811410e9d019b11405dede46da0dff",
+      "compare_success_yaw_window.py": "b30eb5b4ab6bf38ac482e50374b637c8fa41e9e13a4f694c04e9c47e2c54542b",
+      "static_vector_noise.py": "c565aa9ec5ca0e19dd298fcd9da4e426a817a05712fc9b26e3ade9873326382c"
+    },
+    "N": 1200,
+    "bag_elapsed_extent_s": [
+      1.0536913871765137,
+      7.048657655715942
+    ],
+    "source_checks": {
+      "measurement_times_same_as_previous": true,
+      "mocap_reference_same_as_previous": true,
+      "acceleration_factors_same_as_previous": true,
+      "gyro_covariance_same_as_previous": true
+    },
+    "initial_quaternion_wxyz": [
+      -0.9997960167809389,
+      0.00040206147715907196,
+      0.003815165465171707,
+      0.019829465146863824
+    ],
+    "gyro_sample_covariance_rad2_s2": [
+      [
+        6.478144133955731e-07,
+        -5.356531501343634e-09,
+        -1.2324445742989155e-08
+      ],
+      [
+        -5.356531501343634e-09,
+        3.5189947789546463e-07,
+        4.5283211066537416e-08
+      ],
+      [
+        -1.2324445742989155e-08,
+        4.5283211066537416e-08,
+        3.48278089386577e-07
+      ]
+    ],
+    "covariance_passed_unchanged_every_call": true,
+    "input_covariance_not_mutated": true,
+    "group_propagation_calls": {
+      "gyro": 1199,
+      "gyro_acceleration": 1199,
+      "gyro_acceleration_magnetic": 1199
+    },
+    "expected_calls_per_group": 1199,
+    "all_groups_called_in_order": true,
+    "cases": [
+      {
+        "case_id": "gyro_only",
+        "yaw_rms_deg": 0.17018264243424408,
+        "SO3_rms_deg": 0.41288378312000484,
+        "maximum_absolute_yaw_error_deg": 0.5686308931645669,
+        "final_signed_yaw_error_deg": -0.22591023726479875
+      },
+      {
+        "case_id": "gyro_acceleration_output",
+        "yaw_rms_deg": 0.1705005393316746,
+        "SO3_rms_deg": 0.4511947975985428,
+        "maximum_absolute_yaw_error_deg": 0.5681114245080039,
+        "final_signed_yaw_error_deg": -0.22552182790047937
+      },
+      {
+        "case_id": "gyro_acceleration_feedback",
+        "yaw_rms_deg": 105.91644853336973,
+        "SO3_rms_deg": 105.91552713309386,
+        "maximum_absolute_yaw_error_deg": 179.97436229098463,
+        "final_signed_yaw_error_deg": -176.63651289528664
+      },
+      {
+        "case_id": "all_information_output",
+        "yaw_rms_deg": 2.8346349122904897,
+        "SO3_rms_deg": 2.8654072171358416,
+        "maximum_absolute_yaw_error_deg": 9.312322765622127,
+        "final_signed_yaw_error_deg": 0.6269270360714927
+      },
+      {
+        "case_id": "all_information_acceleration_feedback",
+        "yaw_rms_deg": 7.669259816530949,
+        "SO3_rms_deg": 7.681346579057116,
+        "maximum_absolute_yaw_error_deg": 18.30558694802633,
+        "final_signed_yaw_error_deg": -0.2047353156922611
+      },
+      {
+        "case_id": "all_information_feedback",
+        "yaw_rms_deg": 0.6636941583123379,
+        "SO3_rms_deg": 0.8057178453675643,
+        "maximum_absolute_yaw_error_deg": 4.944748385132016,
+        "final_signed_yaw_error_deg": -0.4977067207562129
+      }
+    ],
+    "gyro_only_initial_parameter_eigenvalues": [
+      -100.00000000000001,
+      -99.99999999999997,
+      -99.99999999999994,
+      1.7708057242771247e-14
+    ],
+    "gyro_only_final_parameter_eigenvalues": [
+      -99.99995571103302,
+      -99.9999426112888,
+      -99.99990573023891,
+      1.963420947169179e-37
+    ],
+    "gyro_only_initial_gap": [
+      100.00000000000003,
+      99.99999999999999,
+      99.99999999999996
+    ],
+    "gyro_only_final_gap": [
+      99.99995571103302,
+      99.9999426112888,
+      99.99990573023891
+    ],
+    "gyro_only_initial_moment_eigenvalues": [
+      0.005025789086628699,
+      0.005025789086628729,
+      0.0050257890866287755,
+      0.9849226327401134
+    ],
+    "gyro_only_final_moment_eigenvalues": [
+      0.005025791324368751,
+      0.005025791986165944,
+      0.005025793849392176,
+      0.9849226228400734
+    ],
+    "gyro_only_initial_second_moment": [
+      [
+        0.984522908487759,
+        -0.0003938984073645947,
+        -0.0037377060124786877,
+        -0.01942686674543322
+      ],
+      [
+        -0.0003938984073645947,
+        0.0050259474903159365,
+        1.5030942065548227e-06,
+        7.812388336354517e-06
+      ],
+      [
+        -0.0037377060124786877,
+        1.5030942065548227e-06,
+        0.005040051962913966,
+        7.413183275353547e-05
+      ],
+      [
+        -0.01942686674543322,
+        7.812388336354517e-06,
+        7.413183275353547e-05,
+        0.005411092059010661
+      ]
+    ],
+    "gyro_only_final_second_moment": [
+      [
+        0.9844788366187067,
+        -0.0017595498712365005,
+        -0.0010412846009174692,
+        -0.02074819212486513
+      ],
+      [
+        -0.0017595498712365005,
+        0.005028954806446092,
+        1.8705437014825942e-06,
+        3.7273256842960746e-05
+      ],
+      [
+        -0.0010412846009174692,
+        1.8705437014825942e-06,
+        0.005026898693308599,
+        2.2058331709897293e-05
+      ],
+      [
+        -0.02074819212486513,
+        3.7273256842960746e-05,
+        2.2058331709897293e-05,
+        0.005465309881538851
+      ]
+    ],
+    "maximum_moment_residual_by_group": [
+      1.3542846382878197e-15,
+      5.189070854346791e-09,
+      1.6468242605013658e-13
+    ],
+    "existing_precision_acceleration_prefix_comparison": {
+      "source_json": "/tmp/imu_gyro_fix_20261021/precision_prefix_replay.json",
+      "production_yaw_rms_deg": 105.91644853336973,
+      "existing_prototype_yaw_rms_deg": 105.91644853336973,
+      "rms_difference_deg": 0.0,
+      "max_attitude_difference_deg": 6.3613034856169464e-15,
+      "mode_arrays_bitwise_equal": true,
+      "parameter_arrays_bitwise_equal": true,
+      "agreement_within_1e_10_deg": true
+    },
+    "replay_wall_seconds": 11.262072613928467,
+    "total_wall_seconds": 14.819423089269549
+  },
+  "tests": {
+    "passed": 69,
+    "failed": 0,
+    "warning": "Existing Cryptodome imp-module deprecation warning",
+    "files": [
+      "test_bingham_moment_inverse.py",
+      "test_orientation_feedback_comparison.py",
+      "test_orientation_static_noise.py",
+      "test_rolling_orientation_comparison.py",
+      "test_orientation_evidence_video.py",
+      "test_orientation_success_window.py",
+      "test_madgwick_rolling.py"
+    ],
+    "command": "source /home/leus/catkin_ws/devel/setup.bash && env PYTHONPATH=/tmp/probtf_switch_press_pytest:$PYTHONPATH PYTHONDONTWRITEBYTECODE=1 MPLBACKEND=Agg OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q tests/probtf/test_bingham_moment_inverse.py tests/probtf/test_orientation_feedback_comparison.py tests/probtf/test_orientation_static_noise.py tests/probtf/test_rolling_orientation_comparison.py tests/probtf/test_orientation_evidence_video.py tests/probtf/test_orientation_success_window.py tests/probtf/test_madgwick_rolling.py"
+  },
+  "scope_and_remaining_issue": {
+    "fixed": "Numerical loss of small gyro-noise moment increments, including the gyro-only group bypass of the requested inverse.",
+    "yaw_jump_resolved": false,
+    "confirmed_shape_issue": "Single-Bingham moment projection fails the exact-recursion global world-yaw curvature bound with anisotropic measured gyro covariance, beginning at the first projection. This also occurs with precision root inversion and increased integration resolution.",
+    "causal_limit": "This shape counterexample and covariance-only replay do not numerically attribute every later mode jump. No unprojected full-history density replay was performed.",
+    "global_and_local_curvature_distinguished": true,
+    "research_model_changed": false,
+    "core_changed": false,
+    "covariance_isotropized_or_inflated": false,
+    "new_reset_or_observation_gating": false,
+    "monte_carlo_used": false,
+    "existing_long_video_regenerated": false,
+    "dthesis_changed": false
+  },
+  "source_sha256": {
+    "ros/examples/probtf_orientation_demo/scripts/bingham_moment_inverse.py": "f3c4c758489170d3374d71c390bef2fd25afb6f6787665909a89e2318ff9a043",
+    "ros/examples/probtf_orientation_demo/scripts/compare_feedback_orientation.py": "ddb3008ac5f11e7f97580e76f5dfb9035f811410e9d019b11405dede46da0dff",
+    "ros/examples/probtf_orientation_demo/scripts/compare_success_yaw_window.py": "b30eb5b4ab6bf38ac482e50374b637c8fa41e9e13a4f694c04e9c47e2c54542b",
+    "ros/examples/probtf_orientation_demo/scripts/static_vector_noise.py": "c565aa9ec5ca0e19dd298fcd9da4e426a817a05712fc9b26e3ade9873326382c",
+    "ros/core/probtf_core/src/probtf/bingham.py": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
+    "ros/core/probtf_core/src/probtf_estimators/orientation_imu.py": "87f21e6a777460579e0b5f0dad2bb2813a967ff0417b0ff82fef68d6da0aa109"
+  },
+  "standalone_first_projection_counterexample": {
+    "schema": "single-tick-world-yaw-curvature-projection-counterexample/v1",
+    "purpose": "Bag-free fixed numerical input for independent reproduction of the first full-covariance gyro-mixture to single-Bingham projection and its global yaw-curvature bound increase.",
+    "quaternion_order": "wxyz",
+    "rotation_convention": "R maps body to world; body-relative gyro quaternion increments multiply on the right; global world-z yaw multiplies on the left.",
+    "integration_steps": 120,
+    "A_after_first_acc": [
+      [
+        -72.15973347625237,
+        -14120.478758389912,
+        -13060.294211234228,
+        -1.9825420268730904
+      ],
+      [
+        -14120.478758389912,
+        -5129740.646805454,
+        0.00015339310625332142,
+        13059.913569777089
+      ],
+      [
+        -13060.294211234228,
+        0.00015339310625332142,
+        -5129740.64536607,
+        -14120.430995174513
+      ],
+      [
+        -1.9825420268730904,
+        13059.913569777089,
+        -14120.430995174513,
+        -172.07962022455442
+      ]
+    ],
+    "A_after_first_acc_second_moment": [
+      [
+        0.9945713818049684,
+        -0.002787667923081624,
+        -0.0024781757966038593,
+        -0.019616575846832147
+      ],
+      [
+        -0.002787667923081624,
+        7.94356644847983e-06,
+        6.910805893026178e-06,
+        6.778248130077195e-05
+      ],
+      [
+        -0.0024781757966038593,
+        6.910805893026178e-06,
+        6.310440958145198e-06,
+        3.503979570990492e-05
+      ],
+      [
+        -0.019616575846832147,
+        6.778248130077195e-05,
+        3.503979570990492e-05,
+        0.005414364187625146
+      ]
+    ],
+    "gyro_rad_s": [
+      -0.001122714369557798,
+      0.0008048734744079411,
+      -0.00017563543224241585
+    ],
+    "dt_s": 0.004999876022338867,
+    "gyro_sample_covariance_rad2_s2": [
+      [
+        6.478144133955731e-07,
+        -5.356531501343634e-09,
+        -1.2324445742989155e-08
+      ],
+      [
+        -5.356531501343634e-09,
+        3.5189947789546463e-07,
+        4.5283211066537416e-08
+      ],
+      [
+        -1.2324445742989155e-08,
+        4.5283211066537416e-08,
+        3.48278089386577e-07
+      ]
+    ],
+    "effective_covariance_after_existing_core_reexpression": [
+      [
+        6.478144133955728e-07,
+        -5.356531501343634e-09,
+        -1.232444574298915e-08
+      ],
+      [
+        -5.356531501343633e-09,
+        3.5189947789546426e-07,
+        4.528321106653709e-08
+      ],
+      [
+        -1.2324445742989149e-08,
+        4.528321106653707e-08,
+        3.482780893865767e-07
+      ]
+    ],
+    "six_delta_quaternions": [
+      [
+        0.9999999999952685,
+        -2.7704875169812432e-06,
+        3.5993588187874503e-07,
+        1.2876536160417516e-06
+      ],
+      [
+        0.9999999999868997,
+        -2.8429451392893044e-06,
+        3.6643317038135266e-06,
+        -2.1658090023763023e-06
+      ],
+      [
+        0.9999999999874836,
+        -2.6736788263231087e-06,
+        3.9769520795864015e-06,
+        1.4381390231607343e-06
+      ],
+      [
+        0.9999999999929953,
+        -2.9397538299462035e-06,
+        4.731550610573653e-08,
+        -2.3162944095033037e-06
+      ],
+      [
+        0.9999999999779811,
+        -6.289087129164018e-06,
+        2.0988469410220343e-06,
+        -2.8304332060706867e-07
+      ],
+      [
+        0.999999999997741,
+        6.756544729223367e-07,
+        1.9254206446699515e-06,
+        -5.951120657323835e-07
+      ]
+    ],
+    "cubature_weights": [
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666
+    ],
+    "cubature_order": "covariance eigensystem columns in ascending-eigenvalue order; positive then negative sqrt(3) offset for each column",
+    "gyro_increment_second_moment": [
+      [
+        0.9999999999794563,
+        -2.80671632809003e-06,
+        2.0121337928210023e-06,
+        -4.390776931647485e-07
+      ],
+      [
+        -2.80671632809003e-06,
+        1.1926295846460987e-11,
+        -5.680965432429957e-12,
+        1.15534256468423e-12
+      ],
+      [
+        2.0121337928210023e-06,
+        -5.680965432429957e-12,
+        6.247945069306703e-12,
+        -6.004770300393604e-13
+      ],
+      [
+        -4.390776931647485e-07,
+        1.15534256468423e-12,
+        -6.004770300393604e-13,
+        2.369419333872357e-12
+      ]
+    ],
+    "target_second_moment": [
+      [
+        0.994571358882603,
+        -0.002790418805284265,
+        -0.0024761207296397324,
+        -0.01961702260811812
+      ],
+      [
+        -0.002790418805284265,
+        7.9589476576963e-06,
+        6.9118865085755975e-06,
+        6.782789021193752e-05
+      ],
+      [
+        -0.0024761207296397324,
+        6.9118865085755975e-06,
+        6.300283988710756e-06,
+        3.498627679466223e-05
+      ],
+      [
+        -0.01961702260811812,
+        6.782789021193752e-05,
+        3.498627679466223e-05,
+        0.005414381885749863
+      ]
+    ],
+    "precise_fitted_A": [
+      [
+        -72.18418756152184,
+        -14134.288785760593,
+        -13049.698957064673,
+        -1.9832636088544628
+      ],
+      [
+        -14134.288785760593,
+        -5129528.113051543,
+        -3.744895063081284,
+        13049.053612020873
+      ],
+      [
+        -13049.698957064673,
+        -3.744895063081284,
+        -5129624.1127556935,
+        -14134.485929019298
+      ],
+      [
+        -1.9832636088544628,
+        13049.053612020873,
+        -14134.485929019298,
+        -172.10407274469864
+      ]
+    ],
+    "precise_fitted_second_moment": [
+      [
+        0.9945713588826401,
+        -0.00279041880528415,
+        -0.002476120729640067,
+        -0.019617022608031207
+      ],
+      [
+        -0.00279041880528415,
+        7.958947657695005e-06,
+        6.9118865085761565e-06,
+        6.782789021160669e-05
+      ],
+      [
+        -0.002476120729640067,
+        6.9118865085761565e-06,
+        6.300283988711897e-06,
+        3.498627679454005e-05
+      ],
+      [
+        -0.019617022608031207,
+        6.782789021160669e-05,
+        3.498627679454005e-05,
+        0.005414381885713997
+      ]
+    ],
+    "next_acceleration_G": [
+      [
+        -72.09174263244495,
+        -14015.786261646263,
+        -13167.368765012789,
+        0.0
+      ],
+      [
+        -14015.786261646263,
+        -5129878.280404894,
+        0.0,
+        13167.368765012789
+      ],
+      [
+        -13167.368765012789,
+        0.0,
+        -5129878.280404894,
+        -14015.786261646263
+      ],
+      [
+        0.0,
+        13167.368765012789,
+        -14015.786261646263,
+        -72.09174263244495
+      ]
+    ],
+    "A_after_next_acc": [
+      [
+        -144.27320461154085,
+        -28150.075047406855,
+        -26217.06772207746,
+        -1.9832636088544628
+      ],
+      [
+        -28150.075047406855,
+        -10259406.390730854,
+        -3.744895063081284,
+        26216.42237703366
+      ],
+      [
+        -26217.06772207746,
+        -3.744895063081284,
+        -10259502.390435005,
+        -28150.27219066556
+      ],
+      [
+        -1.9832636088544628,
+        26216.42237703366,
+        -28150.27219066556,
+        -244.19308979471765
+      ]
+    ],
+    "J_left_world_z_pure_k": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      [
+        0.0,
+        0.0,
+        -1.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "D_definition": "D(A)=0.5*(A-J.T@A@J); -d2/dtheta2 log B(exp(k theta/2)q)=q.T@D(A)@q.",
+    "right_action_matrix_formula": [
+      [
+        "w",
+        "-x",
+        "-y",
+        "-z"
+      ],
+      [
+        "x",
+        "w",
+        "z",
+        "-y"
+      ],
+      [
+        "y",
+        "-z",
+        "w",
+        "x"
+      ],
+      [
+        "z",
+        "y",
+        "-x",
+        "w"
+      ]
+    ],
+    "curvature_values": {
+      "input_after_acc": {
+        "global_maxeig_D": 49.99999999999999,
+        "mode_local_qDq": 49.999624192950144,
+        "mode_wxyz": [
+          0.9997965378709988,
+          -0.002802568670732847,
+          -0.002490919901253134,
+          -0.019819782744926292
+        ]
+      },
+      "six_rotated_components": [
+        {
+          "global_maxeig_D": 50.00000000000003,
+          "mode_local_qDq": 49.99962419295015,
+          "mode_wxyz": [
+            0.9997965565193839,
+            -0.002805334668136923,
+            -0.0024905015193959863,
+            -0.019818503262454414
+          ]
+        },
+        {
+          "global_maxeig_D": 49.99999999999999,
+          "mode_local_qDq": 49.99962419295012,
+          "mode_wxyz": [
+            0.9997964960920535,
+            -0.002805333016287644,
+            -0.0024872060383440762,
+            -0.019821965463664354
+          ]
+        },
+        {
+          "global_maxeig_D": 50.0,
+          "mode_local_qDq": 49.999624192950144,
+          "mode_wxyz": [
+            0.9997965687751974,
+            -0.00280516656549348,
+            -0.002486886736085947,
+            -0.019818362703407488
+          ]
+        },
+        {
+          "global_maxeig_D": 49.99999999999999,
+          "mode_local_qDq": 49.99962419295013,
+          "mode_wxyz": [
+            0.9997964838345474,
+            -0.0028055011189268213,
+            -0.00249082082164939,
+            -0.019822106022863613
+          ]
+        },
+        {
+          "global_maxeig_D": 50.000000000000014,
+          "mode_local_qDq": 49.99962419295013,
+          "mode_wxyz": [
+            0.9997965198416038,
+            -0.0028088141744786288,
+            -0.0024886976262031477,
+            -0.01982008727720063
+          ]
+        },
+        {
+          "global_maxeig_D": 50.00000000000001,
+          "mode_local_qDq": 49.99962419295013,
+          "mode_wxyz": [
+            0.9997965327634011,
+            -0.002801853509926286,
+            -0.002489009931522612,
+            -0.01982038144816645
+          ]
+        }
+      ],
+      "single_Bingham_fit": {
+        "global_maxeig_D": 50.00771154642202,
+        "mode_local_qDq": 49.99962417086519,
+        "mode_wxyz": [
+          0.9997965263085667,
+          -0.00280533384221988,
+          -0.002488853778875687,
+          -0.019820234363523197
+        ]
+      },
+      "after_next_acc": {
+        "global_maxeig_D": 50.007711546422016,
+        "mode_local_qDq": 49.99962843654936,
+        "mode_wxyz": [
+          0.9997965282828567,
+          -0.0027939194283564455,
+          -0.002500489351442395,
+          -0.01982028256049927
+        ]
+      },
+      "gravity_D_norm": 0.0
+    },
+    "moment_equivalence_check_norm": 8.89102685473771e-16,
+    "precision_inverse_diagnostics": {
+      "reason": "moment_residual_at_floating_precision",
+      "calls": 3,
+      "iterations": 3,
+      "relative_residual": 5.856305020275476e-14,
+      "moment_residual": 1.3333373949512087e-13,
+      "fitted_parameter_eigenvalues": [
+        -5129696.404756056,
+        -5129600.110063159,
+        -99.99924832813082,
+        -6.4299109042752295e-15
+      ]
+    },
+    "reproduction_steps": [
+      "All requested arrays are numerical literals in this file; the original bag is unnecessary.",
+      "For each supplied delta quaternion form the supplied right-action matrix K. The exact six-component predicted density has components A_i=K_i A K_i.T with the equal weights above.",
+      "Verify that each component has the same maxeig(D) as input A, since K_i commutes with J.",
+      "Compute target M as mean(K_i M_input K_i.T), or use the supplied unchanged-core quaternion-product target. The two agree to roundoff.",
+      "Independently solve the same Bingham second-moment matching problem, using supplied precise fitted A as a result to check rather than as an observation input.",
+      "Evaluate maxeig(D) and q_mode.T D q_mode separately before/after moment projection and after adding next_acceleration_G. The first fit violates the global50bound while the local modal curvature remains approximately50."
+    ],
+    "provenance": {
+      "frozen_inference_commit": "fdf493e",
+      "bag_sha256": "5e3f40a2c9cdf22938195a1c7a3c95d2a11e942875b0e7c87315005d235ef407",
+      "first_measurement_stamp_ns": 1781325844255258513,
+      "second_measurement_stamp_ns": 1781325844260258513,
+      "first_bag_elapsed_s": 1.0536913871765137,
+      "second_bag_elapsed_s": 1.0586912631988525,
+      "original_floating_measurement_stamps_s": [
+        1781325844.2552586,
+        1781325844.2602584
+      ],
+      "precision_inverse_prototype_sha256": "42bacaba236a82e806918ad725b1c6fa472012b70b4cacfff5c073f0db24ae2d",
+      "core_bingham_sha256": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
+      "core_orientation_imu_sha256": "87f21e6a777460579e0b5f0dad2bb2813a967ff0417b0ff82fef68d6da0aa109",
+      "numerical_environment": {
+        "OPENBLAS_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1"
+      }
+    },
+    "interpretation": "The unprojected equal-weight component mixture preserves the input global bound. The fitted single Bingham violates it despite an accurate moment root. This is a fixed local projection counterexample; it does not authorize a different candidate family, moment target, noise law or product implementation."
+  }
+}

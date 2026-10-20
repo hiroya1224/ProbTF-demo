@@ -7,7 +7,6 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
-from scipy.optimize import OptimizeResult
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -70,16 +69,48 @@ class BinghamMomentInverseTest(unittest.TestCase):
     def test_finite_unconverged_result_is_returned_with_its_actual_residual(self):
         target = inverse.bingham_second_moment(np.diag([-1e6, -2e5, -20., 0.]))
         before = target.copy()
-        result = OptimizeResult(x=np.zeros(3), success=False, status=1,
-                                message='finite iteration budget', nit=1, nfev=1, fun=123.)
-        with patch.object(inverse, 'minimize', return_value=result) as optimize:
-            fitted, diagnostic = inverse.fit_bingham_second_moment(target, max_iterations=1)
-        self.assertIsNone(optimize.call_args.kwargs['bounds'])
+        # An unusable Jacobian must leave an honest finite result rather than
+        # rejecting the next filter step or claiming moment convergence.
+        uniform, _ = inverse._moment_eigenvalues_and_jacobian(np.zeros(4), 120)
+        with patch.object(inverse, '_moment_eigenvalues_and_jacobian',
+                          return_value=(uniform, np.zeros((4, 4)))):
+            fitted, diagnostic = inverse.fit_bingham_second_moment(
+                target, initial_eigenvalues=np.zeros(4), max_iterations=1)
+        self.assertIsNone(diagnostic['concentration_bounds'])
         self.assertFalse(diagnostic['optimizer_success'])
         self.assertTrue(diagnostic['finite_iteration_result_used'])
         self.assertGreater(diagnostic['moment_residual_frobenius'], 0.1)
         np.testing.assert_array_equal(target, before)
         np.testing.assert_allclose(fitted, np.zeros((4, 4)), atol=0.)
+
+    def test_measured_micro_noise_is_not_erased_by_inverse_convergence(self):
+        parameter = np.diag([0., -100., -100., -100.])
+        covariance = np.array([[6.47814413e-7, -5.35653150e-9, -1.23244457e-8],
+                               [-5.35653150e-9, 3.51899478e-7, 4.52832111e-8],
+                               [-1.23244457e-8, 4.52832111e-8, 3.48278089e-7]])
+        current = inverse.bingham_second_moment(parameter)
+        target = inverse.quaternion_product_second_moment(current,
+            inverse.delta_quaternion_second_moment([0., 0., 0.], .005, covariance))
+        actual, _ = inverse.propagate(parameter, np.zeros(3), .005, covariance)
+        delta_target = target-current
+        delta_fitted = inverse.bingham_second_moment(actual)-current
+        self.assertGreater(np.linalg.norm(delta_target), 1e-12)
+        np.testing.assert_allclose(delta_fitted, delta_target, rtol=0., atol=1e-15)
+
+    def test_repeated_small_noise_matches_direct_moment_accumulation(self):
+        parameter = np.diag([0., -100., -100., -100.])
+        covariance = np.array([[6.5e-7, -5e-9, -1.2e-8],
+                               [-5e-9, 3.5e-7, 4.5e-8],
+                               [-1.2e-8, 4.5e-8, 3.5e-7]])
+        initial = inverse.bingham_second_moment(parameter)
+        direct = initial.copy()
+        increment = inverse.delta_quaternion_second_moment(np.zeros(3), .005, covariance)
+        for _ in range(100):
+            direct = inverse.quaternion_product_second_moment(direct, increment)
+            parameter, _ = inverse.propagate(parameter, np.zeros(3), .005, covariance)
+        self.assertGreater(np.linalg.norm(direct-initial), 5e-10)
+        np.testing.assert_allclose(inverse.bingham_second_moment(parameter), direct,
+                                   rtol=0., atol=5e-14)
 
     def test_propagation_uses_the_original_core_product_and_preceding_eigenvalues(self):
         parameter = np.diag([-5.13e6, -5.13e6, -100., 0.])

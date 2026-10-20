@@ -68,7 +68,7 @@ class SyntheticFlightDataTest(unittest.TestCase):
     def test_magnetic_truth_is_one_fixed_world_vector(self):
         arrays, settings = flight.generate_flight(duration_s=2.0, rng=ZeroNoise())
         rotations = Rotation.from_quat(arrays['truth_wxyz'][:, [1, 2, 3, 0]])
-        field = rotations.apply(arrays['ideal_magnetic_raw'])
+        field = rotations[arrays['magnetic_source_index']].apply(arrays['ideal_magnetic_raw'])
         expected = np.broadcast_to(settings['magnetic_field_world'], field.shape)
         np.testing.assert_allclose(field, expected, rtol=0.0, atol=5e-14)
         self.assertAlmostEqual(np.linalg.norm(settings['magnetic_reference_world_unit']), 1.0)
@@ -81,13 +81,35 @@ class SyntheticFlightDataTest(unittest.TestCase):
             estimated = settings['estimation_noise_variances'][sensor]
             generated = settings['generation_noise_variances'][sensor]
             ratio = settings['generation_to_estimation_variance_ratios'][sensor]
-            self.assertEqual(ratio, 9.0 if sensor == 'magnetic' else 4.0)
+            self.assertEqual(ratio, 2.25 if sensor == 'magnetic' else 4.0)
             self.assertEqual(generated, ratio * estimated)
             np.testing.assert_array_equal(settings['estimation_noise_covariances'][sensor], estimated*np.eye(3))
             np.testing.assert_array_equal(settings['generation_noise_covariances'][sensor], generated*np.eye(3))
             self.assertEqual(call[0], 0.0)
             self.assertEqual(call[1], np.sqrt(generated))
-            self.assertEqual(call[2], (11, 3))
+            self.assertEqual(call[2], (4, 3) if sensor == 'magnetic' else (11, 3))
+
+    def test_magnetic_publications_are_one_third_rate_with_original_source_clock(self):
+        arrays, settings = flight.generate_flight(rng=ZeroNoise())
+        indices = np.arange(0, 12001, 3)
+        np.testing.assert_array_equal(np.flatnonzero(arrays['magnetic_observed']), indices)
+        np.testing.assert_array_equal(arrays['magnetic_sample_indices'], indices)
+        self.assertEqual(settings['magnetic_sample_count'], 4001)
+        self.assertAlmostEqual(settings['sensor_sample_rates_hz']['magnetic'], 200.0/3.0)
+        source = 3 * (np.arange(12001) // 3)
+        np.testing.assert_array_equal(arrays['magnetic_source_index'], source)
+        np.testing.assert_array_equal(arrays['magnetic_measurement_stamps'], arrays['time_seconds'][source])
+        np.testing.assert_array_equal(arrays['magnetic_sample_stamps'], arrays['time_seconds'][indices])
+        for key in ('magnetic_raw', 'magnetic_noise', 'ideal_magnetic_raw'):
+            np.testing.assert_array_equal(arrays[key], arrays[key][source])
+
+    def test_roll_pitch_motion_and_quieter_magnetic_noise_match_new_conditions(self):
+        arrays, settings = flight.generate_flight(rng=ZeroNoise())
+        rpy = Rotation.from_quat(arrays['truth_wxyz'][:, [1, 2, 3, 0]]).as_euler('xyz', degrees=True)
+        self.assertAlmostEqual(np.max(np.abs(rpy[:, 0])), 20.0, places=8)
+        self.assertAlmostEqual(np.max(np.abs(rpy[:, 1])), 15.0, places=8)
+        self.assertAlmostEqual(settings['generation_noise_variances']['magnetic'], 6.042895406840119/20.0)
+        self.assertAlmostEqual(settings['estimation_noise_variances']['magnetic'], 0.6714328229822354/5.0)
 
     def test_measurements_reconstruct_from_ideal_saved_noise_and_separate_bias(self):
         arrays, settings = flight.generate_flight(duration_s=0.05, rng=RecordedNoise())

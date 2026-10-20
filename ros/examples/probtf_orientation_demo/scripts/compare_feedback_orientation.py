@@ -78,10 +78,21 @@ def modes_from_parameters(parameters, initial):
 def compare_six(gyro, acceleration, magnetic, timestamps, initial, reference,
                 initial_concentration=100., gyro_variance=1e-4,
                 acceleration_concentration=20., magnetic_concentration=20., integration_steps=120,
-                progress=None, propagation=None, gyro_covariance=None):
-    """Only retained evidence is propagated; output-only factors never modify a state."""
+                progress=None, propagation=None, gyro_covariance=None, magnetic_observed=None):
+    """Only retained evidence is propagated; output-only factors never modify a state.
+
+    An optional publication mask prevents sample-held magnetic readings from
+    being fused as new evidence. Output-only cases also omit absent factors;
+    a stale body-frame vector is not an observation of the current attitude.
+    Without the mask, the existing every-sample behavior is unchanged.
+    """
     gravity, field = direction_factors(acceleration, magnetic, reference,
                                       acceleration_concentration, magnetic_concentration)
+    magnetic_observed = (np.ones(len(timestamps), dtype=bool) if magnetic_observed is None
+                         else np.asarray(magnetic_observed, dtype=bool))
+    if magnetic_observed.shape != (len(timestamps),):
+        raise ValueError('magnetic_observed must match the measurement timestamps.')
+    field = np.where(magnetic_observed[:, None, None], field, 0.0)
     covariance = (np.eye(3)*gyro_variance if gyro_covariance is None
                   else np.array(gyro_covariance, dtype=float, copy=True))
     initial_parameter = initial_concentration*(np.outer(initial,initial)-np.eye(4))
@@ -109,11 +120,15 @@ def compare_six(gyro, acceleration, magnetic, timestamps, initial, reference,
     output = output_parameters(carried,gravity,field)
     return output,modes_from_parameters(output,initial),carried,residuals
 
-def evaluate(modes, truth):
+def evaluate(modes, truth, case_output_available=None):
     axis_errors, errors = original.rotation_error_series(modes,truth)
-    stats = [{'rpy_rms_deg':np.sqrt(np.mean(axis_errors[:,i]**2,axis=0)).tolist(),
-              'rms_deg':float(np.sqrt(np.mean(errors[:,i]**2))),
-              'final_deg':float(errors[-1,i])} for i in range(modes.shape[1])]
+    available = (np.ones(errors.shape, dtype=bool) if case_output_available is None
+                 else np.asarray(case_output_available, dtype=bool))
+    if available.shape != errors.shape or not np.all(available.any(axis=0)):
+        raise ValueError('case_output_available must match modes and include an output for each case.')
+    stats = [{'rpy_rms_deg':np.sqrt(np.mean(axis_errors[available[:,i],i]**2,axis=0)).tolist(),
+              'rms_deg':float(np.sqrt(np.mean(errors[available[:,i],i]**2))),
+              'final_deg':float(errors[available[:,i],i][-1])} for i in range(modes.shape[1])]
     return axis_errors, errors, stats
 
 def display_rpy(modes, reference_rpy):
@@ -152,7 +167,9 @@ def plot_errors(arrays, output, labels, colors, styles, prefix):
         values = arrays['rpy_error_deg'][:,:,component] if component < 3 else arrays['error_deg']
         for case,label in enumerate(labels):
             phase = CASE_LABELS.index(label) if label in CASE_LABELS else len(CASE_LABELS)
-            plot_condition(axis,arrays['time_seconds'],values[:,case],phase,
+            available = (arrays['case_output_available'][:,case] if 'case_output_available' in arrays
+                         else np.ones(len(arrays['time_seconds']), dtype=bool))
+            plot_condition(axis,arrays['time_seconds'][available],values[available,case],phase,
                 colors[case],styles[case],markers[case],label)
         axis.set_ylabel(('ロール誤差','ピッチ誤差','ヨー誤差','3軸の合成誤差')[component]+' [deg]')
         axis.set_xlim(arrays['time_seconds'][0],arrays['time_seconds'][-1])
@@ -171,7 +188,9 @@ def plot_orientation(arrays, output, reference_label='モーションキャプ�
     figure,axes = plt.subplots(3,1,sharex=True,figsize=(8.1,7.6))
     for component,axis in enumerate(axes):
         for case,label in enumerate(CASE_LABELS):
-            plot_condition(axis,arrays['time_seconds'],arrays['rpy_deg'][:,case,component],case,
+            available = (arrays['case_output_available'][:,case] if 'case_output_available' in arrays
+                         else np.ones(len(arrays['time_seconds']), dtype=bool))
+            plot_condition(axis,arrays['time_seconds'][available],arrays['rpy_deg'][available,case,component],case,
                 CASE_COLORS[case],CASE_STYLES[case],CASE_MARKERS[case],label)
         axis.plot(arrays['time_seconds'],arrays['mocap_rpy_deg'][:,component],
             color='#333333',ls=':',lw=1.,label=reference_label)

@@ -104,6 +104,8 @@ def create_diagnostics(input_directory, output_directory):
     if list(paired_summary['case_labels'])[-1] != 'madgwick_marg':
         raise ValueError('The final paired condition must be the nine-axis Madgwick filter.')
     modes = np.concatenate((arrays['mode_wxyz'], marginal['mode_wxyz'][:, -1:]), axis=1)
+    available = np.column_stack((arrays.get('case_output_available',
+        np.ones((len(times), 6), dtype=bool)), np.ones(len(times), dtype=bool)))
     if not np.isfinite(modes).all() or not np.isfinite(arrays['mocap_wxyz']).all():
         raise ValueError('Saved orientation values must be finite.')
     residuals = np.column_stack([
@@ -121,7 +123,7 @@ def create_diagnostics(input_directory, output_directory):
     figure, axes = plt.subplots(2, 1, sharex=True, figsize=(11.4, 8.8))
     for case, label in enumerate(labels):
         for axis, values in zip(axes, (displayed_rpy[:, case, 2], residuals[:, case])):
-            comparison.plot_condition(axis, times, values, case, colors[case],
+            comparison.plot_condition(axis, times[available[:, case]], values[available[:, case]], case, colors[case],
                                       styles[case], markers[case], display_label(label))
     axes[0].plot(times, reference_rpy[:, 2], color='black', linestyle='--',
                  linewidth=1.5, label=reference_label)
@@ -147,7 +149,9 @@ def create_diagnostics(input_directory, output_directory):
         signed_yaw_error_definition=(
             '(extrinsic-xyz Euler yaw(estimate) - Euler yaw(mocap) + 180) '
             'mod 360 - 180 degrees; range [-180, 180)'),
-        error_evaluation='all saved IMU-aligned samples; equal-weight statistics; no smoothing or decimation',
+        error_evaluation=('all actual outputs; output-only magnetic conditions use new magnetic publication ticks; equal-weight statistics; no smoothing'
+            if 'case_output_available' in arrays else
+            'all saved IMU-aligned samples; equal-weight statistics; no smoothing or decimation'),
         trend_diagnostic=(
             'Ordinary least-squares slope of the signed wrapped residual against '
             'measurement time. No trend line is added to the plot. A nonzero '
@@ -156,7 +160,7 @@ def create_diagnostics(input_directory, output_directory):
         mocap_motion=motion_statistics(arrays, summary.get('orientation_reference_description',
             'mocap quaternion spherical interpolation at the original IMU stamps')),
         statistics={name: dict(label=display_label(label),
-                               **series_statistics(residuals[:, case], times))
+                               **series_statistics(residuals[available[:, case], case], times[available[:, case]]))
                     for case, (name, label) in enumerate(zip(ids, labels))},
         source_files_sha256={str(path): sha256(path) for path in paths},
         source_summaries_sha256={str(path): sha256(path)
@@ -164,11 +168,12 @@ def create_diagnostics(input_directory, output_directory):
         helper_sha256={name: sha256(HERE / name) for name in (
             'compare_feedback_orientation.py', 'compare_rolling_bag.py')},
         plot_script_sha256=sha256(Path(__file__)),
-        plot_all_samples=True, plotted_trend_line=False,
+        plot_all_samples=bool(available.all()), plotted_trend_line=False,
         coordinate_reference='same world-to-body convention and timestamps as the saved six-condition inference',
         figure_files=['yaw_motion_and_signed_error.' + suffix
                       for suffix in ('png', 'pdf', 'svg')])
     if summary.get('synthetic_data', False):
+        report['case_output_counts'] = dict(zip(ids, available.sum(axis=0).tolist()))
         report['truth_motion'] = report.pop('mocap_motion')
         report['coordinate_reference'] = 'synthetic body-to-world truth at the original sensor timestamps'
         report['signed_yaw_error_definition'] = report['signed_yaw_error_definition'].replace(

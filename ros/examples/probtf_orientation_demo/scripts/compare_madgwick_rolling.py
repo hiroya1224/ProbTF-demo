@@ -125,6 +125,9 @@ def run_madgwick(arrays, magnetic_reference, beta=0.1):
     timestamps = arrays['measurement_stamps']
     if len(timestamps) == 0 or np.any(np.diff(timestamps) <= 0):
         raise ValueError('Measurement stamps must be nonempty and strictly increasing.')
+    magnetic_observed = np.asarray(arrays.get('magnetic_observed', np.ones(len(timestamps))), dtype=bool)
+    if magnetic_observed.shape != (len(timestamps),):
+        raise ValueError('magnetic_observed must match the measurement timestamps.')
     result = np.empty((len(timestamps), 2, 4))
     states = [initial_north.copy(), initial_north.copy()]
     result[0] = arrays['mocap_wxyz'][0]
@@ -133,7 +136,7 @@ def run_madgwick(arrays, magnetic_reference, beta=0.1):
         for case in (0, 1):
             states[case] = madgwick_update(
                 states[case], arrays['gyro_rad_s'][k], arrays['acceleration_m_s2'][k], interval,
-                arrays['magnetic_raw'][k] if case else None, beta)
+                arrays['magnetic_raw'][k] if case and magnetic_observed[k] else None, beta)
             north_attitude = original.rotations_from_wxyz(states[case])
             result[k, case] = original.wxyz_from_rotations(world_from_north*north_attitude)
     for case in (0, 1):

@@ -43,7 +43,8 @@ def estimate_measurements(measurements, initial, reference, noise, progress=None
         measurements['magnetic_raw'], measurements['measurement_stamps'], initial, reference,
         gyro_covariance=np.asarray(noise['angular_velocity']['isotropic_covariance']),
         acceleration_concentration=acceleration_weights, magnetic_concentration=magnetic_weights,
-        propagation=bingham_moment_inverse.propagate, progress=progress)
+        propagation=bingham_moment_inverse.propagate, progress=progress,
+        magnetic_observed=measurements.get('magnetic_observed'))
     return result, acceleration_weights, magnetic_weights
 
 
@@ -75,11 +76,18 @@ def main():
     noise = assumed_sensor_noise(settings)
     measurements = {key: data[key] for key in (
         'measurement_stamps', 'gyro_rad_s', 'acceleration_m_s2', 'magnetic_raw')}
+    # Datasets before v2 contain a new magnetic observation on every tick.
+    magnetic_observed = np.asarray(data.get('magnetic_observed', np.ones(len(times))), dtype=bool)
+    magnetic_source_index = np.asarray(data.get('magnetic_source_index', np.arange(len(times))))
+    magnetic_stamps = np.asarray(data.get('magnetic_measurement_stamps', times))
+    measurements['magnetic_observed'] = magnetic_observed
     (parameters, modes, carried, residuals), acc_weights, mag_weights = estimate_measurements(
         measurements, initial, reference, noise,
         progress=lambda k, total, seconds: print(
             'synthetic propagation {}/{}; {:.1f}s'.format(k, total, seconds), flush=True))
-    axis_errors, errors, stats = comparison.evaluate(modes, truth)
+    case_output_available = np.ones((len(times), len(comparison.CASE_IDS)), dtype=bool)
+    case_output_available[:, [3, 4]] = magnetic_observed[:, None]
+    axis_errors, errors, stats = comparison.evaluate(modes, truth, case_output_available)
     truth_rpy = np.rad2deg(np.unwrap(comparison.original.rotations_from_wxyz(truth).as_euler('xyz'), axis=0))
     # These two legacy names allow the unchanged comparison math to read its
     # reference arrays. They contain synthetic truth, never mocap measurements.
@@ -87,6 +95,9 @@ def main():
         measurement_stamp_ns=np.rint(times*1e9).astype(np.int64),
         gyro_rad_s=data['gyro_rad_s'], acceleration_m_s2=data['acceleration_m_s2'],
         magnetic_raw=data['magnetic_raw'], truth_wxyz=truth,
+        magnetic_observed=magnetic_observed, magnetic_source_index=magnetic_source_index,
+        magnetic_measurement_stamps=magnetic_stamps,
+        case_output_available=case_output_available,
         mocap_wxyz=truth, mocap_rpy_deg=truth_rpy,
         position_time_seconds=times, position_measurement_stamps=times, position_m=data['position_m'],
         display_parameter=parameters, mode_wxyz=modes, carried_parameter=carried,
@@ -98,13 +109,15 @@ def main():
     madgwick_inputs = dict(measurements, mocap_wxyz=initial.reshape(1, 4))
     madgwick_modes = comparison.madgwick.run_madgwick(madgwick_inputs, reference, .1)[:, 1]
     paired_modes = np.concatenate((modes[:, comparison.ALL_CASES], madgwick_modes[:, None]), axis=1)
-    paired_axis, paired_errors, paired_stats = comparison.evaluate(paired_modes, truth)
+    paired_available = np.column_stack((case_output_available[:, comparison.ALL_CASES], np.ones(len(times), bool)))
+    paired_axis, paired_errors, paired_stats = comparison.evaluate(paired_modes, truth, paired_available)
     paired = {key: arrays[key] for key in ('time_seconds', 'measurement_stamps',
         'measurement_stamp_ns', 'gyro_rad_s', 'acceleration_m_s2', 'magnetic_raw',
         'mocap_wxyz', 'mocap_rpy_deg', 'truth_wxyz', 'acceleration_direction_concentration',
-        'magnetic_direction_concentration')}
+        'magnetic_direction_concentration', 'magnetic_observed', 'magnetic_source_index',
+        'magnetic_measurement_stamps')}
     paired.update(mode_wxyz=paired_modes, rpy_deg=comparison.display_rpy(paired_modes, truth_rpy),
-                  rpy_error_deg=paired_axis, error_deg=paired_errors)
+                  rpy_error_deg=paired_axis, error_deg=paired_errors, case_output_available=paired_available)
     paired_output = output/'madgwick_comparison'
     paired_output.mkdir(exist_ok=True)
     np.savez_compressed(output/'timeseries.npz', **arrays)
@@ -125,6 +138,12 @@ def main():
         reference_magnetic_world_unit=reference.tolist(), gyro_bias_removed=False,
         gyro_sample_covariance_rad2_s2=noise['angular_velocity']['isotropic_covariance'],
         evaluated_imu_samples=len(times), position_samples=len(times),
+        evaluated_magnetic_samples=int(magnetic_observed.sum()),
+        case_output_counts=dict(zip(comparison.CASE_IDS, case_output_available.sum(axis=0).tolist())),
+        output_only_magnetic_statistics='cases 3 and 4 evaluated only on new magnetic publication ticks; no held observations counted',
+        sensor_sample_rates_hz=settings.get('sensor_sample_rates_hz',
+            dict.fromkeys(('angular_velocity', 'acceleration', 'magnetic'), (len(times)-1)/(times[-1]-times[0]))),
+        magnetic_publication_policy='only fuse new magnetic observations; absent output-only factors are zero; native observation display may hold last original stamp',
         duration_seconds=float(times[-1]-times[0]),
         truth_in_estimator='initial quaternion and fixed world reference vectors only; no later pose or generating covariance',
         physical_acceleration_model='R.T (position_second_derivative - gravity_world)',
@@ -153,6 +172,8 @@ def main():
     paired_metadata = dict(metadata, statistics=dict(zip(
         [comparison.CASE_IDS[i] for i in comparison.ALL_CASES]+['madgwick_marg'], paired_stats)),
         case_labels=dict(zip([comparison.CASE_IDS[i] for i in comparison.ALL_CASES]+['madgwick_marg'], labels)),
+        case_output_counts=dict(zip([comparison.CASE_IDS[i] for i in comparison.ALL_CASES]
+                                    +['madgwick_marg'], paired_available.sum(axis=0).tolist())),
         madgwick_beta=.1)
     (paired_output/'summary.json').write_text(json.dumps(paired_metadata, ensure_ascii=False, indent=2)+'\n')
     diagnostics.create_diagnostics(output, output)

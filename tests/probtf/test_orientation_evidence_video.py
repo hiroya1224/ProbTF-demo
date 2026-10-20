@@ -123,6 +123,29 @@ class ObservationEvidenceVideoTest(unittest.TestCase):
         for key in self.arrays:
             np.testing.assert_array_equal(self.arrays[key], before[key])
 
+    def test_calibrated_video_uses_the_same_raw_gaussian_factors_as_inference(self):
+        noise = renderer.static_vector_noise
+        calibration = dict(
+            acceleration=noise.estimate_isotropic_vector_noise(self.arrays['acceleration_m_s2']),
+            magnetic=noise.estimate_isotropic_vector_noise(self.arrays['magnetic_raw']))
+        summary = dict(self.summary, vector_noise_calibration=calibration)
+        summary.pop('acceleration_direction_concentration')
+        summary.pop('magnetic_direction_concentration')
+        arrays = dict(self.arrays)
+        arrays['acceleration_direction_concentration'] = noise.concentration_from_vector_noise(
+            arrays['acceleration_m_s2'], calibration['acceleration'])
+        arrays['magnetic_direction_concentration'] = noise.concentration_from_vector_noise(
+            arrays['magnetic_raw'], calibration['magnetic'])
+        expected = renderer.comparison.direction_factors(
+            arrays['acceleration_m_s2'], arrays['magnetic_raw'],
+            summary['reference_magnetic_world_unit'],
+            arrays['acceleration_direction_concentration'], arrays['magnetic_direction_concentration'])
+        np.testing.assert_array_equal(renderer.single_observation_parameters(arrays, summary),
+                                      np.stack(expected, axis=1))
+        arrays['acceleration_direction_concentration'] = arrays['acceleration_direction_concentration']*2
+        with self.assertRaisesRegex(ValueError, 'differs from its noise calibration'):
+            renderer.single_observation_parameters(arrays, summary)
+
 
 if __name__ == '__main__':
     unittest.main()

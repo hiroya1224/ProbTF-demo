@@ -14,15 +14,28 @@ HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location('feedback_comparison', HERE/'compare_feedback_orientation.py')
 comparison = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(comparison)
+import static_vector_noise
 
 
 def single_observation_parameters(arrays, summary):
     """Use the same native direction factors, without a prior or recursion."""
+    if 'vector_noise_calibration' in summary:
+        noise = summary['vector_noise_calibration']
+        acceleration_concentration = static_vector_noise.concentration_from_vector_noise(
+            arrays['acceleration_m_s2'], noise['acceleration'])
+        magnetic_concentration = static_vector_noise.concentration_from_vector_noise(
+            arrays['magnetic_raw'], noise['magnetic'])
+        for sensor, values in (('acceleration', acceleration_concentration), ('magnetic', magnetic_concentration)):
+            key = sensor+'_direction_concentration'
+            if key in arrays and not np.array_equal(arrays[key], values):
+                raise ValueError('The saved '+sensor+' concentration differs from its noise calibration.')
+    else:
+        acceleration_concentration = summary['acceleration_direction_concentration']
+        magnetic_concentration = summary['magnetic_direction_concentration']
     gravity, magnetic = comparison.direction_factors(
         arrays['acceleration_m_s2'], arrays['magnetic_raw'],
         np.asarray(summary['reference_magnetic_world_unit']),
-        summary['acceleration_direction_concentration'],
-        summary['magnetic_direction_concentration'])
+        acceleration_concentration, magnetic_concentration)
     return np.stack((gravity, magnetic), axis=1)
 
 
@@ -171,13 +184,17 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     observation_file = output/'single_observation_distributions.npz'
     np.savez_compressed(observation_file, display_parameter=observation_parameters,
         **{key: arrays[key] for key in ('time_seconds', 'measurement_stamps',
-            'measurement_stamp_ns', 'bag_record_stamp_ns', 'bag_elapsed_seconds') if key in arrays})
+            'measurement_stamp_ns', 'bag_record_stamp_ns', 'bag_elapsed_seconds',
+            'acceleration_direction_concentration', 'magnetic_direction_concentration') if key in arrays})
     report['single_observation_distributions'] = dict(
         labels=observation_labels, column=4, rows=['acceleration', 'magnetic'],
         acceleration_reference_world=comparison.original.SPECIFIC_FORCE_REFERENCE_WORLD.tolist(),
         magnetic_reference_world=summary['reference_magnetic_world_unit'],
-        acceleration_concentration=summary['acceleration_direction_concentration'],
-        magnetic_concentration=summary['magnetic_direction_concentration'],
+        acceleration_concentration=summary.get('acceleration_direction_concentration',
+            summary.get('direction_concentration_statistics', {}).get('acceleration')),
+        magnetic_concentration=summary.get('magnetic_direction_concentration',
+            summary.get('direction_concentration_statistics', {}).get('magnetic')),
+        vector_noise_calibration=summary.get('vector_noise_calibration'),
         law='normalized native single-direction likelihood; no prior, gyro or temporal accumulation',
         mode_axes_drawn=False, unobserved_rotation='about the respective reference direction',
         parameters_file=observation_file.name, parameters_sha256=hashlib.sha256(observation_file.read_bytes()).hexdigest(),

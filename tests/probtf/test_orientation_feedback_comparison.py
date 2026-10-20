@@ -51,6 +51,23 @@ class FeedbackComparisonTest(unittest.TestCase):
         np.testing.assert_allclose(first[-1, :5], second[-1, :5], atol=1e-12)
         self.assertGreater(np.linalg.norm(first[-1, 5]-second[-1, 5]), 1.)
 
+    def test_each_measured_noise_weight_is_applied_once_at_its_own_time(self):
+        self.gyro[:] = 0
+        acceleration_weights = np.array([2., 5., 3., 7., 4.])
+        magnetic_weights = np.array([3., 2., 6., 4., 8.])
+        options = dict(self.options, acceleration_concentration=acceleration_weights,
+                       magnetic_concentration=magnetic_weights)
+        output, _, retained, _ = comparison.compare_six(
+            self.gyro, self.acc, self.mag, self.times, self.q, self.reference, **options)
+        gravity, field = comparison.direction_factors(
+            self.acc, self.mag, self.reference, acceleration_weights, magnetic_weights)
+        initial = 20.*(np.outer(self.q, self.q)-np.eye(4))
+        canonical = comparison.original.canonical_bingham_parameter
+        for k in range(len(self.times)):
+            np.testing.assert_allclose(output[k, 1], canonical(initial+gravity[k]), atol=2e-12)
+            np.testing.assert_allclose(retained[k, 1], canonical(initial+gravity[:k+1].sum(axis=0)), atol=2e-12)
+            np.testing.assert_allclose(retained[k, 2], canonical(initial+(gravity+field)[:k+1].sum(axis=0)), atol=2e-12)
+
     def test_past_acceleration_changes_only_feedback_cases_at_final_sample(self):
         other_acc = self.acc.copy()
         other_acc[:-1] = [9.8, -0.4, 0.6]

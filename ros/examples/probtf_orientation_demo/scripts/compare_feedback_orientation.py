@@ -47,9 +47,13 @@ def canonical_batch(parameters):
     return parameters - np.linalg.eigvalsh(parameters)[...,-1,None,None]*np.eye(4)
 
 def direction_factors(acceleration, magnetic, reference, acceleration_concentration=20., magnetic_concentration=20.):
+    acceleration_weights = np.broadcast_to(acceleration_concentration, (len(acceleration),))
+    magnetic_weights = np.broadcast_to(magnetic_concentration, (len(magnetic),))
     gravity = np.array([original.gravity_bingham_evidence(
-        original.SPECIFIC_FORCE_REFERENCE_WORLD, vector, acceleration_concentration) for vector in acceleration])
-    field = np.array([original.magnetic_bingham_evidence(reference, vector, magnetic_concentration) for vector in magnetic])
+        original.SPECIFIC_FORCE_REFERENCE_WORLD, vector, weight)
+        for vector, weight in zip(acceleration, acceleration_weights)])
+    field = np.array([original.magnetic_bingham_evidence(reference, vector, weight)
+        for vector, weight in zip(magnetic, magnetic_weights)])
     return gravity, field
 
 def output_parameters(carried, gravity, magnetic):
@@ -74,7 +78,7 @@ def modes_from_parameters(parameters, initial):
 def compare_six(gyro, acceleration, magnetic, timestamps, initial, reference,
                 initial_concentration=100., gyro_variance=1e-4,
                 acceleration_concentration=20., magnetic_concentration=20., integration_steps=120,
-                progress=None):
+                progress=None, propagation=None):
     """Only retained evidence is propagated; output-only factors never modify a state."""
     gravity, field = direction_factors(acceleration, magnetic, reference,
                                       acceleration_concentration, magnetic_concentration)
@@ -89,7 +93,11 @@ def compare_six(gyro, acceleration, magnetic, timestamps, initial, reference,
             if interval <= 0:
                 raise ValueError('Measurement timestamps must strictly increase.')
             for group in range(3):
-                states[group], residuals[k,group] = original.propagate(
+                # Preserve the original gyro-only control calculation.  The
+                # observed groups can use an inverse supporting calibrated,
+                # highly concentrated direction likelihoods.
+                propagate = original.propagate if group == 0 or propagation is None else propagation
+                states[group], residuals[k,group] = propagate(
                     states[group],gyro[k],interval,np.eye(3)*gyro_variance,integration_steps)
         states[1] = original.canonical_bingham_parameter(states[1] + gravity[k])
         states[2] = original.canonical_bingham_parameter(states[2] + gravity[k] + field[k])

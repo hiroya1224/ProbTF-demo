@@ -14,6 +14,8 @@ import time
 import numpy as np
 
 import compare_feedback_orientation as comparison
+import static_vector_noise
+import bingham_moment_inverse
 
 
 def sha256(path):
@@ -91,6 +93,25 @@ def main():
     if abs(bag_start-origin) > 1e-6:
         raise ValueError('The selected bag clock origin differs from the source bag.')
     prefix, reference, metadata = comparison.prepare_measurements(imu, mocap)
+    calibration_start = max(imu[0, 1], mocap[0, 1])
+    calibration_end = calibration_start+metadata['calibration_seconds']
+    calibration = imu[(imu[:, 1] >= calibration_start) & (imu[:, 1] < calibration_end)]
+    noise = dict(
+        model='isotropic raw-vector Gaussian, converted exactly to Bingham direction evidence',
+        acceleration=static_vector_noise.estimate_isotropic_vector_noise(calibration[:, 5:8]),
+        magnetic=static_vector_noise.estimate_isotropic_vector_noise(calibration[:, 8:11]),
+        calibration_start_stamp=calibration_start, calibration_end_stamp_exclusive=calibration_end,
+        calibration_bag_elapsed_interval_s=[calibration_start-origin, calibration_end-origin],
+        calibration_actual_measurement_extent_s=[float(calibration[0, 1]), float(calibration[-1, 1])],
+        bag_sha256=actual_hash, calibration_before_filter_initialization=True,
+        reference_directions='existing world +z specific force and prefix-only fixed magnetic direction',
+        mean_subtracted_from_observations=False, calibration_parameter_uncertainty_propagated=False,
+        concentration='norm(static_mean)*norm(current_raw_vector)/isotropic_variance',
+        temporal_independence='existing filter assumption; measured lag-one correlations are retained')
+    metadata['vector_noise_calibration'] = noise
+    (args.output/'static_noise_calibration.json').write_text(json.dumps(noise, ensure_ascii=False, indent=2)+'\n')
+    metadata.pop('acceleration_direction_concentration')
+    metadata.pop('magnetic_direction_concentration')
     # Keep the complete recurrence from its original calibration/initial state
     # to the window end. Reference interpolation still has both end brackets.
     n = int(np.searchsorted(prefix['measurement_stamps'], end_stamp, side='right'))
@@ -102,6 +123,10 @@ def main():
     prefix['bag_record_stamp_ns'] = record_ns[prefix_ns_keep]
     prefix['bag_elapsed_seconds'] = prefix['measurement_stamps']-origin
     prefix['recurrence_elapsed_seconds'] = prefix['time_seconds'].copy()
+    prefix['acceleration_direction_concentration'] = static_vector_noise.concentration_from_vector_noise(
+        prefix['acceleration_m_s2'], noise['acceleration'])
+    prefix['magnetic_direction_concentration'] = static_vector_noise.concentration_from_vector_noise(
+        prefix['magnetic_raw'], noise['magnetic'])
     if len(prefix['measurement_stamp_ns']) != n:
         raise ValueError('The exact source stamps lost correspondence with prepared measurements.')
     print('prefix samples={}, bag elapsed {:.6f}..{:.6f}; display {}..{} s'.format(
@@ -109,6 +134,9 @@ def main():
     parameters, modes, carried, residuals = comparison.compare_six(
         prefix['gyro_rad_s'], prefix['acceleration_m_s2'], prefix['magnetic_raw'],
         prefix['measurement_stamps'], np.asarray(metadata['initial_quaternion_wxyz']), reference,
+        acceleration_concentration=prefix['acceleration_direction_concentration'],
+        magnetic_concentration=prefix['magnetic_direction_concentration'],
+        propagation=bingham_moment_inverse.propagate,
         progress=lambda k, total, seconds: print('propagation {}/{}; {:.1f}s'.format(k, total, seconds), flush=True))
     axis_errors, errors, prefix_stats = comparison.evaluate(modes, prefix['mocap_wxyz'])
     prefix.update(display_parameter=parameters, mode_wxyz=modes, carried_parameter=carried,
@@ -121,7 +149,8 @@ def main():
     paired_arrays = {key: window_arrays[key] for key in (
         'time_seconds', 'measurement_stamps', 'measurement_stamp_ns', 'bag_record_stamp_ns',
         'bag_elapsed_seconds', 'recurrence_elapsed_seconds', 'gyro_rad_s',
-        'acceleration_m_s2', 'magnetic_raw', 'mocap_wxyz', 'mocap_rpy_deg')}
+        'acceleration_m_s2', 'magnetic_raw', 'mocap_wxyz', 'mocap_rpy_deg',
+        'acceleration_direction_concentration', 'magnetic_direction_concentration')}
     paired_axis_errors, paired_errors, paired_stats = comparison.evaluate(comparison_modes, window_arrays['mocap_wxyz'])
     paired_arrays.update(mode_wxyz=comparison_modes,
         rpy_deg=comparison.display_rpy(comparison_modes, window_arrays['mocap_rpy_deg']),
@@ -138,7 +167,14 @@ def main():
     colors = [comparison.CASE_COLORS[i] for i in comparison.ALL_CASES]+[comparison.MADGWICK_COLOR]
     styles = [comparison.CASE_STYLES[i] for i in comparison.ALL_CASES]+[':']
     source_scripts = [Path(__file__).resolve(), *(Path(__file__).resolve().parent/name for name in (
-        'compare_feedback_orientation.py', 'compare_rolling_bag.py', 'compare_madgwick_rolling.py'))]
+        'compare_feedback_orientation.py', 'compare_rolling_bag.py', 'compare_madgwick_rolling.py',
+        'static_vector_noise.py', 'bingham_moment_inverse.py'))]
+    metadata['direction_concentration_statistics'] = {
+        sensor: dict(minimum=float(window_arrays[sensor+'_direction_concentration'].min()),
+            median=float(np.median(window_arrays[sensor+'_direction_concentration'])),
+            maximum=float(window_arrays[sensor+'_direction_concentration'].max()))
+        for sensor in ('acceleration', 'magnetic')}
+    metadata['moment_inverse'] = 'unbounded scaled Bingham dual using the unchanged core normalizer and second moments'
     metadata.update(bag_path=str(bag.resolve()), bag_sha256=actual_hash,
         bag_size_bytes=bag.stat().st_size, bag_start_ns=selected['bag_start_ns'],
         window_selection=selected['selection'], selection_sha256=sha256(args.selection_json),
@@ -177,6 +213,7 @@ def main():
     for output, arrays, report in ((args.output, window_arrays, metadata), (paired, paired_arrays, paired_metadata)):
         (output/'summary.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n')
     (args.output/'selection.json').write_text(args.selection_json.read_text())
+    (args.output/'static_noise_calibration.json').write_text(json.dumps(noise, ensure_ascii=False, indent=2)+'\n')
     print(json.dumps(dict(output=str(args.output), prefix_samples=n,
         window_samples=len(window_arrays['time_seconds']), statistics=metadata['statistics'],
         madgwick=paired_metadata['statistics']['madgwick_marg'],

@@ -82,3 +82,21 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_orientation_feedbac
 従来の方位計算9件とMadgwick フィルタ11件も通過した。分布の被覆率と、較正・観測誤差の時間相関を含む観測モデルの検証は本文のTODOに残している。
 
 [全体の最終精査](../../../docs/reports/orientation-six-feedback-final_2026-10-15.md)に、本文の配置、座標色、数値と動画の対応を記した。
+
+## 成功飛行の静止ノイズ校正
+
+`compare_success_yaw_window.py` は、2026年6月13日の成功飛行の冒頭1 [s]の静止200標本から、加速度と地磁気の3×3標本共分散をそれぞれ求める。分母は N−1、等方近似の分散は `trace(covariance)/3` であり、平均値の共分散にするための N 除算はしない。元の観測ベクトルから静止平均を引かない。
+
+生ベクトルの等方 Gaussian 観測モデルから、各時刻の集中度を `norm(static_mean)*norm(raw_measurement)/isotropic_variance` として既存の Bingham 方向尤度へ渡す。κを20へ固定せず、加速度・地磁気で別の校正値を使う。ノイズの校正値は `static_noise_calibration.json`、標本ごとの集中度は `timeseries.npz`、その範囲は `summary.json` に保存する。右列の加速度のみ・地磁気のみの分布も、推定と同じノイズ項で描く。
+
+このデータの加速度集中度は約256万になる。既存の逆モーメント計算の数値上限によって幅を広げないよう、観測を引き継ぐ2群には、デモ内の `bingham_moment_inverse.py` を使う。同じ core の正規化定数・2次モーメント・四元数積の伝播式を保ち、上限のない3自由固有値で Bingham の双対関数を数値最小化する。core の分布法則、ノイズ、目標モーメントを変更せず、有限の残差を理由に更新を停止しない。角速度だけの対照群と Madgwick フィルタは従来の計算を保つ。
+
+静止ノイズだけでは飛行中の並進加速度、磁場の変化、バイアスを説明しない。静止系列にも時間相関があるため、全標本の独立性まで検証できたという意味ではない。静止平均・参照・ノイズ共分散は固定した推定値として扱う。
+
+```bash
+source /home/leus/catkin_ws/devel/setup.bash
+PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 \
+  ros/examples/probtf_orientation_demo/scripts/compare_success_yaw_window.py \
+  --selection-json /home/leus/dthesis/references/imu-orientation-filter/20260613-success-yaw-63-123s/selection.json \
+  --output /tmp/imu-success-yaw-calibrated-noise
+```

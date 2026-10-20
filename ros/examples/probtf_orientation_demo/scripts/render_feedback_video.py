@@ -26,7 +26,10 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
 
     arrays = dict(np.load(input_directory/'timeseries.npz'))
     summary = json.loads((input_directory/'summary.json').read_text())
-    if list(summary['case_labels'].values()) != list(comparison.CASE_LABELS):
+    labels = tuple(label.replace('（', ' (').replace('）', ')')
+                   for label in summary['case_labels'].values())
+    expected = tuple(label.replace('（', ' (').replace('）', ')') for label in comparison.CASE_LABELS)
+    if tuple(summary['case_labels']) != tuple(comparison.CASE_IDS) or labels != expected:
         raise ValueError('The saved six conditions differ from the current comparison.')
     t = arrays['time_seconds']
     end = float(t[-1]) if duration is None else min(float(t[-1]), duration)
@@ -39,7 +42,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         left=.04, right=.96, top=.88, bottom=.14, hspace=.43)
     camera = np.array([1.4, -1.5, 1.])
     axes, point_clouds, mode_lines, truth_lines = [], [], [], []
-    for case, label in enumerate(comparison.CASE_LABELS):
+    for case, label in enumerate(labels):
         axis = figure.add_subplot(grid[case//3, case%3], projection='3d')
         draw_so3s(axis, np.eye(3)[None], axes=None, axes_gt=None,
             point_of_view=camera, distance=9)
@@ -50,7 +53,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         for component, color in enumerate(comparison.COORDINATE_COLORS):
             mode.append(axis.plot([0, 0], [0, 0], [0, 0], color=color, lw=2.)[0])
             truth.append(axis.plot([0, 0], [0, 0], [0, 0], color='black', ls='--', lw=1.4)[0])
-        axis.set_title(label.replace('（', '\n（'), fontsize=10, pad=10)
+        axis.set_title(label.replace(' (', '\n('), fontsize=10, pad=10)
         for setter, label in zip((axis.set_xlabel, axis.set_ylabel, axis.set_zlabel), ('x', 'y', 'z')):
             setter(label)
         axis.set_xlim(-1.05, 1.05)
@@ -61,7 +64,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         mode_lines.append(mode)
         truth_lines.append(truth)
     timeline = figure.add_subplot(grid[2, :])
-    for case, label in enumerate(comparison.CASE_LABELS):
+    for case, label in enumerate(labels):
         comparison.plot_condition(timeline, t, arrays['error_deg'][:, case], case,
             comparison.CASE_COLORS[case], comparison.CASE_STYLES[case], comparison.CASE_MARKERS[case], label)
     cursor = timeline.axvline(0., color='black', lw=1.)
@@ -72,7 +75,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     timeline.grid(alpha=.2)
     timeline.legend(ncol=2, loc='upper left', bbox_to_anchor=(0., -.28), fontsize=9, frameon=False, handlelength=4.3)
     clock = figure.text(.5, .98, '', ha='center', va='top', fontsize=15)
-    figure.text(.5, .947, '点群：Bingham分布の軸端点　赤・緑・青の実線：分布のモード　黒破線：モーションキャプチャ',
+    figure.text(.5, .947, '点群：Bingham 分布の軸端点　赤・緑・青の実線：分布のモード　黒破線：モーションキャプチャ',
         ha='center', va='top', fontsize=11)
     width, height = figure.canvas.get_width_height()
     command = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-vcodec', 'rawvideo',
@@ -117,7 +120,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         raise RuntimeError(f'ffmpeg failed with exit status {status}')
     report = dict(frames=len(indices), fps=fps, width=width, height=height,
         displayed_start_seconds=float(t[indices[0]]), displayed_end_seconds=float(t[indices[-1]]),
-        samples_per_distribution_per_frame=samples, condition_labels=comparison.CASE_LABELS,
+        samples_per_distribution_per_frame=samples, condition_labels=labels,
         coordinate_colors=summary['coordinate_colors'], mocap_reference='black dashed axes', axis_label_color='black',
         plot_style=['science','no-latex'], unit_format='square brackets',
         visualizer='third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s',

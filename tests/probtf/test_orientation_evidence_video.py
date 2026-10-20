@@ -179,5 +179,38 @@ class ObservationEvidenceVideoTest(unittest.TestCase):
         np.testing.assert_allclose(references, self.directions(), atol=1e-14)
 
 
+class CombinedErrorDisplayTest(unittest.TestCase):
+    def test_centered_mean_uses_elapsed_time_on_an_irregular_sampling_grid(self):
+        times = np.array([0.0, 0.08, 0.20, 0.30, 0.49, 0.78])
+        values = np.array([1.0, 3.0, 5.0, 7.0, 11.0, 13.0])
+        actual = renderer.time_window_mean(times, values, window_s=0.5)
+        np.testing.assert_allclose(actual, [3.0, 4.0, 4.0, 6.5, 9.0, 13.0],
+                                   rtol=0.0, atol=1e-14)
+
+    def test_endpoints_average_only_existing_samples_without_zero_padding(self):
+        times = np.arange(5, dtype=float) / 8.0
+        values = np.array([4.0, 8.0, 12.0, 16.0, 20.0])
+        actual = renderer.time_window_mean(times, values, window_s=0.5)
+        np.testing.assert_array_equal(actual, [8.0, 10.0, 12.0, 14.0, 16.0])
+        np.testing.assert_array_equal(renderer.time_window_mean(times, np.full(5, 9.0)),
+                                      np.full(5, 9.0))
+
+    def test_invalid_output_values_do_not_enter_the_valid_output_mean(self):
+        times = np.arange(7, dtype=float) / 20.0
+        available = np.array([True, False, True, False, True, False, True])
+        values = np.array([1.0, 1e8, 3.0, np.nan, 5.0, -1e8, 7.0])
+        actual = renderer.time_window_mean(times[available], values[available], window_s=0.5)
+        np.testing.assert_array_equal(actual, [3.0, 4.0, 4.0, 5.0])
+
+    def test_plot_smoothing_does_not_modify_source_times_or_error_values(self):
+        times = np.array([0.0, 0.12, 0.36, 0.5])
+        values = np.array([3.0, 1.0, 7.0, 5.0])
+        before_times, before_values = times.copy(), values.copy()
+        actual = renderer.time_window_mean(times, values)
+        np.testing.assert_array_equal(times, before_times)
+        np.testing.assert_array_equal(values, before_values)
+        self.assertFalse(np.shares_memory(actual, values))
+
+
 if __name__ == '__main__':
     unittest.main()

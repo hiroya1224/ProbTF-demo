@@ -52,6 +52,20 @@ def observation_reference_vectors_world(summary):
     return vectors / np.linalg.norm(vectors, axis=-1, keepdims=True)
 
 
+def time_window_mean(times, values, window_s=.5):
+    """Offline centered mean over actual observations within +/- window_s/2.
+
+    Boundary windows use only available observations, without zero padding.
+    Callers supply valid outputs only, so differing sensor rates are respected.
+    """
+    times = np.asarray(times, dtype=float)
+    values = np.asarray(values, dtype=float)
+    lower = np.searchsorted(times, times-window_s/2., side='left')
+    upper = np.searchsorted(times, times+window_s/2., side='right')
+    cumulative = np.r_[0., np.cumsum(values)]
+    return (cumulative[upper]-cumulative[lower])/(upper-lower)
+
+
 def render(input_directory, output, fps=4., samples=180, duration=None):
     plt = comparison.configure_plotting()
     sys.path.insert(0, str(comparison.original.ROOT/'third_party/BinghamNLL/src'))
@@ -132,10 +146,22 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         [.303, .9],
         transform=figure.transFigure, color='black', lw=1.5, ls=(0, (6, 5))))
     timeline = figure.add_axes([.065, .172, .91, .085])
+    error_display = {}
     for case, label in enumerate(labels):
         available = arrays.get('case_output_available', np.ones((len(t), 6), dtype=bool))[:, case]
-        comparison.plot_condition(timeline, t[available], arrays['error_deg'][available, case], case,
+        times = t[available]
+        raw = arrays['error_deg'][available, case]
+        averaged = time_window_mean(times, raw) if measured_observation_view else raw
+        if measured_observation_view:
+            timeline.plot(times, raw, color=comparison.CASE_COLORS[case], lw=.65, alpha=.18, zorder=1)
+        line = comparison.plot_condition(timeline, times, averaged, case,
             comparison.CASE_COLORS[case], comparison.CASE_STYLES[case], comparison.CASE_MARKERS[case], title_labels[case])
+        if measured_observation_view:
+            line.set_linewidth(2.2)
+            line.set_zorder(3)
+        error_display.update({f'time_seconds_{case}': times,
+            f'raw_error_deg_{case}': raw, f'mean_error_deg_{case}': averaged,
+            f'source_indices_{case}': np.flatnonzero(available)})
     cursor = timeline.axvline(0., color='black', lw=1.)
     timeline.set_xlim(0., t[-1])
     timeline.set_ylim(0., 5.)
@@ -144,6 +170,10 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     timeline.tick_params(labelsize=18)
     timeline.set_yticks(np.arange(0., 6.))
     timeline.grid(alpha=.2)
+    if measured_observation_view:
+        timeline.text(.01, .94, '太線：0.5 [s] 移動平均　薄線：生の誤差',
+            transform=timeline.transAxes, ha='left', va='top', fontsize=16,
+            bbox=dict(facecolor='white', edgecolor='none', alpha=.85, pad=2.))
     legend_axis = figure.add_axes([.05, .012, .93, .095])
     legend_axis.set_axis_off()
     legend_axis.legend(*timeline.get_legend_handles_labels(), ncol=3, loc='center',
@@ -227,6 +257,16 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     report['frame_measurement_times_seconds'] = t[indices].tolist()
     report['frame_time_policy'] = ('latest actual magnetic publication at or before nominal video frame; all panels share that time'
         if 'magnetic_observed' in arrays else 'first saved measurement at or after nominal video frame')
+    if measured_observation_view:
+        error_file = output/'combined_error_display.npz'
+        np.savez_compressed(error_file, window_s=np.array(.5), **error_display)
+        report['combined_error_display'] = dict(method='centered equal-weight moving mean',
+            window_s=.5, endpoint_policy='shrink to available observations; no zero padding',
+            observations='valid outputs only; native timestamps and all raw values retained',
+            raw_alpha=.18, raw_linewidth=.65, mean_linewidth=2.2,
+            offline_display_only=True, statistics_use_raw_errors=True,
+            source='unchanged timeseries.npz:error_deg and case_output_available',
+            arrays_file=error_file.name, arrays_sha256=hashlib.sha256(error_file.read_bytes()).hexdigest())
     if summary.get('synthetic_data', False):
         report.pop('mocap_reference')
         report['orientation_reference'] = dict(label=reference_label, rendering='black dashed axes in left six panels only',

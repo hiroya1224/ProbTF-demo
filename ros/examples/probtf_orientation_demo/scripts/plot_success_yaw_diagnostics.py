@@ -171,6 +171,8 @@ def create_diagnostics(input_directory, output_directory):
     if summary.get('synthetic_data', False):
         report['truth_motion'] = report.pop('mocap_motion')
         report['coordinate_reference'] = 'synthetic body-to-world truth at the original sensor timestamps'
+        report['signed_yaw_error_definition'] = report['signed_yaw_error_definition'].replace(
+            'yaw(mocap)', 'yaw(synthetic truth)')
     (output_directory / 'drift_diagnostics.json').write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     return report

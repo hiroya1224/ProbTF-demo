@@ -53,6 +53,28 @@ def test_full_covariance_keeps_exact_constant_gyro_as_dirac():
     assert actual['lag_one_autocorrelation'] == [None]*3
 
 
+def test_isotropic_gyro_noise_keeps_raw_covariance_without_requiring_nonzero_mean():
+    samples = np.array([[1., 2., 3.], [-1., -2., -3.],
+                        [2., -1., 0.], [-2., 1., 0.],
+                        [0., 1., -2.], [0., -1., 2.]]) * 1e-3
+    original = samples.copy()
+    actual = noise_model.estimate_isotropic_sensor_noise(samples)
+    measured = np.cov(samples, rowvar=False, ddof=1)
+    np.testing.assert_array_equal(actual['mean'], np.zeros(3))
+    np.testing.assert_allclose(actual['sample_covariance'], measured, rtol=1e-15, atol=0)
+    assert measured[0, 2] != 0
+    assert actual['isotropic_variance'] == pytest.approx(np.trace(measured)/3)
+    np.testing.assert_allclose(actual['isotropic_covariance'], np.trace(measured)/3*np.eye(3),
+                               rtol=1e-15, atol=0)
+    np.testing.assert_array_equal(samples, original)
+
+
+def test_isotropic_zero_gyro_variance_stays_zero_without_a_noise_floor():
+    actual = noise_model.estimate_isotropic_sensor_noise(np.zeros((8, 3)))
+    assert actual['isotropic_variance'] == 0
+    np.testing.assert_array_equal(actual['isotropic_covariance'], np.zeros((3, 3)))
+
+
 def test_estimate_preserves_raw_mean_and_full_unbiased_sample_covariance():
     samples = calibration_samples()
     original = samples.copy()

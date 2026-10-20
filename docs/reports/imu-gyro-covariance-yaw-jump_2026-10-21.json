@@ -1,4 +1,235 @@
 {
+  "isotropic_requirement_correction": {
+    "date": "2026-10-21",
+    "user_requirement": "All sensor noise covariances, including angular velocity, are isotropic.",
+    "previous_implementation_violation": "The full empirical gyro covariance was incorrectly used by propagation.",
+    "previous_conclusion_withdrawn": "Isotropization was described as a diagnostic that should not be adopted. It is actually the required model. The noncompliant run is not evidence of failure of the requested isotropic model.",
+    "correct_formula": "trace(empirical_sample_covariance)/3 * identity",
+    "raw_covariance_is_diagnostic_only": true,
+    "used_gyro_covariance_field": "gyro_sample_covariance_rad2_s2",
+    "actual_covariance_matches_metadata": true,
+    "numerical_moment_fix_retained": true,
+    "acceleration_magnetic_models_unchanged": true,
+    "core_changed": false,
+    "short_replay": {
+      "schema": "production-isotropic-gyro-short-prefix-replay/v1",
+      "correction": "The previous full gyro covariance was outside the requested isotropic sensor-noise model. This replay uses the requested trace(sample_covariance)/3 times identity, keeping the full measured covariance as a diagnostic only.",
+      "scope": "Only the isotropic gyro covariance correction is changed relative to the preceding production short replay. Acceleration and magnetic noise, raw measurements, reference, calibration interval and numerical moment inverse remain fixed. No video, image or long replay generated.",
+      "source_sha256": {
+        "bingham_moment_inverse.py": "f3c4c758489170d3374d71c390bef2fd25afb6f6787665909a89e2318ff9a043",
+        "compare_feedback_orientation.py": "ddb3008ac5f11e7f97580e76f5dfb9035f811410e9d019b11405dede46da0dff",
+        "compare_success_yaw_window.py": "c2b6245d5b7909fe2dd033e0a2edd08b0581e35cdc24e05ca6b8ad1dd11913c3",
+        "static_vector_noise.py": "be1ec475f0bd261e5d40081147987398730add81ba797c2ea38b4eca0b7181df"
+      },
+      "N": 1200,
+      "bag_elapsed_extent_s": [
+        1.0536913871765137,
+        7.048657655715942
+      ],
+      "source_checks": {
+        "measurement_times_same_as_full_covariance_replay": true,
+        "mocap_reference_same_as_previous": true,
+        "acceleration_factors_same_as_previous": true,
+        "raw_covariance_same_as_previous_calibration": true,
+        "isotropic_covariance_matches_trace_over_3": true,
+        "initial_quaternion_same_as_previous": true
+      },
+      "stationary_calibration_count": 200,
+      "gyro_noise_calibration": {
+        "count": 200,
+        "mean": [
+          -0.0005666962538748521,
+          0.0008703589160995762,
+          -0.00032217671169519234
+        ],
+        "sample_covariance": [
+          [
+            6.478144133955731e-07,
+            -5.356531501343634e-09,
+            -1.2324445742989155e-08
+          ],
+          [
+            -5.356531501343634e-09,
+            3.5189947789546463e-07,
+            4.5283211066537416e-08
+          ],
+          [
+            -1.2324445742989155e-08,
+            4.5283211066537416e-08,
+            3.48278089386577e-07
+          ]
+        ],
+        "covariance_divisor": 199,
+        "lag_one_autocorrelation": [
+          0.8234823226348766,
+          0.7594140574607537,
+          0.7938437689528713
+        ],
+        "covariance_of_individual_measurements": true,
+        "covariance_divided_by_sample_count": false,
+        "isotropic_variance": 4.493306602258716e-07,
+        "isotropic_covariance": [
+          [
+            4.493306602258716e-07,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.493306602258716e-07,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            4.493306602258716e-07
+          ]
+        ]
+      },
+      "actual_gyro_covariance": [
+        [
+          4.493306602258716e-07,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          4.493306602258716e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          4.493306602258716e-07
+        ]
+      ],
+      "gyro_isotropic_variance_rad2_s2": 4.493306602258716e-07,
+      "group_calls": {
+        "gyro": 1199,
+        "gyro_acceleration": 1199,
+        "gyro_acceleration_magnetic": 1199
+      },
+      "expected_calls_per_group": 1199,
+      "all_groups_called_in_order": true,
+      "every_call_received_requested_isotropic_covariance": true,
+      "input_covariance_not_mutated": true,
+      "cases": [
+        {
+          "case_id": "gyro_only",
+          "yaw_rms_deg": 0.17018264243431183,
+          "SO3_rms_deg": 0.4128837831199509,
+          "maximum_absolute_yaw_error_deg": 0.5686308931642259,
+          "final_signed_yaw_error_deg": -0.2259102372640882,
+          "maximum_one_step_attitude_change_deg": 0.0011303557607432442,
+          "maximum_one_step_interval_bag_s": [
+            2.5805270671844482,
+            2.585527181625366
+          ],
+          "old_unrequested_full_covariance_yaw_rms_deg": 0.17018264243424408
+        },
+        {
+          "case_id": "gyro_acceleration_output",
+          "yaw_rms_deg": 0.17050053957252584,
+          "SO3_rms_deg": 0.45119479768139886,
+          "maximum_absolute_yaw_error_deg": 0.5681114224216799,
+          "final_signed_yaw_error_deg": -0.2255218141210662,
+          "maximum_one_step_attitude_change_deg": 0.01276231457979584,
+          "maximum_one_step_interval_bag_s": [
+            3.710527181625366,
+            3.715527057647705
+          ],
+          "old_unrequested_full_covariance_yaw_rms_deg": 0.1705005393316746
+        },
+        {
+          "case_id": "gyro_acceleration_feedback",
+          "yaw_rms_deg": 0.17051770230019545,
+          "SO3_rms_deg": 0.4865357084816249,
+          "maximum_absolute_yaw_error_deg": 0.5681068113598258,
+          "final_signed_yaw_error_deg": -0.22587944114934544,
+          "maximum_one_step_attitude_change_deg": 0.0017463402806037556,
+          "maximum_one_step_interval_bag_s": [
+            1.1186914443969727,
+            1.1236913204193115
+          ],
+          "old_unrequested_full_covariance_yaw_rms_deg": 105.91644853336973
+        },
+        {
+          "case_id": "all_information_output",
+          "yaw_rms_deg": 2.8346349407775704,
+          "SO3_rms_deg": 2.86540724531843,
+          "maximum_absolute_yaw_error_deg": 9.312322941766325,
+          "final_signed_yaw_error_deg": 0.6269270547369672,
+          "maximum_one_step_attitude_change_deg": 12.923524744011848,
+          "maximum_one_step_interval_bag_s": [
+            3.290527105331421,
+            3.2955269813537598
+          ],
+          "old_unrequested_full_covariance_yaw_rms_deg": 2.8346349122904897
+        },
+        {
+          "case_id": "all_information_acceleration_feedback",
+          "yaw_rms_deg": 2.829563601771762,
+          "SO3_rms_deg": 2.8662294451069186,
+          "maximum_absolute_yaw_error_deg": 9.389890611630705,
+          "final_signed_yaw_error_deg": 0.6380514351722866,
+          "maximum_one_step_attitude_change_deg": 12.93361682119375,
+          "maximum_one_step_interval_bag_s": [
+            3.290527105331421,
+            3.2955269813537598
+          ],
+          "old_unrequested_full_covariance_yaw_rms_deg": 7.669259816530949
+        },
+        {
+          "case_id": "all_information_feedback",
+          "yaw_rms_deg": 0.6703050444033986,
+          "SO3_rms_deg": 0.811000898625172,
+          "maximum_absolute_yaw_error_deg": 4.944748420110386,
+          "final_signed_yaw_error_deg": -0.5158467330569465,
+          "maximum_one_step_attitude_change_deg": 1.4278414436358449,
+          "maximum_one_step_interval_bag_s": [
+            1.0536913871765137,
+            1.0586912631988525
+          ],
+          "old_unrequested_full_covariance_yaw_rms_deg": 0.6636941583123379
+        }
+      ],
+      "maximum_moment_residual_by_group": [
+        1.1861618155528225e-15,
+        1.5954998794559538e-10,
+        1.350002866459169e-13
+      ],
+      "gyro_only_initial_moment_eigenvalues": [
+        0.005025789086628699,
+        0.005025789086628729,
+        0.0050257890866287755,
+        0.9849226327401134
+      ],
+      "gyro_only_final_moment_eigenvalues": [
+        0.005025792386641752,
+        0.005025792386641922,
+        0.00502579238664283,
+        0.9849226228400735
+      ],
+      "gyro_only_final_gaps": [
+        99.9999346841923,
+        99.99993468418849,
+        99.9999346841706
+      ],
+      "replay_wall_seconds": 11.105122501961887,
+      "total_wall_seconds": 14.642662831116468
+    },
+    "tests": {
+      "passed": 72,
+      "failed": 0,
+      "new_regressions": [
+        "Zero-mean gyro calibration preserves raw covariance while using trace/3 I.",
+        "Zero gyro variance stays zero with no artificial noise floor.",
+        "Real success CLI passes isotropic covariance through all three groups at every original dt, matches metadata, and leaves acceleration/magnetic calibration unchanged."
+      ]
+    },
+    "remaining_scope": "Only the approximately six-second initial prefix was replayed. No complete 63-123 s window or video was regenerated; magnetic output-only single-step changes remain."
+  },
+  "following_original_investigation_is_historical": true,
   "schema": "imu-gyro-covariance-yaw-jump-investigation/v1",
   "date": "2026-10-21",
   "base_commit": "fdf493ef7ae2a96b4fbe406485dffaf21af05d83",

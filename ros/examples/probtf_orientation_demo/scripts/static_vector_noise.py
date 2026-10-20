@@ -28,18 +28,28 @@ def estimate_vector_noise(samples):
         covariance_of_individual_measurements=True, covariance_divided_by_sample_count=False)
 
 
-def estimate_isotropic_vector_noise(samples):
+def estimate_isotropic_sensor_noise(samples):
+    """Keep the measured covariance and use its trace for isotropic noise.
+
+    A zero stationary mean is valid for angular velocity. Reference magnitude
+    requirements belong to the directional likelihood, not this noise model.
+    """
     result = estimate_vector_noise(samples)
     covariance = np.asarray(result['sample_covariance'])
     variance = float(np.trace(covariance)/3)
+    return dict(result, isotropic_variance=variance,
+        isotropic_covariance=(variance*np.eye(3)).tolist())
+
+
+def estimate_isotropic_vector_noise(samples):
+    result = estimate_isotropic_sensor_noise(samples)
+    variance = result['isotropic_variance']
     magnitude = float(np.linalg.norm(result['mean']))
     if not np.isfinite(variance) or variance <= 0:
         raise ValueError('A positive finite measured noise variance is required; no variance floor is applied.')
     if not np.isfinite(magnitude) or magnitude <= 0:
         raise ValueError('The stationary mean must define a nonzero reference magnitude.')
-    return dict(result, isotropic_variance=variance,
-        isotropic_covariance=(variance*np.eye(3)).tolist(),
-        reference_magnitude=magnitude)
+    return dict(result, reference_magnitude=magnitude)
 
 
 def concentration_from_vector_noise(vectors, noise):

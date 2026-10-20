@@ -97,8 +97,8 @@ def main():
     calibration_end = calibration_start+metadata['calibration_seconds']
     calibration = imu[(imu[:, 1] >= calibration_start) & (imu[:, 1] < calibration_end)]
     noise = dict(
-        model='stationary Gaussian sensor noise; full gyro covariance and isotropic vector-direction evidence',
-        angular_velocity=static_vector_noise.estimate_vector_noise(calibration[:, 2:5]),
+        model='stationary isotropic Gaussian noise for angular velocity, acceleration and magnetic field',
+        angular_velocity=static_vector_noise.estimate_isotropic_sensor_noise(calibration[:, 2:5]),
         acceleration=static_vector_noise.estimate_isotropic_vector_noise(calibration[:, 5:8]),
         magnetic=static_vector_noise.estimate_isotropic_vector_noise(calibration[:, 8:11]),
         calibration_start_stamp=calibration_start, calibration_end_stamp_exclusive=calibration_end,
@@ -112,10 +112,12 @@ def main():
     metadata['vector_noise_calibration'] = noise
     noise['angular_velocity'].update(
         units='rad/s', covariance_units='rad^2/s^2',
-        covariance_used='full 3x3 sample covariance; no isotropic approximation',
+        covariance_used='trace(sample_covariance)/3 times identity; raw sample covariance is diagnostic only',
         propagation='existing gyro increment quaternion second moment; dt applied inside the increment map',
         bias_removed=False)
-    metadata['gyro_sample_covariance_rad2_s2'] = noise['angular_velocity']['sample_covariance']
+    # This existing metadata field records the covariance used by propagation.
+    # The empirical full covariance remains in angular_velocity.sample_covariance.
+    metadata['gyro_sample_covariance_rad2_s2'] = noise['angular_velocity']['isotropic_covariance']
     (args.output/'static_noise_calibration.json').write_text(json.dumps(noise, ensure_ascii=False, indent=2)+'\n')
     metadata.pop('acceleration_direction_concentration')
     metadata.pop('magnetic_direction_concentration')

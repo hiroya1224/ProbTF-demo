@@ -85,9 +85,9 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_orientation_feedbac
 
 ## 成功飛行の静止ノイズ校正
 
-`compare_success_yaw_window.py` は、2026年6月13日の成功飛行の冒頭1 [s]の静止200標本から、角速度・加速度・地磁気の3×3標本共分散をそれぞれ求める。分母は N−1であり、平均値の共分散にするための N 除算はしない。角速度は軸間の共分散を含む全3×3行列を使い、加速度・地磁気の方向観測だけを `trace(covariance)/3` で等方化する。元の観測ベクトルから静止平均を引かない。
+`compare_success_yaw_window.py` は、2026年6月13日の成功飛行の冒頭1 [s]の静止200標本から、角速度・加速度・地磁気の3×3標本共分散をそれぞれ求める。分母は N−1であり、平均値の共分散にするための N 除算はしない。ユーザー指定に従い、全センサで推定に使う共分散を `trace(covariance)/3 * I` として等方化する。元の全標本共分散は校正診断として残し、元の観測ベクトルから静止平均を引かない。
 
-角速度の共分散は `[[6.47814413e-7,-5.35653150e-9,-1.23244457e-8],[-5.35653150e-9,3.51899478e-7,4.52832111e-8],[-1.23244457e-8,4.52832111e-8,3.48278089e-7]] [rad²/s²]` である。旧固定値 `1e-4 I` を置き換え、同じ行列を再帰3群の全角速度予測へ渡す。実測 dt は既存の四元数増分計算の内部で適用し、入力共分散へ dt や標本数による追加の係数を掛けない。`static_noise_calibration.json` の `angular_velocity` と `summary.json` の `gyro_sample_covariance_rad2_s2` に同じ行列を保存する。
+推定に使う角速度共分散は `4.493306602258716e-7 I [rad²/s²]` である。旧固定値 `1e-4 I` を置き換え、同じ等方行列を再帰3群の全角速度予測へ渡す。実測 dt は既存の四元数増分計算の内部で適用し、入力共分散へ dt や標本数による追加の係数を掛けない。`static_noise_calibration.json` の `angular_velocity.sample_covariance` は生の標本共分散、`angular_velocity.isotropic_covariance` は実使用値である。`summary.json` の既存フィールド `gyro_sample_covariance_rad2_s2` にも実使用の等方行列を保存する。
 
 生ベクトルの等方 Gaussian 観測モデルから、各時刻の集中度を `norm(static_mean)*norm(raw_measurement)/isotropic_variance` として既存の Bingham 方向尤度へ渡す。κを20へ固定せず、加速度・地磁気で別の校正値を使う。ノイズの校正値は `static_noise_calibration.json`、標本ごとの集中度は `timeseries.npz`、その範囲は `summary.json` に保存する。右列の加速度のみ・地磁気のみの分布も、推定と同じノイズ項で描く。
 
@@ -95,7 +95,7 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_orientation_feedbac
 
 静止ノイズだけでは飛行中の並進加速度、磁場の変化、バイアスを説明しない。静止系列にも時間相関があるため、全標本の独立性まで検証できたという意味ではない。静止平均・参照・ノイズ共分散は固定した推定値として扱う。
 
-実測角速度共分散の異方性によって、加速度を事前へ戻す条件では異常なヨー変化が再現する。逆算で微小ノイズを取りこぼす不具合は修正したが、この変化は未解消である。単一Binghamへのモーメント近似がヨー方向の密度形状を保たない反例と、数値不具合の修正を[調査報告](../../../docs/reports/imu-gyro-covariance-yaw-jump_2026-10-21.md)に区別して記録した。
+修正前は、角速度だけ全共分散を使う要件違反があった。異常なヨー変化を調べた旧試行はこの誤った入力によるものであり、指定された等方モデルの結果ではない。[調査報告](../../../docs/reports/imu-gyro-covariance-yaw-jump_2026-10-21.md)の冒頭に訂正を記した。微小ノイズを取りこぼさない数値逆算の修正は保持する。
 
 ```bash
 source /home/leus/catkin_ws/devel/setup.bash

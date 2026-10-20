@@ -38,8 +38,12 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     indices = np.minimum(np.searchsorted(t, frame_times), len(t)-1)
     output.mkdir(parents=True, exist_ok=True)
     figure = plt.figure(figsize=(16, 14.8), dpi=100)
-    grid = figure.add_gridspec(3, 3, height_ratios=(3.6, 3.6, 1.8),
-        left=.04, right=.96, top=.88, bottom=.14, hspace=.43)
+    grid = figure.add_gridspec(3, 3, height_ratios=(3.4, 3.4, 1.7),
+        left=.09, right=.965, top=.815, bottom=.14, hspace=.65)
+    title_labels = tuple(label.replace(' (', '\n(')
+        .replace('加速度と地磁気は予測', '加速度と地磁気は\n予測')
+        .replace('加速度も地磁気も予測', '加速度も地磁気も\n予測')
+        for label in labels)
     camera = np.array([1.4, -1.5, 1.])
     axes, point_clouds, mode_lines, truth_lines = [], [], [], []
     for case, label in enumerate(labels):
@@ -53,9 +57,11 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         for component, color in enumerate(comparison.COORDINATE_COLORS):
             mode.append(axis.plot([0, 0], [0, 0], [0, 0], color=color, lw=2.)[0])
             truth.append(axis.plot([0, 0], [0, 0], [0, 0], color='black', ls='--', lw=1.4)[0])
-        axis.set_title(label.replace(' (', '\n('), fontsize=10, pad=10)
+        axis.set_title(f'[{case+1}] '+title_labels[case], fontsize=20, pad=14,
+                       linespacing=1.12)
         for setter, label in zip((axis.set_xlabel, axis.set_ylabel, axis.set_zlabel), ('x', 'y', 'z')):
-            setter(label)
+            setter(label, fontsize=18, labelpad=7)
+        axis.tick_params(labelsize=15, pad=1)
         axis.set_xlim(-1.05, 1.05)
         axis.set_ylim(-1.05, 1.05)
         axis.set_zlim(-1.05, 1.05)
@@ -66,17 +72,22 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     timeline = figure.add_subplot(grid[2, :])
     for case, label in enumerate(labels):
         comparison.plot_condition(timeline, t, arrays['error_deg'][:, case], case,
-            comparison.CASE_COLORS[case], comparison.CASE_STYLES[case], comparison.CASE_MARKERS[case], label)
+            comparison.CASE_COLORS[case], comparison.CASE_STYLES[case], comparison.CASE_MARKERS[case], f'条件 {case+1}')
     cursor = timeline.axvline(0., color='black', lw=1.)
     timeline.set_xlim(0., t[-1])
     timeline.set_ylim(0., max(10., float(arrays['error_deg'].max())*1.05))
-    timeline.set_xlabel('経過時間 [s]')
-    timeline.set_ylabel('3軸の合成誤差 [deg]')
+    timeline.set_xlabel('経過時間 [s]', fontsize=20, labelpad=8)
+    timeline.set_ylabel('3軸の合成誤差\n[deg]', fontsize=20, labelpad=8)
+    timeline.tick_params(labelsize=18)
+    from matplotlib.ticker import MaxNLocator
+    timeline.yaxis.set_major_locator(MaxNLocator(nbins=4))
     timeline.grid(alpha=.2)
-    timeline.legend(ncol=2, loc='upper left', bbox_to_anchor=(0., -.28), fontsize=9, frameon=False, handlelength=4.3)
-    clock = figure.text(.5, .98, '', ha='center', va='top', fontsize=15)
-    figure.text(.5, .947, '点群：Bingham 分布の軸端点　赤・緑・青の実線：分布のモード　黒破線：モーションキャプチャ',
-        ha='center', va='top', fontsize=11)
+    figure.legend(*timeline.get_legend_handles_labels(), ncol=6, loc='lower center',
+        bbox_to_anchor=(.52, .015), fontsize=20, frameon=False,
+        handlelength=2.2, columnspacing=1.4)
+    clock = figure.text(.5, .985, '', ha='center', va='top', fontsize=28)
+    figure.text(.5, .942, '点群：Bingham 分布の軸端点\n実線：赤・緑・青のモード軸　黒破線：モーションキャプチャ',
+        ha='center', va='top', fontsize=20, linespacing=1.2)
     width, height = figure.canvas.get_width_height()
     command = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-vcodec', 'rawvideo',
         '-pix_fmt', 'rgb24', '-s', f'{width}x{height}', '-r', str(fps), '-i', '-', '-an',
@@ -126,6 +137,11 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         visualizer='third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s',
         input_timeseries_sha256=hashlib.sha256((input_directory/'timeseries.npz').read_bytes()).hexdigest(),
         renderer_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+    report['typography'] = dict(condition_title_pt=20, legend_pt=20, clock_pt=28,
+        explanation_pt=20, coordinate_label_pt=18, coordinate_tick_pt=15,
+        timeline_label_pt=20, timeline_tick_pt=18,
+        legend_condition_numbers='1..6 match the six fully named panel titles',
+        panel_titles=title_labels)
     (output/'video.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n')
     return report
 

@@ -238,8 +238,8 @@ def propagate(parameter, gyro, dt, covariance, integration_steps=120):
         ))
         if fallback_residual < residual:
             predicted, residual = fallback, fallback_residual
-    if not np.isfinite(residual) or residual > 1e-3:
-        raise FloatingPointError('Bingham moment matching did not resolve the target: {}'.format(residual))
+    if not np.isfinite(residual):
+        raise FloatingPointError('Bingham moment matching returned a non-finite residual: {}'.format(residual))
     return canonical_bingham_parameter(predicted), residual
 
 

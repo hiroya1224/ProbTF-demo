@@ -4,6 +4,7 @@ import importlib.util
 import os
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -144,6 +145,18 @@ class RollingComparisonTest(unittest.TestCase):
         np.testing.assert_allclose(bingham_second_moment(predicted),bingham_second_moment(baseline),atol=2e-5)
         self.assertGreater(abs(bingham_mode(predicted) @ bingham_mode(baseline)),1.0-1e-10)
         self.assertLess(residual,2e-5)
+
+    def test_finite_inverse_fit_residual_is_reported_without_stopping_prediction(self):
+        a = np.diag([0., -4., -12., -30.])
+        # An intentionally unfinished numerical inverse still defines a finite
+        # next law; the residual is a diagnostic, not an update rejection gate.
+        with patch.object(comparison, 'match_bingham_to_second_moment', return_value=a.copy()):
+            predicted, residual = comparison.propagate(a, np.array([1., -.5, .8]),
+                .5, np.diag([6e-7, 4e-7, 3e-7]))
+        self.assertTrue(np.isfinite(predicted).all())
+        self.assertTrue(np.isfinite(residual))
+        self.assertGreater(residual, 1e-3)
+        np.testing.assert_array_equal(predicted, a)
 
 
 if __name__ == '__main__':

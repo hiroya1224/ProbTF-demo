@@ -97,7 +97,8 @@ def main():
     calibration_end = calibration_start+metadata['calibration_seconds']
     calibration = imu[(imu[:, 1] >= calibration_start) & (imu[:, 1] < calibration_end)]
     noise = dict(
-        model='isotropic raw-vector Gaussian, converted exactly to Bingham direction evidence',
+        model='stationary Gaussian sensor noise; full gyro covariance and isotropic vector-direction evidence',
+        angular_velocity=static_vector_noise.estimate_vector_noise(calibration[:, 2:5]),
         acceleration=static_vector_noise.estimate_isotropic_vector_noise(calibration[:, 5:8]),
         magnetic=static_vector_noise.estimate_isotropic_vector_noise(calibration[:, 8:11]),
         calibration_start_stamp=calibration_start, calibration_end_stamp_exclusive=calibration_end,
@@ -109,6 +110,12 @@ def main():
         concentration='norm(static_mean)*norm(current_raw_vector)/isotropic_variance',
         temporal_independence='existing filter assumption; measured lag-one correlations are retained')
     metadata['vector_noise_calibration'] = noise
+    noise['angular_velocity'].update(
+        units='rad/s', covariance_units='rad^2/s^2',
+        covariance_used='full 3x3 sample covariance; no isotropic approximation',
+        propagation='existing gyro increment quaternion second moment; dt applied inside the increment map',
+        bias_removed=False)
+    metadata['gyro_sample_covariance_rad2_s2'] = noise['angular_velocity']['sample_covariance']
     (args.output/'static_noise_calibration.json').write_text(json.dumps(noise, ensure_ascii=False, indent=2)+'\n')
     metadata.pop('acceleration_direction_concentration')
     metadata.pop('magnetic_direction_concentration')
@@ -136,6 +143,7 @@ def main():
         prefix['measurement_stamps'], np.asarray(metadata['initial_quaternion_wxyz']), reference,
         acceleration_concentration=prefix['acceleration_direction_concentration'],
         magnetic_concentration=prefix['magnetic_direction_concentration'],
+        gyro_covariance=np.asarray(metadata['gyro_sample_covariance_rad2_s2']),
         propagation=bingham_moment_inverse.propagate,
         progress=lambda k, total, seconds: print('propagation {}/{}; {:.1f}s'.format(k, total, seconds), flush=True))
     axis_errors, errors, prefix_stats = comparison.evaluate(modes, prefix['mocap_wxyz'])

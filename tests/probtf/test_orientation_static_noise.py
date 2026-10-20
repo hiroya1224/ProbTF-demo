@@ -23,6 +23,36 @@ def calibration_samples():
     return center + offsets
 
 
+def test_full_covariance_supports_zero_mean_gyro_and_keeps_cross_axes():
+    samples = np.array([[1., 2., 3.], [-1., -2., -3.],
+                        [2., -1., 0.], [-2., 1., 0.],
+                        [0., 1., -2.], [0., -1., 2.]]) * 1e-3
+    original = samples.copy()
+    actual = noise_model.estimate_vector_noise(samples)
+    expected = np.cov(samples, rowvar=False, ddof=1)
+    np.testing.assert_array_equal(actual['mean'], np.zeros(3))
+    np.testing.assert_allclose(actual['sample_covariance'], expected, rtol=1e-15, atol=0)
+    assert abs(expected[0, 2]) > 0
+    assert actual['covariance_divisor'] == len(samples)-1
+    assert not actual['covariance_divided_by_sample_count']
+    np.testing.assert_array_equal(samples, original)
+
+
+def test_full_covariance_transforms_with_sensor_axes_without_isotropization():
+    samples = calibration_samples()
+    rotation = Rotation.from_euler('xyz', [17., -31., 43.], degrees=True).as_matrix()
+    base = noise_model.estimate_vector_noise(samples)
+    transformed = noise_model.estimate_vector_noise(samples @ rotation.T)
+    np.testing.assert_allclose(transformed['sample_covariance'],
+        rotation @ np.asarray(base['sample_covariance']) @ rotation.T, rtol=1e-14, atol=1e-15)
+
+
+def test_full_covariance_keeps_exact_constant_gyro_as_dirac():
+    actual = noise_model.estimate_vector_noise(np.zeros((8, 3)))
+    np.testing.assert_array_equal(actual['sample_covariance'], np.zeros((3, 3)))
+    assert actual['lag_one_autocorrelation'] == [None]*3
+
+
 def test_estimate_preserves_raw_mean_and_full_unbiased_sample_covariance():
     samples = calibration_samples()
     original = samples.copy()

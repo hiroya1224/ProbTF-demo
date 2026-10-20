@@ -78,10 +78,12 @@ def modes_from_parameters(parameters, initial):
 def compare_six(gyro, acceleration, magnetic, timestamps, initial, reference,
                 initial_concentration=100., gyro_variance=1e-4,
                 acceleration_concentration=20., magnetic_concentration=20., integration_steps=120,
-                progress=None, propagation=None):
+                progress=None, propagation=None, gyro_covariance=None):
     """Only retained evidence is propagated; output-only factors never modify a state."""
     gravity, field = direction_factors(acceleration, magnetic, reference,
                                       acceleration_concentration, magnetic_concentration)
+    covariance = (np.eye(3)*gyro_variance if gyro_covariance is None
+                  else np.array(gyro_covariance, dtype=float, copy=True))
     initial_parameter = initial_concentration*(np.outer(initial,initial)-np.eye(4))
     states = np.array([initial_parameter.copy() for _ in range(3)])
     carried = np.empty((len(timestamps),3,4,4))
@@ -98,7 +100,7 @@ def compare_six(gyro, acceleration, magnetic, timestamps, initial, reference,
                 # highly concentrated direction likelihoods.
                 propagate = original.propagate if group == 0 or propagation is None else propagation
                 states[group], residuals[k,group] = propagate(
-                    states[group],gyro[k],interval,np.eye(3)*gyro_variance,integration_steps)
+                    states[group],gyro[k],interval,covariance,integration_steps)
         states[1] = original.canonical_bingham_parameter(states[1] + gravity[k])
         states[2] = original.canonical_bingham_parameter(states[2] + gravity[k] + field[k])
         carried[k] = states

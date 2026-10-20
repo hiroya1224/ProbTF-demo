@@ -100,6 +100,27 @@ class FeedbackComparisonTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'strictly increase'):
             self.run_six()
 
+    def test_full_gyro_covariance_reaches_every_prediction_at_original_dt(self):
+        covariance = np.array([[6e-7, 2e-8, -3e-8],
+                               [2e-8, 4e-7, 1e-8],
+                               [-3e-8, 1e-8, 3e-7]])
+        captured = []
+        def prediction(parameter, gyro, dt, noise_covariance, integration_steps):
+            captured.append((gyro.copy(), dt, noise_covariance.copy()))
+            return parameter.copy(), 0.
+        # Both the legacy gyro-only group and the calibrated observation groups
+        # must receive the same raw-sample covariance, with no extra dt or N factor.
+        with patch.object(comparison.original, 'propagate', prediction):
+            comparison.compare_six(self.gyro, self.acc, self.mag, self.times,
+                self.q, self.reference, gyro_covariance=covariance,
+                propagation=prediction, **self.options)
+        self.assertEqual(len(captured), 3*(len(self.times)-1))
+        for k in range(1, len(self.times)):
+            for gyro, dt, actual in captured[3*(k-1):3*k]:
+                np.testing.assert_array_equal(gyro, self.gyro[k])
+                self.assertEqual(dt, self.times[k]-self.times[k-1])
+                np.testing.assert_array_equal(actual, covariance)
+
     def test_reader_respects_common_measurement_domain(self):
         boundary = comparison.EXPERIMENT_START_STAMP
         def stamp(value):

@@ -51,7 +51,7 @@ def series_statistics(values, times):
                     np.count_nonzero(np.abs(np.diff(values)) > 180.0)))
 
 
-def motion_statistics(arrays):
+def motion_statistics(arrays, reference='mocap quaternion spherical interpolation at the original IMU stamps'):
     rotations = comparison.original.rotations_from_wxyz(arrays['mocap_wxyz'])
     rpy = np.rad2deg(np.unwrap(rotations.as_euler('xyz'), axis=0))
     records = {}
@@ -66,7 +66,7 @@ def motion_statistics(arrays):
     increments = np.rad2deg((rotations[:-1].inv() * rotations[1:]).magnitude())
     gyro = arrays['gyro_rad_s']
     return dict(
-        reference='mocap quaternion spherical interpolation at the original IMU stamps',
+        reference=reference,
         rpy_convention='extrinsic xyz; component traces unwrapped in time',
         rpy=records,
         accumulated_rotation_increment_deg=float(increments.sum()),
@@ -98,6 +98,7 @@ def create_diagnostics(input_directory, output_directory):
     paired_summary_path = input_directory / 'madgwick_comparison' / 'summary.json'
     summary = json.loads(summary_path.read_text())
     paired_summary = json.loads(paired_summary_path.read_text())
+    reference_label = summary.get('orientation_reference_label', 'モーションキャプチャ')
     if list(summary['case_labels']) != list(comparison.CASE_IDS):
         raise ValueError('The saved six condition identities differ from the comparison.')
     if list(paired_summary['case_labels'])[-1] != 'madgwick_marg':
@@ -123,7 +124,7 @@ def create_diagnostics(input_directory, output_directory):
             comparison.plot_condition(axis, times, values, case, colors[case],
                                       styles[case], markers[case], display_label(label))
     axes[0].plot(times, reference_rpy[:, 2], color='black', linestyle='--',
-                 linewidth=1.5, label='モーションキャプチャ')
+                 linewidth=1.5, label=reference_label)
     axes[1].axhline(0.0, color='#777777', linewidth=0.8)
     axes[0].set_ylabel('ヨー角 [deg]')
     axes[1].set_ylabel('符号付きヨー誤差 [deg]')
@@ -152,7 +153,8 @@ def create_diagnostics(input_directory, output_directory):
             'measurement time. No trend line is added to the plot. A nonzero '
             'slope is not a separate estimate of gyro bias or causal drift. '
             'Wrap crossings, if present, make endpoint changes and linear slopes branch-dependent.'),
-        mocap_motion=motion_statistics(arrays),
+        mocap_motion=motion_statistics(arrays, summary.get('orientation_reference_description',
+            'mocap quaternion spherical interpolation at the original IMU stamps')),
         statistics={name: dict(label=display_label(label),
                                **series_statistics(residuals[:, case], times))
                     for case, (name, label) in enumerate(zip(ids, labels))},
@@ -166,6 +168,9 @@ def create_diagnostics(input_directory, output_directory):
         coordinate_reference='same world-to-body convention and timestamps as the saved six-condition inference',
         figure_files=['yaw_motion_and_signed_error.' + suffix
                       for suffix in ('png', 'pdf', 'svg')])
+    if summary.get('synthetic_data', False):
+        report['truth_motion'] = report.pop('mocap_motion')
+        report['coordinate_reference'] = 'synthetic body-to-world truth at the original sensor timestamps'
     (output_directory / 'drift_diagnostics.json').write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     return report

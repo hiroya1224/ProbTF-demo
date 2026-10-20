@@ -19,8 +19,8 @@ import static_vector_noise
 
 def single_observation_parameters(arrays, summary):
     """Use the same native direction factors, without a prior or recursion."""
-    if 'vector_noise_calibration' in summary:
-        noise = summary['vector_noise_calibration']
+    if 'assumed_sensor_noise' in summary or 'vector_noise_calibration' in summary:
+        noise = summary.get('assumed_sensor_noise', summary.get('vector_noise_calibration'))
         acceleration_concentration = static_vector_noise.concentration_from_vector_noise(
             arrays['acceleration_m_s2'], noise['acceleration'])
         magnetic_concentration = static_vector_noise.concentration_from_vector_noise(
@@ -49,6 +49,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
 
     arrays = dict(np.load(input_directory/'timeseries.npz'))
     summary = json.loads((input_directory/'summary.json').read_text())
+    reference_label = summary.get('orientation_reference_label', 'モーションキャプチャ')
     labels = tuple(label.replace('（', ' (').replace('）', ')')
                    for label in summary['case_labels'].values())
     expected = tuple(label.replace('（', ' (').replace('）', ')') for label in comparison.CASE_LABELS)
@@ -120,7 +121,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     legend_axis.legend(*timeline.get_legend_handles_labels(), ncol=3, loc='center',
         fontsize=20, frameon=False, handlelength=2.2, columnspacing=2., labelspacing=.8)
     clock = figure.text(.5, .985, '', ha='center', va='top', fontsize=28)
-    figure.text(.5, .942, '点群：Bingham 分布の軸端点\n実線：左6条件のモード軸　黒破線：モーションキャプチャ',
+    figure.text(.5, .942, '点群：Bingham 分布の軸端点\n実線：左6条件のモード軸　黒破線：'+reference_label,
         ha='center', va='top', fontsize=20, linespacing=1.2)
     width, height = figure.canvas.get_width_height()
     command = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-vcodec', 'rawvideo',
@@ -176,6 +177,10 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         visualizer='third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s',
         input_timeseries_sha256=hashlib.sha256((input_directory/'timeseries.npz').read_bytes()).hexdigest(),
         renderer_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+    if summary.get('synthetic_data', False):
+        report.pop('mocap_reference')
+        report['orientation_reference'] = dict(label=reference_label, rendering='black dashed axes',
+            source='synthetic trajectory; not a motion-capture measurement')
     report['typography'] = dict(condition_title_pt=20, legend_pt=20, clock_pt=28,
         explanation_pt=20, coordinate_label_pt=18, coordinate_tick_pt=15,
         timeline_label_pt=20, timeline_tick_pt=18,
@@ -195,6 +200,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         magnetic_concentration=summary.get('magnetic_direction_concentration',
             summary.get('direction_concentration_statistics', {}).get('magnetic')),
         vector_noise_calibration=summary.get('vector_noise_calibration'),
+        assumed_sensor_noise=summary.get('assumed_sensor_noise'),
         law='normalized native single-direction likelihood; no prior, gyro or temporal accumulation',
         mode_axes_drawn=False, unobserved_rotation='about the respective reference direction',
         parameters_file=observation_file.name, parameters_sha256=hashlib.sha256(observation_file.read_bytes()).hexdigest(),

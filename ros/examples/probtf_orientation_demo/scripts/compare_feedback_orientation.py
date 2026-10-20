@@ -166,7 +166,7 @@ def plot_errors(arrays, output, labels, colors, styles, prefix):
     plt.close(figure)
 
 
-def plot_orientation(arrays, output):
+def plot_orientation(arrays, output, reference_label='モーションキャプチャ'):
     plt = configure_plotting()
     figure,axes = plt.subplots(3,1,sharex=True,figsize=(8.1,7.6))
     for component,axis in enumerate(axes):
@@ -174,7 +174,7 @@ def plot_orientation(arrays, output):
             plot_condition(axis,arrays['time_seconds'],arrays['rpy_deg'][:,case,component],case,
                 CASE_COLORS[case],CASE_STYLES[case],CASE_MARKERS[case],label)
         axis.plot(arrays['time_seconds'],arrays['mocap_rpy_deg'][:,component],
-            color='#333333',ls=':',lw=1.,label=original.REFERENCE_LABEL)
+            color='#333333',ls=':',lw=1.,label=reference_label)
         axis.set_ylabel(('roll','pitch','yaw')[component]+' [deg]')
         axis.set_xlim(arrays['time_seconds'][0],arrays['time_seconds'][-1])
         axis.grid(alpha=.18)

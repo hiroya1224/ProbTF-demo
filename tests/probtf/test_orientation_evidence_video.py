@@ -146,6 +146,18 @@ class ObservationEvidenceVideoTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'differs from its noise calibration'):
             renderer.single_observation_parameters(arrays, summary)
 
+    def test_synthetic_video_uses_assumed_noise_without_reading_generated_noise(self):
+        noise = renderer.static_vector_noise
+        assumed = dict(
+            acceleration=noise.estimate_isotropic_vector_noise(self.arrays['acceleration_m_s2']),
+            magnetic=noise.estimate_isotropic_vector_noise(self.arrays['magnetic_raw']))
+        expected = renderer.single_observation_parameters(self.arrays,
+            dict(self.summary, vector_noise_calibration=assumed))
+        actual = renderer.single_observation_parameters(self.arrays,
+            dict(self.summary, assumed_sensor_noise=assumed, generation_sensor_noise=object(),
+                 vector_noise_calibration=object()))
+        np.testing.assert_array_equal(actual, expected)
+
 
 if __name__ == '__main__':
     unittest.main()

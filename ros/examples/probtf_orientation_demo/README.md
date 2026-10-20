@@ -104,3 +104,20 @@ PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/pyth
   --selection-json /home/leus/dthesis/references/imu-orientation-filter/20260613-success-yaw-63-123s/selection.json \
   --output /tmp/imu-success-yaw-calibrated-noise
 ```
+
+## 人工飛行と共分散不一致の比較
+
+実測とは別の `compare_synthetic_flight.py` で、60秒・200 Hzの運動学的な模擬飛行を生成する。位置・姿勢は滑らかな関数で与え、加速度計は位置の解析的な2階微分を含む比力、地磁気は固定世界ベクトルを身体へ写した値とする。角速度は各区間の姿勢差に対応する身体相対角速度である。空力シミュレーションではない。
+
+推定側の等方分散は、上記の実測校正と同じ規模の固定値を使う。生成側の分散は角速度・加速度で4倍、地磁気で9倍とする。角速度には別途、身体z方向に0.004 [rad/s]の固定バイアスを加え、推定側は差し引かない。白色ノイズだけで大きなドリフトが出るという説明はしない。生成側の共分散や各時刻の真値も推定へ渡さず、初期姿勢と固定世界参照だけを既知として与える。
+
+```bash
+source /home/leus/catkin_ws/devel/setup.bash
+run_src=/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts
+run_out=/tmp/imu-synthetic-flight
+export MPLBACKEND=Agg OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1
+/usr/bin/python3 "$run_src/compare_synthetic_flight.py" --output "$run_out/analysis"
+/usr/bin/python3 "$run_src/render_feedback_video.py" --input "$run_out/analysis" --output "$run_out/video" --fps 4 --samples 180
+```
+
+生成した測定・真値・ノイズは `input_data.npz`、両側の設定は `simulation_settings.json` に保存する。同じノイズ実現値で再計算するには `--dataset /path/to/saved/analysis` を付ける。推定中に乱数を引かない。描画の黒破線は「人工真値」と明記し、実測版の保存先やラベル既定を変更しない。

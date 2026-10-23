@@ -110,11 +110,6 @@ displayed directly on a monitor or printed without adding a border.
 
 ## Real USB-camera demo
 
-Two existing real-camera RViz recordings are available as MP4s in
-[`medias/ar-marker/real-camera-20260723/`](../../../medias/ar-marker/real-camera-20260723/README.md).
-That index also identifies the separately saved October 13 rosbags; their
-correspondence with these screen recordings has not been established.
-
 The package contains a self-contained OpenCV/V4L camera source, so the demo does
 not require a separate camera-driver package:
 

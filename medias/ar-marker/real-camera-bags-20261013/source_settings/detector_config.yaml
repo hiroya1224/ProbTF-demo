@@ -1,0 +1,75 @@
+family: DICT_APRILTAG_36h11
+tag_size_m: 0.12
+
+# The fixed value is now a strictly-positive covariance floor.  The
+# micro-bootstrap repeats detection after small, deterministic image
+# perturbations so that weak/jagged edges produce a wider full 8x8 corner law.
+corner_sigma_px: 0.5
+corner_refinement: true
+adaptive_covariance: true
+bootstrap_samples: 8
+bootstrap_noise_std: 6.0
+bootstrap_dither_px: 0.35
+bootstrap_blur_sigma_px: 0.35
+bootstrap_covariance_shrinkage: 0.25
+bootstrap_min_success_ratio: 0.5
+bootstrap_dropout_sigma_px: 2.0
+bootstrap_seed: 0
+
+# A per-tag constant-velocity innovation estimate catches residual frame-to-
+# frame corner jitter missed by the same-frame bootstrap.  The default is
+# deliberately conservative: coherent jitter also widens the law.  Set
+# temporal_freeze_affine_motion=true only when actual accelerated image motion
+# should be excluded, accepting that coherent detector jitter is then
+# indistinguishable and will also be frozen.
+temporal_covariance_enabled: true
+temporal_warmup_samples: 8
+temporal_half_life_sec: 0.5
+temporal_shrinkage: 0.25
+temporal_motion_gate_px: 1.5
+temporal_motion_gate_edge_fraction: 0.02
+temporal_affine_motion_fraction: 0.9
+temporal_freeze_affine_motion: false
+temporal_huber_chi2: 20.09
+temporal_hard_outlier_px: 8.0
+temporal_hard_outlier_edge_fraction: 0.15
+temporal_max_gap_sec: 0.5
+temporal_max_dt_ratio: 2.5
+temporal_max_excess_sigma_px: 5.0
+temporal_track_ttl_sec: 2.0
+
+tag_frame_prefix: apriltag_
+camera_frame_id: ""
+probtf_topic: /probtf
+publish_debug_image: true
+publish_markers: true
+# Keep the central axes owned by probtf_rviz, where Axis Length controls both
+# the representative frame and its probability endpoint cloud.
+publish_mode_axes: false
+
+# A valid CameraInfo remains preferred.  The generic detector keeps fallback
+# disabled; the real-camera demo launch enables it explicitly.
+fallback_calibration_enabled: false
+fallback_camera_frame_id: camera_optical_frame
+fallback_horizontal_fov_deg: 60.0
+fallback_fx_px: 0.0
+fallback_fy_px: 0.0
+fallback_cx_px: -1.0
+fallback_cy_px: -1.0
+require_calibration_resolution_match: true
+
+marker_lifetime_sec: 0.5
+marker_axis_length_m: 0.06
+marker_tag_thickness_m: 0.003
+maximum_uncertainty_scale_m: 0.75
+
+max_iterations: 30
+convergence_tolerance: 1.0e-9
+min_depth: 1.0e-6
+dedup_translation_tolerance: 1.0e-7
+dedup_rotation_tolerance_rad: 1.0e-7
+finite_difference_step: 1.0e-6
+verify_jacobian: false
+spd_tolerance: 1.0e-12
+translation_prior_mean: [0.0, 0.0, 0.0]
+translation_prior_variance: 1.0e6

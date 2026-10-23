@@ -110,6 +110,10 @@ displayed directly on a monitor or printed without adding a border.
 
 ## Real USB-camera demo
 
+RViz recordings replayed from the saved real-camera rosbags, with source hashes
+and payload checks, are indexed in
+[`medias/ar-marker/real-camera-bags-20261013/`](../../../medias/ar-marker/real-camera-bags-20261013/README.md).
+
 The package contains a self-contained OpenCV/V4L camera source, so the demo does
 not require a separate camera-driver package:
 

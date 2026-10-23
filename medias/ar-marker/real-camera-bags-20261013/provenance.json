@@ -1,0 +1,685 @@
+{
+  "created_date": "2026-10-23",
+  "method": "Actual RViz recording of the two saved real-camera rosbags, replayed with original message payloads and original ROS timestamps",
+  "reestimated": false,
+  "rewritten_message_headers": false,
+  "played_topics": "all original bag topics",
+  "render_source_commit": "3bb2596b04b71745a0537654c33b3d68a3557f95",
+  "rviz_library_sha256": "3297e2538801fa7336a38d1f5d3af70440638cb151fe767d693c997cd06ae66e",
+  "settings": {
+    "demo.rviz": {
+      "size_bytes": 4668,
+      "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98"
+    },
+    "camera_calibration.yaml": {
+      "size_bytes": 661,
+      "sha256": "f54ae00649b5d4f73a6c4f0098efb4168c5b448e2cdb61b81a6d8b251fef2afb"
+    },
+    "detector_config.yaml": {
+      "size_bytes": 2521,
+      "sha256": "7bff0382402b466156851ccb7fed99ce3faf0e1eb279d51cc15eb670479dfa56"
+    }
+  },
+  "rendering": {
+    "saved_rviz_unchanged": true,
+    "width": 2200,
+    "height": 1400,
+    "fps": 30,
+    "sample_count": 600,
+    "point_size_m": 0.003000000026077032,
+    "axis_length_m": 0.10000000149011612,
+    "visualization_particle_sampling": "existing ProbTF RViz visualization; no estimator was run"
+  },
+  "runs": [
+    {
+      "run_id": "20261013_083122_631446",
+      "source_bag": {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083122_631446/all_topics_30s.bag",
+        "size_bytes": 1758270898,
+        "sha256": "d7a9dd704f949a6193a6512664837a0c127800add42f6f40e5dca14760bf1c52",
+        "bag_start_seconds": 1791847882.816393,
+        "bag_end_seconds": 1791847912.7961698,
+        "bag_duration_seconds": 29.979776859283447,
+        "raw_image_count": 893,
+        "candidate_components_per_message": {
+          "2": 453
+        }
+      },
+      "video": {
+        "file": "083122_rviz.mp4",
+        "size_bytes": 3921576,
+        "sha256": "e5e4811020badb96f9bb7c505e280de71fc7db0b14a485542caaae0aa1f28ba4",
+        "duration_seconds": 31.867,
+        "width": 2200,
+        "height": 1400,
+        "fps": "30/1",
+        "frames": 956,
+        "full_decode_passed": true,
+        "encoder_duplicate_frames": 0,
+        "encoder_dropped_frames": 0
+      },
+      "rviz_config": {
+        "source": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083122_631446/demo.rviz",
+        "published_copy": "source_settings/demo.rviz",
+        "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+        "byte_identical_after_recording": true
+      },
+      "replay": {
+        "rate": 1.0,
+        "bag_player_command": [
+          "rosbag",
+          "play",
+          "--clock",
+          "--pause",
+          "--rate",
+          "1.0",
+          "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083122_631446/all_topics_30s.bag"
+        ],
+        "clock": {
+          "count": 3160,
+          "first_clock_ns": 1791847882816392996,
+          "first_monotonic": 3364286.501881746,
+          "first_wall_time": 1792723294.6211598,
+          "last_clock_ns": 1791847912791555199,
+          "last_monotonic": 3364318.379477987,
+          "last_wall_time": 1792723326.4987562
+        },
+        "events": [
+          {
+            "command": [
+              "/tmp/artag_xvfb_20261023/root/usr/bin/Xvfb",
+              ":99",
+              "-screen",
+              "0",
+              "2400x1600x24",
+              "-nolisten",
+              "tcp",
+              "-ac",
+              "-noreset",
+              "+extension",
+              "GLX"
+            ],
+            "event": "xvfb_started",
+            "monotonic": 3364283.645687469,
+            "pid": 2595510,
+            "wall_time": 1792723291.7649627
+          },
+          {
+            "command": [
+              "roscore",
+              "-p",
+              "11993"
+            ],
+            "event": "roscore_started",
+            "monotonic": 3364283.732349413,
+            "pid": 2595514,
+            "wall_time": 1792723291.851625
+          },
+          {
+            "command": [
+              "/usr/bin/python3",
+              "/tmp/monitor_ar_bag_replay.py",
+              "--output",
+              "/tmp/artag_bag_capture_20261023/run_083122/payload_monitor.json",
+              "--ready",
+              "/tmp/artag_bag_capture_20261023/run_083122/monitor_ready.json"
+            ],
+            "event": "payload_monitor_started",
+            "monotonic": 3364284.250499733,
+            "pid": 2595662,
+            "wall_time": 1792723292.3697772
+          },
+          {
+            "command": [
+              "rviz",
+              "-d",
+              "/tmp/artag_bag_capture_20261023/run_083122/demo.rviz",
+              "__name:=ar_saved_bag_rviz"
+            ],
+            "event": "rviz_started",
+            "monotonic": 3364284.50395534,
+            "pid": 2595744,
+            "wall_time": 1792723292.6232302
+          },
+          {
+            "event": "rviz_window_ready",
+            "height": 1400,
+            "id": "0x200011",
+            "monotonic": 3364284.991637282,
+            "wall_time": 1792723293.1109142,
+            "width": 2200,
+            "x": 80,
+            "y": 80
+          },
+          {
+            "command": [
+              "rosbag",
+              "play",
+              "--clock",
+              "--pause",
+              "--rate",
+              "1.0",
+              "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083122_631446/all_topics_30s.bag"
+            ],
+            "event": "rosbag_play_started",
+            "monotonic": 3364285.995305068,
+            "pid": 2595873,
+            "wall_time": 1792723294.1145813
+          },
+          {
+            "event": "rosbag_player_paused_ready",
+            "monotonic": 3364287.552131866,
+            "wall_time": 1792723295.6714094
+          },
+          {
+            "command": [
+              "ffmpeg",
+              "-hide_banner",
+              "-loglevel",
+              "info",
+              "-y",
+              "-thread_queue_size",
+              "1024",
+              "-f",
+              "x11grab",
+              "-draw_mouse",
+              "0",
+              "-framerate",
+              "30",
+              "-video_size",
+              "2200x1400",
+              "-i",
+              ":99+80,80",
+              "-an",
+              "-c:v",
+              "libx264",
+              "-threads",
+              "4",
+              "-preset",
+              "veryfast",
+              "-crf",
+              "22",
+              "-pix_fmt",
+              "yuv420p",
+              "-movflags",
+              "+faststart",
+              "-progress",
+              "/tmp/artag_bag_capture_20261023/run_083122/video_progress.txt",
+              "/tmp/artag_bag_capture_20261023/083122_rviz.mp4"
+            ],
+            "event": "ffmpeg_started",
+            "monotonic": 3364287.555586528,
+            "pid": 2595992,
+            "wall_time": 1792723295.674863
+          },
+          {
+            "event": "video_first_frame_confirmed",
+            "monotonic": 3364288.209321784,
+            "wall_time": 1792723296.3286004
+          },
+          {
+            "event": "rosbag_pause_released",
+            "monotonic": 3364288.209395038,
+            "wall_time": 1792723296.3286736
+          },
+          {
+            "event": "rosbag_play_finished",
+            "monotonic": 3364318.89130996,
+            "returncode": 0,
+            "wall_time": 1792723327.0105877
+          },
+          {
+            "event": "video_recording_finished",
+            "monotonic": 3364319.555786466,
+            "returncode": 0,
+            "wall_time": 1792723327.675064
+          },
+          {
+            "event": "payload_monitor_finished",
+            "monotonic": 3364320.220576167,
+            "returncode": 0,
+            "wall_time": 1792723328.339854
+          }
+        ],
+        "video_has_initial_pause_and_final_hold": true,
+        "timing_note": "Events use host wall/monotonic clocks. ffmpeg launch time is not claimed to be the exact first captured-frame time."
+      },
+      "payload_comparison_method": "sha256_of_concatenated_original_ROS_serialization_per_topic",
+      "topic_payload_checks": {
+        "/prob_artag_demo/probtf": {
+          "matches_source": true,
+          "expected": {
+            "count": 453,
+            "first_bag_ns": 1791847892020726461,
+            "first_header_ns": 1791847891983420372,
+            "last_bag_ns": 1791847912690864254,
+            "last_header_ns": 1791847912549692153,
+            "md5sum": "cf82d3e9727e43a09a8c7d2addc39f85",
+            "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+            "serialized_bytes": 989329,
+            "sha256": "e7a93e560d835e06eb7ca0111735cef5eba17e2572368411c53c39b2379c1256"
+          },
+          "received": {
+            "count": 453,
+            "first_header_ns": 1791847891983420372,
+            "first_monotonic": 3364297.609117566,
+            "first_wall_time": 1792723305.728396,
+            "last_header_ns": 1791847912549692153,
+            "last_monotonic": 3364318.279810532,
+            "last_wall_time": 1792723326.3990889,
+            "md5sum": "cf82d3e9727e43a09a8c7d2addc39f85",
+            "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+            "serialized_bytes": 989329,
+            "sha256": "e7a93e560d835e06eb7ca0111735cef5eba17e2572368411c53c39b2379c1256"
+          }
+        },
+        "/prob_artag_detector/debug_image": {
+          "matches_source": true,
+          "expected": {
+            "count": 575,
+            "first_bag_ns": 1791847883130054143,
+            "first_header_ns": 1791847883116255049,
+            "last_bag_ns": 1791847912694603859,
+            "last_header_ns": 1791847912549692221,
+            "md5sum": "060021388200f6f0f447d0fcd9c64743",
+            "message_type": "sensor_msgs/Image",
+            "serialized_bytes": 529947600,
+            "sha256": "0f54348e6fa22b7ada856592cc42fc9740d3980f90a60a2bd828c9b597335d22"
+          },
+          "received": {
+            "count": 575,
+            "first_header_ns": 1791847883116255049,
+            "first_monotonic": 3364288.722187601,
+            "first_wall_time": 1792723296.8414662,
+            "last_header_ns": 1791847912549692221,
+            "last_monotonic": 3364318.283916805,
+            "last_wall_time": 1792723326.4031954,
+            "md5sum": "060021388200f6f0f447d0fcd9c64743",
+            "message_type": "sensor_msgs/Image",
+            "serialized_bytes": 529947600,
+            "sha256": "0f54348e6fa22b7ada856592cc42fc9740d3980f90a60a2bd828c9b597335d22"
+          }
+        },
+        "/tf": {
+          "matches_source": true,
+          "expected": {
+            "count": 453,
+            "first_bag_ns": 1791847892020523105,
+            "first_header_ns": 1791847891983420372,
+            "last_bag_ns": 1791847912690968667,
+            "last_header_ns": 1791847912549692153,
+            "md5sum": "94810edda583a504dfda3829e70d7eec",
+            "message_type": "tf2_msgs/TFMessage",
+            "serialized_bytes": 44394,
+            "sha256": "b0b4d204b825b819bf26e805b80012a551dad2599b92c0df214b9fa20cca412b"
+          },
+          "received": {
+            "count": 453,
+            "first_header_ns": 1791847891983420372,
+            "first_monotonic": 3364297.608874077,
+            "first_wall_time": 1792723305.728152,
+            "last_header_ns": 1791847912549692153,
+            "last_monotonic": 3364318.27997691,
+            "last_wall_time": 1792723326.3992553,
+            "md5sum": "94810edda583a504dfda3829e70d7eec",
+            "message_type": "tf2_msgs/TFMessage",
+            "serialized_bytes": 44394,
+            "sha256": "b0b4d204b825b819bf26e805b80012a551dad2599b92c0df214b9fa20cca412b"
+          }
+        },
+        "/tf_static": {
+          "matches_source": true,
+          "expected": {
+            "count": 1,
+            "first_bag_ns": 1791847883114487722,
+            "first_header_ns": 1791847411187920187,
+            "last_bag_ns": 1791847883114487722,
+            "last_header_ns": 1791847411187920187,
+            "md5sum": "94810edda583a504dfda3829e70d7eec",
+            "message_type": "tf2_msgs/TFMessage",
+            "serialized_bytes": 98,
+            "sha256": "47c8299c8ebd5c4483411a4af2504f24ed97962558e87f5c6817ea6a127d01f3"
+          },
+          "received": {
+            "count": 1,
+            "first_header_ns": 1791847411187920187,
+            "first_monotonic": 3364288.702506583,
+            "first_wall_time": 1792723296.8217845,
+            "last_header_ns": 1791847411187920187,
+            "last_monotonic": 3364288.702506583,
+            "last_wall_time": 1792723296.8217845,
+            "md5sum": "94810edda583a504dfda3829e70d7eec",
+            "message_type": "tf2_msgs/TFMessage",
+            "serialized_bytes": 98,
+            "sha256": "47c8299c8ebd5c4483411a4af2504f24ed97962558e87f5c6817ea6a127d01f3"
+          }
+        }
+      }
+    },
+    {
+      "run_id": "20261013_083323_181005",
+      "source_bag": {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083323_181005/all_topics_30s.bag",
+        "size_bytes": 1629152330,
+        "sha256": "0e2f52d686a57a3f5fec3059918f13ced0e59e6945e8b4d31e9914610f34b086",
+        "bag_start_seconds": 1791848003.3796406,
+        "bag_end_seconds": 1791848033.3576212,
+        "bag_duration_seconds": 29.977980613708496,
+        "raw_image_count": 893,
+        "candidate_components_per_message": {
+          "2": 657
+        }
+      },
+      "video": {
+        "file": "083323_rviz.mp4",
+        "size_bytes": 4349637,
+        "sha256": "97f18cef031fdd4d9fa2ed4a40c93398df684c08a7ba90a24f37d77256ed09e8",
+        "duration_seconds": 31.667,
+        "width": 2200,
+        "height": 1400,
+        "fps": "30/1",
+        "frames": 950,
+        "full_decode_passed": true,
+        "encoder_duplicate_frames": 0,
+        "encoder_dropped_frames": 0
+      },
+      "rviz_config": {
+        "source": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083323_181005/demo.rviz",
+        "published_copy": "source_settings/demo.rviz",
+        "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+        "byte_identical_after_recording": true
+      },
+      "replay": {
+        "rate": 1.0,
+        "bag_player_command": [
+          "rosbag",
+          "play",
+          "--clock",
+          "--pause",
+          "--rate",
+          "1.0",
+          "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083323_181005/all_topics_30s.bag"
+        ],
+        "clock": {
+          "count": 3159,
+          "first_clock_ns": 1791848003379640648,
+          "first_monotonic": 3364343.792517034,
+          "first_wall_time": 1792723351.911795,
+          "last_clock_ns": 1791848033352254193,
+          "last_monotonic": 3364375.667350274,
+          "last_wall_time": 1792723383.7866282
+        },
+        "events": [
+          {
+            "command": [
+              "/tmp/artag_xvfb_20261023/root/usr/bin/Xvfb",
+              ":99",
+              "-screen",
+              "0",
+              "2400x1600x24",
+              "-nolisten",
+              "tcp",
+              "-ac",
+              "-noreset",
+              "+extension",
+              "GLX"
+            ],
+            "event": "xvfb_started",
+            "monotonic": 3364340.947961953,
+            "pid": 2596407,
+            "wall_time": 1792723349.06724
+          },
+          {
+            "command": [
+              "roscore",
+              "-p",
+              "11993"
+            ],
+            "event": "roscore_started",
+            "monotonic": 3364341.012843875,
+            "pid": 2596411,
+            "wall_time": 1792723349.1321208
+          },
+          {
+            "command": [
+              "/usr/bin/python3",
+              "/tmp/monitor_ar_bag_replay.py",
+              "--output",
+              "/tmp/artag_bag_capture_20261023/run_083323/payload_monitor.json",
+              "--ready",
+              "/tmp/artag_bag_capture_20261023/run_083323/monitor_ready.json"
+            ],
+            "event": "payload_monitor_started",
+            "monotonic": 3364341.530079795,
+            "pid": 2596559,
+            "wall_time": 1792723349.6493576
+          },
+          {
+            "command": [
+              "rviz",
+              "-d",
+              "/tmp/artag_bag_capture_20261023/run_083323/demo.rviz",
+              "__name:=ar_saved_bag_rviz"
+            ],
+            "event": "rviz_started",
+            "monotonic": 3364341.83403029,
+            "pid": 2596641,
+            "wall_time": 1792723349.953305
+          },
+          {
+            "event": "rviz_window_ready",
+            "height": 1400,
+            "id": "0x200011",
+            "monotonic": 3364342.312222902,
+            "wall_time": 1792723350.4314995,
+            "width": 2200,
+            "x": 80,
+            "y": 80
+          },
+          {
+            "command": [
+              "rosbag",
+              "play",
+              "--clock",
+              "--pause",
+              "--rate",
+              "1.0",
+              "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083323_181005/all_topics_30s.bag"
+            ],
+            "event": "rosbag_play_started",
+            "monotonic": 3364343.316508429,
+            "pid": 2596768,
+            "wall_time": 1792723351.4357853
+          },
+          {
+            "event": "rosbag_player_paused_ready",
+            "monotonic": 3364344.876617719,
+            "wall_time": 1792723352.995896
+          },
+          {
+            "command": [
+              "ffmpeg",
+              "-hide_banner",
+              "-loglevel",
+              "info",
+              "-y",
+              "-thread_queue_size",
+              "1024",
+              "-f",
+              "x11grab",
+              "-draw_mouse",
+              "0",
+              "-framerate",
+              "30",
+              "-video_size",
+              "2200x1400",
+              "-i",
+              ":99+80,80",
+              "-an",
+              "-c:v",
+              "libx264",
+              "-threads",
+              "4",
+              "-preset",
+              "veryfast",
+              "-crf",
+              "22",
+              "-pix_fmt",
+              "yuv420p",
+              "-movflags",
+              "+faststart",
+              "-progress",
+              "/tmp/artag_bag_capture_20261023/run_083323/video_progress.txt",
+              "/tmp/artag_bag_capture_20261023/083323_rviz.mp4"
+            ],
+            "event": "ffmpeg_started",
+            "monotonic": 3364344.882369958,
+            "pid": 2596901,
+            "wall_time": 1792723353.0016465
+          },
+          {
+            "event": "video_first_frame_confirmed",
+            "monotonic": 3364345.536018106,
+            "wall_time": 1792723353.6552966
+          },
+          {
+            "event": "rosbag_pause_released",
+            "monotonic": 3364345.536077288,
+            "wall_time": 1792723353.655356
+          },
+          {
+            "event": "rosbag_play_finished",
+            "monotonic": 3364376.010202155,
+            "returncode": 0,
+            "wall_time": 1792723384.1294804
+          },
+          {
+            "event": "video_recording_finished",
+            "monotonic": 3364376.674788575,
+            "returncode": 0,
+            "wall_time": 1792723384.7940667
+          },
+          {
+            "event": "payload_monitor_finished",
+            "monotonic": 3364377.339968038,
+            "returncode": 0,
+            "wall_time": 1792723385.4592462
+          }
+        ],
+        "video_has_initial_pause_and_final_hold": true,
+        "timing_note": "Events use host wall/monotonic clocks. ffmpeg launch time is not claimed to be the exact first captured-frame time."
+      },
+      "payload_comparison_method": "sha256_of_concatenated_original_ROS_serialization_per_topic",
+      "topic_payload_checks": {
+        "/prob_artag_demo/probtf": {
+          "matches_source": true,
+          "expected": {
+            "count": 657,
+            "first_bag_ns": 1791848006172746994,
+            "first_header_ns": 1791848006125392198,
+            "last_bag_ns": 1791848033355968207,
+            "last_header_ns": 1791848033292059183,
+            "md5sum": "cf82d3e9727e43a09a8c7d2addc39f85",
+            "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+            "serialized_bytes": 1430929,
+            "sha256": "9411ad72849a845b3d9931385cdfd54c81d71901deb5a345d58ff957995fac38"
+          },
+          "received": {
+            "count": 657,
+            "first_header_ns": 1791848006125392198,
+            "first_monotonic": 3364348.488634496,
+            "first_wall_time": 1792723356.6079123,
+            "last_header_ns": 1791848033292059183,
+            "last_monotonic": 3364375.671789679,
+            "last_wall_time": 1792723383.7910678,
+            "md5sum": "cf82d3e9727e43a09a8c7d2addc39f85",
+            "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+            "serialized_bytes": 1430929,
+            "sha256": "9411ad72849a845b3d9931385cdfd54c81d71901deb5a345d58ff957995fac38"
+          }
+        },
+        "/prob_artag_detector/debug_image": {
+          "matches_source": true,
+          "expected": {
+            "count": 425,
+            "first_bag_ns": 1791848003669677406,
+            "first_header_ns": 1791848003658955563,
+            "last_bag_ns": 1791848033357621078,
+            "last_header_ns": 1791848033292059300,
+            "md5sum": "060021388200f6f0f447d0fcd9c64743",
+            "message_type": "sensor_msgs/Image",
+            "serialized_bytes": 391700400,
+            "sha256": "df8ad5397b8bda1f2b2fbe319fd964aec7a7666a5b686dc54cbe0246de36a82b"
+          },
+          "received": {
+            "count": 425,
+            "first_header_ns": 1791848003658955563,
+            "first_monotonic": 3364345.989143473,
+            "first_wall_time": 1792723354.1084218,
+            "last_header_ns": 1791848033292059300,
+            "last_monotonic": 3364375.673489296,
+            "last_wall_time": 1792723383.792768,
+            "md5sum": "060021388200f6f0f447d0fcd9c64743",
+            "message_type": "sensor_msgs/Image",
+            "serialized_bytes": 391700400,
+            "sha256": "df8ad5397b8bda1f2b2fbe319fd964aec7a7666a5b686dc54cbe0246de36a82b"
+          }
+        },
+        "/tf": {
+          "matches_source": true,
+          "expected": {
+            "count": 657,
+            "first_bag_ns": 1791848006172893892,
+            "first_header_ns": 1791848006125392198,
+            "last_bag_ns": 1791848033356084167,
+            "last_header_ns": 1791848033292059183,
+            "md5sum": "94810edda583a504dfda3829e70d7eec",
+            "message_type": "tf2_msgs/TFMessage",
+            "serialized_bytes": 64386,
+            "sha256": "b39857fe34e8c97c4a2217b2b0757794a5160b42aed5617a4e35ff9bdb976576"
+          },
+          "received": {
+            "count": 657,
+            "first_header_ns": 1791848006125392198,
+            "first_monotonic": 3364348.488312634,
+            "first_wall_time": 1792723356.607591,
+            "last_header_ns": 1791848033292059183,
+            "last_monotonic": 3364375.672025396,
+            "last_wall_time": 1792723383.7913036,
+            "md5sum": "94810edda583a504dfda3829e70d7eec",
+            "message_type": "tf2_msgs/TFMessage",
+            "serialized_bytes": 64386,
+            "sha256": "b39857fe34e8c97c4a2217b2b0757794a5160b42aed5617a4e35ff9bdb976576"
+          }
+        },
+        "/tf_static": {
+          "matches_source": true,
+          "expected": {
+            "count": 1,
+            "first_bag_ns": 1791848003638847625,
+            "first_header_ns": 1791847411187920187,
+            "last_bag_ns": 1791848003638847625,
+            "last_header_ns": 1791847411187920187,
+            "md5sum": "94810edda583a504dfda3829e70d7eec",
+            "message_type": "tf2_msgs/TFMessage",
+            "serialized_bytes": 98,
+            "sha256": "47c8299c8ebd5c4483411a4af2504f24ed97962558e87f5c6817ea6a127d01f3"
+          },
+          "received": {
+            "count": 1,
+            "first_header_ns": 1791847411187920187,
+            "first_monotonic": 3364345.954392283,
+            "first_wall_time": 1792723354.07367,
+            "last_header_ns": 1791847411187920187,
+            "last_monotonic": 3364345.954392283,
+            "last_wall_time": 1792723354.07367,
+            "md5sum": "94810edda583a504dfda3829e70d7eec",
+            "message_type": "tf2_msgs/TFMessage",
+            "serialized_bytes": 98,
+            "sha256": "47c8299c8ebd5c4483411a4af2504f24ed97962558e87f5c6817ea6a127d01f3"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "rows": [
+    {
+      "case": "failure1",
+      "group": "xy",
+      "ready": "true",
+      "sizes": [
+        5
+      ],
+      "traces": [
+        "安定標本の割合 < 95%",
+        "ボクセル境界",
+        "failure1 の全12記録ゲイン"
+      ],
+      "sample_count": 128,
+      "title": "failure1 PID — 全標本評価"
+    },
+    {
+      "case": "failure1",
+      "group": "z",
+      "ready": "true",
+      "sizes": [
+        5
+      ],
+      "traces": [
+        "安定標本の割合 < 95%",
+        "ボクセル境界",
+        "failure1 の全12記録ゲイン"
+      ],
+      "sample_count": 128,
+      "title": "failure1 PID — 全標本評価"
+    },
+    {
+      "case": "failure1",
+      "group": "roll_pitch",
+      "ready": "true",
+      "sizes": [
+        5
+      ],
+      "traces": [
+        "安定標本の割合 < 95%",
+        "ボクセル境界",
+        "安定標本の割合 ≥ 95%",
+        "ボクセル境界",
+        "failure1 の全12記録ゲイン"
+      ],
+      "sample_count": 128,
+      "title": "failure1 PID — 全標本評価"
+    },
+    {
+      "case": "failure1",
+      "group": "yaw",
+      "ready": "true",
+      "sizes": [
+        5
+      ],
+      "traces": [
+        "安定標本の割合 < 95%",
+        "ボクセル境界",
+        "failure1 の全12記録ゲイン"
+      ],
+      "sample_count": 128,
+      "title": "failure1 PID — 全標本評価"
+    },
+    {
+      "case": "failure2",
+      "group": "xy",
+      "ready": "true",
+      "sizes": [
+        5
+      ],
+      "traces": [
+        "安定標本の割合 < 95%",
+        "ボクセル境界",
+        "failure2 の全12記録ゲイン"
+      ],
+      "sample_count": 128,
+      "title": "failure2 PID — 全標本評価"
+    },
+    {
+      "case": "failure2",
+      "group": "z",
+      "ready": "true",
+      "sizes": [
+        5
+      ],
+      "traces": [
+        "安定標本の割合 < 95%",
+        "ボクセル境界",
+        "failure2 の全12記録ゲイン"
+      ],
+      "sample_count": 128,
+      "title": "failure2 PID — 全標本評価"
+    },
+    {
+      "case": "failure2",
+      "group": "roll_pitch",
+      "ready": "true",
+      "sizes": [
+        5
+      ],
+      "traces": [
+        "安定標本の割合 < 95%",
+        "ボクセル境界",
+        "安定標本の割合 ≥ 95%",
+        "ボクセル境界",
+        "failure2 の全12記録ゲイン"
+      ],
+      "sample_count": 128,
+      "title": "failure2 PID — 全標本評価"
+    },
+    {
+      "case": "failure2",
+      "group": "yaw",
+      "ready": "true",
+      "sizes": [
+        5
+      ],
+      "traces": [
+        "安定標本の割合 < 95%",
+        "ボクセル境界",
+        "failure2 の全12記録ゲイン"
+      ],
+      "sample_count": 128,
+      "title": "failure2 PID — 全標本評価"
+    }
+  ],
+  "screenshots_taken": false,
+  "ready": true,
+  "error": null
+}

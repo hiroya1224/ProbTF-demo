@@ -1,0 +1,42 @@
+{
+  "case": "failure2",
+  "completed_volumes": [
+    "/tmp/probtf_lag_audit_20261028/failure2/roll_pitch/grid_3",
+    "/tmp/probtf_lag_audit_20261028/failure2/xy/grid_3",
+    "/tmp/probtf_lag_audit_20261028/failure2/z/grid_3",
+    "/tmp/probtf_lag_audit_20261028/failure2/yaw/grid_3",
+    "/tmp/probtf_lag_audit_20261028/failure2/roll_pitch/grid_5",
+    "/tmp/probtf_lag_audit_20261028/failure2/xy/grid_5",
+    "/tmp/probtf_lag_audit_20261028/failure2/z/grid_5",
+    "/tmp/probtf_lag_audit_20261028/failure2/yaw/grid_5"
+  ],
+  "current_counts": {
+    "evaluated": 216,
+    "non_positive_margin": 216,
+    "pending": 0,
+    "positive_margin": 0,
+    "total": 216,
+    "unresolved": 0
+  },
+  "current_grid": 5,
+  "current_group": "yaw",
+  "current_shape": [
+    6,
+    6,
+    6
+  ],
+  "elapsed_seconds": 82.6866577132605,
+  "final_node_counts": {
+    "roll_pitch": 216,
+    "xy": 216,
+    "yaw": 216,
+    "z": 216
+  },
+  "latest_volume": "/tmp/probtf_lag_audit_20261028/failure2/yaw/grid_5",
+  "nodes_evaluated_this_run": 864,
+  "pid": 1376415,
+  "seconds_per_new_node": 0.0955412373807997,
+  "started_utc": "2026-10-28T14:14:05.752284+00:00",
+  "status": "complete",
+  "updated_utc": "2026-10-28T14:15:28.441574+00:00"
+}

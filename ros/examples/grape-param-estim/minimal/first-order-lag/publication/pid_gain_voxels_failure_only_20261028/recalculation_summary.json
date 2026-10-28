@@ -1,0 +1,131 @@
+{
+  "sampling": "same original ordered 128 Sobol plant samples; no success selection",
+  "success_input_used": false,
+  "grid_schedule": [
+    3,
+    5
+  ],
+  "published_regular_grid": 5,
+  "cases": {
+    "failure1": {
+      "recorded_failure_stable_count": 62,
+      "sample_count": 128,
+      "elapsed_seconds": 82.73488744115457,
+      "nodes_evaluated": 864,
+      "groups": {
+        "xy": {
+          "actual_shape": [
+            6,
+            6,
+            6
+          ],
+          "nodes": 216,
+          "minimum_stable_fraction": 0.0,
+          "maximum_stable_fraction": 0.578125,
+          "nodes_at_least_95_percent": 0,
+          "nodes_all_128_stable": 0,
+          "unresolved_sample_evaluations": 0
+        },
+        "z": {
+          "actual_shape": [
+            6,
+            6,
+            6
+          ],
+          "nodes": 216,
+          "minimum_stable_fraction": 0.0,
+          "maximum_stable_fraction": 0.53125,
+          "nodes_at_least_95_percent": 0,
+          "nodes_all_128_stable": 0,
+          "unresolved_sample_evaluations": 0
+        },
+        "roll_pitch": {
+          "actual_shape": [
+            6,
+            6,
+            6
+          ],
+          "nodes": 216,
+          "minimum_stable_fraction": 0.0,
+          "maximum_stable_fraction": 0.9765625,
+          "nodes_at_least_95_percent": 106,
+          "nodes_all_128_stable": 0,
+          "unresolved_sample_evaluations": 0
+        },
+        "yaw": {
+          "actual_shape": [
+            6,
+            6,
+            6
+          ],
+          "nodes": 216,
+          "minimum_stable_fraction": 0.0,
+          "maximum_stable_fraction": 0.515625,
+          "nodes_at_least_95_percent": 0,
+          "nodes_all_128_stable": 0,
+          "unresolved_sample_evaluations": 0
+        }
+      }
+    },
+    "failure2": {
+      "recorded_failure_stable_count": 15,
+      "sample_count": 128,
+      "elapsed_seconds": 82.6866577132605,
+      "nodes_evaluated": 864,
+      "groups": {
+        "xy": {
+          "actual_shape": [
+            6,
+            6,
+            6
+          ],
+          "nodes": 216,
+          "minimum_stable_fraction": 0.0,
+          "maximum_stable_fraction": 0.1328125,
+          "nodes_at_least_95_percent": 0,
+          "nodes_all_128_stable": 0,
+          "unresolved_sample_evaluations": 0
+        },
+        "z": {
+          "actual_shape": [
+            6,
+            6,
+            6
+          ],
+          "nodes": 216,
+          "minimum_stable_fraction": 0.0,
+          "maximum_stable_fraction": 0.125,
+          "nodes_at_least_95_percent": 0,
+          "nodes_all_128_stable": 0,
+          "unresolved_sample_evaluations": 0
+        },
+        "roll_pitch": {
+          "actual_shape": [
+            6,
+            6,
+            6
+          ],
+          "nodes": 216,
+          "minimum_stable_fraction": 0.0,
+          "maximum_stable_fraction": 0.9921875,
+          "nodes_at_least_95_percent": 96,
+          "nodes_all_128_stable": 0,
+          "unresolved_sample_evaluations": 0
+        },
+        "yaw": {
+          "actual_shape": [
+            6,
+            6,
+            6
+          ],
+          "nodes": 216,
+          "minimum_stable_fraction": 0.0,
+          "maximum_stable_fraction": 0.234375,
+          "nodes_at_least_95_percent": 0,
+          "nodes_all_128_stable": 0,
+          "unresolved_sample_evaluations": 0
+        }
+      }
+    }
+  }
+}

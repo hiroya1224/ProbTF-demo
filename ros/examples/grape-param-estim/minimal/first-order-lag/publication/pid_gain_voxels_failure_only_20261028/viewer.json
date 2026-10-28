@@ -1,0 +1,288 @@
+{
+  "schema": "grape-param-estim/pid-voxel-viewer/v2",
+  "criterion": "stable finite samples / all original plant samples",
+  "fixed_context": "other nine gains from the same failure recording",
+  "voxel_geometry": "node-centred midpoint bins, not certified cells",
+  "cases": {
+    "failure1": {
+      "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure1",
+      "fingerprint": "e547e5852569ae61e910d256e71a55d66f3ceb54bf8950086df2933cd3bc23ab",
+      "sample_count": 128,
+      "groups": {
+        "xy": {
+          "5": {
+            "shape": [
+              6,
+              6,
+              6
+            ],
+            "nodes": 216,
+            "counts": {
+              "green": 0,
+              "red": 216,
+              "unresolved": 0
+            },
+            "marks": {
+              "failure": {
+                "gain": [
+                  3.0,
+                  0.1,
+                  1.0
+                ],
+                "stable_fraction": 0.484375,
+                "stable_count": 62,
+                "unresolved": 0,
+                "classification": 2
+              }
+            },
+            "faces": {
+              "2": 216,
+              "3": 0
+            },
+            "source_npz": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure1/xy/grid_5/stability_fraction.npz"
+          }
+        },
+        "z": {
+          "5": {
+            "shape": [
+              6,
+              6,
+              6
+            ],
+            "nodes": 216,
+            "counts": {
+              "green": 0,
+              "red": 216,
+              "unresolved": 0
+            },
+            "marks": {
+              "failure": {
+                "gain": [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                "stable_fraction": 0.484375,
+                "stable_count": 62,
+                "unresolved": 0,
+                "classification": 2
+              }
+            },
+            "faces": {
+              "2": 216,
+              "3": 0
+            },
+            "source_npz": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure1/z/grid_5/stability_fraction.npz"
+          }
+        },
+        "roll_pitch": {
+          "5": {
+            "shape": [
+              6,
+              6,
+              6
+            ],
+            "nodes": 216,
+            "counts": {
+              "green": 106,
+              "red": 110,
+              "unresolved": 0
+            },
+            "marks": {
+              "failure": {
+                "gain": [
+                  20.0,
+                  1.0,
+                  8.0
+                ],
+                "stable_fraction": 0.484375,
+                "stable_count": 62,
+                "unresolved": 0,
+                "classification": 2
+              }
+            },
+            "faces": {
+              "2": 170,
+              "3": 168
+            },
+            "source_npz": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure1/roll_pitch/grid_5/stability_fraction.npz"
+          }
+        },
+        "yaw": {
+          "5": {
+            "shape": [
+              6,
+              6,
+              6
+            ],
+            "nodes": 216,
+            "counts": {
+              "green": 0,
+              "red": 216,
+              "unresolved": 0
+            },
+            "marks": {
+              "failure": {
+                "gain": [
+                  4.0,
+                  1.0,
+                  2.0
+                ],
+                "stable_fraction": 0.484375,
+                "stable_count": 62,
+                "unresolved": 0,
+                "classification": 2
+              }
+            },
+            "faces": {
+              "2": 216,
+              "3": 0
+            },
+            "source_npz": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure1/yaw/grid_5/stability_fraction.npz"
+          }
+        }
+      }
+    },
+    "failure2": {
+      "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure2",
+      "fingerprint": "2cd83a003c5cfd448bb774082e7213182d2baede53109e541f29453a6e6ca909",
+      "sample_count": 128,
+      "groups": {
+        "xy": {
+          "5": {
+            "shape": [
+              6,
+              6,
+              6
+            ],
+            "nodes": 216,
+            "counts": {
+              "green": 0,
+              "red": 216,
+              "unresolved": 0
+            },
+            "marks": {
+              "failure": {
+                "gain": [
+                  3.0,
+                  0.1,
+                  1.0
+                ],
+                "stable_fraction": 0.1171875,
+                "stable_count": 15,
+                "unresolved": 0,
+                "classification": 2
+              }
+            },
+            "faces": {
+              "2": 216,
+              "3": 0
+            },
+            "source_npz": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure2/xy/grid_5/stability_fraction.npz"
+          }
+        },
+        "z": {
+          "5": {
+            "shape": [
+              6,
+              6,
+              6
+            ],
+            "nodes": 216,
+            "counts": {
+              "green": 0,
+              "red": 216,
+              "unresolved": 0
+            },
+            "marks": {
+              "failure": {
+                "gain": [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                "stable_fraction": 0.1171875,
+                "stable_count": 15,
+                "unresolved": 0,
+                "classification": 2
+              }
+            },
+            "faces": {
+              "2": 216,
+              "3": 0
+            },
+            "source_npz": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure2/z/grid_5/stability_fraction.npz"
+          }
+        },
+        "roll_pitch": {
+          "5": {
+            "shape": [
+              6,
+              6,
+              6
+            ],
+            "nodes": 216,
+            "counts": {
+              "green": 96,
+              "red": 120,
+              "unresolved": 0
+            },
+            "marks": {
+              "failure": {
+                "gain": [
+                  10.0,
+                  1.0,
+                  8.0
+                ],
+                "stable_fraction": 0.1171875,
+                "stable_count": 15,
+                "unresolved": 0,
+                "classification": 2
+              }
+            },
+            "faces": {
+              "2": 172,
+              "3": 152
+            },
+            "source_npz": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure2/roll_pitch/grid_5/stability_fraction.npz"
+          }
+        },
+        "yaw": {
+          "5": {
+            "shape": [
+              6,
+              6,
+              6
+            ],
+            "nodes": 216,
+            "counts": {
+              "green": 0,
+              "red": 216,
+              "unresolved": 0
+            },
+            "marks": {
+              "failure": {
+                "gain": [
+                  4.0,
+                  1.0,
+                  2.0
+                ],
+                "stable_fraction": 0.1171875,
+                "stable_count": 15,
+                "unresolved": 0,
+                "classification": 2
+              }
+            },
+            "faces": {
+              "2": 216,
+              "3": 0
+            },
+            "source_npz": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure2/yaw/grid_5/stability_fraction.npz"
+          }
+        }
+      }
+    }
+  },
+  "viewer": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/index.html",
+  "html_sha256": "8312ba1249bc7d2390c6ee3c37476f1f17a09143203e59cf1c1fb8063a0533b6"
+}

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Adaptive group-only PID break maps for the first-order Gimbalrotor model.
+"""WITHDRAWN historical implementation: success-conditioned maps.
+
+Use pid_gain_contour.py for unconditional failure-record-only maps.
+
+Adaptive group-only PID break maps for the first-order Gimbalrotor model.
 
 The closed-loop model is the full 26-state sampled-data system used by the
 first-order-lag pole validation.  For one selected PID gain group, the other
@@ -971,6 +975,7 @@ def _projection_payload(projection: ProjectionGrid) -> Mapping[str, Any]:
 
 
 def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
+    raise RuntimeError("Withdrawn success-conditioned legacy analysis; use pid_gain_contour.py")
     estimate_path = Path(arguments.estimate_json).expanduser().resolve()
     success_path = Path(arguments.success_json).expanduser().resolve()
     estimate = load_estimate_json(estimate_path)
@@ -1277,6 +1282,7 @@ def _is_dyadic_nested_size(value: int) -> bool:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    raise SystemExit("Withdrawn success-conditioned legacy analysis; use pid_gain_contour.py")
     arguments = build_argument_parser().parse_args(argv)
     if not (0.0 < arguments.alpha < 1.0):
         raise SystemExit("--alpha must lie in (0,1)")

@@ -1,0 +1,211 @@
+{
+  "browser": "Google Chrome headless",
+  "screenshots_taken": false,
+  "sizes": [
+    5
+  ],
+  "case_group_switches": 8,
+  "checks": [
+    {
+      "case": "failure1",
+      "group": "xy",
+      "sample_count": 128,
+      "denominatorText": "failure1から得た元の128標本すべてが固定分母です。成功ゲインで標本を選別せず、評価不能も分母に残します。他の9ゲインは同じ失敗記録の値です。",
+      "referenceText": "× failure1：P=3、I=0.1、D=1（この断面の安定標本62/128） / 失敗記録の全12ゲイン：62/128、評価不能0",
+      "traces": [
+        {
+          "name": "安定標本の割合 < 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "failure1 の全12記録ゲイン",
+          "type": "scatter3d"
+        }
+      ],
+      "sliceTraces": 2
+    },
+    {
+      "case": "failure1",
+      "group": "z",
+      "sample_count": 128,
+      "denominatorText": "failure1から得た元の128標本すべてが固定分母です。成功ゲインで標本を選別せず、評価不能も分母に残します。他の9ゲインは同じ失敗記録の値です。",
+      "referenceText": "× failure1：P=5、I=1、D=2.5（この断面の安定標本62/128） / 失敗記録の全12ゲイン：62/128、評価不能0",
+      "traces": [
+        {
+          "name": "安定標本の割合 < 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "failure1 の全12記録ゲイン",
+          "type": "scatter3d"
+        }
+      ],
+      "sliceTraces": 2
+    },
+    {
+      "case": "failure1",
+      "group": "roll_pitch",
+      "sample_count": 128,
+      "denominatorText": "failure1から得た元の128標本すべてが固定分母です。成功ゲインで標本を選別せず、評価不能も分母に残します。他の9ゲインは同じ失敗記録の値です。",
+      "referenceText": "× failure1：P=20、I=1、D=8（この断面の安定標本62/128） / 失敗記録の全12ゲイン：62/128、評価不能0",
+      "traces": [
+        {
+          "name": "安定標本の割合 < 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "安定標本の割合 ≥ 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "failure1 の全12記録ゲイン",
+          "type": "scatter3d"
+        }
+      ],
+      "sliceTraces": 2
+    },
+    {
+      "case": "failure1",
+      "group": "yaw",
+      "sample_count": 128,
+      "denominatorText": "failure1から得た元の128標本すべてが固定分母です。成功ゲインで標本を選別せず、評価不能も分母に残します。他の9ゲインは同じ失敗記録の値です。",
+      "referenceText": "× failure1：P=4、I=1、D=2（この断面の安定標本62/128） / 失敗記録の全12ゲイン：62/128、評価不能0",
+      "traces": [
+        {
+          "name": "安定標本の割合 < 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "failure1 の全12記録ゲイン",
+          "type": "scatter3d"
+        }
+      ],
+      "sliceTraces": 2
+    },
+    {
+      "case": "failure2",
+      "group": "xy",
+      "sample_count": 128,
+      "denominatorText": "failure2から得た元の128標本すべてが固定分母です。成功ゲインで標本を選別せず、評価不能も分母に残します。他の9ゲインは同じ失敗記録の値です。",
+      "referenceText": "× failure2：P=3、I=0.1、D=1（この断面の安定標本15/128） / 失敗記録の全12ゲイン：15/128、評価不能0",
+      "traces": [
+        {
+          "name": "安定標本の割合 < 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "failure2 の全12記録ゲイン",
+          "type": "scatter3d"
+        }
+      ],
+      "sliceTraces": 2
+    },
+    {
+      "case": "failure2",
+      "group": "z",
+      "sample_count": 128,
+      "denominatorText": "failure2から得た元の128標本すべてが固定分母です。成功ゲインで標本を選別せず、評価不能も分母に残します。他の9ゲインは同じ失敗記録の値です。",
+      "referenceText": "× failure2：P=5、I=1、D=2.5（この断面の安定標本15/128） / 失敗記録の全12ゲイン：15/128、評価不能0",
+      "traces": [
+        {
+          "name": "安定標本の割合 < 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "failure2 の全12記録ゲイン",
+          "type": "scatter3d"
+        }
+      ],
+      "sliceTraces": 2
+    },
+    {
+      "case": "failure2",
+      "group": "roll_pitch",
+      "sample_count": 128,
+      "denominatorText": "failure2から得た元の128標本すべてが固定分母です。成功ゲインで標本を選別せず、評価不能も分母に残します。他の9ゲインは同じ失敗記録の値です。",
+      "referenceText": "× failure2：P=10、I=1、D=8（この断面の安定標本15/128） / 失敗記録の全12ゲイン：15/128、評価不能0",
+      "traces": [
+        {
+          "name": "安定標本の割合 < 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "安定標本の割合 ≥ 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "failure2 の全12記録ゲイン",
+          "type": "scatter3d"
+        }
+      ],
+      "sliceTraces": 2
+    },
+    {
+      "case": "failure2",
+      "group": "yaw",
+      "sample_count": 128,
+      "denominatorText": "failure2から得た元の128標本すべてが固定分母です。成功ゲインで標本を選別せず、評価不能も分母に残します。他の9ゲインは同じ失敗記録の値です。",
+      "referenceText": "× failure2：P=4、I=1、D=2（この断面の安定標本15/128） / 失敗記録の全12ゲイン：15/128、評価不能0",
+      "traces": [
+        {
+          "name": "安定標本の割合 < 95%",
+          "type": "mesh3d"
+        },
+        {
+          "name": "ボクセル境界",
+          "type": "scatter3d"
+        },
+        {
+          "name": "failure2 の全12記録ゲイン",
+          "type": "scatter3d"
+        }
+      ],
+      "sliceTraces": 2
+    }
+  ],
+  "page_errors": [],
+  "runtime_exceptions": [],
+  "extra_controls": [
+    "slice",
+    "binary color"
+  ],
+  "passed": true,
+  "historical_numeric_figure_snapshot_files_checked_against_HEAD": 43,
+  "historical_numeric_figure_snapshot_files_changed": []
+}

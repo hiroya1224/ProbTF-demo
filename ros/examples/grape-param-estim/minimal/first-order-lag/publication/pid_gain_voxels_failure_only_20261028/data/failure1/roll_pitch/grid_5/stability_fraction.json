@@ -1,0 +1,9 @@
+{
+  "alpha": 0.95,
+  "at_or_above_alpha": 106,
+  "below_alpha": 110,
+  "criterion": "finite rho < 1 on all fixed samples; unresolved stays in denominator",
+  "pending": 0,
+  "sample_count": 128,
+  "with_unresolved": 0
+}

@@ -1,4 +1,13 @@
-# Portable data format
+# Portable data format（旧方式・撤回済み）
+
+> **2026年10月28日：この図系列を、失敗データだけから安定ゲインを予測した証拠として使うことを撤回します。**
+> 以下のデータ・図・計算snapshotは旧方式の監査用履歴です。成功ゲインで安定だった標本だけを分母にし、他の9ゲインも成功値に固定していたため、成功点の100%は独立な予測結果ではありません。
+> 修正版は元の全標本を固定分母とし、断面の他9ゲインを同じ失敗記録の値に固定します。旧NPZの母数だけを変えて、修正版の図として再利用することはしません。
+> この撤回告知を加えた文書・入口HTML以外の旧数値・図・snapshotは保持しています。`files.tsv` と既存validationは告知追加前の履歴資料です。
+
+修正後の独立した再計算は [失敗記録だけを使った新結果](../pid_gain_voxels_failure_only_20261028/README.md) を参照してください。
+
+以下は旧方式の記録です。
 
 Read any archive with `numpy.load(path, allow_pickle=False)`. Gain-grid dimensions are always `(nP,nI,nD)`; the sample dimension is last where present. No pickled Python objects or external filesystem references are needed to load the arrays.
 

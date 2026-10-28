@@ -1,0 +1,14 @@
+{
+  "pid_gain_region.py": {
+    "role": "not imported by voxel computation; included by broad *.py fingerprint",
+    "hash_at_voxel_run_start": "5f7f56edccddaea9688083f25cc78e7d7a97a7715d823cf8e7ec26edacff7875",
+    "snapshot_relative_to_publication": "validation/nonruntime_helpers_at_run_start/pid_gain_region.py",
+    "final_corrected_source_sha256": "4cd339ee32f93abfc102976c296e28a14158b084b6c5bd7d850e324d48e73d7f"
+  },
+  "run_all_pid_gain_regions.py": {
+    "role": "not imported by voxel computation; included by broad *.py fingerprint",
+    "hash_at_voxel_run_start": "525347501fd4bb52a551fe0a5bc81955226a56d53866c5b40a4cdbfd6a88327d",
+    "snapshot_relative_to_publication": "validation/nonruntime_helpers_at_run_start/run_all_pid_gain_regions.py",
+    "final_corrected_source_sha256": "193550f1f4079fa708d1bbdeca26c0e8d7295f103236a41243390140594fbf95"
+  }
+}

@@ -1,0 +1,357 @@
+{
+  "completed_utc": "2026-10-28T14:29:23.637499+00:00",
+  "criterion": "unchanged exact poles on all resolved saved samples",
+  "results": [
+    {
+      "case": "failure1",
+      "grid_size": 5,
+      "groups": {
+        "roll_pitch": {
+          "additional_resolved_poles": 0,
+          "compared_resolved_poles": 384,
+          "maximum_absolute_radius_error": 0.0,
+          "nodes": 3,
+          "pid_triples": [
+            [
+              5.0,
+              0.25,
+              2.0
+            ],
+            [
+              20.0,
+              1.0,
+              8.0
+            ],
+            [
+              40.0,
+              2.0,
+              16.0
+            ]
+          ],
+          "saved_indices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              2,
+              2
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "seconds": 0.37414108822122216
+        },
+        "xy": {
+          "additional_resolved_poles": 0,
+          "compared_resolved_poles": 384,
+          "maximum_absolute_radius_error": 0.0,
+          "nodes": 3,
+          "pid_triples": [
+            [
+              0.75,
+              0.025,
+              0.25
+            ],
+            [
+              3.0,
+              0.1,
+              1.0
+            ],
+            [
+              6.0,
+              0.2,
+              2.0
+            ]
+          ],
+          "saved_indices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              2,
+              2
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "seconds": 0.38250212697312236
+        },
+        "yaw": {
+          "additional_resolved_poles": 0,
+          "compared_resolved_poles": 384,
+          "maximum_absolute_radius_error": 0.0,
+          "nodes": 3,
+          "pid_triples": [
+            [
+              1.0,
+              0.25,
+              0.5
+            ],
+            [
+              4.0,
+              1.0,
+              2.0
+            ],
+            [
+              8.0,
+              2.0,
+              4.0
+            ]
+          ],
+          "saved_indices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              2,
+              2
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "seconds": 0.3588089938275516
+        },
+        "z": {
+          "additional_resolved_poles": 0,
+          "compared_resolved_poles": 384,
+          "maximum_absolute_radius_error": 0.0,
+          "nodes": 3,
+          "pid_triples": [
+            [
+              1.25,
+              0.25,
+              0.625
+            ],
+            [
+              5.0,
+              1.0,
+              2.5
+            ],
+            [
+              10.0,
+              2.0,
+              5.0
+            ]
+          ],
+          "saved_indices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              2,
+              2
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "seconds": 0.3810239639133215
+        }
+      },
+      "samples": 128,
+      "source_dataset": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure1",
+      "source_fingerprint": "e547e5852569ae61e910d256e71a55d66f3ceb54bf8950086df2933cd3bc23ab",
+      "warm_start": "recorded failure controller only",
+      "workers": 8
+    },
+    {
+      "case": "failure2",
+      "grid_size": 5,
+      "groups": {
+        "roll_pitch": {
+          "additional_resolved_poles": 0,
+          "compared_resolved_poles": 384,
+          "maximum_absolute_radius_error": 0.0,
+          "nodes": 3,
+          "pid_triples": [
+            [
+              2.5,
+              0.25,
+              2.0
+            ],
+            [
+              10.0,
+              1.0,
+              8.0
+            ],
+            [
+              20.0,
+              2.0,
+              16.0
+            ]
+          ],
+          "saved_indices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              2,
+              2
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "seconds": 0.35029487824067473
+        },
+        "xy": {
+          "additional_resolved_poles": 0,
+          "compared_resolved_poles": 384,
+          "maximum_absolute_radius_error": 0.0,
+          "nodes": 3,
+          "pid_triples": [
+            [
+              0.75,
+              0.025,
+              0.25
+            ],
+            [
+              3.0,
+              0.1,
+              1.0
+            ],
+            [
+              6.0,
+              0.2,
+              2.0
+            ]
+          ],
+          "saved_indices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              2,
+              2
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "seconds": 0.381241621915251
+        },
+        "yaw": {
+          "additional_resolved_poles": 0,
+          "compared_resolved_poles": 384,
+          "maximum_absolute_radius_error": 0.0,
+          "nodes": 3,
+          "pid_triples": [
+            [
+              1.0,
+              0.25,
+              0.5
+            ],
+            [
+              4.0,
+              1.0,
+              2.0
+            ],
+            [
+              8.0,
+              2.0,
+              4.0
+            ]
+          ],
+          "saved_indices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              2,
+              2
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "seconds": 0.3845695941708982
+        },
+        "z": {
+          "additional_resolved_poles": 0,
+          "compared_resolved_poles": 384,
+          "maximum_absolute_radius_error": 0.0,
+          "nodes": 3,
+          "pid_triples": [
+            [
+              1.25,
+              0.25,
+              0.625
+            ],
+            [
+              5.0,
+              1.0,
+              2.5
+            ],
+            [
+              10.0,
+              2.0,
+              5.0
+            ]
+          ],
+          "saved_indices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              2,
+              2
+            ],
+            [
+              5,
+              5,
+              5
+            ]
+          ],
+          "seconds": 0.35944601334631443
+        }
+      },
+      "samples": 128,
+      "source_dataset": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_20261028/data/failure2",
+      "source_fingerprint": "2cd83a003c5cfd448bb774082e7213182d2baede53109e541f29453a6e6ca909",
+      "warm_start": "recorded failure controller only",
+      "workers": 8
+    }
+  ],
+  "started_utc": "2026-10-28T14:29:19.711314+00:00"
+}

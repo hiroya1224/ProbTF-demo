@@ -1,0 +1,65 @@
+{
+  "association": "grid nodes, not certified cell interiors",
+  "axes": [
+    [
+      1.0,
+      2.75,
+      4.0,
+      4.5,
+      6.25,
+      8.0
+    ],
+    [
+      0.25,
+      0.6875,
+      1.0,
+      1.125,
+      1.5625,
+      2.0
+    ],
+    [
+      0.5,
+      1.375,
+      2.0,
+      2.25,
+      3.125,
+      4.0
+    ]
+  ],
+  "axis_order": [
+    "P",
+    "I",
+    "D"
+  ],
+  "fingerprint": "e547e5852569ae61e910d256e71a55d66f3ceb54bf8950086df2933cd3bc23ab",
+  "full_fixed_controller_gains": [
+    [
+      3.0,
+      0.1,
+      1.0
+    ],
+    [
+      5.0,
+      1.0,
+      2.5
+    ],
+    [
+      20.0,
+      1.0,
+      8.0
+    ],
+    [
+      4.0,
+      1.0,
+      2.0
+    ]
+  ],
+  "group": "yaw",
+  "plant_samples": 128,
+  "schema": "grape-param-estim/exact-pid-gain-volume/v2-unconditional-failure-context",
+  "shape": [
+    6,
+    6,
+    6
+  ]
+}

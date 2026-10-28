@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-28",
+  "status": "withdrawn as evidence of success-independent gain prediction",
+  "historical_data_unchanged": true,
+  "entry_pages": [
+    {
+      "path": "index.html",
+      "previous_sha256": "dbd0b5e6635435b064c4c8d582442693ef520809b71575b5010adc06926beaa3",
+      "after_notice_sha256": "eccab931bded1eae5019491b5c07e8bd1b818bf6b6d3be577da1dd1ac12959f1",
+      "change": "withdrawal notice only; embedded data and calculations unchanged"
+    }
+  ],
+  "interactive_index": "unchanged redirect to the withdrawal-marked main entry page"
+}

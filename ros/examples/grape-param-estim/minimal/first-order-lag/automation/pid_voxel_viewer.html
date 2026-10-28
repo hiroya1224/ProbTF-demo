@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>failure1 PID — 透明ボクセル</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#182630;font:15px system-ui,sans-serif}
+main{max-width:1680px;margin:auto;padding:20px}h1{font-size:25px;margin:0 0 10px}p{line-height:1.65;margin:8px 0}
+.toolbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:white;padding:12px 15px;border:1px solid #d5dce2;border-radius:8px;margin:14px 0}
+label{display:flex;align-items:center;gap:7px}select,button{padding:6px 9px;border:1px solid #acb9c5;border-radius:5px;font:inherit;background:white;color:inherit;cursor:pointer}
+button:hover{background:#edf4fa}input[type=range]{width:105px}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{background:white;border:1px solid #d5dce2;border-radius:8px;overflow:hidden;margin-bottom:14px}
+.cardhead{padding:10px 15px;border-bottom:1px solid #e4e9ed;line-height:1.55}.cardhead strong{font-size:18px}.plot{height:555px}.slice{height:350px}
+.green{color:#168b42}.red{color:#bf2529}.blue{color:#2070c0}.purple{color:#9c27b0}.small{font-size:13px;color:#53616c}
+.note{background:#e9eff5;border-radius:6px;padding:10px 15px}.stats{display:flex;gap:15px;flex-wrap:wrap;font-size:13px}
+#status{min-height:20px;color:#53616c}.busy{opacity:.55;pointer-events:none}a{color:#206daf}
+@media(max-width:950px){.row{grid-template-columns:1fr}.plot{height:480px}main{padding:12px}}
+</style>
+<main>
+<h1 id="title">failure1 のPID分布 — 半透明ボクセル</h1>
+<p id="criterion">緑：安定標本の割合95%以上、赤：95%未満。各計算点の値を、対応するボクセルに表示します。</p>
+<div class="note" id="baseline"></div>
+<div class="toolbar">
+<label>ケース <select id="case"><option value="failure1">failure 1</option><option value="failure2">failure 2（参考・別分布）</option></select></label>
+<label>PID <select id="group"><option value="roll_pitch">Roll / Pitch</option><option value="yaw">Yaw</option><option value="xy">XY</option><option value="z">Z</option></select></label>
+<label>表示 <select id="mode"><option value="all">赤・緑の全領域</option><option value="green">95%以上のみ</option><option value="red">95%未満のみ</option><option value="slice">選択したIの断面</option><option value="cut">選択したIまで切り出す</option></select></label>
+<label>色 <select id="colors"><option value="continuous">全標本の連続色（0〜100%）</option><option value="binary">95%境界の赤・緑</option></select></label>
+</div>
+<div class="toolbar">
+<label class="green">緑の不透明度 <input id="greenOpacity" type="range" min="0.02" max="0.65" step="0.01" value="0.24"><output id="greenValue">24%</output></label>
+<label class="red">赤の不透明度 <input id="redOpacity" type="range" min="0.02" max="0.65" step="0.01" value="0.16"><output id="redValue">16%</output></label>
+<label><input id="edges" type="checkbox" checked>ボクセルの境界線</label>
+<label><input id="reference" type="checkbox" checked>記録ゲインの印</label>
+<button id="diagonal">斜めから見る</button><button id="top">P・I平面を見る</button><button id="front">P・D平面を見る</button>
+</div>
+<p id="referenceInfo"></p>
+<p class="small" id="bounds"></p>
+<div id="status" aria-live="polite">ボクセルを読み込み中…</div>
+<div class="row">
+__VOLUME_CARDS__
+</div>
+<div class="toolbar"><label>Iゲイン <select id="sliceI"></select></label><span class="small">表示中の格子に共通するIを選択します。下の断面では、このIと一致する記録点だけを表示します。</span></div>
+<p id="sliceTitle"></p>
+<div class="row">
+__SLICE_CARDS__
+</div>
+<p class="small">P・I・Dを変えるのは選択した1グループだけで、他の9ゲインは同じ失敗記録の設定に固定しています。紫の×では全12ゲインがその失敗記録の値です。4パネルの任意の点を組み合わせた制御器を評価した図ではありません。</p>
+<p class="small" id="source"></p>
+</main>
+<script>__PLOTLY__</script>
+<script>const DATA=__DATA__;</script>
+<script>__VIEWER__</script>
+</html>

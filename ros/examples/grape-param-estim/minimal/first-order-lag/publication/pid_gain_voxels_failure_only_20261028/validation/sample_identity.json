@@ -1,0 +1,120 @@
+{
+  "audit_date_utc": "2026-10-28T14:15:29.547018+00:00",
+  "reference_commit": "42a01528b915d1cc852c3b11e8396dc055d8934f",
+  "method": "Read-only comparison of all stored quotient coordinates by dtype, shape and raw bytes in original sample order; current estimate JSON compared byte-for-byte with fixed audit Git commit and publication copies. Counts recomputed from saved complete-controller spectral radii.",
+  "cases": {
+    "failure1": {
+      "original_samples_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_gain_voxels_fast_interior_success_context/plant_samples.npz",
+      "new_samples_path": "/tmp/probtf_lag_audit_20261028/failure1/plant_samples.npz",
+      "npz_keys_match": true,
+      "all_sample_arrays_bitwise_identical": true,
+      "arrays": {
+        "quotient_coordinates": {
+          "shape_before": [
+            128,
+            13
+          ],
+          "shape_after": [
+            128,
+            13
+          ],
+          "dtype_before": "float64",
+          "dtype_after": "float64",
+          "before_array_sha256": "88976ecf40e11a055662ac209d3a83f9fe57d0e5d7b8015d387d2d8883a82e8e",
+          "after_array_sha256": "88976ecf40e11a055662ac209d3a83f9fe57d0e5d7b8015d387d2d8883a82e8e",
+          "bitwise_identical_in_sample_order": true
+        }
+      },
+      "estimate_files": [
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/estimate.json",
+          "size_bytes": 28531,
+          "current_sha256": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+          "fixed_commit_sha256": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+          "byte_identical_to_fixed_commit": true
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels/data/failure1/estimate.json",
+          "size_bytes": 28531,
+          "current_sha256": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+          "fixed_commit_sha256": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+          "byte_identical_to_fixed_commit": true
+        }
+      ],
+      "original_and_publication_estimate_bytes_match": true,
+      "full_recorded_failure_controller": {
+        "old_reference_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_gain_voxels_fast_interior_success_context/references.json",
+        "new_reference_path": "/tmp/probtf_lag_audit_20261028/failure1/references.json",
+        "same_all_12_gains": true,
+        "original_sample_count": 128,
+        "new_sample_count": 128,
+        "old_stable_count": 62,
+        "new_stable_count": 62,
+        "new_stable_fraction": 0.484375,
+        "pdf_expected_stable_count": 62,
+        "matches_pdf_count": true,
+        "same_stable_mask": true,
+        "max_absolute_spectral_radius_difference": 0.0,
+        "radii_bitwise_identical": true,
+        "unresolved_count_in_new_reference": 0
+      }
+    },
+    "failure2": {
+      "original_samples_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/pid_gain_voxels_fast_interior_success_context/plant_samples.npz",
+      "new_samples_path": "/tmp/probtf_lag_audit_20261028/failure2/plant_samples.npz",
+      "npz_keys_match": true,
+      "all_sample_arrays_bitwise_identical": true,
+      "arrays": {
+        "quotient_coordinates": {
+          "shape_before": [
+            128,
+            13
+          ],
+          "shape_after": [
+            128,
+            13
+          ],
+          "dtype_before": "float64",
+          "dtype_after": "float64",
+          "before_array_sha256": "11129fba86ca6d4f780ff398cfb0c794c255d9e6a223a0bedddbb2ecf89e9b8f",
+          "after_array_sha256": "11129fba86ca6d4f780ff398cfb0c794c255d9e6a223a0bedddbb2ecf89e9b8f",
+          "bitwise_identical_in_sample_order": true
+        }
+      },
+      "estimate_files": [
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/estimate.json",
+          "size_bytes": 28470,
+          "current_sha256": "37f88f9023ee1b55db090a1e2d38dd79eeecb65ff0fd190cda0e3d80bab4c8a1",
+          "fixed_commit_sha256": "37f88f9023ee1b55db090a1e2d38dd79eeecb65ff0fd190cda0e3d80bab4c8a1",
+          "byte_identical_to_fixed_commit": true
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels/data/failure2/estimate.json",
+          "size_bytes": 28470,
+          "current_sha256": "37f88f9023ee1b55db090a1e2d38dd79eeecb65ff0fd190cda0e3d80bab4c8a1",
+          "fixed_commit_sha256": "37f88f9023ee1b55db090a1e2d38dd79eeecb65ff0fd190cda0e3d80bab4c8a1",
+          "byte_identical_to_fixed_commit": true
+        }
+      ],
+      "original_and_publication_estimate_bytes_match": true,
+      "full_recorded_failure_controller": {
+        "old_reference_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/pid_gain_voxels_fast_interior_success_context/references.json",
+        "new_reference_path": "/tmp/probtf_lag_audit_20261028/failure2/references.json",
+        "same_all_12_gains": true,
+        "original_sample_count": 128,
+        "new_sample_count": 128,
+        "old_stable_count": 15,
+        "new_stable_count": 15,
+        "new_stable_fraction": 0.1171875,
+        "pdf_expected_stable_count": 15,
+        "matches_pdf_count": true,
+        "same_stable_mask": true,
+        "max_absolute_spectral_radius_difference": 0.0,
+        "radii_bitwise_identical": true,
+        "unresolved_count_in_new_reference": 0
+      }
+    }
+  },
+  "all_checks_pass": true
+}

@@ -56,6 +56,9 @@ DEFAULT_FD_RATIO = 1.12
 DEFAULT_GRID_SIZE = 21
 DEFAULT_SCALE_MIN = 0.35
 DEFAULT_SCALE_MAX = 3.0
+UNCONDITIONAL_GAIN_REGION_SCHEMA = (
+    "grape-param-estim/first-order-lag-pid-gain-region/v2-unconditional"
+)
 PROJECTION_SPECS = (
     ("pi", 0, 1, 2, "P", "I"),
     ("id", 1, 2, 0, "I", "D"),
@@ -147,7 +150,7 @@ def _spectral_radii(
             if classification is None:
                 continue
             values[index] = float(classification["spectral_radius"])
-            valid[index] = True
+            valid[index] = np.isfinite(values[index]) and values[index] >= 0.0
         except NUMERICAL_SAMPLE_EXCEPTIONS:
             continue
     return values, valid
@@ -198,14 +201,23 @@ def _local_radius_surrogate(
         valid &= plus_valid & minus_valid
         gradient[:, axis] = (plus_radius - minus_radius) / (2.0 * h)
     valid &= np.all(np.isfinite(gradient), axis=1)
-    return baseline[valid], gradient[valid], valid
+    # Keep sample identity and N even when a finite-difference fit is unresolved.
+    return baseline, gradient, valid
 
 
 def _stable_fraction_tensor(
     baseline: np.ndarray,
     gradient: np.ndarray,
     log_ratio: np.ndarray,
+    valid_mask: Optional[np.ndarray] = None,
 ) -> np.ndarray:
+    baseline = np.asarray(baseline, dtype=float)
+    gradient = np.asarray(gradient, dtype=float)
+    if baseline.ndim != 1 or not baseline.size or gradient.shape != (baseline.size, 3):
+        raise ValueError("surrogate arrays must retain all original plant samples")
+    valid = np.ones(baseline.size, dtype=bool) if valid_mask is None else np.asarray(valid_mask, dtype=bool)
+    if valid.shape != baseline.shape:
+        raise ValueError("surrogate validity must have one entry per original sample")
     size = int(log_ratio.size)
     result = np.empty((size, size, size), dtype=float)
     for i in range(size):
@@ -214,7 +226,8 @@ def _stable_fraction_tensor(
             for k in range(size):
                 delta = np.asarray((delta_prefix[0], delta_prefix[1], log_ratio[k]))
                 radius = baseline + gradient @ delta
-                result[i, j, k] = float(np.mean(radius < 1.0))
+                stable = valid & np.isfinite(radius) & (radius < 1.0)
+                result[i, j, k] = float(np.count_nonzero(stable) / baseline.size)
     return result
 
 
@@ -225,24 +238,28 @@ def _project(stable_fraction: np.ndarray) -> Mapping[str, np.ndarray]:
     }
 
 
-def _range_with_overlay(
-    baseline: GainTriple,
-    overlay: Optional[GainTriple],
+def _range_from_failure(
     scale_min: float,
     scale_max: float,
 ) -> tuple[float, float]:
     lower = float(scale_min)
     upper = float(scale_max)
-    if overlay is None:
-        return lower, upper
-    base = baseline.array()
-    other = overlay.array()
-    positive = base > 0.0
-    ratios = other[positive] / base[positive]
-    if ratios.size:
-        lower = min(lower, float(np.min(ratios)))
-        upper = max(upper, float(np.max(ratios)))
+    if not np.isfinite(lower) or not np.isfinite(upper) or not 0.0 < lower < upper:
+        raise ValueError("gain scales must satisfy finite 0 < min < max")
     return lower, upper
+
+
+def _exact_stability_summary(radius: np.ndarray, valid_mask: np.ndarray) -> Mapping[str, Any]:
+    radius = np.asarray(radius, dtype=float)
+    valid = np.asarray(valid_mask, dtype=bool) & np.isfinite(radius) & (radius >= 0.0)
+    stable = valid & (radius < 1.0)
+    return {
+        "sample_count": int(radius.size),
+        "stable_count": int(np.count_nonzero(stable)),
+        "stable_fraction": float(np.count_nonzero(stable) / radius.size),
+        "pole_valid_count": int(np.count_nonzero(valid)),
+        "unresolved_count": int(np.count_nonzero(~valid)),
+    }
 
 
 def _plot(
@@ -254,11 +271,9 @@ def _plot(
     ratio: np.ndarray,
     projected: Mapping[str, np.ndarray],
     baseline: GainTriple,
-    success: Optional[GainTriple],
 ) -> None:
     figure, axes = plt.subplots(1, 3, figsize=(15, 4.8), constrained_layout=True)
     base = baseline.array()
-    overlay = None if success is None else success.array()
     gain_grid = base[None, :] * ratio[:, None]
     color = None
     for axis, (name, first, second, _hidden, first_name, second_name) in zip(
@@ -280,13 +295,8 @@ def _plot(
             )
         axis.plot(
             base[first], base[second], marker="x", markersize=9,
-            markeredgewidth=2.0, label="recorded"
+            markeredgewidth=2.0, label="recorded visible coordinates"
         )
-        if overlay is not None:
-            axis.plot(
-                overlay[first], overlay[second], marker="o", markersize=6,
-                label="success-recorded"
-            )
         axis.set_xscale("log")
         axis.set_yscale("log")
         axis.set_xlabel(f"{group} {first_name}")
@@ -296,9 +306,9 @@ def _plot(
         axis.legend(loc="best")
     assert color is not None
     figure.colorbar(color, ax=axes, shrink=0.92).set_label(
-        "max stable fraction over hidden gain"
+        "max surrogate stable samples / all original samples over hidden gain"
     )
-    figure.suptitle(f"{case_name} / {group} / alpha={alpha:.2f}")
+    figure.suptitle(f"{case_name} / {group}: local surrogate; other 9 gains at recorded values")
     figure.savefig(path, dpi=160)
     plt.close(figure)
 
@@ -306,158 +316,153 @@ def _plot(
 def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
     estimate_path = Path(arguments.estimate_json).expanduser().resolve()
     estimate = load_estimate_json(estimate_path)
-    success_estimate = (
-        None
-        if arguments.success_json is None
-        else load_estimate_json(Path(arguments.success_json))
-    )
     case_name = str(estimate["case_name"])
     output = (
         Path(arguments.output_dir).expanduser().resolve()
         if arguments.output_dir is not None
-        else estimate_path.parent / "pid_gain_region"
+        else estimate_path.parent / "pid_gain_region_unconditional"
     )
     output.mkdir(parents=True, exist_ok=True)
-
-    model_path = Path(estimate["input"]["vehicle_model"])
-    vehicle_model = load_vehicle_model(model_path)
+    vehicle_model = load_vehicle_model(Path(estimate["input"]["vehicle_model"]))
     actuator_parameters = actuator_parameters_from_estimate(estimate)
     controller_dt = float(estimate["controller_timing"]["median_seconds"])
     quotient = draw_quotient_coordinates(
-        estimate,
-        str(arguments.covariance),
-        int(arguments.samples),
-        int(arguments.seed),
+        estimate, str(arguments.covariance), int(arguments.samples), int(arguments.seed),
     )
     plants = quotient_to_scale_free_plants(
-        estimate,
-        quotient,
-        vehicle_model.parameters,
-        ScaleFreePlant,
+        estimate, quotient, vehicle_model.parameters, ScaleFreePlant,
     )
+    if not plants:
+        raise ValueError("the original plant sample population must be nonempty")
     baseline_gains = _recorded_gains(estimate)
-    success_gains = (
-        None if success_estimate is None else _recorded_gains(success_estimate)
+    scale_min, scale_max = _range_from_failure(
+        float(arguments.scale_min), float(arguments.scale_max),
     )
-
+    ratio = np.geomspace(scale_min, scale_max, int(arguments.grid_size))
+    # The exact controller comparison uses all original samples independently
+    # of which finite-difference surrogate fits can be evaluated.
+    recorded_radius, recorded_valid = _spectral_radii(
+        plants=plants, vehicle_model=vehicle_model,
+        actuator_parameters=actuator_parameters, controller_dt=controller_dt,
+        gains=baseline_gains,
+    )
+    recorded_summary = _exact_stability_summary(recorded_radius, recorded_valid)
+    full_references = {"recorded_case": {
+        "gains": {name: triple.array().tolist() for name, triple in baseline_gains.items()},
+        **recorded_summary,
+    }}
     summary_rows = []
     for group in arguments.group or PID_GROUPS:
         baseline_radius, gradient, valid_mask = _local_radius_surrogate(
-            group=group,
-            baseline_gains=baseline_gains,
-            plants=plants,
-            vehicle_model=vehicle_model,
-            actuator_parameters=actuator_parameters,
-            controller_dt=controller_dt,
-            fd_ratio=float(arguments.fd_ratio),
+            group=group, baseline_gains=baseline_gains, plants=plants,
+            vehicle_model=vehicle_model, actuator_parameters=actuator_parameters,
+            controller_dt=controller_dt, fd_ratio=float(arguments.fd_ratio),
         )
-        if baseline_radius.size == 0:
-            raise RuntimeError(f"no pole-valid samples for group {group}")
-        overlay = None if success_gains is None else success_gains[group]
-        scale_min, scale_max = _range_with_overlay(
-            baseline_gains[group],
-            overlay,
-            float(arguments.scale_min),
-            float(arguments.scale_max),
-        )
-        ratio = np.geomspace(scale_min, scale_max, int(arguments.grid_size))
         stable_fraction = _stable_fraction_tensor(
-            baseline_radius, gradient, np.log(ratio)
+            baseline_radius, gradient, np.log(ratio), valid_mask,
         )
         projected = _project(stable_fraction)
-
-        exact_success_fraction = None
-        exact_success_valid = None
-        if success_gains is not None:
-            success_radius, success_valid = _spectral_radii(
-                plants=plants,
-                vehicle_model=vehicle_model,
-                actuator_parameters=actuator_parameters,
-                controller_dt=controller_dt,
-                gains=success_gains,
-            )
-            exact_success_valid = int(np.count_nonzero(success_valid))
-            if exact_success_valid:
-                exact_success_fraction = float(
-                    np.mean(success_radius[success_valid] < 1.0)
-                )
-
         group_dir = output / group
         group_dir.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(
-            group_dir / "gain_region.npz",
-            ratio_grid=ratio,
-            stable_fraction=stable_fraction,
-            projected_pi=projected["pi"],
-            projected_id=projected["id"],
-            projected_dp=projected["dp"],
-            surrogate_valid_mask=valid_mask,
+            group_dir / "gain_region.npz", quotient_coordinates=quotient,
+            ratio_grid=ratio, stable_fraction=stable_fraction,
+            projected_pi=projected["pi"], projected_id=projected["id"],
+            projected_dp=projected["dp"], surrogate_valid_mask=valid_mask,
+            surrogate_baseline_spectral_radius=baseline_radius,
+            surrogate_radius_gradient=gradient,
+            recorded_exact_spectral_radius=recorded_radius,
+            recorded_exact_valid_mask=recorded_valid,
         )
         group_payload = {
-            "schema": GAIN_REGION_SCHEMA,
-            "case_name": case_name,
-            "estimate_json": str(estimate_path),
-            "group": group,
-            "alpha": float(arguments.alpha),
+            "schema": UNCONDITIONAL_GAIN_REGION_SCHEMA,
+            "case_name": case_name, "estimate_json": str(estimate_path),
+            "group": group, "alpha": float(arguments.alpha),
             "covariance": str(arguments.covariance),
             "requested_samples": int(arguments.samples),
-            "surrogate_valid_samples": int(baseline_radius.size),
+            "sample_count": len(plants),
+            "sample_population_conditioned_on_success": False,
+            "success_used_in_map_generation": False,
+            "surrogate_valid_samples": int(np.count_nonzero(valid_mask)),
+            "surrogate_unresolved_samples": int(np.count_nonzero(~valid_mask)),
             "recorded_gain": {
                 "p_gain": baseline_gains[group].p,
                 "i_gain": baseline_gains[group].i,
                 "d_gain": baseline_gains[group].d,
             },
-            "recorded_exact_stable_fraction": float(
-                np.mean(baseline_radius < 1.0)
-            ),
+            "fixed_controller_gains": {
+                name: triple.array().tolist() for name, triple in baseline_gains.items()
+            },
+            "recorded_exact_stable_fraction": recorded_summary["stable_fraction"],
+            "recorded_exact_stable_count": recorded_summary["stable_count"],
+            "recorded_exact_pole_valid_count": recorded_summary["pole_valid_count"],
+            "recorded_exact_unresolved_count": recorded_summary["unresolved_count"],
             "surrogate_stable_fraction_min": float(np.min(stable_fraction)),
             "surrogate_stable_fraction_max": float(np.max(stable_fraction)),
-            "ratio_grid": ratio.tolist(),
-            "fd_ratio": float(arguments.fd_ratio),
-            "success_overlay": (
-                None
-                if overlay is None
-                else {
-                    "gain": {
-                        "p_gain": overlay.p,
-                        "i_gain": overlay.i,
-                        "d_gain": overlay.d,
-                    },
-                    "exact_stable_fraction_on_this_plant_distribution": (
-                        exact_success_fraction
-                    ),
-                    "exact_pole_valid_samples": exact_success_valid,
-                }
-            ),
+            "ratio_grid": ratio.tolist(), "fd_ratio": float(arguments.fd_ratio),
+            "success_overlay": None,
+            "gain_domain_source": "declared CLI scale bounds only, relative to recorded gains",
+            "definition": {
+                "population": "all original plant samples at every grid point",
+                "surrogate_stable_fraction": "count(valid surrogate and finite predicted radius < 1) / all original samples",
+                "unresolved": "not counted stable, retained in the denominator and counted separately",
+                "fixed_gains": "other nine gains fixed at this record; projection maximizes over the hidden gain in the selected group",
+                "success_reference": "optional independent full-12-controller comparison after all group maps; no slice marker",
+            },
             "interpretation": (
-                "The plotted field is a local log-gain spectral-radius surrogate. "
-                "Recorded and optional success-overlay fractions are evaluated "
-                "with the exact 26-state first-order closed-loop pole model."
+                "The field is the original local linear log-gain spectral-radius surrogate, "
+                "not exact pole evaluations away from the recorded controller. "
+                "Maximization over the hidden selected-group gain is only a projection. "
+                "It cannot certify arbitrary combinations from different panels, joint "
+                "12D stability, or real flight success probability. Exact full-controller "
+                "references use all original samples independently of surrogate validity."
             ),
         }
-        write_json(group_dir / "gain_region.json", group_payload)
         _plot(
-            path=group_dir / "gain_region.png",
-            case_name=case_name,
-            group=group,
-            alpha=float(arguments.alpha),
-            ratio=ratio,
-            projected=projected,
+            path=group_dir / "gain_region.png", case_name=case_name, group=group,
+            alpha=float(arguments.alpha), ratio=ratio, projected=projected,
             baseline=baseline_gains[group],
-            success=overlay,
         )
         summary_rows.append(group_payload)
 
+    # No success data enter surrogate construction, gain bounds, or any map query.
+    success_path = getattr(arguments, "success_json", None)
+    reference_arrays = {
+        "recorded_case_spectral_radius": recorded_radius,
+        "recorded_case_valid_mask": recorded_valid,
+    }
+    if success_path is not None:
+        success_path = Path(success_path).expanduser().resolve()
+        success_gains = _recorded_gains(load_estimate_json(success_path))
+        success_radius, success_valid = _spectral_radii(
+            plants=plants, vehicle_model=vehicle_model,
+            actuator_parameters=actuator_parameters, controller_dt=controller_dt,
+            gains=success_gains,
+        )
+        full_references["recorded_success"] = {
+            "gains": {name: triple.array().tolist() for name, triple in success_gains.items()},
+            "role": "independent full-12-controller comparison after all group maps",
+            **_exact_stability_summary(success_radius, success_valid),
+        }
+        reference_arrays.update(
+            recorded_success_spectral_radius=success_radius,
+            recorded_success_valid_mask=success_valid,
+        )
+    np.savez_compressed(output / "full_controller_references.npz", **reference_arrays)
+    for group_payload in summary_rows:
+        group_payload["full_controller_references"] = full_references
+        write_json(output / group_payload["group"] / "gain_region.json", group_payload)
     summary = {
-        "schema": GAIN_REGION_SCHEMA + "-summary",
-        "case_name": case_name,
-        "estimate_json": str(estimate_path),
+        "schema": UNCONDITIONAL_GAIN_REGION_SCHEMA + "-summary",
+        "case_name": case_name, "estimate_json": str(estimate_path),
+        "success_json": None if success_path is None else str(success_path),
         "first_order_time_constant_seconds": float(
             estimate["actuator_model"]["thrust_time_constant_seconds"]
         ),
-        "alpha": float(arguments.alpha),
-        "covariance": str(arguments.covariance),
-        "rows": summary_rows,
+        "alpha": float(arguments.alpha), "covariance": str(arguments.covariance),
+        "sample_count": len(plants), "sample_population_conditioned_on_success": False,
+        "success_used_in_map_generation": False,
+        "full_controller_references": full_references, "rows": summary_rows,
     }
     write_json(output / "summary.json", summary)
     return summary
@@ -470,7 +475,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--success-json",
         type=Path,
         default=None,
-        help="optional success estimate; its recorded PID is overlaid and exactly evaluated",
+        help="optional independent full-controller comparison after all group maps",
     )
     parser.add_argument(
         "--covariance",
@@ -492,7 +497,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     arguments = build_argument_parser().parse_args(argv)
     summary = analyze(arguments)
-    print(Path(arguments.output_dir) if arguments.output_dir else Path(arguments.estimate_json).parent / "pid_gain_region")
+    print(Path(arguments.output_dir) if arguments.output_dir else Path(arguments.estimate_json).parent / "pid_gain_region_unconditional")
     return 0 if summary["rows"] else 1
 
 

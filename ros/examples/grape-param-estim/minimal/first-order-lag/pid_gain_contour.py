@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """Exact adaptive single-group PID survival maps for first-order Gimbalrotor.
 
-For one selected PID group, the other three groups are held at the recorded
-successful-flight gains.  The selected group is varied around the gain recorded
-in the analyzed failure bag.  For every queried gain point and every sampled
-plant, the full sampled closed-loop model is trimmed and analytically
-linearized; no gain-affine surrogate is used.
-
-The plotted scalar is the conditional survival fraction among plant samples
-that are stable under the all-success controller.  A value of one is therefore
-best.  The displayed boundary is the requested alpha survival level (0.95 by
-default).
+For one selected PID group, the other nine gains stay at the values recorded
+in the analyzed failure bag. Every original plant sample remains in the fixed
+denominator, including unresolved/nonfinite evaluations, which are not counted
+as stable. The displayed value is the fraction with a valid finite spectral
+radius below one. It is a model-sample local stability fraction, not a flight
+success probability. A successful-flight controller may be compared only after
+all map queries have completed; it does not choose samples, bounds, or trims.
 
 The three views are slices through the failure gain:
 
@@ -34,6 +31,7 @@ import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 import json
+import hashlib
 import math
 import os
 from pathlib import Path
@@ -79,7 +77,7 @@ from gimbalrotor_pid_local_pole_validation import (  # noqa: E402
 from single_bag_savgol_reports import source_commit, write_json  # noqa: E402
 
 
-CONTOUR_SCHEMA = "grape-param-estim/first-order-lag-pid-group-survival/v5"
+CONTOUR_SCHEMA = "grape-param-estim/first-order-lag-pid-group-stability/v6"
 DEFAULT_ALPHA = 0.95
 DEFAULT_SAMPLE_COUNT = 512
 DEFAULT_SEED = 0
@@ -520,7 +518,7 @@ class ExactGroupGainEvaluator:
         *,
         plants: Sequence[ScaleFreePlant],
         hybrid_failure_gains: Mapping[str, GainTriple],
-        success_gains: Mapping[str, GainTriple],
+        success_gains: Optional[Mapping[str, GainTriple]] = None,
         group: str,
         vehicle_model: Any,
         actuator_parameters: Any,
@@ -528,11 +526,13 @@ class ExactGroupGainEvaluator:
         workers: int,
     ) -> None:
         self.plants = tuple(plants)
-        self.hybrid_failure_gains = dict(hybrid_failure_gains)
-        self.success_gains = dict(success_gains)
+        self.baseline_gains = dict(hybrid_failure_gains)
+        self.hybrid_failure_gains = self.baseline_gains  # compatibility name only
+        self.success_gains = None if success_gains is None else dict(success_gains)
         self.group = str(group)
         self.base_gain = self.hybrid_failure_gains[self.group].array()
-        self.success_gain = self.success_gains[self.group].array()
+        self.success_gain = (None if self.success_gains is None
+                             else self.success_gains[self.group].array())
         self.vehicle_model = vehicle_model
         self.actuator_parameters = actuator_parameters
         self.controller_dt = float(controller_dt)
@@ -549,18 +549,10 @@ class ExactGroupGainEvaluator:
         ] = {}
         self._break_cache: dict[tuple[float, float, float], BreakEvaluation] = {}
         self._scheduling_rows: list[Mapping[str, float]] = []
-        self.success_log_ratio = np.log(self.success_gain / self.base_gain)
-        success = self.evaluate(
-            self.success_log_ratio, stage="all_success_baseline"
-        )
-        self.success_log_radius = success.log_spectral_radius.copy()
-        self.success_pole_valid_mask = success.pole_valid_mask.copy()
-        self.success_stable_mask = success.stable_mask.copy()
-        self.success_stable_count = int(np.count_nonzero(self.success_stable_mask))
-        if self.success_stable_count <= 0:
-            raise RuntimeError(
-                "all-success controller has no stable plant sample; conditional survival is undefined"
-            )
+        # Optional coordinates are retained for legacy callers, never evaluated
+        # here: even a reference warm-start would leak success into map queries.
+        self.success_log_ratio = (None if self.success_gain is None else
+                                  np.log(self.success_gain / self.base_gain))
 
     def close(self) -> None:
         if self._executor is not None:
@@ -855,16 +847,25 @@ class ExactGroupGainEvaluator:
         # NumPy accepts a stack of square matrices.  All 512 eigensystems are
         # therefore dispatched in one call rather than a Python eigvals loop.
         radii = np.full(self.sample_count, np.inf, dtype=float)
+        pole_valid = pole_valid & np.all(np.isfinite(matrices), axis=(1, 2))
         eigensystem_started = time.perf_counter()
         if np.any(pole_valid):
-            eigenvalues = np.linalg.eigvals(matrices[pole_valid])
-            radii[pole_valid] = np.max(np.abs(eigenvalues), axis=1)
+            try:
+                eigenvalues = np.linalg.eigvals(matrices[pole_valid])
+                radii[pole_valid] = np.max(np.abs(eigenvalues), axis=1)
+            except np.linalg.LinAlgError:
+                # An unresolved eigensystem remains in the original denominator.
+                # Recover the other samples without silently discarding this one.
+                for index in np.flatnonzero(pole_valid):
+                    try:
+                        radii[index] = np.max(np.abs(np.linalg.eigvals(matrices[index])))
+                    except np.linalg.LinAlgError:
+                        pole_valid[index] = False
         eigensystem_seconds = time.perf_counter() - eigensystem_started
-        if np.any(~np.isfinite(radii[pole_valid])) or np.any(
-            radii[pole_valid] <= 0.0
-        ):
-            raise FloatingPointError("closed-loop spectral radius became invalid")
-        log_radii = np.log(radii)
+        pole_valid &= np.isfinite(radii) & (radii >= 0.0)
+        radii[~pole_valid] = np.inf
+        with np.errstate(divide="ignore"):
+            log_radii = np.log(radii)
         return GainPointEvaluation(
             log_ratio=np.asarray(key, dtype=float),
             log_spectral_radius=log_radii,
@@ -872,7 +873,7 @@ class ExactGroupGainEvaluator:
             trim_nfev=trim_nfev,
             attempt_nfev=attempt_nfev,
             pole_valid_mask=pole_valid,
-            stable_mask=log_radii < 0.0,
+            stable_mask=pole_valid & (radii < 1.0),
             piecewise_near_kink=near_kink,
             warm_primary_success_mask=warm_primary_success,
             nearest_fallback_mask=nearest_fallback,
@@ -1004,7 +1005,10 @@ class ExactGroupGainEvaluator:
             )
         gain_point = self.evaluate(key)
         stable = gain_point.stable_mask
-        caused = self.success_stable_mask & ~stable
+        stable = (gain_point.pole_valid_mask & stable
+                  & (gain_point.log_spectral_radius < 0.0))
+        # Deprecated caused-break fields alias ALL non-stable samples only.
+        caused = ~stable
         result = BreakEvaluation(
             log_ratio=np.asarray(key, dtype=float),
             stable_mask=stable,
@@ -1019,9 +1023,7 @@ class ExactGroupGainEvaluator:
 
     def survival_fraction(self, log_ratio: Sequence[float]) -> float:
         evaluation = self.break_evaluation(log_ratio)
-        return float(
-            1.0 - evaluation.caused_break_count / self.success_stable_count
-        )
+        return float(np.count_nonzero(evaluation.stable_mask) / self.sample_count)
 
     def diagnostic_payload(self) -> Mapping[str, Any]:
         rows = tuple(self._evaluation_cache.values())
@@ -1211,7 +1213,7 @@ class ExactGroupGainEvaluator:
 
 
 class SliceGridEvaluator:
-    """Cached 2-D group slice evaluated in conditional survival fraction."""
+    """Cached 2-D group slice evaluated over every original plant sample."""
 
     def __init__(
         self,
@@ -2095,18 +2097,11 @@ def _adaptive_projection_grid(
     )
 
 
-def _range_with_success(
-    failure: GainTriple,
-    success: GainTriple,
-    scale_min: float,
-    scale_max: float,
-) -> tuple[float, float]:
-    lower = float(scale_min)
-    upper = float(scale_max)
-    ratio = success.array() / failure.array()
-    lower = min(lower, float(np.min(ratio)))
-    upper = max(upper, float(np.max(ratio)))
-    return math.log(lower), math.log(upper)
+def _range_from_failure(scale_min: float, scale_max: float) -> tuple[float, float]:
+    """Declared ratios of failure gains, independent of every success input."""
+    if not (0.0 < scale_min < scale_max):
+        raise ValueError("gain scale bounds must satisfy 0 < min < max")
+    return math.log(float(scale_min)), math.log(float(scale_max))
 
 
 def _plot_projection(
@@ -2115,7 +2110,7 @@ def _plot_projection(
     projection: ProjectionGrid,
     group_evaluator: ExactGroupGainEvaluator,
     failure_gain: GainTriple,
-    success_gain: GainTriple,
+    success_gain: Optional[GainTriple],
     threshold: float,
     labels: Sequence[str],
 ) -> Any:
@@ -2142,7 +2137,6 @@ def _plot_projection(
     axis.add_collection(collection)
 
     failure = failure_gain.array()
-    success = success_gain.array()
     axis.plot(
         failure[first],
         failure[second],
@@ -2153,16 +2147,9 @@ def _plot_projection(
         color="black",
         label="failure recorded",
     )
-    axis.plot(
-        success[first],
-        success[second],
-        marker="o",
-        markersize=6,
-        linestyle="none",
-        markerfacecolor="white",
-        markeredgecolor="black",
-        label="success recorded",
-    )
+    # A successful triple projected here is not the complete successful
+    # controller: the hidden gain and other groups remain failure values.
+    # Do not draw a misleading Success marker on this slice.
     axis.set_xscale("log")
     axis.set_yscale("log")
     axis.set_xlim(
@@ -2299,296 +2286,188 @@ def _adaptive_cell_array(cells: Sequence[AdaptiveCell]) -> np.ndarray:
     )
 
 
+def _controller_gain_payload(gains: Mapping[str, GainTriple]) -> Mapping[str, Any]:
+    return {name: dict(zip(("p_gain", "i_gain", "d_gain"), triple.array().tolist()))
+            for name, triple in gains.items()}
+
+
+def _stability_summary(row: GainPointEvaluation) -> Mapping[str, Any]:
+    stable = row.pole_valid_mask & (row.log_spectral_radius < 0.0)
+    return {
+        "sample_count": int(stable.size),
+        "stable_count": int(np.count_nonzero(stable)),
+        "stable_fraction": float(np.mean(stable)),
+        "valid_count": int(np.count_nonzero(row.pole_valid_mask)),
+        "unresolved_count": int(np.count_nonzero(~row.pole_valid_mask)),
+        "nonstable_count": int(np.count_nonzero(~stable)),
+    }
+
+
 def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
     analysis_started = time.perf_counter()
     estimate_path = Path(arguments.estimate_json).expanduser().resolve()
-    success_path = Path(arguments.success_json).expanduser().resolve()
     estimate = load_estimate_json(estimate_path)
-    success_estimate = load_estimate_json(success_path)
     group = str(arguments.group)
     if group not in PID_GROUPS:
         raise ValueError("unknown PID group")
-
     failure_gains = _recorded_gains(estimate)
-    success_gains = _recorded_gains(success_estimate)
-    hybrid_failure_gains = dict(success_gains)
-    hybrid_failure_gains[group] = failure_gains[group]
     failure_group_gain = failure_gains[group]
-    success_group_gain = success_gains[group]
-    lower, upper = _range_with_success(
-        failure_group_gain,
-        success_group_gain,
-        float(arguments.scale_min),
-        float(arguments.scale_max),
-    )
-
-    model_path = Path(estimate["input"]["vehicle_model"])
-    vehicle_model = load_vehicle_model(model_path)
+    lower, upper = _range_from_failure(float(arguments.scale_min),
+                                       float(arguments.scale_max))
+    vehicle_model = load_vehicle_model(Path(estimate["input"]["vehicle_model"]))
     actuator_parameters = actuator_parameters_from_estimate(estimate)
     controller_dt = float(estimate["controller_timing"]["median_seconds"])
-    quotient = draw_quotient_coordinates(
-        estimate,
-        str(arguments.covariance),
-        int(arguments.samples),
-        int(arguments.seed),
-    )
-    plants = quotient_to_scale_free_plants(
-        estimate,
-        quotient,
-        vehicle_model.parameters,
-        ScaleFreePlant,
-    )
-
+    quotient = draw_quotient_coordinates(estimate, str(arguments.covariance),
+                                        int(arguments.samples), int(arguments.seed))
+    plants = quotient_to_scale_free_plants(estimate, quotient,
+                                         vehicle_model.parameters, ScaleFreePlant)
     group_evaluator = ExactGroupGainEvaluator(
-        plants=plants,
-        hybrid_failure_gains=hybrid_failure_gains,
-        success_gains=success_gains,
-        group=group,
-        vehicle_model=vehicle_model,
-        actuator_parameters=actuator_parameters,
-        controller_dt=controller_dt,
-        workers=int(arguments.workers),
+        plants=plants, hybrid_failure_gains=failure_gains, group=group,
+        vehicle_model=vehicle_model, actuator_parameters=actuator_parameters,
+        controller_dt=controller_dt, workers=int(arguments.workers),
     )
     try:
-        failure_evaluation = group_evaluator.break_evaluation(np.zeros(3))
-        success_evaluation = group_evaluator.break_evaluation(
-            group_evaluator.success_log_ratio
-        )
+        # The sole initial anchor is the actual failure controller.
+        failure_point = group_evaluator.evaluate(np.zeros(3), stage="recorded_failure")
         threshold = float(arguments.alpha)
-
         projections = []
-        for name, first, second, hidden, _first_label, _second_label, _hidden_label in PROJECTION_SPECS:
+        for name, first, second, hidden, *_labels in PROJECTION_SPECS:
             slice_evaluator = SliceGridEvaluator(
-                group_evaluator,
-                first_axis=first,
-                second_axis=second,
-                hidden_axis=hidden,
-                projection_name=name,
+                group_evaluator, first_axis=first, second_axis=second,
+                hidden_axis=hidden, projection_name=name,
             )
-            projections.append(
-                _adaptive_projection_grid(
-                    slice_evaluator,
-                    name=name,
-                    first_axis=first,
-                    second_axis=second,
-                    hidden_axis=hidden,
-                    lower=lower,
-                    upper=upper,
-                    threshold=threshold,
-                    maximum_grid_size=int(arguments.max_grid_size),
-                    final_boundary_grid_size=int(arguments.final_boundary_grid_size),
-                )
-            )
-
+            projections.append(_adaptive_projection_grid(
+                slice_evaluator, name=name, first_axis=first, second_axis=second,
+                hidden_axis=hidden, lower=lower, upper=upper, threshold=threshold,
+                maximum_grid_size=int(arguments.max_grid_size),
+                final_boundary_grid_size=int(arguments.final_boundary_grid_size),
+            ))
         cold_audit: Mapping[str, Any] = {"enabled": False}
         if bool(arguments.trim_cold_audit):
             audit_points = []
             for projection_name, *_unused in PROJECTION_SPECS:
                 candidates = sorted(
-                    (
-                        row.log_ratio
-                        for row in group_evaluator._evaluation_cache.values()
-                        if row.stage == f"{projection_name}:global_3x3"
-                    ),
+                    (row.log_ratio for row in group_evaluator._evaluation_cache.values()
+                     if row.stage == f"{projection_name}:global_3x3"),
                     key=lambda value: tuple(value),
                 )
                 if candidates:
                     audit_points.append(candidates[0])
             cold_audit = group_evaluator.cold_start_audit(audit_points)
-
-        output = (
-            Path(arguments.output_dir).expanduser().resolve()
-            if arguments.output_dir is not None
-            else estimate_path.parent / "pid_gain_contour" / group
-        )
+        # Snapshot map diagnostics before any independent reference comparison.
+        map_diagnostics = {
+            "evaluated_gain_point_count": group_evaluator.evaluated_gain_point_count,
+            "gain_points_with_any_sample_near_piecewise_kink": group_evaluator.gain_points_with_any_near_kink,
+            "gain_points_with_any_unresolved_trim": group_evaluator.gain_points_with_any_unresolved_trim,
+            "unresolved_trim_sample_evaluation_count": group_evaluator.unresolved_trim_sample_evaluation_count,
+        }
+        continuation = group_evaluator.diagnostic_payload()
+        references = {"recorded_failure": {
+            "gains": _controller_gain_payload(failure_gains),
+            **_stability_summary(failure_point),
+        }}
+        reference_arrays = {}
+        success_path = getattr(arguments, "success_json", None)
+        if success_path is not None:
+            # No success file is read until all map queries have completed.
+            success_path = Path(success_path).expanduser().resolve()
+            success_gains = _recorded_gains(load_estimate_json(success_path))
+            reference_evaluator = ExactGroupGainEvaluator(
+                plants=plants, hybrid_failure_gains=success_gains, group=group,
+                vehicle_model=vehicle_model, actuator_parameters=actuator_parameters,
+                controller_dt=controller_dt, workers=int(arguments.workers),
+            )
+            try:
+                success_point = reference_evaluator.evaluate(
+                    np.zeros(3), stage="post_map_full_success_reference")
+                references["recorded_success"] = {
+                    "gains": _controller_gain_payload(success_gains),
+                    "role": "independent full-12-gain comparison after map generation",
+                    **_stability_summary(success_point),
+                }
+                reference_arrays = {
+                    "full_success_reference_valid_mask": success_point.pole_valid_mask,
+                    "full_success_reference_stable_mask": success_point.stable_mask,
+                    "full_success_reference_log_spectral_radius": success_point.log_spectral_radius,
+                }
+            finally:
+                reference_evaluator.close()
+        output = (Path(arguments.output_dir).expanduser().resolve()
+                  if arguments.output_dir is not None
+                  else estimate_path.parent / "pid_gain_contour_unconditional" / group)
         output.mkdir(parents=True, exist_ok=True)
-
         labels = (f"{group} P", f"{group} I", f"{group} D")
         figure, axes = plt.subplots(1, 3, figsize=(15.0, 4.8), constrained_layout=True)
-        color = None
         for axis, projection in zip(axes, projections):
             color = _plot_projection(
-                axis,
-                projection=projection,
-                group_evaluator=group_evaluator,
-                failure_gain=failure_group_gain,
-                success_gain=success_group_gain,
-                threshold=threshold,
-                labels=labels,
+                axis, projection=projection, group_evaluator=group_evaluator,
+                failure_gain=failure_group_gain, success_gain=None,
+                threshold=threshold, labels=labels,
             )
-        assert color is not None
         figure.colorbar(color, ax=axes, shrink=0.92).set_label(
-            "survival fraction among all-success-stable plant samples"
-        )
-        figure.suptitle(
-            "{} / {} / single-group survival; alpha={:.1f}%".format(
-                estimate["case_name"],
-                group,
-                100.0 * threshold,
-            )
-        )
+            "stable samples / all original plant samples")
+        figure.suptitle(f"{estimate['case_name']} / {group}: other 9 gains fixed to failure record")
         figure.savefig(output / "gain_contour.png", dpi=180)
         plt.close(figure)
-
-        projection_arrays: dict[str, np.ndarray] = {}
+        projection_arrays = {}
         for projection in projections:
-            projection_arrays[f"{projection.name}_axis_log_ratio"] = projection.axis_log_ratio
-            projection_arrays[
-                f"{projection.name}_survival_fraction"
-            ] = projection.survival_fraction
-            projection_arrays[
-                f"{projection.name}_boundary_segments_log_ratio"
-            ] = projection.boundary_segments_log_ratio
-            projection_arrays[
-                f"{projection.name}_adaptive_cells_log_ratio_and_survival"
-            ] = _adaptive_cell_array(projection.adaptive_cells)
+            name = projection.name
+            projection_arrays[f"{name}_axis_log_ratio"] = projection.axis_log_ratio
+            projection_arrays[f"{name}_survival_fraction"] = projection.survival_fraction
+            projection_arrays[f"{name}_boundary_segments_log_ratio"] = projection.boundary_segments_log_ratio
+            projection_arrays[f"{name}_adaptive_cells_log_ratio_and_survival"] = _adaptive_cell_array(projection.adaptive_cells)
             probe = projection.center_probe
-            projection_arrays[
-                f"{projection.name}_center_probe_log_ratio"
-            ] = (
-                np.empty((0, 2), dtype=float)
-                if probe is None
-                else probe.coordinates
-            )
-            projection_arrays[
-                f"{projection.name}_center_probe_survival_fraction"
-            ] = (
-                np.empty(0, dtype=float)
-                if probe is None
-                else probe.survival_fraction
-            )
-            projection_arrays[
-                f"{projection.name}_center_probe_suspicious_mask"
-            ] = (
-                np.empty(0, dtype=bool)
-                if probe is None
-                else probe.suspicious_mask
-            )
+            projection_arrays[f"{name}_center_probe_log_ratio"] = (np.empty((0, 2)) if probe is None else probe.coordinates)
+            projection_arrays[f"{name}_center_probe_survival_fraction"] = (np.empty(0) if probe is None else probe.survival_fraction)
+            projection_arrays[f"{name}_center_probe_suspicious_mask"] = (np.empty(0, dtype=bool) if probe is None else probe.suspicious_mask)
         np.savez_compressed(
-            output / "gain_contour.npz",
-            base_gain=group_evaluator.base_gain,
-            success_gain=group_evaluator.success_gain,
-            success_group_log_ratio=group_evaluator.success_log_ratio,
-            success_baseline_pole_valid_mask=group_evaluator.success_pole_valid_mask,
-            success_baseline_stable_mask=group_evaluator.success_stable_mask,
-            failure_group_pole_valid_mask=group_evaluator.pole_valid_mask(np.zeros(3)),
-            failure_group_stable_mask=failure_evaluation.stable_mask,
-            caused_break_mask=failure_evaluation.caused_break_mask,
+            output / "gain_contour.npz", base_gain=group_evaluator.base_gain,
+            quotient_coordinates=quotient,
+            recorded_failure_pole_valid_mask=failure_point.pole_valid_mask,
+            recorded_failure_stable_mask=failure_point.stable_mask,
+            recorded_failure_log_spectral_radius=failure_point.log_spectral_radius,
             projection_names=np.asarray([item.name for item in projections]),
-            **projection_arrays,
-        )
-
-        baseline_stable_count = group_evaluator.success_stable_count
-        conditional_failure_fraction = float(
-            failure_evaluation.caused_break_count / baseline_stable_count
+            **reference_arrays, **projection_arrays,
         )
         payload = {
-            "schema": CONTOUR_SCHEMA,
-            "source_commit": source_commit(_PROJECT_ROOT),
-            "case_name": str(estimate["case_name"]),
-            "group": group,
+            "schema": CONTOUR_SCHEMA, "source_commit": source_commit(_PROJECT_ROOT),
+            "case_name": str(estimate["case_name"]), "group": group,
             "estimate_json": str(estimate_path),
-            "success_json": str(success_path),
-            "first_order_time_constant_seconds": float(
-                estimate["actuator_model"]["thrust_time_constant_seconds"]
-            ),
-            "controller_dt_seconds": controller_dt,
-            "sample_count": int(arguments.samples),
-            "covariance": str(arguments.covariance),
-            "seed": int(arguments.seed),
-            "alpha_reference": threshold,
-            "survival_boundary_fraction": threshold,
+            "success_json": None if success_path is None else str(success_path),
+            "first_order_time_constant_seconds": float(estimate["actuator_model"]["thrust_time_constant_seconds"]),
+            "controller_dt_seconds": controller_dt, "sample_count": len(plants),
+            "covariance": str(arguments.covariance), "seed": int(arguments.seed),
+            "sample_coordinates_sha256": hashlib.sha256(np.asarray(quotient, dtype="<f8").tobytes()).hexdigest(),
+            "sample_population_conditioned_on_success": False,
+            "success_used_in_map_generation": False,
+            "alpha_reference": threshold, "survival_boundary_fraction": threshold,
+            "fixed_controller_gains": _controller_gain_payload(failure_gains),
             "definition": {
-                "baseline": "all four PID groups use success-flight recorded gains on this bag's plant distribution",
-                "single_group_intervention": "only this group is varied; the other three groups stay at success-flight gains",
-                "caused_break_sample": "stable under all-success baseline and unstable under the single-group intervention",
-                "survival_fraction": "one minus caused-break count divided by the number of all-success-stable samples",
-                "unresolved_trim": "excluded from the all-success-stable conditioning set at baseline; treated as unstable under an intervention",
-                "plot": "other three groups fixed at success gains; hidden selected-group gain fixed at its failure recorded value",
+                "population": "all original plant samples, fixed for every gain; no success-based selection",
+                "stable_fraction": "count(valid and finite spectral radius < 1) / total original sample count",
+                "unresolved_trim": "not counted stable; remains in total denominator and is separately reported",
+                "single_group_variation": "other nine gains fixed at this failure record; hidden selected-group axis also fixed at failure value",
+                "success_reference": "optional independent full-12-gain evaluation only after all map queries, not a slice marker",
+                "interpretation": "finite model-sample local stability fraction; not real flight success probability or a joint 12D certification",
             },
             "method": {
                 "closed_loop_model": "full_26_state_sampled_data_first_order_actuator",
-                "linearization": "exact active-branch analytic Jacobian of the implemented sampled closed-loop map",
-                "gain_surrogate": None,
-                "eigensystems": "batched numpy.linalg.eigvals on the complete sample-by-26-by-26 Jacobian stack",
-                "global_search": "nested 3x3 -> 5x5 -> 9x9, stopping globally as soon as the survival boundary is detected; no global 17x17 grid is constructed",
-                "center_probe": "if 9x9 corners show no boundary, exactly evaluate one center per 9x9 cell and mark only cells where corners plus center bracket alpha",
-                "local_refinement": "refine global boundary cells directly to 33x33-equivalent spacing; otherwise refine center-probe suspicious cells to 17x17-equivalent spacing and only confirmed boundary cells to 33x33-equivalent spacing",
-                "grid_reuse": "all repeated gain points are cached and never reevaluated",
-                "trim_continuation": "cold 1x1 center anchor; parent-cell bilinear continuation in gain-scaled PID-integral coordinates (K_I * integral_error), mapped back to raw integral state before the exact nonlinear trim solve, for nested global points, center probes, and local refinement",
-                "refinement_scheduling": "freeze all predictors for one adaptive wave, then queue every gain-by-plant-chunk task before the next wave",
-                "trim_fallback": "per sample: warm predictor, nearest already-converged visible gain point, then the original generic initialization",
-                "boundary": "piecewise-linear alpha-survival segments retained as numeric diagnostics but not overlaid on the heatmap",
-                "heatmap": "adaptive leaf cells retain their survival values; only boundary neighborhoods become finer",
-                "topology_limitation": "If no boundary is detected through the global 9x9 grid and one center probe per cell, sub-cell boundary islands away from the cell center are not certified absent.",
+                "linearization": "exact active-branch analytic Jacobian",
+                "gain_surrogate": None, "eigensystems": "full sample-by-26-by-26 Jacobians",
+                "grid_reuse": "identical gain queries cached; only failure-based trim continuation",
+                "topology_limitation": "finite adaptive slices cannot certify absence of sub-cell islands or arbitrary combinations from other slices",
             },
-            "gain_domain": {
-                "ratio_min": float(math.exp(lower)),
-                "ratio_max": float(math.exp(upper)),
-                "coordinate": "log(gain / this-bag recorded group gain)",
-            },
-            "recorded_failure_group_gain": {
-                "p_gain": failure_group_gain.p,
-                "i_gain": failure_group_gain.i,
-                "d_gain": failure_group_gain.d,
-            },
-            "recorded_success_group_gain": {
-                "p_gain": success_group_gain.p,
-                "i_gain": success_group_gain.i,
-                "d_gain": success_group_gain.d,
-            },
-            "all_success_baseline": {
-                "pole_valid_count": int(
-                    np.count_nonzero(group_evaluator.success_pole_valid_mask)
-                ),
-                "trim_unresolved_count": int(
-                    np.count_nonzero(~group_evaluator.success_pole_valid_mask)
-                ),
-                "stable_count": baseline_stable_count,
-                "unstable_count": int(arguments.samples) - baseline_stable_count,
-                "stable_fraction": float(np.mean(group_evaluator.success_stable_mask)),
-            },
-            "failure_gain_single_group_intervention": {
-                "pole_valid_count": int(
-                    np.count_nonzero(group_evaluator.pole_valid_mask(np.zeros(3)))
-                ),
-                "trim_unresolved_count": int(
-                    np.count_nonzero(~group_evaluator.pole_valid_mask(np.zeros(3)))
-                ),
-                "unstable_count": failure_evaluation.unstable_count,
-                "unstable_fraction": failure_evaluation.unstable_fraction,
-                "caused_break_count": failure_evaluation.caused_break_count,
-                "caused_break_fraction_of_all_samples": failure_evaluation.caused_break_fraction,
-                "caused_break_fraction_conditioned_on_success_baseline": conditional_failure_fraction,
-                "survival_fraction_conditioned_on_success_baseline": 1.0 - conditional_failure_fraction,
-                "counterdirection_rescued_count": int(
-                    np.count_nonzero(
-                        ~group_evaluator.success_stable_mask
-                        & failure_evaluation.stable_mask
-                    )
-                ),
-            },
-            "success_gain_check": {
-                "caused_break_count": success_evaluation.caused_break_count,
-                "unstable_count": success_evaluation.unstable_count,
-                "survival_fraction_conditioned_on_success_baseline": 1.0,
-            },
-            "analytic_active_branch_diagnostics": {
-                "evaluated_gain_point_count": group_evaluator.evaluated_gain_point_count,
-                "gain_points_with_any_sample_near_piecewise_kink": group_evaluator.gain_points_with_any_near_kink,
-                "gain_points_with_any_unresolved_trim": group_evaluator.gain_points_with_any_unresolved_trim,
-                "unresolved_trim_sample_evaluation_count": group_evaluator.unresolved_trim_sample_evaluation_count,
-            },
-            "trim_continuation_diagnostics": {
-                **group_evaluator.diagnostic_payload(),
-                "analysis_wall_seconds": float(time.perf_counter() - analysis_started),
-            },
+            "gain_domain": {"ratio_min": math.exp(lower), "ratio_max": math.exp(upper),
+                            "coordinate": "log(gain / this failure-record group gain)",
+                            "source": "declared CLI scale bounds only"},
+            "recorded_failure_group_gain": _controller_gain_payload(failure_gains)[group],
+            "full_controller_references": references,
+            "recorded_failure_controller": _stability_summary(failure_point),
+            "analytic_active_branch_diagnostics": map_diagnostics,
+            "trim_continuation_diagnostics": {**continuation, "analysis_wall_seconds": time.perf_counter() - analysis_started},
             "trim_cold_start_audit": cold_audit,
             "projections": [_projection_payload(item) for item in projections],
-            "files": {
-                "npz": str(output / "gain_contour.npz"),
-                "png": str(output / "gain_contour.png"),
-            },
+            "files": {"npz": str(output / "gain_contour.npz"), "png": str(output / "gain_contour.png")},
         }
         write_json(output / "gain_contour.json", payload)
         return payload
@@ -2599,7 +2478,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--estimate-json", type=Path, required=True)
-    parser.add_argument("--success-json", type=Path, required=True)
+    parser.add_argument("--success-json", type=Path, default=None,
+                        help="optional full-controller comparison AFTER map generation")
     parser.add_argument("--group", choices=PID_GROUPS, default=DEFAULT_GROUP)
     parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA)
     parser.add_argument("--samples", type=int, default=DEFAULT_SAMPLE_COUNT)

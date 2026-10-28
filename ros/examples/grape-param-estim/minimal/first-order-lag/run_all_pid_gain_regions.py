@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run first-order PID gain-region analysis for all three recorded cases."""
+"""Run failure-only first-order PID gain-region analyses."""
 
 from __future__ import annotations
 
@@ -12,12 +12,12 @@ import subprocess
 import sys
 from typing import Sequence
 
-from core import GAIN_REGION_SCHEMA
+from pid_gain_region import UNCONDITIONAL_GAIN_REGION_SCHEMA as GAIN_REGION_SCHEMA
 
 
 HERE = Path(__file__).resolve().parent
 OUTPUTS = HERE / "outputs"
-CASES = ("failure1", "failure2", "success")
+CASES = ("failure1", "failure2")
 GROUPS = ("xy", "z", "roll_pitch", "yaw")
 DEFAULT_WORKERS = min(12, os.cpu_count() or 1)
 
@@ -26,8 +26,6 @@ def _run_group(
     case: str,
     group: str,
     forwarded: Sequence[str],
-    *,
-    success_overlay: bool,
 ) -> int:
     command = [
         sys.executable,
@@ -37,13 +35,6 @@ def _run_group(
         "--group",
         group,
     ]
-    if success_overlay:
-        command.extend(
-            (
-                "--success-json",
-                str(OUTPUTS / "success" / "estimate.json"),
-            )
-        )
     command.extend(forwarded)
     return int(subprocess.run(command, check=False).returncode)
 
@@ -51,7 +42,7 @@ def _run_group(
 def _write_case_summary(case: str, groups: Sequence[str]) -> None:
     estimate_path = (OUTPUTS / case / "estimate.json").resolve()
     estimate = json.loads(estimate_path.read_text(encoding="utf-8"))
-    output = OUTPUTS / case / "pid_gain_region"
+    output = OUTPUTS / case / "pid_gain_region_unconditional"
     rows = [
         json.loads(
             (output / group / "gain_region.json").read_text(encoding="utf-8")
@@ -89,7 +80,7 @@ def _parse_arguments(argv: Sequence[str]) -> tuple[int, tuple[str, ...], list[st
 def main() -> int:
     workers, groups, forwarded = _parse_arguments(sys.argv[1:])
     tasks = [
-        (case, group, case != "success")
+        (case, group)
         for case in CASES
         for group in groups
     ]
@@ -101,9 +92,8 @@ def main() -> int:
                 case,
                 group,
                 forwarded,
-                success_overlay=success_overlay,
             ): (case, group)
-            for case, group, success_overlay in tasks
+            for case, group in tasks
         }
         for future in as_completed(pending):
             case, group = pending[future]

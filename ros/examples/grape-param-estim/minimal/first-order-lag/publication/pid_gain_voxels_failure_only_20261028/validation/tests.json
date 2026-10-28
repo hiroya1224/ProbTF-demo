@@ -1,0 +1,26 @@
+{
+  "suite": "first-order-lag tests and automation tests",
+  "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/probtf_switch_press_pytest OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/grape-param-estim/minimal/first-order-lag/tests ros/examples/grape-param-estim/minimal/first-order-lag/automation",
+  "passed": 90,
+  "failed": 0,
+  "elapsed_seconds": 5.4,
+  "exit_code": 0,
+  "numerical_recalculation": "both failure cases; same ordered 128 samples; all 4 groups; grid schedule 3,5; 1728 final grid nodes; all finite and evaluated",
+  "saved_stability_matches_direct_recount": true,
+  "javascript_vm_test": {
+    "grids_checked": 8,
+    "groups_drawn": 8,
+    "sizes": [
+      5
+    ],
+    "passed": true,
+    "enforces_success_100_percent": false
+  },
+  "independent_pole_recheck": {
+    "points": 24,
+    "plant_samples_per_point": 128,
+    "poles": 3072,
+    "maximum_absolute_difference": 0.0,
+    "stable_and_valid_classifications_unchanged": true
+  }
+}

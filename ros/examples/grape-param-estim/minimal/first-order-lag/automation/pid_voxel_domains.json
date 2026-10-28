@@ -1,0 +1,7 @@
+{
+  "schema": "grape-param-estim/pid-voxel-failure-domains/v2",
+  "minimum_relative_clearance": 0.125,
+  "lower_factor": 0.25,
+  "upper_factor": 2.0,
+  "basis": "This run's recorded failure P/I/D values only; no successful-flight input or anchor."
+}

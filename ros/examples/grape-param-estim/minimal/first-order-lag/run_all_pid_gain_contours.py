@@ -32,8 +32,6 @@ def _run_case(
             str(HERE / "pid_gain_contour.py"),
             "--estimate-json",
             str(OUTPUTS / case / "estimate.json"),
-            "--success-json",
-            str(OUTPUTS / "success" / "estimate.json"),
             "--group",
             group,
             *forwarded,
@@ -45,94 +43,51 @@ def _run_case(
 
 
 def _load_group_masks(case: str, group: str) -> tuple[dict, np.ndarray, np.ndarray]:
-    directory = OUTPUTS / case / "pid_gain_contour" / group
+    directory = OUTPUTS / case / "pid_gain_contour_unconditional" / group
     payload = json.loads((directory / "gain_contour.json").read_text(encoding="utf-8"))
     with np.load(directory / "gain_contour.npz", allow_pickle=False) as archive:
-        baseline = np.asarray(archive["success_baseline_stable_mask"], dtype=bool)
-        caused = np.asarray(archive["caused_break_mask"], dtype=bool)
-    return payload, baseline, caused
+        stable = np.asarray(archive["recorded_failure_stable_mask"], dtype=bool)
+        valid = np.asarray(archive["recorded_failure_pole_valid_mask"], dtype=bool)
+    return payload, stable, valid
 
 
 def _write_case_summary(case: str, groups: Sequence[str]) -> None:
     rows = []
-    baseline_reference = None
-    caused_masks = []
+    reference = None
+    population = None
+    controller = None
     for group in groups:
-        payload, baseline, caused = _load_group_masks(case, group)
-        if baseline_reference is None:
-            baseline_reference = baseline
-        elif not np.array_equal(baseline_reference, baseline):
-            raise RuntimeError(
-                "all-success baseline mask changed across PID groups; sample alignment is invalid"
-            )
+        payload, stable, valid = _load_group_masks(case, group)
+        if payload["schema"] != "grape-param-estim/first-order-lag-pid-group-stability/v6":
+            raise RuntimeError("Old conditional maps cannot be combined with unconditional maps")
+        current = (stable, valid)
+        if reference is not None and not all(np.array_equal(a, b) for a, b in zip(reference, current)):
+            raise RuntimeError("Recorded failure controller results differ between groups")
+        if population is not None and population != payload["sample_coordinates_sha256"]:
+            raise RuntimeError("Plant sample population/order differs between groups")
+        if controller is not None and controller != payload["fixed_controller_gains"]:
+            raise RuntimeError("Fixed full failure controller differs between groups")
+        reference = current
+        population = payload["sample_coordinates_sha256"]
+        controller = payload["fixed_controller_gains"]
         rows.append(payload)
-        caused_masks.append(caused)
-
-    assert baseline_reference is not None
-    schemas = {str(row["schema"]) for row in rows}
-    if schemas != {"grape-param-estim/first-order-lag-pid-group-survival/v5"}:
-        raise RuntimeError(f"unexpected group contour schemas: {sorted(schemas)}")
-    source_commits = {str(row["source_commit"]) for row in rows}
-    if len(source_commits) != 1:
-        raise RuntimeError(
-            "PID group contours were generated from different source commits"
-        )
-    cause_matrix = np.column_stack(caused_masks)
-    cause_multiplicity = np.sum(cause_matrix, axis=1)
-    group_summary = []
-    for index, (group, row) in enumerate(zip(groups, rows)):
-        caused = cause_matrix[:, index]
-        unique = caused & (cause_multiplicity == 1)
-        group_summary.append(
-            {
-                "group": group,
-                "caused_break_count": int(np.count_nonzero(caused)),
-                "caused_break_fraction_of_all_samples": float(np.mean(caused)),
-                "survival_fraction_conditioned_on_success_baseline": float(
-                    row["failure_gain_single_group_intervention"]
-                    ["survival_fraction_conditioned_on_success_baseline"]
-                ),
-                "unique_single_group_culprit_count": int(np.count_nonzero(unique)),
-                "unique_single_group_culprit_fraction_of_all_samples": float(np.mean(unique)),
-                "recorded_failure_group_gain": row["recorded_failure_group_gain"],
-                "recorded_success_group_gain": row["recorded_success_group_gain"],
-            }
-        )
-
+    if not rows:
+        raise ValueError("No group maps were generated")
     summary = {
-        "schema": "grape-param-estim/first-order-lag-pid-group-survival/v5-summary",
-        "source_commit": source_commits.pop(),
-        "case_name": case,
-        "sample_count": int(baseline_reference.size),
-        "groups": list(groups),
-        "all_success_baseline": {
-            "pole_valid_count": int(rows[0]["all_success_baseline"]["pole_valid_count"]),
-            "trim_unresolved_count": int(
-                rows[0]["all_success_baseline"]["trim_unresolved_count"]
-            ),
-            "stable_count": int(np.count_nonzero(baseline_reference)),
-            "unstable_count": int(np.count_nonzero(~baseline_reference)),
-            "stable_fraction": float(np.mean(baseline_reference)),
-        },
-        "group_only_failure_interventions": group_summary,
-        "single_group_cause_overlap": {
-            "samples_broken_by_no_single_group": int(np.count_nonzero(cause_multiplicity == 0)),
-            "samples_broken_by_exactly_one_single_group": int(np.count_nonzero(cause_multiplicity == 1)),
-            "samples_broken_by_multiple_single_groups": int(np.count_nonzero(cause_multiplicity > 1)),
-        },
-        "interpretation": (
-            "Each caused-break count uses the same plant samples. Other PID groups are fixed "
-            "at success-flight gains, and only the named group is restored to this failure "
-            "bag's recorded gain. A unique culprit sample is broken by exactly one of the "
-            "four single-group interventions."
-        ),
+        "schema": "grape-param-estim/first-order-lag-pid-group-stability/v6-summary",
+        "case_name": case, "groups": list(groups),
+        "sample_count": int(reference[0].size),
+        "sample_coordinates_sha256": population,
+        "fixed_controller_gains": controller,
+        "recorded_failure_controller": rows[0]["recorded_failure_controller"],
+        "group_slices": [{"group": group, "gain_domain": row["gain_domain"],
+                          "projections": row["projections"]}
+                         for group, row in zip(groups, rows)],
+        "interpretation": "Every slice uses every original plant sample and the same full failure-record controller for its other nine gains. Arbitrary combinations of separately favorable group triples are not certified; evaluate all 12 gains jointly.",
     }
-    output = OUTPUTS / case / "pid_gain_contour"
+    output = OUTPUTS / case / "pid_gain_contour_unconditional"
     output.mkdir(parents=True, exist_ok=True)
-    (output / "summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    (output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _parse(argv: Sequence[str]) -> tuple[int, tuple[str, ...], tuple[str, ...], list[str]]:

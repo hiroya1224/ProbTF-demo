@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .mpl-cache/
 .lock
+.publication_watcher_owner
 .venv/
 build/
 dist/

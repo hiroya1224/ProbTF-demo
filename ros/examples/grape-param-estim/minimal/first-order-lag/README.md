@@ -6,6 +6,10 @@ The independent 33→65 runs for failure1 and failure2 have now been launched in
 tmux. See [the run record and retained grid data](HIGH_RESOLUTION_RUNS_20261028.md).
 This records job startup, not completion.
 
+The [completion watcher](PUBLICATION_WATCH_20261029.md) will generate the historical
+paper layout and normally commit/push the independent results after both jobs
+finish. Cross-failure fusion was cancelled by the user.
+
 The October 27 audit identified a change of statistical target that was not
 compatible with predicting gains from a failure record. The previous maps
 selected plants that were stable with the known successful controller and fixed

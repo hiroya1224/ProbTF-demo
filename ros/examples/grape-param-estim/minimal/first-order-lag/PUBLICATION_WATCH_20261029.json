@@ -1,0 +1,28 @@
+{
+  "tmux_session": "pid-publish-33-65",
+  "control_directory": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/publication_watch",
+  "configuration": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/publication_watch/configuration.json",
+  "numerical_jobs_unchanged": true,
+  "fusion_cancelled_by_user": true,
+  "publish_enabled": true,
+  "frozen_code_sha256": {
+    "watch_failure_publication.py": "ee86bc2b07033de8b4be922614a6c939083db6c65e652ecb6caa9494439517e0",
+    "render_failure_publication.py": "f533921315a4da91249b04c604a1b3f92ee37b2b9a108f5f7df3d2ccb4416dcf",
+    "figure_settings.json": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b"
+  },
+  "template_configuration": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/automation/failure_publication_20261029.json",
+  "render_validation": {
+    "unit_tests_new": 20,
+    "real_grid33_rendered": true,
+    "compact_grid33_bytes": 217413,
+    "grid33_figure_bytes": 5219852
+  },
+  "verified_status_at_launch": "waiting_for_calculations",
+  "tests": {
+    "passed": 110,
+    "failed": 0,
+    "elapsed_seconds": 8.88,
+    "new_renderer_tests": 10,
+    "new_watcher_tests": 10
+  }
+}

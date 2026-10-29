@@ -1,0 +1,25 @@
+{
+  "rate_colormap": "RdYlGn",
+  "white_mix": 0.75,
+  "voxel_opacity": 0.3,
+  "success_color": "#264C73",
+  "recorded_color": "#754B86",
+  "camera_oblique": {
+    "elevation": 24,
+    "azimuth": -58
+  },
+  "camera_top": {
+    "elevation": 90,
+    "azimuth": -90
+  },
+  "frame_padding": 0.1,
+  "dpi": 400,
+  "formats": [
+    "pdf",
+    "svg",
+    "png"
+  ],
+  "font_family": "DejaVu Sans",
+  "font_size": 10,
+  "surface_raster_dpi": 220
+}

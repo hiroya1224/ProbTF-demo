@@ -1,0 +1,42 @@
+{
+  "case": "failure2",
+  "completed_volumes": [
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_33",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_33",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_33",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_33",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_65",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_65",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_65",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_65"
+  ],
+  "current_counts": {
+    "evaluated": 287496,
+    "non_positive_margin": 287496,
+    "pending": 0,
+    "positive_margin": 0,
+    "total": 287496,
+    "unresolved": 0
+  },
+  "current_grid": 65,
+  "current_group": "yaw",
+  "current_shape": [
+    66,
+    66,
+    66
+  ],
+  "elapsed_seconds": 74618.0791080189,
+  "final_node_counts": {
+    "roll_pitch": 287496,
+    "xy": 287496,
+    "yaw": 287496,
+    "z": 287496
+  },
+  "latest_volume": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_65",
+  "nodes_evaluated_this_run": 1149984,
+  "pid": 1394645,
+  "seconds_per_new_node": 0.06486782641611878,
+  "started_utc": "2026-10-28T14:50:34.582388+00:00",
+  "status": "complete",
+  "updated_utc": "2026-10-29T11:34:12.662751+00:00"
+}

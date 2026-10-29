@@ -1,0 +1,116 @@
+{
+  "case": "failure1",
+  "tmux_session": "pid-failure1-33-65",
+  "output": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1",
+  "command": [
+    "/usr/bin/python3",
+    "-u",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/frozen_source/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_gain_voxels_fast.py",
+    "--estimate-json",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/inputs/runtime_estimate.json",
+    "--output",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1",
+    "--domain-config",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/frozen_source/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_domains.json",
+    "--samples",
+    "128",
+    "--seed",
+    "0",
+    "--covariance",
+    "conservative_fusion",
+    "--workers",
+    "16",
+    "--grid-sizes",
+    "33",
+    "65",
+    "--groups",
+    "roll_pitch",
+    "xy",
+    "z",
+    "yaw",
+    "--preview-seconds",
+    "1800"
+  ],
+  "launcher": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/run.sh",
+  "source_commit": "1c8246047508ebde2fd07fb60a3955a2baaf0407",
+  "original_estimate": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/estimate.json",
+  "original_estimate_sha256": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+  "original_estimate_copy": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/inputs/original_estimate.json",
+  "runtime_estimate": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/inputs/runtime_estimate.json",
+  "runtime_estimate_sha256": "fb1438465aa8d64f537bdbb2eb6ca56a376014c05b006c2e1119b2fa95fba524",
+  "runtime_input_changes": [
+    "input.vehicle_model path relocated to byte-identical frozen model; all numerical values unchanged"
+  ],
+  "model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+  "sample_identity": "case ID plus SHA-256 of ordered 128x13 quotient coordinates",
+  "data_association": "nodal stability evaluation, not gain probability density or cell mass",
+  "gain_integration_measure": null,
+  "future_fusion_performed": false,
+  "retained_levels": [
+    33,
+    65
+  ],
+  "retained_fields": [
+    "actual P/I/D axes and axis order",
+    "full 12-gain fixed controller context",
+    "ordered plant coordinates and covariance configuration",
+    "every node x every plant spectral radius",
+    "evaluated mask and validity via finite spectral radius",
+    "stable count, valid count, unresolved count, denominator",
+    "input/code hashes and runtime versions"
+  ],
+  "ordered_plant_coordinates_sha256": "88976ecf40e11a055662ac209d3a83f9fe57d0e5d7b8015d387d2d8883a82e8e",
+  "planned_shapes": {
+    "33": {
+      "xy": [
+        34,
+        34,
+        34
+      ],
+      "z": [
+        34,
+        34,
+        34
+      ],
+      "roll_pitch": [
+        34,
+        34,
+        34
+      ],
+      "yaw": [
+        34,
+        34,
+        34
+      ]
+    },
+    "65": {
+      "xy": [
+        66,
+        66,
+        66
+      ],
+      "z": [
+        66,
+        66,
+        66
+      ],
+      "roll_pitch": [
+        66,
+        66,
+        66
+      ],
+      "yaw": [
+        66,
+        66,
+        66
+      ]
+    }
+  },
+  "plant_samples_bitwise_identical_to_corrected_lowres": true,
+  "sample_weights": {
+    "scheme": "uniform",
+    "weight_per_sample": 0.0078125,
+    "sample_count": 128
+  },
+  "grid_kind": "nested rectilinear nodes: uniform 33 or 65 axis plus this failure-record anchor; not local adaptive refinement"
+}

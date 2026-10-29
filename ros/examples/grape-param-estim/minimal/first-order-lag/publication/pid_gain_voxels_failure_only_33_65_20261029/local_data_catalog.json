@@ -1,0 +1,266 @@
+{
+  "cases": {
+    "failure1": {
+      "completed_utc": "2026-10-29T11:25:08.229796+00:00",
+      "fingerprint": "50a8ef8e2ac14940315f242ce56a1b3ea180957d9556e575ad466e84faa30870",
+      "large_local_files": [
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/roll_pitch/grid_33/volume.npz",
+          "sha256": "1ca7351a0d1039187f7c61a5f5b526740b6ffa32c10a7f961a5bef1eff84d3ff",
+          "size_bytes": 30116039
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/roll_pitch/grid_33/spectral_radius.npy",
+          "sha256": "145f518ffd6232b35b756eeec6a33e32b8db99ca6123533c839966b2f62a5be3",
+          "size_bytes": 40247424
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/roll_pitch/grid_33/evaluated.npy",
+          "sha256": "3a5f8b8f66a17f01e35fadc8e44bba050ddb61652e9b16833bd61f61c6974bc1",
+          "size_bytes": 39432
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/roll_pitch/grid_65/volume.npz",
+          "sha256": "2d85a1b59ce3abe539a39d6102bb161529ed6765a35d5dca254abf23efe4c540",
+          "size_bytes": 218396935
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/roll_pitch/grid_65/spectral_radius.npy",
+          "sha256": "f86917c8e806b9776b6f191fa50e0e5e03bcd4a1276983951bea6df66ff4d544",
+          "size_bytes": 294396032
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/roll_pitch/grid_65/evaluated.npy",
+          "sha256": "c287eeada43ed412369767a920767f84835fcd8f7480ff765613cb0fbce8b292",
+          "size_bytes": 287624
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/yaw/grid_33/volume.npz",
+          "sha256": "7fbe81b4f74c2a4a878e094593283398d784463f357e413242906ffbe8f0d031",
+          "size_bytes": 28060050
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/yaw/grid_33/spectral_radius.npy",
+          "sha256": "718c05b968bdb755d133c9f4fef6f673abc1d09ffc4174c7b31692eb0c764ca0",
+          "size_bytes": 40247424
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/yaw/grid_33/evaluated.npy",
+          "sha256": "3a5f8b8f66a17f01e35fadc8e44bba050ddb61652e9b16833bd61f61c6974bc1",
+          "size_bytes": 39432
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/yaw/grid_65/volume.npz",
+          "sha256": "51cadfdf3f0c4839fb15afbe3a59d69d5d5cffaac15d0fb4162dab3989a5bb82",
+          "size_bytes": 201282475
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/yaw/grid_65/spectral_radius.npy",
+          "sha256": "cf8dd385d3afde07152bbdfdf73bcb7541cee31f569f60c9035e602900a442c5",
+          "size_bytes": 294396032
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/yaw/grid_65/evaluated.npy",
+          "sha256": "c287eeada43ed412369767a920767f84835fcd8f7480ff765613cb0fbce8b292",
+          "size_bytes": 287624
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/xy/grid_33/volume.npz",
+          "sha256": "4e37014f37420b40db806b07bd33a7ae452edb76aaa630f03812c93cb3ec9055",
+          "size_bytes": 27862506
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/xy/grid_33/spectral_radius.npy",
+          "sha256": "05df5ce37dd3749f1d5c001982e3267d84375f33a68ee57edbeb8854f4d2f377",
+          "size_bytes": 40247424
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/xy/grid_33/evaluated.npy",
+          "sha256": "3a5f8b8f66a17f01e35fadc8e44bba050ddb61652e9b16833bd61f61c6974bc1",
+          "size_bytes": 39432
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/xy/grid_65/volume.npz",
+          "sha256": "6f642baeee9499446e925573a7863152b46702f1907856dbf73f51ccec9dfabf",
+          "size_bytes": 200185364
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/xy/grid_65/spectral_radius.npy",
+          "sha256": "1785b4617d1d4b5c86d5b3127dbf2a4283e0952587fffa982042fe547c10a41b",
+          "size_bytes": 294396032
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/xy/grid_65/evaluated.npy",
+          "sha256": "c287eeada43ed412369767a920767f84835fcd8f7480ff765613cb0fbce8b292",
+          "size_bytes": 287624
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/z/grid_33/volume.npz",
+          "sha256": "663e31e7efdaaf43b7a7e8c6fed19aec6b7ab69fbd738c72ac0279925c59e548",
+          "size_bytes": 27113041
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/z/grid_33/spectral_radius.npy",
+          "sha256": "19a817b697b2b7ddca8ad145f0db2ce9bd1637447104254575ca9817585570ed",
+          "size_bytes": 40247424
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/z/grid_33/evaluated.npy",
+          "sha256": "3a5f8b8f66a17f01e35fadc8e44bba050ddb61652e9b16833bd61f61c6974bc1",
+          "size_bytes": 39432
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/z/grid_65/volume.npz",
+          "sha256": "3c7a68e7411c7aecf8d0429bcd94eb64da10e23387eab19fc29bd271c986ec22",
+          "size_bytes": 194928828
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/z/grid_65/spectral_radius.npy",
+          "sha256": "95d892027f49503309bd2518c7a345d639791f351d3152eb101405433b2edc56",
+          "size_bytes": 294396032
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/z/grid_65/evaluated.npy",
+          "sha256": "c287eeada43ed412369767a920767f84835fcd8f7480ff765613cb0fbce8b292",
+          "size_bytes": 287624
+        }
+      ],
+      "model_copy": "data/failure1/inputs/vehicle_model.json",
+      "model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+      "runtime_model_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/frozen_source/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json",
+      "source_root": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1"
+    },
+    "failure2": {
+      "completed_utc": "2026-10-29T11:34:12.662751+00:00",
+      "fingerprint": "4eac5cb12bf0c7898b5563285e9c0fcad337c11119b90dacc09cb806764aadb7",
+      "large_local_files": [
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_33/volume.npz",
+          "sha256": "f35e01e577cce31ba9440c65d34ec21984e3e92e499c0a0cbb72e15631cb90eb",
+          "size_bytes": 28402317
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_33/spectral_radius.npy",
+          "sha256": "a7f6388bd05f24381aae853d35e5a5cffc4f775aa4fed5fbf3cf012bcabae55e",
+          "size_bytes": 40247424
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_33/evaluated.npy",
+          "sha256": "3a5f8b8f66a17f01e35fadc8e44bba050ddb61652e9b16833bd61f61c6974bc1",
+          "size_bytes": 39432
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_65/volume.npz",
+          "sha256": "1b7881c97e3fff6dbc9d8a58e10a6db98419614cdfb3f5d806c510e5c36c1961",
+          "size_bytes": 205018294
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_65/spectral_radius.npy",
+          "sha256": "535e1f2dd748b04f0914d81df62fdcf03e3fe853f8c3962edeee1b5e91eb3ea5",
+          "size_bytes": 294396032
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_65/evaluated.npy",
+          "sha256": "c287eeada43ed412369767a920767f84835fcd8f7480ff765613cb0fbce8b292",
+          "size_bytes": 287624
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_33/volume.npz",
+          "sha256": "26a0eacc1938626dac745e2bdf697c961a5ce512bd34606747e8fac93fd555a9",
+          "size_bytes": 31614997
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_33/spectral_radius.npy",
+          "sha256": "97dafe4bb16099c4698fa381b3656166f966bd454d4fae517536c241b1663bbd",
+          "size_bytes": 40247424
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_33/evaluated.npy",
+          "sha256": "3a5f8b8f66a17f01e35fadc8e44bba050ddb61652e9b16833bd61f61c6974bc1",
+          "size_bytes": 39432
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_65/volume.npz",
+          "sha256": "5c6dd184d052095176728583babdaa774799d29ddd266271747294e7ccd7314f",
+          "size_bytes": 229475714
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_65/spectral_radius.npy",
+          "sha256": "5f8a2cfc0a0e8b2340342c2641e1f3df1a2ac70ba6df0063098248960965ab46",
+          "size_bytes": 294396032
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_65/evaluated.npy",
+          "sha256": "c287eeada43ed412369767a920767f84835fcd8f7480ff765613cb0fbce8b292",
+          "size_bytes": 287624
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_33/volume.npz",
+          "sha256": "405280a07e5d81a58134339c743de767e6790650ac7a9c711428f11c64092fd3",
+          "size_bytes": 31224942
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_33/spectral_radius.npy",
+          "sha256": "a556caa0e11a4aef6f550ce6e05471ad99a3d26b87a8d484e7d26f4d1e94299a",
+          "size_bytes": 40247424
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_33/evaluated.npy",
+          "sha256": "3a5f8b8f66a17f01e35fadc8e44bba050ddb61652e9b16833bd61f61c6974bc1",
+          "size_bytes": 39432
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_65/volume.npz",
+          "sha256": "36352132801a055b5e2a76c4d1470ef59355ffd197f2e8b99d38c24ca1f23470",
+          "size_bytes": 223018714
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_65/spectral_radius.npy",
+          "sha256": "d606e4c488817a16e7cff8248c8f87993c696122337bbea04a9c57b87c0896c9",
+          "size_bytes": 294396032
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_65/evaluated.npy",
+          "sha256": "c287eeada43ed412369767a920767f84835fcd8f7480ff765613cb0fbce8b292",
+          "size_bytes": 287624
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_33/volume.npz",
+          "sha256": "18c97a6c2e0aa6feb2a379a6573d503eabf31946eb9f69852d65b40cdeec177a",
+          "size_bytes": 30418656
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_33/spectral_radius.npy",
+          "sha256": "5fe547770acead39f1a563cd6e3785ea85c9dd30d462d55f74816a600006fa48",
+          "size_bytes": 40247424
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_33/evaluated.npy",
+          "sha256": "3a5f8b8f66a17f01e35fadc8e44bba050ddb61652e9b16833bd61f61c6974bc1",
+          "size_bytes": 39432
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_65/volume.npz",
+          "sha256": "5db1e772256d575d58ea0d7d61d5cbe3a635c18fcc8b44e6352243bfdc15c5c9",
+          "size_bytes": 218632110
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_65/spectral_radius.npy",
+          "sha256": "e130f4e52b718da4e4052884a0989e08f05db51a32b6a10a5e8f0df1646d137e",
+          "size_bytes": 294396032
+        },
+        {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_65/evaluated.npy",
+          "sha256": "c287eeada43ed412369767a920767f84835fcd8f7480ff765613cb0fbce8b292",
+          "size_bytes": 287624
+        }
+      ],
+      "model_copy": "data/failure2/inputs/vehicle_model.json",
+      "model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+      "runtime_model_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/frozen_source/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json",
+      "source_root": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2"
+    }
+  },
+  "cross_failure_fusion_performed": false,
+  "large_arrays_in_git": false
+}

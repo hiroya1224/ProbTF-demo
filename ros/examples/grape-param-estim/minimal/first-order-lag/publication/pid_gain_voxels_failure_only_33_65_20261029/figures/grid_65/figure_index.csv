@@ -1,0 +1,3 @@
+figure,groups,view,cases,panel_count,caption
+all_pid_failure_3D_grid_65,"['roll_pitch', 'yaw', 'xy', 'z']",3D,"['failure1', 'failure2']",8,Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. No successful-controller marker or success-100% condition is used.
+all_pid_failure_PD_grid_65,"['roll_pitch', 'yaw', 'xy', 'z']",PD,"['failure1', 'failure2']",8,Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. No successful-controller marker or success-100% condition is used.

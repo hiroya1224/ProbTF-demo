@@ -1,0 +1,38 @@
+{
+  "schema": "grape-param-estim/successful-controller-position-reference/v1",
+  "gain_order": [
+    "xy",
+    "z",
+    "roll_pitch",
+    "yaw"
+  ],
+  "gains": [
+    [
+      4.0,
+      0.1,
+      2.0
+    ],
+    [
+      5.0,
+      1.0,
+      2.5
+    ],
+    [
+      13.0,
+      1.0,
+      20.0
+    ],
+    [
+      6.0,
+      1.0,
+      2.0
+    ]
+  ],
+  "role": "coordinates only, read after all failure-only maps completed; not a full-controller stability evaluation at a failure-context slice",
+  "source": {
+    "path": "../pid_gain_voxels/data/successful_flight_estimate.json",
+    "sha256": "3c4f4db0312cbe369ee1ce4c7eb12c6208b5bb8bbefdb830f0e1f6d49a8f4203",
+    "field": "controller.gains",
+    "note": "Only recorded controller gains are copied; successful-flight fitted parameters and old stability scores are not used."
+  }
+}

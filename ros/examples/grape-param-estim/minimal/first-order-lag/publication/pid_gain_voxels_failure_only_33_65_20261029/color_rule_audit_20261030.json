@@ -1,45 +1,10 @@
 {
-  "schema": "grape-param-estim/figure-color-rule-audit/v1",
-  "date": "2026-10-30",
-  "historical_publication": "../pid_gain_voxels",
-  "previous_publication_commit": "96dd634a91aa7e56f8ac0b918861bc4802181410",
-  "scope": "static 2x4 paper figures, not the thresholded interactive viewer",
-  "settings_identical": true,
-  "fixed_color_range": [
-    0,
-    1
-  ],
-  "palette_entries": 4096,
-  "old_vs_previous_max_rgba_abs_error": 0.0019607843137254832,
-  "old_vs_corrected_max_rgba_abs_error": 0.0,
-  "corrected_palette_bitwise_equal": true,
-  "palette_rgba_sha256": "dd2a6801c50897e25c4a0ee4fe90bf0e7d5271ac31be750fbe120a05108c5501",
   "cases": [
     {
       "case": "failure1",
       "group": "roll_pitch",
-      "old_conditioned_denominator": 127,
-      "old_N": 128,
-      "old_projected_failure_rate": 0.5590551181102362,
-      "new_actual_failure_rate": 0.484375,
       "new_N": 128,
-      "new_max_rate": 0.9765625,
-      "new_min_rate": 0.0,
-      "new_unresolved_max": 0,
-      "old_axis_limits": [
-        [
-          5.0,
-          25.0
-        ],
-        [
-          0.25,
-          3.0
-        ],
-        [
-          4.0,
-          28.0
-        ]
-      ],
+      "new_actual_failure_rate": 0.484375,
       "new_axis_limits": [
         [
           5.0,
@@ -53,139 +18,11 @@
           2.0,
           16.0
         ]
-      ]
-    },
-    {
-      "case": "failure1",
-      "group": "yaw",
-      "old_conditioned_denominator": 127,
-      "old_N": 128,
-      "old_projected_failure_rate": 0.9685039370078741,
-      "new_actual_failure_rate": 0.484375,
-      "new_N": 128,
-      "new_max_rate": 0.515625,
-      "new_min_rate": 0.0,
-      "new_unresolved_max": 0,
-      "old_axis_limits": [
-        [
-          2.0,
-          10.0
-        ],
-        [
-          0.25,
-          3.0
-        ],
-        [
-          0.5,
-          5.0
-        ]
       ],
-      "new_axis_limits": [
-        [
-          1.0,
-          8.0
-        ],
-        [
-          0.25,
-          2.0
-        ],
-        [
-          0.5,
-          4.0
-        ]
-      ]
-    },
-    {
-      "case": "failure1",
-      "group": "xy",
-      "old_conditioned_denominator": 127,
-      "old_N": 128,
-      "old_projected_failure_rate": 1.0,
-      "new_actual_failure_rate": 0.484375,
-      "new_N": 128,
-      "new_max_rate": 0.578125,
+      "new_max_rate": 0.9765625,
       "new_min_rate": 0.0,
       "new_unresolved_max": 0,
-      "old_axis_limits": [
-        [
-          1.5,
-          6.0
-        ],
-        [
-          0.025,
-          0.3
-        ],
-        [
-          0.25,
-          3.0
-        ]
-      ],
-      "new_axis_limits": [
-        [
-          0.75,
-          6.0
-        ],
-        [
-          0.025,
-          0.2
-        ],
-        [
-          0.25,
-          2.0
-        ]
-      ]
-    },
-    {
-      "case": "failure1",
-      "group": "z",
-      "old_conditioned_denominator": 127,
       "old_N": 128,
-      "old_projected_failure_rate": 1.0,
-      "new_actual_failure_rate": 0.484375,
-      "new_N": 128,
-      "new_max_rate": 0.546875,
-      "new_min_rate": 0.0,
-      "new_unresolved_max": 0,
-      "old_axis_limits": [
-        [
-          2.0,
-          10.0
-        ],
-        [
-          0.25,
-          3.0
-        ],
-        [
-          0.75,
-          5.0
-        ]
-      ],
-      "new_axis_limits": [
-        [
-          1.25,
-          10.0
-        ],
-        [
-          0.25,
-          2.0
-        ],
-        [
-          0.625,
-          5.0
-        ]
-      ]
-    },
-    {
-      "case": "failure2",
-      "group": "roll_pitch",
-      "old_conditioned_denominator": 128,
-      "old_N": 128,
-      "old_projected_failure_rate": 0.140625,
-      "new_actual_failure_rate": 0.1171875,
-      "new_N": 128,
-      "new_max_rate": 0.9921875,
-      "new_min_rate": 0.0,
-      "new_unresolved_max": 0,
       "old_axis_limits": [
         [
           5.0,
@@ -200,32 +37,32 @@
           28.0
         ]
       ],
+      "old_conditioned_denominator": 127,
+      "old_projected_failure_rate": 0.5590551181102362
+    },
+    {
+      "case": "failure1",
+      "group": "yaw",
+      "new_N": 128,
+      "new_actual_failure_rate": 0.484375,
       "new_axis_limits": [
         [
-          2.5,
-          20.0
+          1.0,
+          8.0
         ],
         [
           0.25,
           2.0
         ],
         [
-          2.0,
-          16.0
+          0.5,
+          4.0
         ]
-      ]
-    },
-    {
-      "case": "failure2",
-      "group": "yaw",
-      "old_conditioned_denominator": 128,
-      "old_N": 128,
-      "old_projected_failure_rate": 0.984375,
-      "new_actual_failure_rate": 0.1171875,
-      "new_N": 128,
-      "new_max_rate": 0.234375,
+      ],
+      "new_max_rate": 0.515625,
       "new_min_rate": 0.0,
       "new_unresolved_max": 0,
+      "old_N": 128,
       "old_axis_limits": [
         [
           2.0,
@@ -240,32 +77,32 @@
           5.0
         ]
       ],
+      "old_conditioned_denominator": 127,
+      "old_projected_failure_rate": 0.9685039370078741
+    },
+    {
+      "case": "failure1",
+      "group": "xy",
+      "new_N": 128,
+      "new_actual_failure_rate": 0.484375,
       "new_axis_limits": [
         [
-          1.0,
-          8.0
+          0.75,
+          6.0
+        ],
+        [
+          0.025,
+          0.2
         ],
         [
           0.25,
           2.0
-        ],
-        [
-          0.5,
-          4.0
         ]
-      ]
-    },
-    {
-      "case": "failure2",
-      "group": "xy",
-      "old_conditioned_denominator": 128,
-      "old_N": 128,
-      "old_projected_failure_rate": 1.0,
-      "new_actual_failure_rate": 0.1171875,
-      "new_N": 128,
-      "new_max_rate": 0.1328125,
+      ],
+      "new_max_rate": 0.578125,
       "new_min_rate": 0.0,
       "new_unresolved_max": 0,
+      "old_N": 128,
       "old_axis_limits": [
         [
           1.5,
@@ -280,32 +117,32 @@
           3.0
         ]
       ],
+      "old_conditioned_denominator": 127,
+      "old_projected_failure_rate": 1.0
+    },
+    {
+      "case": "failure1",
+      "group": "z",
+      "new_N": 128,
+      "new_actual_failure_rate": 0.484375,
       "new_axis_limits": [
         [
-          0.75,
-          6.0
-        ],
-        [
-          0.025,
-          0.2
+          1.25,
+          10.0
         ],
         [
           0.25,
           2.0
+        ],
+        [
+          0.625,
+          5.0
         ]
-      ]
-    },
-    {
-      "case": "failure2",
-      "group": "z",
-      "old_conditioned_denominator": 128,
-      "old_N": 128,
-      "old_projected_failure_rate": 1.0,
-      "new_actual_failure_rate": 0.1171875,
-      "new_N": 128,
-      "new_max_rate": 0.125,
+      ],
+      "new_max_rate": 0.546875,
       "new_min_rate": 0.0,
       "new_unresolved_max": 0,
+      "old_N": 128,
       "old_axis_limits": [
         [
           2.0,
@@ -320,6 +157,134 @@
           5.0
         ]
       ],
+      "old_conditioned_denominator": 127,
+      "old_projected_failure_rate": 1.0
+    },
+    {
+      "case": "failure2",
+      "group": "roll_pitch",
+      "new_N": 128,
+      "new_actual_failure_rate": 0.1171875,
+      "new_axis_limits": [
+        [
+          2.5,
+          20.0
+        ],
+        [
+          0.25,
+          2.0
+        ],
+        [
+          2.0,
+          16.0
+        ]
+      ],
+      "new_max_rate": 0.9921875,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_N": 128,
+      "old_axis_limits": [
+        [
+          5.0,
+          25.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          4.0,
+          28.0
+        ]
+      ],
+      "old_conditioned_denominator": 128,
+      "old_projected_failure_rate": 0.140625
+    },
+    {
+      "case": "failure2",
+      "group": "yaw",
+      "new_N": 128,
+      "new_actual_failure_rate": 0.1171875,
+      "new_axis_limits": [
+        [
+          1.0,
+          8.0
+        ],
+        [
+          0.25,
+          2.0
+        ],
+        [
+          0.5,
+          4.0
+        ]
+      ],
+      "new_max_rate": 0.234375,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_N": 128,
+      "old_axis_limits": [
+        [
+          2.0,
+          10.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          0.5,
+          5.0
+        ]
+      ],
+      "old_conditioned_denominator": 128,
+      "old_projected_failure_rate": 0.984375
+    },
+    {
+      "case": "failure2",
+      "group": "xy",
+      "new_N": 128,
+      "new_actual_failure_rate": 0.1171875,
+      "new_axis_limits": [
+        [
+          0.75,
+          6.0
+        ],
+        [
+          0.025,
+          0.2
+        ],
+        [
+          0.25,
+          2.0
+        ]
+      ],
+      "new_max_rate": 0.1328125,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_N": 128,
+      "old_axis_limits": [
+        [
+          1.5,
+          6.0
+        ],
+        [
+          0.025,
+          0.3
+        ],
+        [
+          0.25,
+          3.0
+        ]
+      ],
+      "old_conditioned_denominator": 128,
+      "old_projected_failure_rate": 1.0
+    },
+    {
+      "case": "failure2",
+      "group": "z",
+      "new_N": 128,
+      "new_actual_failure_rate": 0.1171875,
       "new_axis_limits": [
         [
           1.25,
@@ -333,10 +298,36 @@
           0.625,
           5.0
         ]
-      ]
+      ],
+      "new_max_rate": 0.125,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_N": 128,
+      "old_axis_limits": [
+        [
+          2.0,
+          10.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          0.75,
+          5.0
+        ]
+      ],
+      "old_conditioned_denominator": 128,
+      "old_projected_failure_rate": 1.0
     }
   ],
-  "numerical_files_unchanged": true,
+  "corrected_palette_bitwise_equal": true,
+  "date": "2026-10-30",
+  "fixed_color_range": [
+    0,
+    1
+  ],
+  "historical_publication": "../pid_gain_voxels",
   "numerical_file_sha256": {
     "data/failure1/inputs/original_estimate.json": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
     "data/failure1/inputs/runtime_estimate.json": "fb1438465aa8d64f537bdbb2eb6ca56a376014c05b006c2e1119b2fa95fba524",
@@ -435,12 +426,29 @@
     "data/failure2/z/grid_65/stability_fraction.npz": "31d076270a8bcf84cf69e2e8f86a2ad6df38ef9ffd798ebefd2152badc1c5a84",
     "data/failure2/z/grid_65/status.json": "3b551c7d78244181655d62ec884817abeb533167a184b879fbc0e360216139fc"
   },
-  "tests": {
-    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/pid-figure-audit-pytest OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_render_failure_publication.py",
-    "passed": 13
-  },
+  "numerical_files_unchanged": true,
+  "old_vs_corrected_max_rgba_abs_error": 0.0,
+  "old_vs_previous_max_rgba_abs_error": 0.0019607843137254832,
+  "palette_entries": 4096,
+  "palette_rgba_sha256": "dd2a6801c50897e25c4a0ee4fe90bf0e7d5271ac31be750fbe120a05108c5501",
+  "previous_publication_commit": "96dd634a91aa7e56f8ac0b918861bc4802181410",
   "renderer": {
     "path": "../../automation/render_failure_publication.py",
-    "sha256": "1ecd720ece6d8b2b8511636359b8ab54817166fbdfa99d693ffd81868959df50"
+    "sha256": "b40d10b62adba462f9e67dc2c66afeb7ab17b36c053d12ece1a6572de0657dc5"
+  },
+  "schema": "grape-param-estim/figure-color-rule-audit/v1",
+  "scope": "static 2x4 paper figures, not the thresholded interactive viewer",
+  "settings_identical": true,
+  "success_gain_overlay": {
+    "note": "Blue references have no assigned stability value; evaluated domains and all numerical data are unchanged.",
+    "numerical_files_unchanged": 96,
+    "panel_metadata_verified": 32,
+    "reference": "successful_gain_reference.json",
+    "reference_sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938",
+    "role": "coordinates_only"
+  },
+  "tests": {
+    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/pid-figure-audit-pytest OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_render_failure_publication.py",
+    "passed": 18
   }
 }

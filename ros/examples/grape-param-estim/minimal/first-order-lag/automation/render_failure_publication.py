@@ -3,7 +3,8 @@
 
 This renderer does not run an estimator or change any stability statistic. The
 historical success-conditioned numerical code and its figures are never used
-as input. Only the historical visual settings and panel arrangement are reused.
+as input. Historical visual settings and layout are reused. An optional,
+separate reference provides successful gain coordinates without stability scores.
 """
 from __future__ import annotations
 
@@ -36,6 +37,7 @@ GROUPS = ("roll_pitch", "yaw", "xy", "z")
 SOURCE_GROUPS = ("xy", "z", "roll_pitch", "yaw")
 LABELS = {"roll_pitch": "Roll / Pitch", "yaw": "Yaw", "xy": "XY", "z": "Z"}
 SCHEMA = "grape-param-estim/failure-only-paper-figures/v1"
+SUCCESS_REFERENCE_SCHEMA = "grape-param-estim/successful-controller-position-reference/v1"
 
 
 def sha256(path: Path) -> str:
@@ -64,6 +66,55 @@ def rate_colormap(settings: Mapping[str, Any]):
     # interpolation, including its rounding. This changes no stability values.
     anchors = [(float(q), colors.to_hex(color)) for q, color in zip(positions, rgb)]
     return colors.LinearSegmentedColormap.from_list("continuous_rate", anchors, N=4096)
+
+
+def load_success_reference(path: Path) -> dict[str, Any]:
+    """Read post-calculation coordinates only; never consult success scores."""
+    path = Path(path)
+    payload = json.loads(path.read_text())
+    gains = np.asarray(payload.get("gains"), dtype=float)
+    if (payload.get("schema") != SUCCESS_REFERENCE_SCHEMA
+            or payload.get("gain_order") != list(SOURCE_GROUPS)
+            or gains.shape != (4, 3) or not np.all(np.isfinite(gains))):
+        raise ValueError("expected a finite 4x3 successful gain position reference in SOURCE_GROUPS order")
+    return {"schema": SUCCESS_REFERENCE_SCHEMA, "role": "coordinates_only",
+            "gain_order": list(SOURCE_GROUPS), "gains": gains.tolist(),
+            "source": payload.get("source"), "path": str(path), "sha256": sha256(path)}
+
+
+def reference_gain(reference, group):
+    return np.asarray(reference["gains"][SOURCE_GROUPS.index(group)], dtype=float)
+
+
+def padded_limits(axis, padding, reference=None):
+    """Expand the display frame for a marker, never the evaluated data domain."""
+    lower, upper = float(axis[0]), float(axis[-1])
+    if reference is not None:
+        lower, upper = min(lower, float(reference)), max(upper, float(reference))
+    span = upper - lower
+    return lower - padding * span, upper + padding * span
+
+
+def success_panel_metadata(grid, reference, settings, view):
+    gain = reference_gain(reference, grid.group)
+    if view == "PD" and gain[1] != grid.gain[1]:
+        raise ValueError("successful reference I does not lie on this exact P-D slice")
+    fixed = grid.index()[1]
+    drawn = [grid.axes[0], grid.axes[1][fixed:], grid.axes[2]]
+    display = [list(padded_limits(axis, float(settings["frame_padding"]), value))
+               for axis, value in zip(drawn, gain)]
+    if view == "PD":
+        display[1] = [float(grid.gain[1]), float(grid.gain[1])]
+    return {"role": "coordinates_only", "gain": gain.tolist(),
+            "full_successful_controller_gains": reference["gains"],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": False,
+            "computed_axis_limits": [[float(axis[0]), float(axis[-1])] for axis in grid.axes],
+            "display_axis_limits": display,
+            "inside_computed_box": bool(all(axis[0] <= value <= axis[-1]
+                                             for axis, value in zip(grid.axes, gain))),
+            "coincides_with_failure": bool(np.array_equal(gain, grid.gain)),
+            "on_recorded_I_plane": bool(gain[1] == grid.gain[1])}
 
 
 @dataclass
@@ -256,19 +307,31 @@ def point_text(grid):
     return "Failure\n" + gains + "\nrate : " + format(100 * mark["stable_fraction"], ".1f") + "%"
 
 
-def point_style(settings):
+def point_style(settings, coincident=False):
+    if coincident:
+        return dict(marker="o", s=190, facecolors="none", edgecolors=settings["recorded_color"],
+                    linewidth=2.2, zorder=7)
     return dict(marker="X", s=95, color=settings["recorded_color"], edgecolor="white", linewidth=1.15, zorder=7)
 
 
-def annotation_style(settings):
-    color = settings["recorded_color"]
+def success_point_style(settings):
+    return dict(marker="D", s=68, color=settings["success_color"], edgecolor="white", linewidth=1.1, zorder=8)
+
+
+def success_point_text(gain):
+    gains = "(" + ", ".join(format(float(v), ".5g") for v in gain) + ")"
+    return "Success ref.\n" + gains + "\nposition only"
+
+
+def annotation_style(settings, success=False):
+    color = settings["success_color" if success else "recorded_color"]
     return dict(ha="center", va="center", fontsize=9.5, color=color, zorder=10,
                 annotation_clip=False,
                 arrowprops={"arrowstyle": "->", "lw": 1.55, "color": color, "shrinkA": 4, "shrinkB": 7},
                 bbox={"facecolor": "white", "edgecolor": color, "linewidth": .6, "alpha": .97, "pad": 3})
 
 
-def comparison_slice(grids, settings):
+def comparison_slice(grids, settings, success_reference=None):
     cmap = rate_colormap(settings)
     fig, axes = plt.subplots(2, 4, figsize=(16, 8.6))
     fig.subplots_adjust(left=.055, right=.982, top=.87, bottom=.15, wspace=.34, hspace=.48)
@@ -276,16 +339,18 @@ def comparison_slice(grids, settings):
         fig.text(.012, .695 - row * .423, case.replace("failure", "Failure "), rotation=90, ha="center", va="center", fontsize=14)
         for column, group in enumerate(GROUPS):
             grid, ax = grids[case, group], axes[row, column]
+            success = reference_gain(success_reference, group) if success_reference is not None else None
+            if success is not None:
+                success_panel_metadata(grid, success_reference, settings, "PD")
             index = grid.index()[1]
             values = grid.stable_fraction[:, index, :].T
             edges = (grid.edges[0], grid.edges[2])
             vertices, rates, _ = merge_uniform_cells(values, *edges)
             ax.add_collection(PolyCollection(vertices, array=rates, cmap=cmap, norm=colors.Normalize(0, 1),
                                              edgecolors="none", linewidth=0, antialiased=False))
-            for edge, setter in zip(edges, (ax.set_xlim, ax.set_ylim)):
-                span = edge[-1] - edge[0]
-                pad = float(settings["frame_padding"])
-                setter(edge[0] - pad * span, edge[-1] + pad * span)
+            for dimension, edge, setter in zip((0, 2), edges, (ax.set_xlim, ax.set_ylim)):
+                setter(*padded_limits(edge, float(settings["frame_padding"]),
+                                      None if success is None else success[dimension]))
             for axis in (ax.xaxis, ax.yaxis):
                 axis.set_major_locator(MaxNLocator(4))
             ax.set_xlabel("P gain", fontsize=10); ax.set_ylabel("D gain", fontsize=10)
@@ -294,23 +359,36 @@ def comparison_slice(grids, settings):
             ax.text(.98, .98, "I = " + format(grid.gain[1], ".5g"), transform=ax.transAxes, ha="right", va="top", fontsize=9)
             pspan, dspan = [edge[-1] - edge[0] for edge in edges]
             gain = grid.gain
-            ax.scatter(gain[0], gain[2], **point_style(settings))
+            coincident = success is not None and np.array_equal(gain, success)
+            failure_point = ax.scatter(gain[0], gain[2], **point_style(settings, coincident))
+            failure_point.set_gid("failure_reference")
             if group == "roll_pitch":
                 offset = ((-.35 if case == "failure1" else .40) * pspan, -.09 * dspan)
             else:
                 offset = ((.10 if group == "z" else -.12) * pspan, -.18 * dspan)
             ax.annotate(point_text(grid), xy=(gain[0], gain[2]),
                         xytext=(gain[0] + offset[0], gain[2] + offset[1]), **annotation_style(settings))
+            if success is not None:
+                point = ax.scatter(success[0], success[2], **success_point_style(settings))
+                point.set_gid("success_reference")
+                offset = ((-.12 * pspan, -.28 * dspan) if group == "roll_pitch" else
+                          (.06 * pspan, -.18 * dspan) if group == "xy" else
+                          (-.06 * pspan, .18 * dspan) if group == "z" else (.06 * pspan, .18 * dspan))
+                text = ax.annotate(success_point_text(success), xy=(success[0], success[2]),
+                                   xytext=(success[0] + offset[0], success[2] + offset[1]),
+                                   **annotation_style(settings, success=True))
+                text.set_gid("success_reference_label")
     return fig
 
 
-def comparison_volume(grids, settings):
+def comparison_volume(grids, settings, success_reference=None):
     cmap = rate_colormap(settings)
     fig = plt.figure(figsize=(16, 8.6))
     for row, case in enumerate(CASES):
         fig.text(.013, .69 - row * .425, case.replace("failure", "Failure "), rotation=90, ha="center", va="center", fontsize=14)
         for column, group in enumerate(GROUPS):
             grid = grids[case, group]
+            success = reference_gain(success_reference, group) if success_reference is not None else None
             ax = fig.add_axes([.043 + .238 * column, .545 - .425 * row, .224, .35], projection="3d", computed_zorder=False)
             fixed = grid.index()[1]
             axes = (grid.axes[0], grid.axes[1][fixed:], grid.axes[2])
@@ -319,10 +397,9 @@ def comparison_volume(grids, settings):
             rgba = cmap(rates); rgba[:, 3] = float(settings["voxel_opacity"])
             ax.add_collection3d(Poly3DCollection(faces, facecolors=rgba, edgecolors="none", linewidth=0,
                                                 zsort="average", rasterized=True, zorder=1))
-            for axis, setter in zip(axes, (ax.set_xlim, ax.set_ylim, ax.set_zlim)):
-                span = axis[-1] - axis[0]
-                pad = float(settings["frame_padding"])
-                setter(axis[0] - pad * span, axis[-1] + pad * span)
+            for dimension, axis, setter in zip(range(3), axes, (ax.set_xlim, ax.set_ylim, ax.set_zlim)):
+                setter(*padded_limits(axis, float(settings["frame_padding"]),
+                                      None if success is None else success[dimension]))
             for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
                 axis.set_major_locator(MaxNLocator(3)); axis.set_pane_color((1, 1, 1, 1))
                 axis._axinfo["grid"].update(color=(.6, .6, .6, .18), linewidth=.45)
@@ -335,15 +412,25 @@ def comparison_volume(grids, settings):
             ax.view_init(elev=camera["elevation"], azim=camera["azimuth"])
             ax.set_title(LABELS[group], fontsize=11, color="#263238", pad=3)
             gain = grid.gain
-            ax.scatter(*gain, depthshade=False, **point_style(settings))
+            coincident = success is not None and np.array_equal(gain, success)
+            failure_point = ax.scatter(*gain, depthshade=False, **point_style(settings, coincident))
+            failure_point.set_gid("failure_reference")
             x, y, _ = proj3d.proj_transform(*gain, ax.get_proj())
             offset = ((22, -28) if case == "failure1" else (-12, -28)) if group == "roll_pitch" else {
                 "yaw": (-28, -30), "xy": (-8, -30), "z": (28, -32)}[group]
             ax.annotate(point_text(grid), xy=(x, y), xytext=offset, textcoords="offset points", **annotation_style(settings))
+            if success is not None:
+                point = ax.scatter(*success, depthshade=False, **success_point_style(settings))
+                point.set_gid("success_reference")
+                x, y, _ = proj3d.proj_transform(*success, ax.get_proj())
+                offset = (17, 32) if group in ("yaw", "xy") else (-20, 34)
+                text = ax.annotate(success_point_text(success), xy=(x, y), xytext=offset,
+                                   textcoords="offset points", **annotation_style(settings, success=True))
+                text.set_gid("success_reference_label")
     return fig
 
 
-def save_comparison(fig, grids, settings, output: Path, view: str, grid_size: int):
+def save_comparison(fig, grids, settings, output: Path, view: str, grid_size: int, success_reference=None):
     bar_axes = fig.add_axes([.375, .071, .25, .012])
     bar = fig.colorbar(ScalarMappable(norm=colors.Normalize(0, 1), cmap=rate_colormap(settings)),
                       cax=bar_axes, orientation="horizontal", ticks=[0, .25, .5, .75, 1])
@@ -351,7 +438,9 @@ def save_comparison(fig, grids, settings, output: Path, view: str, grid_size: in
     bar.ax.tick_params(labelsize=10, length=2, pad=2); bar.outline.set_linewidth(.5)
     fig.text(.36, .077, "rate (%)", ha="right", va="center", fontsize=11)
     note = "3D volumes are cut at each recorded I." if view == "3D" else "Each exact P-D slice passes through the recorded failure point."
-    fig.text(.5, .03, note + " Purple marks identify the failure-flight gains.", ha="center", fontsize=10, color="#52606B")
+    markers = (" Purple: failure gains; blue: successful gain coordinates only."
+               if success_reference is not None else " Purple marks identify the failure-flight gains.")
+    fig.text(.5, .03, note + markers, ha="center", fontsize=10, color="#52606B")
     fig.text(.5, .007, "Each case uses all original plant samples; other nine gains are fixed to that failure record.", ha="center", fontsize=9, color="#52606B")
     name = f"all_pid_failure_{view}_grid_{grid_size}"
     files = {}
@@ -362,26 +451,38 @@ def save_comparison(fig, grids, settings, output: Path, view: str, grid_size: in
             files[ext] = {"path": path.name, "bytes": path.stat().st_size, "sha256": sha256(path)}
     finally:
         plt.close(fig)
-    return {"schema": SCHEMA, "figure": name, "groups": list(GROUPS), "cases": list(CASES),
+    record = {"schema": SCHEMA, "figure": name, "groups": list(GROUPS), "cases": list(CASES),
             "view": view, "panel_count": 8, "grid_size": grid_size,
-            "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. No successful-controller marker or success-100% condition is used.",
+            "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. "
+                       + ("Blue diamonds locate successful gain coordinates only, with no assigned stability value. " if success_reference is not None else "")
+                       + "No success-100% condition is used.",
             "color_encoding": {"quantity": "stable_fraction", "range": [0, 1], "colormap": settings["rate_colormap"], "white_mix": settings["white_mix"], "continuous": True, "surface_opacity": settings["voxel_opacity"]},
             "references": {case: {group: grids[case, group].mark() for group in GROUPS} for case in CASES},
             "source_grids": {case: {group: grids[case, group].provenance for group in GROUPS} for case in CASES},
             "files": files}
+    if success_reference is not None:
+        record["success_reference"] = {**success_reference,
+            "panels": {case: {group: success_panel_metadata(grids[case, group], success_reference, settings, view)
+                               for group in GROUPS} for case in CASES}}
+    return record
 
 
-def render(input_root: Path, output: Path, grid_size: int, settings_path: Path = DEFAULT_SETTINGS, view="both"):
+def render(input_root: Path, output: Path, grid_size: int, settings_path: Path = DEFAULT_SETTINGS,
+           view="both", success_reference_path=None):
     input_root, output, settings_path = Path(input_root), Path(output), Path(settings_path)
     settings = json.loads(settings_path.read_text())
     plt.rcParams.update({"font.family": settings["font_family"], "font.size": settings["font_size"],
                          "pdf.fonttype": 42, "ps.fonttype": 42, "svg.fonttype": "none", "savefig.facecolor": "white"})
     grids = {(case, group): load_grid(input_root, case, group, grid_size) for case in CASES for group in GROUPS}
+    # This input is read only after every completed map has been loaded and
+    # checked. It cannot affect the map population, axes, counts or colors.
+    success_reference = load_success_reference(success_reference_path) if success_reference_path is not None else None
     output.mkdir(parents=True, exist_ok=True)
     records = []
     for kind, draw in (("3D", comparison_volume), ("PD", comparison_slice)):
         if view in (kind, "both"):
-            record = save_comparison(draw(grids, settings), grids, settings, output, kind, grid_size)
+            record = save_comparison(draw(grids, settings, success_reference), grids, settings,
+                                     output, kind, grid_size, success_reference)
             record["style"] = {"source": str(settings_path), "source_sha256": sha256(settings_path), "settings": settings}
             records.append(record)
     (output / "figure_index.json").write_text(json.dumps(records, indent=2) + "\n")
@@ -399,8 +500,10 @@ def main(argv=None):
     parser.add_argument("--settings", type=Path, default=DEFAULT_SETTINGS)
     parser.add_argument("--grid", type=int, choices=(33, 65), default=65)
     parser.add_argument("--view", choices=("PD", "3D", "both"), default="both")
+    parser.add_argument("--success-gains-json", type=Path,
+                        help="Optional post-map successful gain coordinates only; does not assign a stability rate")
     args = parser.parse_args(argv)
-    records = render(args.input_root, args.output, args.grid, args.settings, args.view)
+    records = render(args.input_root, args.output, args.grid, args.settings, args.view, args.success_gains_json)
     print(json.dumps({"grid": args.grid, "figures": [row["figure"] for row in records], "panel_count": 8}, indent=2))
     return 0
 

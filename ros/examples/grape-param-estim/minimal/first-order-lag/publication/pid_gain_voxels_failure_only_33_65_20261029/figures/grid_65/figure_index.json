@@ -15,7 +15,7 @@
     "view": "3D",
     "panel_count": 8,
     "grid_size": 65,
-    "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. No successful-controller marker or success-100% condition is used.",
+    "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. Blue diamonds locate successful gain coordinates only, with no assigned stability value. No success-100% condition is used.",
     "color_encoding": {
       "quantity": "stable_fraction",
       "range": [
@@ -602,18 +602,568 @@
     "files": {
       "pdf": {
         "path": "all_pid_failure_3D_grid_65.pdf",
-        "bytes": 760667,
-        "sha256": "ec0c8a324a2bcf2cd37639458aad1bfe771deea77072733f222422cea7fdb3ad"
+        "bytes": 744609,
+        "sha256": "489c20e59e4a69a60aa32bad0f3f14ba9057c72fb2ab832879ab8f7d2f9c68a1"
       },
       "svg": {
         "path": "all_pid_failure_3D_grid_65.svg",
-        "bytes": 1513193,
-        "sha256": "fa82022fd68adb43dd35f22a4c5ae50c5be6838dba3217ff7b10a83f22ea441b"
+        "bytes": 1467150,
+        "sha256": "01aecdd2f017920417cc325a8848e621f05a408aee7df9752d01a537bc56c281"
       },
       "png": {
         "path": "all_pid_failure_3D_grid_65.png",
-        "bytes": 3063058,
-        "sha256": "03827d33dfee358edc5a83373914b0419d71778aa5b2b4b8e561336dff67955c"
+        "bytes": 3063463,
+        "sha256": "87d32c62fc59f71abbac434aa22702738779369ad806d1319ecb679619839819"
+      }
+    },
+    "success_reference": {
+      "schema": "grape-param-estim/successful-controller-position-reference/v1",
+      "role": "coordinates_only",
+      "gain_order": [
+        "xy",
+        "z",
+        "roll_pitch",
+        "yaw"
+      ],
+      "gains": [
+        [
+          4.0,
+          0.1,
+          2.0
+        ],
+        [
+          5.0,
+          1.0,
+          2.5
+        ],
+        [
+          13.0,
+          1.0,
+          20.0
+        ],
+        [
+          6.0,
+          1.0,
+          2.0
+        ]
+      ],
+      "source": {
+        "path": "../pid_gain_voxels/data/successful_flight_estimate.json",
+        "sha256": "3c4f4db0312cbe369ee1ce4c7eb12c6208b5bb8bbefdb830f0e1f6d49a8f4203",
+        "field": "controller.gains",
+        "note": "Only recorded controller gains are copied; successful-flight fitted parameters and old stability scores are not used."
+      },
+      "path": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/successful_gain_reference.json",
+      "sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938",
+      "panels": {
+        "failure1": {
+          "roll_pitch": {
+            "role": "coordinates_only",
+            "gain": [
+              13.0,
+              1.0,
+              20.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                5.0,
+                40.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                2.0,
+                16.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                1.5,
+                43.5
+              ],
+              [
+                0.9,
+                2.1
+              ],
+              [
+                0.19999999999999996,
+                21.8
+              ]
+            ],
+            "inside_computed_box": false,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "yaw": {
+            "role": "coordinates_only",
+            "gain": [
+              6.0,
+              1.0,
+              2.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                1.0,
+                8.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                0.5,
+                4.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.29999999999999993,
+                8.7
+              ],
+              [
+                0.9,
+                2.1
+              ],
+              [
+                0.14999999999999997,
+                4.35
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "xy": {
+            "role": "coordinates_only",
+            "gain": [
+              4.0,
+              0.1,
+              2.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                0.75,
+                6.0
+              ],
+              [
+                0.025,
+                0.2
+              ],
+              [
+                0.25,
+                2.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.22499999999999998,
+                6.525
+              ],
+              [
+                0.09,
+                0.21000000000000002
+              ],
+              [
+                0.07499999999999998,
+                2.175
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "z": {
+            "role": "coordinates_only",
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                1.25,
+                10.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                0.625,
+                5.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.375,
+                10.875
+              ],
+              [
+                0.9,
+                2.1
+              ],
+              [
+                0.1875,
+                5.4375
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": true,
+            "on_recorded_I_plane": true
+          }
+        },
+        "failure2": {
+          "roll_pitch": {
+            "role": "coordinates_only",
+            "gain": [
+              13.0,
+              1.0,
+              20.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                2.5,
+                20.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                2.0,
+                16.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.75,
+                21.75
+              ],
+              [
+                0.9,
+                2.1
+              ],
+              [
+                0.19999999999999996,
+                21.8
+              ]
+            ],
+            "inside_computed_box": false,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "yaw": {
+            "role": "coordinates_only",
+            "gain": [
+              6.0,
+              1.0,
+              2.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                1.0,
+                8.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                0.5,
+                4.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.29999999999999993,
+                8.7
+              ],
+              [
+                0.9,
+                2.1
+              ],
+              [
+                0.14999999999999997,
+                4.35
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "xy": {
+            "role": "coordinates_only",
+            "gain": [
+              4.0,
+              0.1,
+              2.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                0.75,
+                6.0
+              ],
+              [
+                0.025,
+                0.2
+              ],
+              [
+                0.25,
+                2.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.22499999999999998,
+                6.525
+              ],
+              [
+                0.09,
+                0.21000000000000002
+              ],
+              [
+                0.07499999999999998,
+                2.175
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "z": {
+            "role": "coordinates_only",
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                1.25,
+                10.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                0.625,
+                5.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.375,
+                10.875
+              ],
+              [
+                0.9,
+                2.1
+              ],
+              [
+                0.1875,
+                5.4375
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": true,
+            "on_recorded_I_plane": true
+          }
+        }
       }
     },
     "style": {
@@ -662,7 +1212,7 @@
     "view": "PD",
     "panel_count": 8,
     "grid_size": 65,
-    "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. No successful-controller marker or success-100% condition is used.",
+    "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. Blue diamonds locate successful gain coordinates only, with no assigned stability value. No success-100% condition is used.",
     "color_encoding": {
       "quantity": "stable_fraction",
       "range": [
@@ -1249,18 +1799,568 @@
     "files": {
       "pdf": {
         "path": "all_pid_failure_PD_grid_65.pdf",
-        "bytes": 106533,
-        "sha256": "024fb8bd6752aed0ecf32f461233e16f9e566a81dccdf4fc8a077e786501a8ff"
+        "bytes": 109606,
+        "sha256": "f9a585b77c6c43eb2bee937f7d2c9fa34871a13ffcae0b807f315ffbe0b656fc"
       },
       "svg": {
         "path": "all_pid_failure_PD_grid_65.svg",
-        "bytes": 917896,
-        "sha256": "b63bd88dc84429a229384c6b5ce8e7b2c5d301c476e82baa0f38bae2e4d5fc81"
+        "bytes": 929844,
+        "sha256": "d158cfd10a709ccf72a4e0acd0f58124245930193d1a51afcd9c56b2af6f046f"
       },
       "png": {
         "path": "all_pid_failure_PD_grid_65.png",
-        "bytes": 457298,
-        "sha256": "d52f137fba22e2f4c9dc023a9a1fdc7b9d5f614ceb59b2b145408b001a4c30db"
+        "bytes": 623069,
+        "sha256": "9727670e89a680fdd24e9c01b10232ad6acdff314a91a81299ec41b7568fdfc4"
+      }
+    },
+    "success_reference": {
+      "schema": "grape-param-estim/successful-controller-position-reference/v1",
+      "role": "coordinates_only",
+      "gain_order": [
+        "xy",
+        "z",
+        "roll_pitch",
+        "yaw"
+      ],
+      "gains": [
+        [
+          4.0,
+          0.1,
+          2.0
+        ],
+        [
+          5.0,
+          1.0,
+          2.5
+        ],
+        [
+          13.0,
+          1.0,
+          20.0
+        ],
+        [
+          6.0,
+          1.0,
+          2.0
+        ]
+      ],
+      "source": {
+        "path": "../pid_gain_voxels/data/successful_flight_estimate.json",
+        "sha256": "3c4f4db0312cbe369ee1ce4c7eb12c6208b5bb8bbefdb830f0e1f6d49a8f4203",
+        "field": "controller.gains",
+        "note": "Only recorded controller gains are copied; successful-flight fitted parameters and old stability scores are not used."
+      },
+      "path": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/successful_gain_reference.json",
+      "sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938",
+      "panels": {
+        "failure1": {
+          "roll_pitch": {
+            "role": "coordinates_only",
+            "gain": [
+              13.0,
+              1.0,
+              20.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                5.0,
+                40.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                2.0,
+                16.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                1.5,
+                43.5
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                0.19999999999999996,
+                21.8
+              ]
+            ],
+            "inside_computed_box": false,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "yaw": {
+            "role": "coordinates_only",
+            "gain": [
+              6.0,
+              1.0,
+              2.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                1.0,
+                8.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                0.5,
+                4.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.29999999999999993,
+                8.7
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                0.14999999999999997,
+                4.35
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "xy": {
+            "role": "coordinates_only",
+            "gain": [
+              4.0,
+              0.1,
+              2.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                0.75,
+                6.0
+              ],
+              [
+                0.025,
+                0.2
+              ],
+              [
+                0.25,
+                2.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.22499999999999998,
+                6.525
+              ],
+              [
+                0.1,
+                0.1
+              ],
+              [
+                0.07499999999999998,
+                2.175
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "z": {
+            "role": "coordinates_only",
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                1.25,
+                10.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                0.625,
+                5.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.375,
+                10.875
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                0.1875,
+                5.4375
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": true,
+            "on_recorded_I_plane": true
+          }
+        },
+        "failure2": {
+          "roll_pitch": {
+            "role": "coordinates_only",
+            "gain": [
+              13.0,
+              1.0,
+              20.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                2.5,
+                20.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                2.0,
+                16.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.75,
+                21.75
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                0.19999999999999996,
+                21.8
+              ]
+            ],
+            "inside_computed_box": false,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "yaw": {
+            "role": "coordinates_only",
+            "gain": [
+              6.0,
+              1.0,
+              2.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                1.0,
+                8.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                0.5,
+                4.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.29999999999999993,
+                8.7
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                0.14999999999999997,
+                4.35
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "xy": {
+            "role": "coordinates_only",
+            "gain": [
+              4.0,
+              0.1,
+              2.0
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                0.75,
+                6.0
+              ],
+              [
+                0.025,
+                0.2
+              ],
+              [
+                0.25,
+                2.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.22499999999999998,
+                6.525
+              ],
+              [
+                0.1,
+                0.1
+              ],
+              [
+                0.07499999999999998,
+                2.175
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": false,
+            "on_recorded_I_plane": true
+          },
+          "z": {
+            "role": "coordinates_only",
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "full_successful_controller_gains": [
+              [
+                4.0,
+                0.1,
+                2.0
+              ],
+              [
+                5.0,
+                1.0,
+                2.5
+              ],
+              [
+                13.0,
+                1.0,
+                20.0
+              ],
+              [
+                6.0,
+                1.0,
+                2.0
+              ]
+            ],
+            "other_nine_gains_context": "this failure record, unchanged",
+            "stability_value_assigned": false,
+            "computed_axis_limits": [
+              [
+                1.25,
+                10.0
+              ],
+              [
+                0.25,
+                2.0
+              ],
+              [
+                0.625,
+                5.0
+              ]
+            ],
+            "display_axis_limits": [
+              [
+                0.375,
+                10.875
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                0.1875,
+                5.4375
+              ]
+            ],
+            "inside_computed_box": true,
+            "coincides_with_failure": true,
+            "on_recorded_I_plane": true
+          }
+        }
       }
     },
     "style": {

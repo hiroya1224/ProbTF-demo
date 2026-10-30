@@ -272,3 +272,132 @@ def test_publication_index_has_explicit_grid_filenames_and_actual_n(tmp_path):
     assert record["references"]["failure1"]["roll_pitch"]["stable_fraction"] == .5
     assert record["references"]["failure1"]["roll_pitch"]["sample_count"] == 4
     assert json.loads((output / "figure_index.json").read_text())[0]["color_encoding"]["continuous"]
+
+
+def successful_reference(path, gains=None):
+    gains = np.ones((4, 3)) if gains is None else np.asarray(gains)
+    payload = {"schema": paper.SUCCESS_REFERENCE_SCHEMA, "gain_order": list(paper.SOURCE_GROUPS),
+               "gains": gains.tolist(), "source": {"path": "successful_estimate.json", "sha256": "abc"}}
+    path.write_text(json.dumps(payload))
+    return paper.load_success_reference(path)
+
+
+def test_successful_reference_schema_and_source_hash_are_explicit(tmp_path):
+    path = tmp_path / "successful_gain_reference.json"
+    reference = successful_reference(path)
+    assert reference["role"] == "coordinates_only"
+    assert reference["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert reference["gain_order"] == list(paper.SOURCE_GROUPS)
+    assert reference["source"] == {"path": "successful_estimate.json", "sha256": "abc"}
+    payload = json.loads(path.read_text())
+    payload["gain_order"] = list(reversed(paper.SOURCE_GROUPS))
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="finite 4x3"):
+        paper.load_success_reference(path)
+
+
+@pytest.mark.parametrize("view", ["PD", "3D"])
+def test_successful_coordinates_are_visible_without_modifying_grid_or_colors(tmp_path, view):
+    grids = {}
+    for case in paper.CASES:
+        for group in paper.GROUPS:
+            source_grid(tmp_path, case, group)
+            grids[case, group] = paper.load_grid(tmp_path, case, group, 33)
+    gains = np.ones((4, 3))
+    gains[paper.SOURCE_GROUPS.index("roll_pitch")] = [13., 1., 20.]
+    gains[paper.SOURCE_GROUPS.index("xy")] = [1.5, 1., 2.]
+    reference = successful_reference(tmp_path / "successful_gain_reference.json", gains)
+    before = {key: tuple(array.copy() for array in (*grid.axes, grid.stable_fraction,
+                                                    grid.stable_count, grid.valid_count, grid.unresolved_count))
+              for key, grid in grids.items()}
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    draw = paper.comparison_slice if view == "PD" else paper.comparison_volume
+    figure = draw(grids, settings, reference)
+    try:
+        for ax, (case, group) in zip(figure.axes, ((case, group) for case in paper.CASES for group in paper.GROUPS)):
+            grid = grids[case, group]
+            success = paper.reference_gain(reference, group)
+            point = next(item for item in ax.collections if item.get_gid() == "success_reference")
+            failure = next(item for item in ax.collections if item.get_gid() == "failure_reference")
+            if view == "PD":
+                np.testing.assert_array_equal(point.get_offsets(), success[[0, 2]][None, :])
+                assert (ax.collections[0].norm.vmin, ax.collections[0].norm.vmax) == (0, 1)
+                np.testing.assert_array_equal(ax.collections[0].get_array(), [.5])
+                limits = [ax.get_xlim(), ax.get_ylim()]
+                shown = success[[0, 2]]
+                if group == "z":
+                    np.testing.assert_array_equal(failure.get_offsets(), point.get_offsets())
+            else:
+                np.testing.assert_array_equal(np.asarray(point._offsets3d).reshape(3), success)
+                limits = [ax.get_xlim(), ax.get_ylim(), ax.get_zlim()]
+                shown = success
+                expected = np.array(paper.rate_colormap(settings)(.5))
+                expected[3] = settings["voxel_opacity"]
+                facecolors = np.asarray(ax.collections[0].get_facecolor())
+                np.testing.assert_array_equal(facecolors, np.broadcast_to(expected, facecolors.shape))
+                if group == "z":
+                    np.testing.assert_array_equal(np.asarray(failure._offsets3d), np.asarray(point._offsets3d))
+            assert all(lower < value < upper for (lower, upper), value in zip(limits, shown))
+            if group == "z":
+                assert len(failure.get_facecolors()) == 0  # purple outer ring and blue diamond
+            annotation = next(text for text in ax.texts if text.get_gid() == "success_reference_label")
+            assert "position only" in annotation.get_text() and "rate" not in annotation.get_text()
+            metadata = paper.success_panel_metadata(grid, reference, settings, view)
+            assert metadata["role"] == "coordinates_only" and not metadata["stability_value_assigned"]
+            assert metadata["inside_computed_box"] is (group != "roll_pitch")
+            for previous, current in zip(before[case, group], (*grid.axes, grid.stable_fraction,
+                                                              grid.stable_count, grid.valid_count, grid.unresolved_count)):
+                np.testing.assert_array_equal(current, previous)
+            if group == "roll_pitch":
+                assert metadata["computed_axis_limits"][2] == [.25, 2.]
+                assert metadata["display_axis_limits"][2][1] > 20
+                # The colored geometry remains inside the original node domain.
+                faces, _ = paper.exposed_faces(grid.stable_fraction, grid.axes)
+                assert faces[:, :, 2].max() == 2
+    finally:
+        plt.close(figure)
+
+
+def test_successful_reference_is_loaded_after_all_grids_and_saved_with_provenance(tmp_path, monkeypatch):
+    root = tmp_path / "source"
+    for case in paper.CASES:
+        for group in paper.GROUPS:
+            source_grid(root, case, group)
+    reference_path = tmp_path / "successful_gain_reference.json"
+    successful_reference(reference_path)
+    calls = []
+    load_grid, load_reference = paper.load_grid, paper.load_success_reference
+
+    def tracked_grid(*args):
+        calls.append("grid")
+        return load_grid(*args)
+
+    def tracked_reference(*args):
+        calls.append("success")
+        return load_reference(*args)
+
+    monkeypatch.setattr(paper, "load_grid", tracked_grid)
+    monkeypatch.setattr(paper, "load_success_reference", tracked_reference)
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    settings.update(formats=["png"], dpi=25)
+    style = tmp_path / "settings.json"
+    style.write_text(json.dumps(settings))
+    records = paper.render(root, tmp_path / "figures", 33, style, "PD", reference_path)
+    assert calls == ["grid"] * 8 + ["success"]
+    recorded = records[0]["success_reference"]
+    assert recorded["sha256"] == hashlib.sha256(reference_path.read_bytes()).hexdigest()
+    assert recorded["role"] == "coordinates_only"
+    assert recorded["panels"]["failure1"]["z"]["coincides_with_failure"]
+    assert records[0]["references"]["failure1"]["z"]["stable_fraction"] == .5
+    assert "with no assigned stability value" in records[0]["caption"]
+
+
+def test_off_plane_success_reference_is_not_silently_drawn_as_a_slice_point(tmp_path):
+    source_grid(tmp_path)
+    grid = paper.load_grid(tmp_path, "failure1", "roll_pitch", 33)
+    gains = np.ones((4, 3))
+    gains[paper.SOURCE_GROUPS.index("roll_pitch"), 1] = 1.5
+    reference = successful_reference(tmp_path / "successful_gain_reference.json", gains)
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    with pytest.raises(ValueError, match="does not lie"):
+        paper.success_panel_metadata(grid, reference, settings, "PD")

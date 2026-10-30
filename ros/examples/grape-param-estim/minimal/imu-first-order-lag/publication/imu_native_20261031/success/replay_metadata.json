@@ -1,0 +1,33 @@
+{
+  "imu_acceleration_bound": "3*(2*(accel + joint gyro/alpha local noise) + orientation + full-parameter); unknown-cross matrix Cauchy bounds",
+  "imu_initial_offset_bound": "initial FC lever cancellation exact at t0; later-time unknown-correlation bound can be discontinuous at t0",
+  "imu_mean": "lever-corrected CoG specific force integrated piecewise-linearly; FC reconstructed with Bingham output attitude; direct sensor-origin integration also saved",
+  "imu_state_bound": "4 times block-diagonal marginal majorants permits arbitrary output-block correlations; not an exact posterior",
+  "imu_temporal_bound": "spectral-norm isotropic majorant with Minkowski integration, permitting arbitrary SG-overlap/time correlations",
+  "initial_condition_frame": "FC nominal sensor-origin position/velocity in world; body-to-world wxyz quaternion",
+  "initial_state_source_cross_assumption": "initial rotation, past-prefix velocity and fixed-tau gyro noise blocks independent; parameter/source cross then bounded by factor 3",
+  "integration_max_step_seconds": 0.005,
+  "model_discrepancy_mean": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "model_discrepancy_uncertainty": "persistent whole-window zero-mean body wrench, uncentred second moment of IMU-fit residual wrench",
+  "model_integration": "canonical full-six-DoF ambient-13 RK4 with exact thrust-history values at all stages; intermediate quaternion-rate/Jacobian sign transported to raw stage hemisphere, full-step normalization differentiated",
+  "model_parameter_uncertainty": "all 16 quotient/log-tau modes propagated as rectangular Gram factor; first-order sensitivity approximation",
+  "model_unknown_cross_bound": "3*(parameter + initial-state + persistent-wrench propagated covariance)",
+  "monte_carlo_used": false,
+  "ongoing_mocap_used": false,
+  "predicted_sensor_columns": "underlying physical gyro/specific-force inputs before forward sensor lag",
+  "schema": "grape-param-estim/imu-first-order-lag-replay/v1",
+  "sensor_extrinsic_assumption": "known nominal FC frame/position, not independently calibrated physical chip lever",
+  "state_covariance_order": [
+    "position_FC_world",
+    "right_rotation_body",
+    "velocity_FC_world",
+    "angular_velocity_body"
+  ]
+}

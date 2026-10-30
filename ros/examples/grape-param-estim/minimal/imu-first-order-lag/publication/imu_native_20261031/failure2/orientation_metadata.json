@@ -1,0 +1,33 @@
+{
+  "acceleration_covariance": "2*(corrected_sensor_covariance + predicted_gravity_covariance + innovation_outer_product)",
+  "acceleration_covariance_isotropization": "lambda_max(C_eff)*I Loewner upper envelope; static sensor noise remains trace(S)/3*I",
+  "estimated_sensor_lag_covariance_units": "physical tau seconds squared, order gyro/acceleration",
+  "gyro_prediction_convention": "body-frame right increment, right-end native angular velocity",
+  "initial_concentration": 100.0,
+  "initial_observation_updates_skipped": true,
+  "initial_quaternion_wxyz": [
+    -0.9976660557105212,
+    0.02168539575679965,
+    0.028008799542362822,
+    -0.05837544040157434
+  ],
+  "integration_steps": 120,
+  "magnetic_noise": "current individual-reading sensor variance plus initial-reference individual-reading variance",
+  "magnetic_observation_policy": "new-observation mask only; output factors never carried forward",
+  "magnetic_reference_available": true,
+  "magnetic_reference_world": [
+    30.101473504069094,
+    -0.9975085417969005,
+    -5.5227842427611264
+  ],
+  "method": "native ProbTF Bingham gyro+acceleration recurrence; magnetic fusion only in output",
+  "only_initial_mocap_used": true,
+  "orientation_covariance": "native Bingham-derived high-concentration right rotation coordinates, same A law",
+  "propagation": "existing deterministic cubature and native quaternion-product moments; no Monte Carlo",
+  "sensor_lag_model": "x = local_polynomial(y) + tau * local_polynomial_derivative(y)",
+  "sensor_lag_offline_centered_windows": true,
+  "sensor_lag_polynomial_degree": 3,
+  "sensor_lag_window_seconds": 0.08,
+  "shared_acceleration_attitude_information": "conservative data-dependent envelope; not exact Bayes with shared observations",
+  "wall_seconds": 5.585782068999833
+}

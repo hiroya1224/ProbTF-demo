@@ -14,4 +14,6 @@ ros/examples/deflecomp/outputs/
 # Keep local experiment outputs and raw recordings out of commits.
 /recordings/ar_marker/
 /ros/examples/grape-param-estim/minimal/first-order-lag/outputs/
+/ros/examples/grape-param-estim/minimal/imu-first-order-lag/inputs/
+/ros/examples/grape-param-estim/minimal/imu-first-order-lag/outputs/
 /ros/examples/probtf_switch_press_demo/outputs/

@@ -1,0 +1,161 @@
+{
+  "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag",
+  "bag_sha256": "5e3f40a2c9cdf22938195a1c7a3c95d2a11e942875b0e7c87315005d235ef407",
+  "bag_size_bytes": 138286727,
+  "calibration": {
+    "covariance": "trace(unbiased sample covariance)/3 * I; no division by N; no bias subtraction",
+    "imu_count": 1677,
+    "interval": "initial contiguous ARM_OFF, header-selected within record-time state interval",
+    "interval_local": [
+      0.000482955,
+      8.38809526
+    ],
+    "mag_change_count": 605,
+    "means_not_subtracted": {
+      "accel": [
+        0.054737923683495344,
+        -0.04846340934559925,
+        9.742940453453723
+      ],
+      "gyro": [
+        -0.0004528544805564153,
+        0.0009064504781193377,
+        -0.0004077177600607384
+      ],
+      "mag": [
+        13.71454086303711,
+        4.076657974621481,
+        33.51152767465134
+      ]
+    },
+    "raw_covariances": {
+      "accel": [
+        [
+          2.2304691118506674e-05,
+          5.353254946259253e-06,
+          -1.2322174466827316e-05
+        ],
+        [
+          5.353254946259253e-06,
+          1.8125984914112402e-05,
+          -2.473179317251987e-06
+        ],
+        [
+          -1.2322174466827316e-05,
+          -2.473179317251987e-06,
+          9.978930171487692e-05
+        ]
+      ],
+      "gyro": [
+        [
+          5.940777504978208e-07,
+          2.8715814114029184e-08,
+          -1.2221643256511336e-08
+        ],
+        [
+          2.8715814114029184e-08,
+          4.770026241363091e-07,
+          -7.581750680079823e-09
+        ],
+        [
+          -1.2221643256511336e-08,
+          -7.581750680079823e-09,
+          5.030252363972111e-07
+        ]
+      ],
+      "mag": [
+        [
+          0.6686167945853466,
+          -0.02505046431155799,
+          0.049621266843136225
+        ],
+        [
+          -0.02505046431155799,
+          0.6589213298284111,
+          0.05261058956020179
+        ],
+        [
+          0.049621266843136225,
+          0.05261058956020179,
+          0.674718522627251
+        ]
+      ]
+    }
+  },
+  "case": "success",
+  "case_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/bag_jsons/single_rosbag_succeeded.json",
+  "case_json_sha256": "587382707c65f2dc43c42675eff64867101b2052bdea4e066022257dfed59c6a",
+  "command_history": {
+    "gimbal_command": {
+      "clock": "bag record",
+      "count": 6102,
+      "pre_window_count": 5103
+    },
+    "joint": {
+      "clock": "header",
+      "count": 3796,
+      "pre_window_count": 3295
+    },
+    "rotor": {
+      "clock": "bag record",
+      "count": 6102,
+      "pre_window_count": 5103
+    }
+  },
+  "extrinsics": {
+    "body_frame": "gimbalrotor/main_body",
+    "imu_frame": "gimbalrotor/fc",
+    "physical_imu_lever_arm_calibrated": false,
+    "sensor_position_model": "nominal FC origin; physical accelerometer-chip offset is not independently calibrated",
+    "source": "bag /tf_static main_body->FC, identity rotation; native fields copied directly to converted IMU"
+  },
+  "initial_alignment": {
+    "mocap_bracket_source_indices": [
+      7793,
+      7794
+    ],
+    "mocap_bracket_time": [
+      64.99656916100001,
+      65.00249793900001
+    ],
+    "mocap_use_after_initialization": "evaluation only",
+    "time": 65.00192244200001,
+    "velocity_prefix_count": 119,
+    "velocity_regression": "strictly past 1-second mocap prefix; initial condition only"
+  },
+  "magnetometer": {
+    "available": true,
+    "initial_world_reference_source_index": 13073,
+    "observation_mask": "first full-stream value or vector change; firmware-compatible proxy, not an independent physical timestamp",
+    "onboard_fused_quaternion_used": false,
+    "units": "microtesla (native firmware driver convention)"
+  },
+  "measurement_clock": "native spinal/Imu.stamp",
+  "observation_resampling": false,
+  "requested_window": [
+    65.0,
+    75.0
+  ],
+  "schema": "grape-param-estim/imu-only-native-input/v1",
+  "source_index": "original per-topic message index; selected_record_index is within the explicitly selected topic set",
+  "state_frames": {
+    "initial_position": "FC sensor origin in world, not CoG/body origin",
+    "initial_quaternion_wxyz": "FC/body axes to world; axes aligned by verified static TF",
+    "initial_velocity": "FC sensor-origin velocity in world, not CoG/body-origin velocity",
+    "mocap_position": "FC sensor origin in world; evaluation only",
+    "sensor_position_in_body": [
+      -0.0172999968682441,
+      -0.00110000084294132,
+      0.05706099896
+    ]
+  },
+  "time_origin_ns": 1781325843201566950,
+  "units": {
+    "accel": "m/s^2 specific force",
+    "gimbal_angle": "rad",
+    "gyro": "rad/s",
+    "mag": "microtesla",
+    "rotor_command": "N issued base_thrust",
+    "time": "s"
+  }
+}

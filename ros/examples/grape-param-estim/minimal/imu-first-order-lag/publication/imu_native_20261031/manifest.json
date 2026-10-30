@@ -1,0 +1,499 @@
+{
+  "combined_report": "imu_first_order_lag_comparison.pdf",
+  "csv_serialization": "CRLF converted to LF for Git; all numeric text unchanged",
+  "files": [
+    {
+      "bytes": 434001,
+      "path": "failure1/accel_reconstruction.png",
+      "sha256": "6ce13eea4dda60988224666482e4c86063be4c1bb77b72c175d88148f6e4962c"
+    },
+    {
+      "bytes": 4941834,
+      "path": "failure1/arrays.npz",
+      "sha256": "da9418dc5f1c8a6fc8ce2664398496143d4f8c73f8ab0c54d2696f5e3dd9a3ab"
+    },
+    {
+      "bytes": 238981,
+      "path": "failure1/attitude_comparison.png",
+      "sha256": "4f5f550547faa6af8eec65d86fbb9608ae7f23fd83cb7c1da8a4a796c190fcf5"
+    },
+    {
+      "bytes": 152916,
+      "path": "failure1/attitude_error.png",
+      "sha256": "f76c8c8bc3cb27455c7327d6a5c81c3fdb4e5bb2da65fe088d43268e93d95acc"
+    },
+    {
+      "bytes": 258279,
+      "path": "failure1/attitude_uncertainty_ga.png",
+      "sha256": "9dc1a32c0fcba214dd0a8e377ab9e898c8791ba93000314ae68831f96e4c6b17"
+    },
+    {
+      "bytes": 321667,
+      "path": "failure1/attitude_uncertainty_magnetic.png",
+      "sha256": "b7fb15fd6efe43cf4a2873cb4e970a40ba4562e40a4d023f0c61c829db0d2069"
+    },
+    {
+      "bytes": 162178,
+      "path": "failure1/attitude_uncertainty_model.png",
+      "sha256": "e76454682d2a951a5240796f0b4affdf2ce1fe2ef317c436d08f6e73a8614d51"
+    },
+    {
+      "bytes": 192615,
+      "path": "failure1/commands_and_thrust.png",
+      "sha256": "19af558031bd3ed1561845497e9c13c54d436f453fcb75792b34ab71cdb3fc5c"
+    },
+    {
+      "bytes": 53981,
+      "path": "failure1/estimate.json",
+      "sha256": "21970cc25114e7c8e857ba131598943a20446673338e874f819f4ead9d26818e"
+    },
+    {
+      "bytes": 441370,
+      "path": "failure1/fit_results.npz",
+      "sha256": "17d4b46ffed70433bb7fbbac897a4dc301a53eab9f7a3f84d31c2c114974fb34"
+    },
+    {
+      "bytes": 332884,
+      "path": "failure1/generalized_acceleration.png",
+      "sha256": "e3610694b38ff7e1029a1a6e38dbffe29e3ca2ff5ec6a5d47e50c33ca02c8626"
+    },
+    {
+      "bytes": 396678,
+      "path": "failure1/gyro_reconstruction.png",
+      "sha256": "3116ccf496539e3b4474220fa84bf61dae377d620c21264752752c38b79dd63c"
+    },
+    {
+      "bytes": 1790,
+      "path": "failure1/orientation_metadata.json",
+      "sha256": "ac5bc3a010efe85994c529307ddbc3ec2fd3f8a32099593f12bbcb1de275f61a"
+    },
+    {
+      "bytes": 6532,
+      "path": "failure1/parameter_covariance_si.csv",
+      "sha256": "2425bd0fda5452fb40c5aa3bb42d8966edcfbea17a112e1ff04ce28e3d8cfb1e"
+    },
+    {
+      "bytes": 1205,
+      "path": "failure1/parameter_values_si.csv",
+      "sha256": "6498f504bbf3580b4b51cc47c262591708ad062c76e71a59ffdd901994f07cc2"
+    },
+    {
+      "bytes": 238108,
+      "path": "failure1/position_reconstruction.png",
+      "sha256": "088cf510819370b17431b28d6eb4af5140f5ba2319832d9d7d05aaec30b93a31"
+    },
+    {
+      "bytes": 283362,
+      "path": "failure1/position_uncertainty.png",
+      "sha256": "e6695defb1a1d8949d47a68232db327739d55233820fe89e1a251f531f314cdb"
+    },
+    {
+      "bytes": 2257,
+      "path": "failure1/replay_metadata.json",
+      "sha256": "2b2d8dc05779a8ae93abf4371dfabb0632c73641f2dae412e79e3106da96b566"
+    },
+    {
+      "bytes": 885223,
+      "path": "failure1/report.pdf",
+      "sha256": "27e750a375d151ef67458e8fa20bef9ff0e5d2e721b957c7c05e17c43b75b768"
+    },
+    {
+      "bytes": 3236,
+      "path": "failure1/report_metadata.json",
+      "sha256": "ced41a40f9dc0f249bebd341b9a135e7ef7b5bcdded426e0f1a9578b553a43d3"
+    },
+    {
+      "bytes": 68510,
+      "path": "failure1/residual_wrench.pdf",
+      "sha256": "3cf716276e7ac3d3c8b4deb837ddcd18489370ba3a9db44596dc2957a3cc221c"
+    },
+    {
+      "bytes": 230001,
+      "path": "failure1/residual_wrench_history.png",
+      "sha256": "42475d55666929c3b4015bc65d01bff70c5326a4e7be6454233250b2f859c824"
+    },
+    {
+      "bytes": 220693,
+      "path": "failure1/residual_wrench_spectrum.png",
+      "sha256": "e95e26eed20e04494e4af9d5d01c013f94144e0a26cd3f1fd6ffffb64c55df38"
+    },
+    {
+      "bytes": 1725,
+      "path": "failure1/residual_wrench_summary.json",
+      "sha256": "987009587082d778c8b91c731e06ccf2a271d8033992746eb6b6afc8a544b406"
+    },
+    {
+      "bytes": 59039,
+      "path": "failure1/sensor_measurement_response.npz",
+      "sha256": "600797ed074f98f8e9e2ca12b1205c9d89c5f255bce4031c10cea18e9481e607"
+    },
+    {
+      "bytes": 145777,
+      "path": "failure1/sensor_reconstruction.pdf",
+      "sha256": "573ff82b6d3a20cc538c30e7703e129c9454e4c6cb788621efec16eaa9c5ac6b"
+    },
+    {
+      "bytes": 538,
+      "path": "failure1/status.json",
+      "sha256": "bb6af7c3e20318ea432a990fc8115b8fa53408cea3c5656a77c4073f4e0fbb69"
+    },
+    {
+      "bytes": 246,
+      "path": "failure1/timing.json",
+      "sha256": "279c112237a764edb11b44f8f99131696eafc8e72b985e7dd91969c266538a17"
+    },
+    {
+      "bytes": 518703,
+      "path": "failure1/trajectory_replay.pdf",
+      "sha256": "6aeddf0ab8ecd4bba3888f4be8504f00703ebf062074cd73047872d60573a3ce"
+    },
+    {
+      "bytes": 428018,
+      "path": "failure2/accel_reconstruction.png",
+      "sha256": "4c3b44ba945baf035230ffe986e78067073f0d1b55fca68a8560d44f298aac2e"
+    },
+    {
+      "bytes": 4525875,
+      "path": "failure2/arrays.npz",
+      "sha256": "1b13d00af11c1ea9480ce5fe13c5f27f2daa6599f62a4fd1588ce50816116276"
+    },
+    {
+      "bytes": 254654,
+      "path": "failure2/attitude_comparison.png",
+      "sha256": "37db4c2cdc85bf2f4410999aa36ac50debddb4c691f8dbfac327e310befea1e4"
+    },
+    {
+      "bytes": 305985,
+      "path": "failure2/attitude_error.png",
+      "sha256": "87663e7670ff821eda801aed7acc68651390ee264dc632fb22ed4a2a1774888c"
+    },
+    {
+      "bytes": 220923,
+      "path": "failure2/attitude_uncertainty_ga.png",
+      "sha256": "87121dcf2e836c8bb57eb981034798646efb3a2db35ae5ad63aa8ec3cc963c32"
+    },
+    {
+      "bytes": 324546,
+      "path": "failure2/attitude_uncertainty_magnetic.png",
+      "sha256": "5cd2dba85e0d825446ac6c718044b5814d71724d810fc8d4644a49764345f376"
+    },
+    {
+      "bytes": 155610,
+      "path": "failure2/attitude_uncertainty_model.png",
+      "sha256": "51402821071518b4f3a03d94538b9e32c6a96531d290af4268c6308b12e233bd"
+    },
+    {
+      "bytes": 165657,
+      "path": "failure2/commands_and_thrust.png",
+      "sha256": "a2dc68f4b3ecf81a245e4858b5cbe12e83b547cc721087c36bf131410c633d85"
+    },
+    {
+      "bytes": 54160,
+      "path": "failure2/estimate.json",
+      "sha256": "a2c40d6f5ae6061478089221cbfc8e9549a32c1b1ac0b6074da1b486a4019afb"
+    },
+    {
+      "bytes": 392659,
+      "path": "failure2/fit_results.npz",
+      "sha256": "cf04d006a8e1e621e4c48139fee5d12069d31dc539203138e01f3eac5cfdaf56"
+    },
+    {
+      "bytes": 328032,
+      "path": "failure2/generalized_acceleration.png",
+      "sha256": "b25f0e0221929c84023541f0ef31466a7309ca61431a5874d508c54181d24e0f"
+    },
+    {
+      "bytes": 448334,
+      "path": "failure2/gyro_reconstruction.png",
+      "sha256": "750b1c9887762504e0aeefd0457ccecffb1f821018c9113bb72ee802e8af3618"
+    },
+    {
+      "bytes": 1792,
+      "path": "failure2/orientation_metadata.json",
+      "sha256": "ac04112aaa3d0c5e55887423741608c52d2d5d1a86cb6ada140edad854b35def"
+    },
+    {
+      "bytes": 6573,
+      "path": "failure2/parameter_covariance_si.csv",
+      "sha256": "a18d7ed41b464ab35606c3a26c67eb120a49dde649d13690ee54f0c247288dc7"
+    },
+    {
+      "bytes": 1206,
+      "path": "failure2/parameter_values_si.csv",
+      "sha256": "e07839ea81e0a39c9ec7d3d756a783b012a7571896020b166547e3e526c36e67"
+    },
+    {
+      "bytes": 237788,
+      "path": "failure2/position_reconstruction.png",
+      "sha256": "7960d59b8e0c1a8a0939d80c0eb78a741d6040ddd72f95cb11846f7818a74689"
+    },
+    {
+      "bytes": 287249,
+      "path": "failure2/position_uncertainty.png",
+      "sha256": "a9f0c56746d6fd6739cbc0865b04d82b2be6834b2210161992bc83c316d81112"
+    },
+    {
+      "bytes": 2257,
+      "path": "failure2/replay_metadata.json",
+      "sha256": "2b2d8dc05779a8ae93abf4371dfabb0632c73641f2dae412e79e3106da96b566"
+    },
+    {
+      "bytes": 833273,
+      "path": "failure2/report.pdf",
+      "sha256": "5318869de6eada769c1c8ee82e975b1b9aefcdebde40b7dd57835832178b86d6"
+    },
+    {
+      "bytes": 3242,
+      "path": "failure2/report_metadata.json",
+      "sha256": "72427d755623ed0ed18570489cf58691a4e630d63345c398156d1e0fb2bde224"
+    },
+    {
+      "bytes": 58092,
+      "path": "failure2/residual_wrench.pdf",
+      "sha256": "b1d59bb7546339ba4b1ed620fbfce1ef30d2a1092bd167d5bfeade8158cb0e48"
+    },
+    {
+      "bytes": 234707,
+      "path": "failure2/residual_wrench_history.png",
+      "sha256": "50dcacc0b99dc54112baad8f9ed0d8d5034a81b8f1973916373e18fd37b84e81"
+    },
+    {
+      "bytes": 203273,
+      "path": "failure2/residual_wrench_spectrum.png",
+      "sha256": "41027e20d3489b89a33669916794863518b0bd33cee7edb673f46d06d9099a34"
+    },
+    {
+      "bytes": 1731,
+      "path": "failure2/residual_wrench_summary.json",
+      "sha256": "1d18142ba348a640a828d6ef9571f36a9444c2df9c8c8990e62d873130c52669"
+    },
+    {
+      "bytes": 53809,
+      "path": "failure2/sensor_measurement_response.npz",
+      "sha256": "50b8397797dbaca94a0d0e910b05031fd73de0d949a51c614ca47a31e4458076"
+    },
+    {
+      "bytes": 145041,
+      "path": "failure2/sensor_reconstruction.pdf",
+      "sha256": "94e274902b51314329fdcf422493c1a5c5c75630595ed37b2032be834ef00b56"
+    },
+    {
+      "bytes": 537,
+      "path": "failure2/status.json",
+      "sha256": "65c631f41f8d7dff67b9bc11f6f0bca633c23694724c21b5c84d943a04d6e724"
+    },
+    {
+      "bytes": 244,
+      "path": "failure2/timing.json",
+      "sha256": "88032656fca42f4aa8bfad279467691eebda386e834610ebe1cc1739ea7a6abd"
+    },
+    {
+      "bytes": 485265,
+      "path": "failure2/trajectory_replay.pdf",
+      "sha256": "805cab7d980fca5d1e39a30cfb5cfc0e4f40c4c2a7438a220b05e79975c5143f"
+    },
+    {
+      "bytes": 4440645,
+      "path": "imu_first_order_lag_comparison.pdf",
+      "sha256": "4970284538d5ad3bb7eec6371dedff74483dc16b0b5d948d5bc5952001959710"
+    },
+    {
+      "bytes": 4792,
+      "path": "inputs/failure1.json",
+      "sha256": "2b319d4fabb37085b5bbfc3d3e7a8e216cc19f1f4cb72637c90610b84a0c6905"
+    },
+    {
+      "bytes": 408785,
+      "path": "inputs/failure1.npz",
+      "sha256": "c64ee849d372e81ae1257efc53d7ef5fbb91bc65c0f58d0594c8c6ced19c8f5f"
+    },
+    {
+      "bytes": 4820,
+      "path": "inputs/failure2.json",
+      "sha256": "d4a54f5301c9eb5b2c8feb2f8191389cb780d404170ea82163e0cbc19c2c65f6"
+    },
+    {
+      "bytes": 427379,
+      "path": "inputs/failure2.npz",
+      "sha256": "a7aa280c2ac48998ff14407c75f48eadfa171053573f9eecae7b7d033d8078d8"
+    },
+    {
+      "bytes": 4832,
+      "path": "inputs/success.json",
+      "sha256": "a2fc774b5cb7a8087f56aabf4efc5f8526b7c9164e4294036d83f4ae076bdba2"
+    },
+    {
+      "bytes": 690606,
+      "path": "inputs/success.npz",
+      "sha256": "fc0baf8010f0489e072c0a5a2267b763e5d8401ab002681f6f3e675bb23af3ae"
+    },
+    {
+      "bytes": 13387,
+      "path": "run_provenance.json",
+      "sha256": "1b4293db6abee179062f577b89dd731e46771b5acd81993968042d33c7ceed0f"
+    },
+    {
+      "bytes": 421731,
+      "path": "success/accel_reconstruction.png",
+      "sha256": "ef0cce84bdc22aba170ba10765578b4acc23f094084dd98a05f6cc8d90ed69fd"
+    },
+    {
+      "bytes": 8195601,
+      "path": "success/arrays.npz",
+      "sha256": "91448e2d8abc85a0fc07a60ca4d297f45e7fe9a376ede5b5439566ff6d626733"
+    },
+    {
+      "bytes": 256456,
+      "path": "success/attitude_comparison.png",
+      "sha256": "1a71b24a4ffff74fe2019c3918baf5484e53aa468473f619bbfd14bbfa273583"
+    },
+    {
+      "bytes": 190337,
+      "path": "success/attitude_error.png",
+      "sha256": "a3be0670db0d9c311d0605f560f33ae77a01c141e7eedf0df6986f3167af16a8"
+    },
+    {
+      "bytes": 194843,
+      "path": "success/attitude_uncertainty_ga.png",
+      "sha256": "a89e332f27752e2a3a08c037a8f4f3130bd765b9e3f71068f7781267d84d3825"
+    },
+    {
+      "bytes": 317154,
+      "path": "success/attitude_uncertainty_magnetic.png",
+      "sha256": "f948bff9a04081692349ae93702fdaeb4dec4e1c50703a13bc5005f1e348caec"
+    },
+    {
+      "bytes": 153247,
+      "path": "success/attitude_uncertainty_model.png",
+      "sha256": "6d556bcfc04906a2e1eb5a3aed323fd39f42186b99b4651deab485fe2ad95a3b"
+    },
+    {
+      "bytes": 180048,
+      "path": "success/commands_and_thrust.png",
+      "sha256": "ed9b554c00e88bb095810f2db6b5af8e7ba9a35778b01e214440b3ee83f27f15"
+    },
+    {
+      "bytes": 54626,
+      "path": "success/estimate.json",
+      "sha256": "21c3bf8dbc24ad4ec05cab423d56841a649ebdfb2c7e70afa6ea6887fb421a76"
+    },
+    {
+      "bytes": 684055,
+      "path": "success/fit_results.npz",
+      "sha256": "9eabff5cad35b2101ce3d5eb2eeba44ab77970c2a809c134e73649177b5e262a"
+    },
+    {
+      "bytes": 383685,
+      "path": "success/generalized_acceleration.png",
+      "sha256": "8bc8571ed0afe8ec4aa5b52cba9c7a31f9a8646b4f4a3db18da386a2a8eca906"
+    },
+    {
+      "bytes": 410022,
+      "path": "success/gyro_reconstruction.png",
+      "sha256": "0f478f1d59af8dbabbb5675001ac81358b03dad94de5de24cb3f0d3f7b65bc87"
+    },
+    {
+      "bytes": 1792,
+      "path": "success/orientation_metadata.json",
+      "sha256": "b4a6aa794b9056f3fefcfae2f786a788b79d2d21c9ebf31b772ddf7b98845376"
+    },
+    {
+      "bytes": 6704,
+      "path": "success/parameter_covariance_si.csv",
+      "sha256": "3ce0fe2d7401922228a4fac4cf2ae001398b1fcb29b81c3bc183fafb54059f49"
+    },
+    {
+      "bytes": 1208,
+      "path": "success/parameter_values_si.csv",
+      "sha256": "0e504c3d720351a39d9f352a274c4c21adad39c5a1556a34fb5c45beb95ddf02"
+    },
+    {
+      "bytes": 243492,
+      "path": "success/position_reconstruction.png",
+      "sha256": "d99d8f4c82eaa8638dcc22f2eb84db5a767681c3d1cb72d675e8332685855691"
+    },
+    {
+      "bytes": 277560,
+      "path": "success/position_uncertainty.png",
+      "sha256": "3eed7aad8cf27fb7afa177525c7d18ccfa6df0a153296f15f94c4d7504d7cf55"
+    },
+    {
+      "bytes": 2257,
+      "path": "success/replay_metadata.json",
+      "sha256": "2b2d8dc05779a8ae93abf4371dfabb0632c73641f2dae412e79e3106da96b566"
+    },
+    {
+      "bytes": 1316595,
+      "path": "success/report.pdf",
+      "sha256": "379e28405e462fe8bfb70552ffeb2ceaeadbb881dae1eeaccdd816a790dc1c82"
+    },
+    {
+      "bytes": 3243,
+      "path": "success/report_metadata.json",
+      "sha256": "842b3726c6c1fb2fd71ff4901c06e0f4024d9dec42fe963b9648e7206b156306"
+    },
+    {
+      "bytes": 73937,
+      "path": "success/residual_wrench.pdf",
+      "sha256": "63713d4dec3108c9a18934dbb05442959945e39a7b9b9e004cee2e86ffbe6159"
+    },
+    {
+      "bytes": 283922,
+      "path": "success/residual_wrench_history.png",
+      "sha256": "80e3168104ac0686cf3110e9e233e1b572df81f3ee406f948aad6a8263942857"
+    },
+    {
+      "bytes": 222360,
+      "path": "success/residual_wrench_spectrum.png",
+      "sha256": "e6debbc4fe69d23a681eeaac23748ce0acfe1bb74d6e6a409f886460d948f9fd"
+    },
+    {
+      "bytes": 1732,
+      "path": "success/residual_wrench_summary.json",
+      "sha256": "f97087585760f510ef7d5cb111e3135490973a3318b3d0c3d13565b044f031ef"
+    },
+    {
+      "bytes": 95450,
+      "path": "success/sensor_measurement_response.npz",
+      "sha256": "5b2b52424df1c1f448c77f80f035805f495e932e0f1823d5a20c061f148659b7"
+    },
+    {
+      "bytes": 256544,
+      "path": "success/sensor_reconstruction.pdf",
+      "sha256": "96614f2b6cc2db0f7dd42cf3c382f96b2d5d4d80a036af1128a5d7ec43277b1b"
+    },
+    {
+      "bytes": 536,
+      "path": "success/status.json",
+      "sha256": "414b3258b5c05c86a7a6a128459fae78b110e5c542a110dddb7f93343efe857f"
+    },
+    {
+      "bytes": 245,
+      "path": "success/timing.json",
+      "sha256": "47d4c70178d7c64a0ea9ddb835e9aa99337961a110562fc3c9d1f6bf1534df3e"
+    },
+    {
+      "bytes": 775621,
+      "path": "success/trajectory_replay.pdf",
+      "sha256": "c6bf76dad7e0c7b3b260317e6e61bf340f63ae0643ac1c421989ed5caf776eb3"
+    }
+  ],
+  "monte_carlo": false,
+  "native_arrays": "inputs/<case>.npz; original extracted sensor/command/mocap clocks and indices",
+  "publication_source_sha256": {
+    "publish_results.py": "c3b9fdb7f58cbddc22660e64a2095022da8f590a33b3e66090957c1dd73e562a"
+  },
+  "raw_bags_included": false,
+  "removed_only": [
+    "duplicated native arrays (archived inputs retained)",
+    "duplicated covariance_state and marginal factor views (full state Gram factor retained)",
+    "duplicate right_rotation covariance aliases",
+    "SVG versions of PNG/PDF figures",
+    "optimizer Jacobians/whitening/noise intermediates (inputs/code/full parameter covariance retained)",
+    "PDF body/appendix intermediates (included in report.pdf and combined PDF)"
+  ],
+  "schema": "grape-param-estim/imu-first-order-lag-publication/v1",
+  "source_manifest_sha256": "bad38c3f9ec3c2f478fbe5579e6ac266fed4e0036f9c31605eda7e87bef36be9",
+  "state_covariance_recovery": "C_state[k] = state_covariance_factor[k] @ state_covariance_factor[k].T; order in replay_metadata.json",
+  "total_bytes": 41755110
+}

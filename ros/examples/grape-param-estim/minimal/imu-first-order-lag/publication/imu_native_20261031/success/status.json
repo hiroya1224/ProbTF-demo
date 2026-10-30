@@ -1,0 +1,16 @@
+{
+  "case": "success",
+  "elapsed_seconds": 25.31357066000055,
+  "numerical_source": "IMU; mocap only initialization/evaluation",
+  "report": "report.pdf",
+  "schema": "grape-param-estim/imu-first-order-lag-run/v1",
+  "stage": "completed",
+  "status": "completed",
+  "timing": {
+    "identification_wall_seconds": 7.293674640000972,
+    "orientation_wall_seconds": 10.347521751000386,
+    "reconstruction_wall_seconds": 6.969273958000485,
+    "report_wall_seconds": 10.220139135000863,
+    "total_wall_seconds": 35.53685155099993
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "appendix_start_page": 15,
+  "body_page_count": 14,
+  "files": [
+    "report.pdf",
+    "report_body.pdf",
+    "parameter_appendix.pdf",
+    "residual_wrench.pdf",
+    "sensor_reconstruction.pdf",
+    "trajectory_replay.pdf",
+    "parameter_values_si.csv",
+    "parameter_covariance_si.csv",
+    "commands_and_thrust.png",
+    "commands_and_thrust.svg",
+    "generalized_acceleration.png",
+    "generalized_acceleration.svg",
+    "residual_wrench_history.png",
+    "residual_wrench_history.svg",
+    "residual_wrench_spectrum.png",
+    "residual_wrench_spectrum.svg",
+    "gyro_reconstruction.png",
+    "gyro_reconstruction.svg",
+    "accel_reconstruction.png",
+    "accel_reconstruction.svg",
+    "sensor_measurement_response.npz",
+    "attitude_comparison.png",
+    "attitude_comparison.svg",
+    "attitude_error.png",
+    "attitude_error.svg",
+    "attitude_uncertainty_ga.png",
+    "attitude_uncertainty_ga.svg",
+    "attitude_uncertainty_magnetic.png",
+    "attitude_uncertainty_magnetic.svg",
+    "attitude_uncertainty_model.png",
+    "attitude_uncertainty_model.svg",
+    "position_reconstruction.png",
+    "position_reconstruction.svg",
+    "position_uncertainty.png",
+    "position_uncertainty.svg",
+    "residual_wrench_summary.json"
+  ],
+  "mocap_used_for_parameter_identification": false,
+  "monte_carlo": false,
+  "parameter_appendix_page_count": 5,
+  "report_page_count": 19,
+  "statistics": {
+    "attitude_comparison": {
+      "GA": {
+        "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation",
+        "count": 1200,
+        "final_deg": 0.7319740856657624,
+        "first_time": 65.00249793900001,
+        "last_time": 74.995735685,
+        "maximum_deg": 1.5496436210317177,
+        "rms_deg": 0.8014004593841011
+      },
+      "GA + magnetic output": {
+        "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation",
+        "count": 1200,
+        "final_deg": 4.107288063944895,
+        "first_time": 65.00249793900001,
+        "last_time": 74.995735685,
+        "maximum_deg": 16.691378662160027,
+        "rms_deg": 4.733378927816799
+      },
+      "model replay": {
+        "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation",
+        "count": 1200,
+        "final_deg": 68.76790205673896,
+        "first_time": 65.00249793900001,
+        "last_time": 74.995735685,
+        "maximum_deg": 70.91682853768378,
+        "rms_deg": 50.23386341128141
+      }
+    },
+    "covariance_approximation": "local Gaussian; conservative bounds for modeled shared terms, not systematic-bias coverage",
+    "covariance_entry_count": 289,
+    "mocap_comparison_clock": "original supported mocap stamps; Slerp reconstruction only; no extrapolation",
+    "parameter_count": 17,
+    "residual_wrench_peak_frequency_hz": [
+      0.09456485495165055,
+      0.13582860953651218,
+      0.238162720906969,
+      0.2282594198066022,
+      1.5602534178059355,
+      0.35040013337779263
+    ],
+    "residual_wrench_rms": [
+      0.26326255286858014,
+      0.1046918615567334,
+      0.19866306400548156,
+      0.08236275921996679,
+      0.05291962647008676,
+      0.04663431567586808
+    ]
+  }
+}

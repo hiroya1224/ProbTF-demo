@@ -13,18 +13,18 @@
     },
     {
       "path": "README.md",
-      "sha256": "529bd5ad9c81c31097a9713d6ef88b9642f847006c95ddb7ffe2e5229d456e80",
-      "size_bytes": 2472
+      "sha256": "36362e1b703ae0533eef527c17e457db55409f10ca3afbc059f3b0a36dcbf31c",
+      "size_bytes": 2703
     },
     {
       "path": "SUCCESS_GAIN_OVERLAY_20261030.md",
-      "sha256": "6a0d651dfa21bc6936464eb7694d395ad6c8c2ad2328e1d55c91e0221fadc56d",
-      "size_bytes": 2820
+      "sha256": "4ca6cde6f006dad4a4d4a6ef66f8e2ef14fd43e6b76d76f3e7714272b67bb539",
+      "size_bytes": 5359
     },
     {
       "path": "color_rule_audit_20261030.json",
-      "sha256": "56720c7042cde7c0e8a1d152ac8dd8c3940a1beed9b12c3e1f0c6a6ec6a0ff3b",
-      "size_bytes": 18506
+      "sha256": "ccf82c6d73b0380462f53387a6cd23250af39cbbb3d7311c4c4f526fb93d8ec0",
+      "size_bytes": 19282
     },
     {
       "path": "data/failure1/inputs/original_estimate.json",
@@ -513,88 +513,93 @@
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.pdf",
-      "sha256": "55c84307f6daafe6652d7d34c8ff3222a100a1a43e48af68742dbc2e31bfa17f",
-      "size_bytes": 635904
+      "sha256": "d44435e11664611f314517cd41ba726eaf99341754d0d874e4cbf99a64cde9af",
+      "size_bytes": 635910
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.png",
-      "sha256": "c7da7e62080411f3e3092946b929b267324139be1af748771ad8b754ad51534c",
-      "size_bytes": 2484713
+      "sha256": "0334d293258b6cb442e601f197687acb6370f076311b2714c03f0ea321a2fa57",
+      "size_bytes": 2525034
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.svg",
-      "sha256": "dc4a5cb0823f39171f2f8184c1591d6af37457d614f150e0542b710638a9bba1",
-      "size_bytes": 1227358
+      "sha256": "e27105fa38393d1d9926d42f9d4b904d36ddbc55053c31c417974c3b86e02758",
+      "size_bytes": 1228366
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.pdf",
-      "sha256": "fda08dc609a4502c5e0484b6c965335fcf747aa8fb8a802501714f1baae7732d",
-      "size_bytes": 58974
+      "sha256": "9eefe5e0ba36c0ea651e29646deec120b6eaeb8f5b37d0466b3872452fac4feb",
+      "size_bytes": 59413
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.png",
-      "sha256": "581038a9c4df8c147249135d4cdcd7562a7895b831396fb87f3cb12961479866",
-      "size_bytes": 561352
+      "sha256": "5d33f43f47e62763affd3e5d756bb3690a8e1ceb429d1bf56376b013be196fa8",
+      "size_bytes": 619140
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.svg",
-      "sha256": "096908a44d2b622095201f67632d4804fad2319bbd5d246da2de0e2d4aa3c09c",
-      "size_bytes": 394109
+      "sha256": "003b9139b83eca2888bf5dc19e32259f60c30f829665d00d252d3150ea176c5e",
+      "size_bytes": 395096
     },
     {
       "path": "figures/grid_33/figure_index.csv",
-      "sha256": "87cbaf7515fb5cebc8cf24974eaf4e39391bd2c8502369efe92abb313ce68c0d",
-      "size_bytes": 781
+      "sha256": "03c916c38c1427b593bce119ad252ccc4195120bc75bed0166a8ee06b1035e20",
+      "size_bytes": 879
     },
     {
       "path": "figures/grid_33/figure_index.json",
-      "sha256": "39e8ad101c68e67fbb94c86c68b970996d0ba98481e7173412700f19973fcf39",
-      "size_bytes": 58466
+      "sha256": "e8f176c0306d3d8d63c11a22e96107ff0a189217d34b3ff42fa063b940a4e64a",
+      "size_bytes": 146154
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.pdf",
-      "sha256": "7b665d794eae132bfc4e2ee0db33872a8b89e257aedce9b321ccdbb68aacc61c",
-      "size_bytes": 744516
+      "sha256": "3f9f2b301ea7dd00a5773fea9cbb886ec189aa65fe00f8c5e5c79946e621b502",
+      "size_bytes": 744522
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.png",
-      "sha256": "8de90f12eef71a468ea399f187afbf1f11d41d4e15a6d420b4f056d14276ac42",
-      "size_bytes": 3047663
+      "sha256": "f7ef7765063c617f8103066a72035874031cef9899a8dadc318ea077ee65f9d0",
+      "size_bytes": 3076462
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.svg",
-      "sha256": "5f84b01026ec66241a9d82c421bf6963a29ac3d4877833e38bdeee2482e1df69",
-      "size_bytes": 1466150
+      "sha256": "69888ddfd1766caf2ac78e8e41c6bc969724bbd7657417616bca444f2cbad3d4",
+      "size_bytes": 1467158
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.pdf",
-      "sha256": "90131c1f23585e5e11b5928b2338c91b8b5a052415be29872beed834d14448ff",
-      "size_bytes": 109288
+      "sha256": "6781682bcdfe75b21050d57d9b02c6c6ed0e0f1138200382fa4adc3c26298e6c",
+      "size_bytes": 109749
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.png",
-      "sha256": "090fb08ee818ca1900970d745da926ad676a3b62f824ea128f282974017c0180",
-      "size_bytes": 575257
+      "sha256": "008d8ef6bc1b1ff70a09fd67a70d9d0e04f2f7dd6c432fe7ee85b1ed5f99d133",
+      "size_bytes": 630695
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.svg",
-      "sha256": "a76da755613977abe9555f6ad7822621471c884cebe613c75577e31597da1151",
-      "size_bytes": 928857
+      "sha256": "ce9c2810eec340e1967f868f2821069f309b90389f4834f44d475e5e0ecd0b17",
+      "size_bytes": 929844
     },
     {
       "path": "figures/grid_65/figure_index.csv",
-      "sha256": "a81322993a771f9c8879e7da18f34f237f766dc006e7c6507fc810294f8a4bf0",
-      "size_bytes": 781
+      "sha256": "a42822dc77f42e3d804ef6a55bcf6be92de12013ae60c704e7403958506748db",
+      "size_bytes": 879
     },
     {
       "path": "figures/grid_65/figure_index.json",
-      "sha256": "fe25d4a528490b8116ebdc7aa74a040778e22eb03cf5d9fbddef45f68d3ea55e",
-      "size_bytes": 58467
+      "sha256": "8061ae0736514caba0ce274ce9857425267c73b1d42352a07b5bec5ff7dc1e42",
+      "size_bytes": 146155
     },
     {
       "path": "local_data_catalog.json",
       "sha256": "1d39a2e6c6bdf57fc0ad55cf022d045dbaf9f337ee6280bdf37f07d1559bdd46",
       "size_bytes": 17335
+    },
+    {
+      "path": "successful_controller_comparison.json",
+      "sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b",
+      "size_bytes": 31853
     },
     {
       "path": "successful_gain_reference.json",
@@ -627,7 +632,9 @@
     "script": "ros/examples/grape-param-estim/minimal/first-order-lag/automation/render_failure_publication.py",
     "settings": "figure_settings.json",
     "settings_sha256": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b",
-    "sha256": "281fa8c3239060e814a4e15a60c61305c8100d4e70e22a8477fa3472ba845ea5",
+    "sha256": "f80e846b89ffac53779377bdda707a1dde825e8ec2d184b2e938ae9313b868e3",
+    "success_comparison_json": "successful_controller_comparison.json",
+    "success_comparison_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b",
     "success_gains_json": "successful_gain_reference.json",
     "success_gains_sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938"
   },
@@ -660,7 +667,35 @@
     "tests_passed": 18,
     "updated_utc": "2026-10-30T13:42:08.784617+00:00"
   },
-  "total_bytes": 14677477,
-  "transfer_total_bytes": 14702407,
+  "success_rate_revision": {
+    "cases": {
+      "failure1": {
+        "sample_count": 128,
+        "stable_count": 127,
+        "stable_fraction": 0.9921875,
+        "unresolved_count": 0,
+        "valid_count": 128
+      },
+      "failure2": {
+        "sample_count": 128,
+        "stable_count": 128,
+        "stable_fraction": 1.0,
+        "unresolved_count": 0,
+        "valid_count": 128
+      }
+    },
+    "change": "Add independently evaluated full-12-successful-controller rates to blue labels. Background fixed failure gains and ALL-N fractions are unchanged.",
+    "comparison": "successful_controller_comparison.json",
+    "comparison_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b",
+    "failure_replay_bitwise_equal": true,
+    "numerical_data_unchanged": true,
+    "numerical_files_verified": 96,
+    "palette_unchanged": true,
+    "previous_publication_commit": "d8659e0",
+    "tests_passed": 30,
+    "updated_utc": "2026-10-30T13:53:27.990605+00:00"
+  },
+  "total_bytes": 15075696,
+  "transfer_total_bytes": 15101980,
   "within_budget": true
 }

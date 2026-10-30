@@ -434,21 +434,42 @@
   "previous_publication_commit": "96dd634a91aa7e56f8ac0b918861bc4802181410",
   "renderer": {
     "path": "../../automation/render_failure_publication.py",
-    "sha256": "281fa8c3239060e814a4e15a60c61305c8100d4e70e22a8477fa3472ba845ea5"
+    "sha256": "f80e846b89ffac53779377bdda707a1dde825e8ec2d184b2e938ae9313b868e3"
   },
   "schema": "grape-param-estim/figure-color-rule-audit/v1",
   "scope": "static 2x4 paper figures, not the thresholded interactive viewer",
   "settings_identical": true,
+  "success_full_controller_comparison": {
+    "background_data_unchanged": true,
+    "cases": {
+      "failure1": {
+        "sample_count": 128,
+        "stable_count": 127,
+        "stable_fraction": 0.9921875,
+        "unresolved_count": 0,
+        "valid_count": 128
+      },
+      "failure2": {
+        "sample_count": 128,
+        "stable_count": 128,
+        "stable_fraction": 1.0,
+        "unresolved_count": 0,
+        "valid_count": 128
+      }
+    },
+    "file": "successful_controller_comparison.json",
+    "sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+  },
   "success_gain_overlay": {
-    "note": "Blue references have no assigned stability value; evaluated domains and all numerical data are unchanged.",
+    "note": "Blue labels carry separately evaluated full-12-controller rates, not background slice values; all failure-only map data are unchanged.",
     "numerical_files_unchanged": 96,
     "panel_metadata_verified": 32,
     "reference": "successful_gain_reference.json",
     "reference_sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938",
-    "role": "coordinates_only"
+    "role": "coordinates_plus_independent_full_controller_comparison"
   },
   "tests": {
-    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/pid-figure-audit-pytest OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_render_failure_publication.py",
-    "passed": 18
+    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/pid-figure-audit-pytest OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_render_failure_publication.py ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_evaluate_success_reference.py",
+    "passed": 30
   }
 }

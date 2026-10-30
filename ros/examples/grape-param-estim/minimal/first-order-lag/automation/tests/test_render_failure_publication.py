@@ -401,3 +401,122 @@ def test_off_plane_success_reference_is_not_silently_drawn_as_a_slice_point(tmp_
     settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
     with pytest.raises(ValueError, match="does not lie"):
         paper.success_panel_metadata(grid, reference, settings, "PD")
+
+
+def successful_comparison(path, root, reference):
+    cases = {}
+    for case in paper.CASES:
+        coordinates = np.arange(4 * 13, dtype=np.float64).reshape(4, 13)
+        sample_file = root / case / "plant_samples.npz"
+        np.savez_compressed(sample_file, quotient_coordinates=coordinates)
+        radii = [.9, .99, .8, 1.1] if case == "failure1" else [.9, 1.02, None, 1.5]
+        cases[case] = {"sample_count": 4, "stable_count": 3 if case == "failure1" else 1,
+                       "valid_count": 4 if case == "failure1" else 3,
+                       "unresolved_count": 0 if case == "failure1" else 1,
+                       "stable_fraction": .75 if case == "failure1" else .25,
+                       "spectral_radius": radii,
+                       "provenance": {"plant_samples_sha256": paper.sha256(sample_file),
+                           "quotient_coordinates_sha256": hashlib.sha256(coordinates.tobytes()).hexdigest()}}
+    payload = {"schema": paper.SUCCESS_COMPARISON_SCHEMA, "role": "independent_full_controller",
+               "gain_order": list(paper.SOURCE_GROUPS), "gains": np.array(reference["gains"]).tolist(), "cases": cases}
+    path.write_text(json.dumps(payload))
+    return payload
+
+
+def comparison_fixture(root, reference_path, comparison_path):
+    grids = {}
+    for case in paper.CASES:
+        for group in paper.GROUPS:
+            source_grid(root, case, group)
+            grids[case, group] = paper.load_grid(root, case, group, 33)
+    reference = successful_reference(reference_path)
+    payload = successful_comparison(comparison_path, root, reference)
+    return grids, reference, payload
+
+
+@pytest.mark.parametrize("change,match", [
+    ("gains", "full gains differ"), ("denominator", "ALL original"),
+    ("valid_only_rate", "ALL original"), ("pole_recount", "ALL original"),
+    ("sample_order", "same original plant samples"), ("file_hash", "same original plant samples")])
+def test_independent_success_comparison_rejects_wrong_population_or_score(tmp_path, change, match):
+    root = tmp_path / "source"
+    path = tmp_path / "success_comparison.json"
+    grids, reference, payload = comparison_fixture(root, tmp_path / "reference.json", path)
+    if change == "gains":
+        payload["gains"][0][0] = 2
+    elif change == "denominator":
+        payload["cases"]["failure2"]["sample_count"] = 3
+    elif change == "valid_only_rate":
+        payload["cases"]["failure2"]["stable_fraction"] = 1 / 3
+    elif change == "pole_recount":
+        payload["cases"]["failure1"]["spectral_radius"][0] = 1.1
+    elif change == "sample_order":
+        payload["cases"]["failure1"]["provenance"]["quotient_coordinates_sha256"] = "wrong"
+    elif change == "file_hash":
+        payload["cases"]["failure1"]["provenance"]["plant_samples_sha256"] = "wrong"
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match=match):
+        paper.load_success_comparison(path, reference, grids, root)
+
+
+@pytest.mark.parametrize("view", ["PD", "3D"])
+def test_independent_success_rates_are_distinct_from_unchanged_background(tmp_path, view):
+    root = tmp_path / "source"
+    path = tmp_path / "success_comparison.json"
+    grids, reference, _ = comparison_fixture(root, tmp_path / "reference.json", path)
+    comparison = paper.load_success_comparison(path, reference, grids, root)
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    before = {key: grid.stable_fraction.copy() for key, grid in grids.items()}
+    draw = paper.comparison_slice if view == "PD" else paper.comparison_volume
+    figure = draw(grids, settings, reference, comparison)
+    try:
+        for ax, (case, group) in zip(figure.axes, ((c, g) for c in paper.CASES for g in paper.GROUPS)):
+            label = next(text for text in ax.texts if text.get_gid() == "success_reference_label")
+            assert label.get_text().endswith("rate: " + ("75.0%" if case == "failure1" else "25.0%"))
+            assert "position only" not in label.get_text()
+            grid = grids[case, group]
+            np.testing.assert_array_equal(grid.stable_fraction, before[case, group])
+            assert grid.mark()["stable_fraction"] == .5
+            metadata = paper.success_panel_metadata(grid, reference, settings, view, comparison)
+            assert metadata["role"] == "coordinates_plus_independent_full_controller_comparison"
+            assert not metadata["background_stability_value_assigned"]
+            assert metadata["stability_value_scope"] == "independent_full_controller"
+            assert metadata["independent_full_controller"]["sample_count"] == 4
+            assert metadata["independent_full_controller"]["stable_fraction"] == (.75 if case == "failure1" else .25)
+    finally:
+        plt.close(figure)
+
+
+def test_comparison_loaded_after_all_grids_and_reference_and_saved_with_separate_scope(tmp_path, monkeypatch):
+    root = tmp_path / "source"
+    reference_path, comparison_path = tmp_path / "reference.json", tmp_path / "comparison.json"
+    comparison_fixture(root, reference_path, comparison_path)
+    calls = []
+    load_grid, load_reference, load_comparison = paper.load_grid, paper.load_success_reference, paper.load_success_comparison
+
+    def tracked_grid(*args):
+        calls.append("grid")
+        return load_grid(*args)
+
+    def tracked_reference(*args):
+        calls.append("reference")
+        return load_reference(*args)
+
+    def tracked_comparison(*args):
+        calls.append("comparison")
+        return load_comparison(*args)
+
+    monkeypatch.setattr(paper, "load_grid", tracked_grid)
+    monkeypatch.setattr(paper, "load_success_reference", tracked_reference)
+    monkeypatch.setattr(paper, "load_success_comparison", tracked_comparison)
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    settings.update(formats=["png"], dpi=25)
+    style = tmp_path / "settings.json"
+    style.write_text(json.dumps(settings))
+    records = paper.render(root, tmp_path / "figures", 33, style, "PD", reference_path, comparison_path)
+    assert calls == ["grid"] * 8 + ["reference", "comparison"]
+    record = records[0]
+    assert record["success_reference"]["role"] == "coordinates_plus_independent_full_controller_comparison"
+    assert record["success_reference"]["independent_full_controller_comparison"]["sha256"] == paper.sha256(comparison_path)
+    assert "not stability values of the background slice" in record["caption"]
+    assert record["references"]["failure1"]["z"]["stable_fraction"] == .5

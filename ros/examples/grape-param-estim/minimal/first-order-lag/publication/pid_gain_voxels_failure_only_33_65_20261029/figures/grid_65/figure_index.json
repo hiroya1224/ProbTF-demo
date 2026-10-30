@@ -15,7 +15,7 @@
     "view": "3D",
     "panel_count": 8,
     "grid_size": 65,
-    "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. Blue diamonds locate successful gain coordinates only, with no assigned stability value. No success-100% condition is used.",
+    "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. Blue labels report a separate comparison with all 12 gains set to successful values; they are not stability values of the background slice. No success-100% condition is used.",
     "color_encoding": {
       "quantity": "stable_fraction",
       "range": [
@@ -602,23 +602,23 @@
     "files": {
       "pdf": {
         "path": "all_pid_failure_3D_grid_65.pdf",
-        "bytes": 744516,
-        "sha256": "7b665d794eae132bfc4e2ee0db33872a8b89e257aedce9b321ccdbb68aacc61c"
+        "bytes": 744522,
+        "sha256": "3f9f2b301ea7dd00a5773fea9cbb886ec189aa65fe00f8c5e5c79946e621b502"
       },
       "svg": {
         "path": "all_pid_failure_3D_grid_65.svg",
-        "bytes": 1466150,
-        "sha256": "5f84b01026ec66241a9d82c421bf6963a29ac3d4877833e38bdeee2482e1df69"
+        "bytes": 1467158,
+        "sha256": "69888ddfd1766caf2ac78e8e41c6bc969724bbd7657417616bca444f2cbad3d4"
       },
       "png": {
         "path": "all_pid_failure_3D_grid_65.png",
-        "bytes": 3047663,
-        "sha256": "8de90f12eef71a468ea399f187afbf1f11d41d4e15a6d420b4f056d14276ac42"
+        "bytes": 3076462,
+        "sha256": "f7ef7765063c617f8103066a72035874031cef9899a8dadc318ea077ee65f9d0"
       }
     },
     "success_reference": {
       "schema": "grape-param-estim/successful-controller-position-reference/v1",
-      "role": "coordinates_only",
+      "role": "coordinates_plus_independent_full_controller_comparison",
       "gain_order": [
         "xy",
         "z",
@@ -658,7 +658,7 @@
       "panels": {
         "failure1": {
           "roll_pitch": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               13.0,
               1.0,
@@ -687,7 +687,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 5.0,
@@ -718,10 +719,42 @@
             ],
             "inside_computed_box": false,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 127,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 0.9921875,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "yaw": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               6.0,
               1.0,
@@ -750,7 +783,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 1.0,
@@ -781,10 +815,42 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 127,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 0.9921875,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "xy": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               4.0,
               0.1,
@@ -813,7 +879,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 0.75,
@@ -844,10 +911,42 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 127,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 0.9921875,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "z": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               5.0,
               1.0,
@@ -876,7 +975,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 1.25,
@@ -907,12 +1007,44 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": true,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 127,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 0.9921875,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           }
         },
         "failure2": {
           "roll_pitch": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               13.0,
               1.0,
@@ -941,7 +1073,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 2.5,
@@ -972,10 +1105,42 @@
             ],
             "inside_computed_box": false,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 128,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 1.0,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "yaw": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               6.0,
               1.0,
@@ -1004,7 +1169,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 1.0,
@@ -1035,10 +1201,42 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 128,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 1.0,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "xy": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               4.0,
               0.1,
@@ -1067,7 +1265,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 0.75,
@@ -1098,10 +1297,42 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 128,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 1.0,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "z": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               5.0,
               1.0,
@@ -1130,7 +1361,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 1.25,
@@ -1161,9 +1393,581 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": true,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 128,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 1.0,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           }
         }
+      },
+      "independent_full_controller_comparison": {
+        "cases": {
+          "failure1": {
+            "failure_replay": {
+              "maximum_finite_absolute_error": 0.0,
+              "same_ordered_radii": true,
+              "same_validity": true,
+              "stable_count": 62
+            },
+            "provenance": {
+              "controller_dt_seconds": 0.0049953460693359375,
+              "estimate_sha256": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+              "failure_reference_gains": [
+                [
+                  3.0,
+                  0.1,
+                  1.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  20.0,
+                  1.0,
+                  8.0
+                ],
+                [
+                  4.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "map_fingerprint": "50a8ef8e2ac14940315f242ce56a1b3ea180957d9556e575ad466e84faa30870",
+              "map_manifest_sha256": "900f0cf285ecb9669c825528a989cf2c82d3aee8cc39bd35ab6f62d0f587fea6",
+              "map_status_sha256": "1d13762e0c65c7515d2bf236b641bdf988bbbbebd8b31a2990c4bd2151bbc4b7",
+              "plant_samples_sha256": "b3e436c40ec9a2519198b4e6f4f75e5f29d95d9a15c9d4e02ca736e5ee8cb130",
+              "quotient_coordinates_sha256": "88976ecf40e11a055662ac209d3a83f9fe57d0e5d7b8015d387d2d8883a82e8e",
+              "resampled": false,
+              "sample_coordinates_sha256": "88976ecf40e11a055662ac209d3a83f9fe57d0e5d7b8015d387d2d8883a82e8e",
+              "sample_order_changed": false,
+              "vehicle_model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+              "warm_start": "independent evaluator; only freshly recomputed recorded-failure trims and cache"
+            },
+            "sample_count": 128,
+            "spectral_radius": [
+              0.9998942025088765,
+              0.9998735602885871,
+              0.9998749031671964,
+              0.9998735582825246,
+              0.999873561537864,
+              0.9998735574875298,
+              0.9998735584054017,
+              0.9998735633643041,
+              0.9998735596513205,
+              0.9998735589194837,
+              0.9998735588902061,
+              0.9998735588385712,
+              0.9998735599604487,
+              0.9998735600657152,
+              0.9998735610261682,
+              0.9998735581511852,
+              0.9998735607990128,
+              0.9998735587381129,
+              0.9998735623685157,
+              0.9998735593092296,
+              0.9998735592753492,
+              0.9998735588960752,
+              0.9998735590700588,
+              0.9998735591474852,
+              0.9998735584260752,
+              0.9998735616727591,
+              1.0000195565456116,
+              0.9998735577743272,
+              0.999873567869449,
+              0.9998735589319881,
+              0.9998735587399316,
+              0.9998735594784803,
+              0.9998735591528787,
+              0.9998735588756434,
+              0.999873557495564,
+              0.9998735633738416,
+              0.9998735590070881,
+              0.9998735588654368,
+              0.9998735595004448,
+              0.9998735628307546,
+              0.9998735587817454,
+              0.9998735648217444,
+              0.9998735600071922,
+              0.9998735584625064,
+              0.9998735617447406,
+              0.9998735590512527,
+              0.9998735572813895,
+              0.9998735619512533,
+              0.9998735578809014,
+              0.9998735608482977,
+              0.9998735606828988,
+              0.9998735589428569,
+              0.9998735621727635,
+              0.9998735588908505,
+              0.9998735585627626,
+              0.9998735624838853,
+              0.9998735588343975,
+              0.9998735601236752,
+              0.9998735609115464,
+              0.9998735599004913,
+              0.9998735587677883,
+              0.9998735613699076,
+              0.9998735589923465,
+              0.9998735588824076,
+              0.9998735582886266,
+              0.9998943466218979,
+              0.9998735617129575,
+              0.9998735578005531,
+              0.9998735650155196,
+              0.9998735580298538,
+              0.9998735598623556,
+              0.9998735607031757,
+              0.999873563894801,
+              0.9998735592771598,
+              0.9998735597382277,
+              0.9998735586925301,
+              0.9998735600734778,
+              0.9998735594658146,
+              0.9998735589272763,
+              0.999873559071011,
+              0.9998735588570804,
+              0.9998735586613766,
+              0.9998735602534311,
+              0.9998735593385039,
+              0.9998735594119419,
+              0.9998735590439745,
+              0.999873563320893,
+              0.9998735589010458,
+              0.9998735590762265,
+              0.9998735605356278,
+              0.9998735638658011,
+              0.9998735583901042,
+              0.9998735626045643,
+              0.9998735581289576,
+              0.9998735580417834,
+              0.9998735598531414,
+              0.9998735605391648,
+              0.9998735595531004,
+              0.9998735589377357,
+              0.9998735600647503,
+              0.9998735582693409,
+              0.9998735590301734,
+              0.9998735597153375,
+              0.9998735601691587,
+              0.9998735585561894,
+              0.9998735618483232,
+              0.9998735591762463,
+              0.999873559363458,
+              0.9998735656686544,
+              0.9998735574935842,
+              0.9998735582535331,
+              0.9998735662708013,
+              0.9998735573049299,
+              0.9998735673278568,
+              0.9998735631826863,
+              0.9998735586723991,
+              0.9998735587605919,
+              0.9998735590762892,
+              0.9998735584568982,
+              0.9998735680844121,
+              0.9998735596203189,
+              0.9998735632636119,
+              0.9998735577379537,
+              0.9998735594414582,
+              0.9998735591324525,
+              0.9998735614008789,
+              0.9998735590631178,
+              0.9998735590704817
+            ],
+            "stable_count": 127,
+            "stable_fraction": 0.9921875,
+            "unresolved_count": 0,
+            "valid_count": 128
+          },
+          "failure2": {
+            "failure_replay": {
+              "maximum_finite_absolute_error": 0.0,
+              "same_ordered_radii": true,
+              "same_validity": true,
+              "stable_count": 15
+            },
+            "provenance": {
+              "controller_dt_seconds": 0.005007743835449219,
+              "estimate_sha256": "37f88f9023ee1b55db090a1e2d38dd79eeecb65ff0fd190cda0e3d80bab4c8a1",
+              "failure_reference_gains": [
+                [
+                  3.0,
+                  0.1,
+                  1.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  10.0,
+                  1.0,
+                  8.0
+                ],
+                [
+                  4.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "map_fingerprint": "4eac5cb12bf0c7898b5563285e9c0fcad337c11119b90dacc09cb806764aadb7",
+              "map_manifest_sha256": "280020942991fd25115e1d8ec0826c1f7832ebf97192824e71da60a51d215888",
+              "map_status_sha256": "033380dc28ec80663536becdcb72066b66304ecd45271665e10e5142dfbda9af",
+              "plant_samples_sha256": "685da7e6b70c4cd192f5458f8f37c21b4c082cbb3fdfcad835a1708edde4061b",
+              "quotient_coordinates_sha256": "11129fba86ca6d4f780ff398cfb0c794c255d9e6a223a0bedddbb2ecf89e9b8f",
+              "resampled": false,
+              "sample_coordinates_sha256": "11129fba86ca6d4f780ff398cfb0c794c255d9e6a223a0bedddbb2ecf89e9b8f",
+              "sample_order_changed": false,
+              "vehicle_model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+              "warm_start": "independent evaluator; only freshly recomputed recorded-failure trims and cache"
+            },
+            "sample_count": 128,
+            "spectral_radius": [
+              0.9998732427166978,
+              0.9998732426413404,
+              0.9998732423008774,
+              0.9998732423938661,
+              0.9998732421983619,
+              0.9998732428077245,
+              0.9998732426284329,
+              0.9998732422713884,
+              0.9998732422006238,
+              0.9998732425606441,
+              0.9998732426610067,
+              0.999873242435683,
+              0.9998732423860315,
+              0.9998732425166941,
+              0.9998732426107453,
+              0.999873242622838,
+              0.9998732427395954,
+              0.9998732423986811,
+              0.9998732422196344,
+              0.999873242681746,
+              0.9998732425291561,
+              0.9998732423009905,
+              0.9998732425260102,
+              0.9998732426489257,
+              0.9998732426090838,
+              0.9998732423834402,
+              0.9999904191742939,
+              0.9998732427619567,
+              0.9998732426530839,
+              0.9998732424942894,
+              0.9998732424650136,
+              0.9998732425672842,
+              0.9998732426487514,
+              0.99987324223382,
+              0.9998732424039333,
+              0.9998732425846987,
+              0.9998732425648194,
+              0.9998732424861916,
+              0.9998732425843526,
+              0.9998732425251945,
+              0.9998732425765653,
+              0.9998732423937611,
+              0.9998732425400394,
+              0.9998732425624139,
+              0.9998732426119347,
+              0.9998732425378962,
+              0.9998732424588385,
+              0.9998732424134499,
+              0.9998732426226989,
+              0.9998732425143567,
+              0.9998732423937078,
+              0.9998732423808554,
+              0.9998732423363754,
+              0.9998732429335141,
+              0.9998732426445307,
+              0.9998732422258363,
+              0.9998732422939492,
+              0.9998732424990007,
+              0.9998732427394141,
+              0.9998732425398731,
+              0.9998732424281258,
+              0.9998732424964918,
+              0.9998732425441095,
+              0.9998732424884652,
+              0.9998732424100116,
+              0.9998732425067631,
+              0.999873242585493,
+              0.9998732425396389,
+              0.999873242302391,
+              0.9998732426697742,
+              0.9998732426341629,
+              0.9998732423960736,
+              0.9998732424162748,
+              0.9998732424813416,
+              0.9998732425093044,
+              0.9998732425482802,
+              0.9998732423871318,
+              0.9998732427219271,
+              0.9998732426422068,
+              0.9998732422426025,
+              0.9998732427618843,
+              0.9998732425180145,
+              0.999873242343822,
+              0.9998732425694161,
+              0.9998732426711446,
+              0.999873242460313,
+              0.9998732422332699,
+              0.9998732425607295,
+              0.9998732425988989,
+              0.9998732421579808,
+              0.999873242365384,
+              0.999873242954399,
+              0.9998732424222119,
+              0.9998732425376784,
+              0.9998732424817599,
+              0.9998732425534376,
+              0.9998732426813144,
+              0.9998732425999544,
+              0.9998732423709048,
+              0.9998732423869162,
+              0.999873242599083,
+              0.9998732424803654,
+              0.9998732423798885,
+              0.9998732425928502,
+              0.9998732426599278,
+              0.9998732422388356,
+              0.9998732423368628,
+              0.9998732429248383,
+              0.9998732422395864,
+              0.999873242559103,
+              0.9998732426156384,
+              0.9998732424782056,
+              0.999873242553294,
+              0.9998732425620125,
+              0.9998732425100489,
+              0.9998732424263307,
+              0.9998732423781548,
+              0.9998732424919331,
+              0.9998732427955328,
+              0.9998732423730354,
+              0.9998732425048945,
+              0.9998732424485487,
+              0.9998732425634035,
+              0.9998732424795078,
+              0.9998732424630254,
+              0.9998732425903076,
+              0.999873242771033,
+              0.999873242202661
+            ],
+            "stable_count": 128,
+            "stable_fraction": 1.0,
+            "unresolved_count": 0,
+            "valid_count": 128
+          }
+        },
+        "comparison_script_sha256": "0afc25c63821cafd662d24d6fa0b2bbcb2c99f06ec378f99a45ef7306aba779c",
+        "conditioned_on_success": false,
+        "created_utc": "2026-10-30T13:47:59.310142+00:00",
+        "criterion": "count(finite spectral radius < 1) / ALL original N plants",
+        "gain_order": [
+          "xy",
+          "z",
+          "roll_pitch",
+          "yaw"
+        ],
+        "gains": [
+          [
+            4.0,
+            0.1,
+            2.0
+          ],
+          [
+            5.0,
+            1.0,
+            2.5
+          ],
+          [
+            13.0,
+            1.0,
+            20.0
+          ],
+          [
+            6.0,
+            1.0,
+            2.0
+          ]
+        ],
+        "numerical_source": {
+          "files_matching_frozen_snapshot": 133,
+          "sha256": {
+            "ros/examples/grape-param-estim/minimal/__init__.py": "84e7b850ad48b9c4da992add72047c2a97d6ccc6d3ce029bef128337a364e3a2",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_gain_voxels_fast.py": "2201171d7c1391a23de260cdb80f0b98d0b079a41443199d929fde0927118774",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_gain_voxels_interior.py": "5ca6513076fb681062aba19ddfbb851a047a23da4713090158a8b6ec1d652514",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_domains.json": "ee82e2d9fa1c61f49ecc539d4f59868a7227de627d621bd918949742b7e3c537",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_domains.py": "d373e381bb2060bfbb020b8b8e9bbaf7bfae780a4027c8bec4e0a3a929047407",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_fast_evaluator.py": "2002dfc67056de18df1c8690cb5aa84169d4b8f5a3a76bbef10cc62a27070c9a",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_survival.py": "bc4bca506cb5dca5f52082e354c480e7cd256b76bf9bd250a3183517b163c599",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/core.py": "de27ddb0481a2891c662f01f45c3fe0a8231872b044f2b726fbf08a0e1420873",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/estimate.py": "6cf0c2bde147499dd6a5d171b78fed98b3d383ca4db1820e96c68c6178326be3",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_contour.py": "9190d76d7ec80f4f27d018eb189b519f224c0e4fc72df9d5d9731344cce7a635",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_contour_affine_legacy.py": "137eab926338730898fbeaf04e144f8be43680d6c50bcfcc0f120ec956d1790b",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_region.py": "4cd339ee32f93abfc102976c296e28a14158b084b6c5bd7d850e324d48e73d7f",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_voxels.py": "92fa515d646dbfe2efc94539c161936cd0d5d47b206c78969e84a34251600475",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_safe_margin_full.py": "9bf9bf75fd56ad02b3872cc97fa195d810effad7bc8a580a06766900c28762b6",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_safe_margin_slices.py": "43de5094762b13e65bd9b340418c79c3c7c686f741e354a54ab0540a7c87ac3f",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_softmax_continuation.py": "2cd230724f7fe7c9d0baaf4b884e4929e676285d72feb2fb309f08370e3ca70f",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_spectral_gradient_path.py": "04885e04ed74c9faa40ae00b12099349212fbc5d92a830b3863c47b67f76d6b0",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_spectral_gradient_sharpen.py": "409aa0e4f5b04e9bd474be71a0314c4ec8c3b9d86d4f74551e2d6effef094aba",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/render_outputs.py": "50099a5dcff08298ea76b5386694b57f2c9f07f4ee746494c3ab02ef9d8d06a6",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/reports.py": "28a4ae662c2187904e82cf1b163acc0be5dc3133eeeba4372e889009f1a4d8d2",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/run_all_estimates.py": "fc03565181f799c17fbd2f2f9b58b0419ac048b4d968cf3140f3b1c999fc685f",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/run_all_pid_gain_contours.py": "3840410656338a38ebd061530d03a56279ef87450ac5db720c132714134a7265",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/run_all_pid_gain_regions.py": "193550f1f4079fa708d1bbdeca26c0e8d7295f103236a41243390140594fbf95",
+            "ros/examples/grape-param-estim/minimal/gimbal_savgol.py": "ea3c72016f307201ec7d37bbcd2ef7d42b55f0c746821629caf651ff67427281",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_gain_region.py": "0835afb9a8bb7c9037071cd193608c3e57bf39371ea30d3c22cad7e944835f35",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_local_pole_validation.py": "c732baa79b4bdd51f8b206a6ec341051e67cfbae66a89351f6b1d49a150768e1",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_mode_growth_validation.py": "4b3e29dcc3f06777d007ab396e4f2e47b95de6aeb44a2aebcc7e7b537bf84e2c",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_monte_carlo_postprocess.py": "c89c5aaad71c3d30b85911da36250455dd6a4eac9959450fad021abe60a21aaa",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_postprocess.py": "9254b2105a7d991049ad40e3a5674655e472f77ac4af9d517f2f251c2ba4e6d4",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_postprocess_sensitivity.py": "f1042d00b095efa6b94e36bd014b04fc4cb8cf9ea1b3e0b5c2a340dd92594231",
+            "ros/examples/grape-param-estim/minimal/grape_vehicle_model.json": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+            "ros/examples/grape-param-estim/minimal/rotor_lag.py": "86a673c76faf404cfb8f2e42f1af18fe3d2bfd7f151ca69eaf0fa5562f8c85ed",
+            "ros/examples/grape-param-estim/minimal/savgol_trajectory.py": "f45c61d46cd13a06543cee365436db5eacf26c2d3f3d79db744eb1d81b92d78f",
+            "ros/examples/grape-param-estim/minimal/single_bag_cog_prior_reseed_refinement.py": "cff1b22cd6f286685e5374a7908b83a0df81d809d90fbf87b538b73d3fc96446",
+            "ros/examples/grape-param-estim/minimal/single_bag_cross_bag_consensus.py": "874c50242633e6f701b9e26af62b5387736d01e8966e429e92179e29d0cf5a12",
+            "ros/examples/grape-param-estim/minimal/single_bag_input.py": "9cd4c14dd4ec34a5b794be4fe7f25dc555c10b47f6878ce4d9bc35e2651696dc",
+            "ros/examples/grape-param-estim/minimal/single_bag_parameter_prior.py": "05a1a20c46e09c6933f7dd4057f25ac11c065cce97a4b5abd2d62fc2673f09ce",
+            "ros/examples/grape-param-estim/minimal/single_bag_prior_ablation.py": "11347bc12a6eebd5fe27ff3ba306169e07ff8f10c478de514ea76d269b977de6",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_ablation.py": "410e6b8da968e2e3f8d34402a8411810e8a20985aef2f10700a17c4baad0ab89",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_core.py": "38f23d477ebd65740d5855416bae1f402af2b3be27035ba6b475e70e1d3a85a7",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_covariance.py": "2a5cae5fc48150c0a56366c093eeacaba6d3b62fa7b39dd4deaa790f13ad22f1",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_estimator.py": "a9bf49d962904c8c2a7bec34900b1fa4a7ce9a2faca3569705d0ac6e9abacf1b",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_reports.py": "67fdeaeddd52e955fc63842a57a48b51438c924702dea609f89ff3cf47a0148a",
+            "ros/examples/grape-param-estim/minimal/single_bag_wrench_replay.py": "9914fac5aa5c1f88d512746d5034fdac94e0529901c3edd11b4fce3138b2284d",
+            "ros/examples/grape-param-estim/minimal/smooth_command.py": "3b7c4345df73db36cdb24157a1e8853d632fe679332e9b3902277bc58764bffc",
+            "ros/examples/grape-param-estim/minimal/three_bag_cog_prior_reseed_consensus.py": "2c2e30f2d69462e181abc1cf9d34cd7e09f10dbc82e5d55f284f47c9feb3758f",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_coordinate_chart_comparison.py": "230983b3a2a71ef1518476d85114e4085f6ec64ea6aa25b499291fbf32a452c4",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_local_pole_validation.py": "30c1b195e0da1d395c4d1e61b1d17ad264b12273d515f0f183436fbf61dcb1a9",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_monte_carlo_postprocess.py": "285c34b5bb569dc84662c6600a78ba03df28b87de6fee3a52535fdb707ba0b42",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_postprocess_sensitivity_summary.py": "2c1ea5a23f6510fc87427457707f76067260e251e993bda23fb0ef08fa29bd39",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_postprocess_summary.py": "30a9457c438ee3aa10f526d5fb5b7579fa61b968bed8a2e53c96823586e3573d",
+            "ros/examples/grape-param-estim/minimal/three_bag_prior_ablation_summary.py": "623d34fa2a8e279b59459d18df4d169b8d611877373d634c4a0eb878adbf47ca",
+            "ros/examples/grape-param-estim/src/grape_param_estim/__init__.py": "0d783ce257915cf1f69fdc9eadd5d579803863d90baffc1870ef83e4886cce0c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/articulated.py": "77a8641658e0fe5d71e0b30721b6821c88c962e713c99bf91b5426e6d052448b",
+            "ros/examples/grape-param-estim/src/grape_param_estim/artifact_io.py": "f1a4053083dfa66c368a6e77d06658f99fa387442322e2ef30d13aafa5cd2177",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/__init__.py": "c22a108d39fb9cffc4667f0e133734c5c05d52ae2d9439462ed0d68e6d990f7b",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/covariance.py": "8cdaa108301e6586ec8e62043023f98fe569683f1b423ad1bd9d45759457e888",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/dynamics_moments.py": "01ae9954f1e81512ab81b0f194da3bf6672845559f229c6116ed8ba2d19d3871",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/em_loop.py": "bffc9962c26cd19b994c7bb3c7bd4d640c5117521cac3fe5ec95efe35e83eb19",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/evidence.py": "946488f29f333604cb3e327ccb2aaac79bb968c8cebd4ae45beba1fce7b993ba",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factor.py": "3a7d1bf2e6bbcd27d97d821dd395902498d3720c1f463150d2ed6f1b5cc618d1",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/__init__.py": "f31ba5e4a8c3652482577bab492e9914730cf267515593641fd1d9381f9f9631",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/actuator.py": "6ee32921c71d7d1ec3777d4c5095daf39f474ced3b0205c84047ab2a5e871e13",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/controller.py": "aaa28eb1a0292f8e295922d373acd2a52853d0dc3805bae85acc073dd045a442",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/dynamics.py": "52e43b40cfe5f033f983c1751156197e0df9d743fadf4ab580623242b89d5d6c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/dynamics_factor.py": "e559670ee86414cc0a80880b84d52db8ec7b0b86477947157c9034087f3f6515",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/imu.py": "c58ddc0f76c7768354860de600c460c696b930427bb72e0b03ca5d10c69331c5",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/kinematics.py": "2c56b57a81123ad9a357b017491a200564d3c03661e3d1591c0daeccb298a116",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/pose.py": "b73320a98f4f8f9890fcde4ae5cf528e8a8741c1d2ebb0e7c44b3e52328734d2",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/prior.py": "6eefef1227e00fcc958515d5d5d4d50889d0ac8a702ebfebb2f39637b4aa772e",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/velocity.py": "a85589f0efc3aaa7cebc670bbb6298a7402f629c89067994819e4c9322bfe01a",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/graph_builder.py": "dff8d4af35c727338a997c0c39249bd1438dd4c115d89c77134f5911004275fe",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/ieks.py": "ab61cff3f9e8df0ab6288f13f67eaddef35083b80157b23fa27d70d80313593c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/lag_profile.py": "dfa3e92be66d73a428644f355113b84c44f4f4beff878a744a71afcd2c0fb37f",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/laplace_em.py": "f992f03702517b69135015056456f5e5126c4fbb51234b68bc4079d79c986423",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/layout.py": "cfd11d3d413bb816745835959de4ef7c2a2cf20ec18872e0581e837a0775f122",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/linearize.py": "fca42821e2bc861f48648312d282b291462ae20c48ba3634dacfa2b1313c6faa",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/lm.py": "babc1d81a5132bba72985eedfb42f2b334aa7c47587809362688a8ca714a39f2",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/preparation.py": "c167d21f85f267665232c1ded432578180df63619c5e5cf09940333e77da9cb1",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/problem.py": "8da4c26e80f76c27f4000f181e87a5c296a9c179f130cde59f426d9e6c0fb9ad",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/recorded_control_rollout.py": "aaa42194687fda5d79b0a08a31338a006ce085ebd62e320356dbc0079e65db42",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/ridge.py": "6930757c3a707a552bff639ea0a433243dab9a97da9f6f7944de546b41e32e13",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/sparse_solver.py": "0f89fdb254f5feb1fd4e75223b254cfdefb15232b74f720abebe59bc815cc713",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/state.py": "c2a3dd071e8b9c0ba7bce1c465069d8e137f7f11832dd26b8b06cca4af364cc5",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/variables.py": "d2d4db829e7b735c16edc3bdafb1c68b25c6a19c247387d92094d527c68e9ecd",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_artifact.py": "bcc2ba3387ff808251d7602de9e8eca5b038a490e8c6bebffa09efa4e18ee9ce",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_artifact_export.py": "800f2c87950284e26bbf8fc329cabad1498ab78528c5bfde78e5677ce511f0ee",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_checkpoint.py": "d3f40c07ece153c93aa2757d8fe7eba73fe5dcfcd85c2406bc2277f5b22c87d1",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_estimation_cli.py": "a6d6724c043cf5c1d017bd9103ab193cc858febda224c1de84595d41bfed904f",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_performance.py": "ac24e0c54304d16fddec6926a9c2509644922923536659b4b63ad1a2874c3476",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_request.py": "741ce79c04942f51278d2066d611ac4ab9c32fba09823d97d7db2829bc41e3bf",
+            "ros/examples/grape-param-estim/src/grape_param_estim/closed_loop_stepper.py": "e9ced7f71558408f7fba11df517420fba9f283d92d2850652bc852f89c8b8d7c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/controller.py": "97ceda713e95aa7eb3c08c6eae8e5cf3313565bba48d24b849f4f40cacc4acd9",
+            "ros/examples/grape-param-estim/src/grape_param_estim/controller_config.py": "135284bc972025b52b07f4c4a2ea3b51cb736751324256392fb1fd3a3f3676e7",
+            "ros/examples/grape-param-estim/src/grape_param_estim/dynamics.py": "fcaddbd6713eca538bf314adc26aca10bb0e08a23560f9b898dddf52bd092385",
+            "ros/examples/grape-param-estim/src/grape_param_estim/estimation.py": "6eb9fb4ba4d03ee47ff94d02255cf1e74f6e3aa0be87a5e2f6e69ad3c6e1243c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/geometry.py": "2f054d076754cf58b7b71b91b37e5f927fca39f4a6ac14c842c4c5fdcb410e43",
+            "ros/examples/grape-param-estim/src/grape_param_estim/gimbalrotor_pid_postprocess.py": "e24ce723e09a18bd32a0fc44e5635721db3526006b0ae3625d35b9c11dba6d3a",
+            "ros/examples/grape-param-estim/src/grape_param_estim/held_out_validation.py": "9f3ca5a81753db4cefb43363595bfa2261a3ee88ad07d89495958040f6f23ce4",
+            "ros/examples/grape-param-estim/src/grape_param_estim/initialization.py": "ace6dff4e2e06387fec2bbf524b67741eb685c551b220a83d3dd6a2637795231",
+            "ros/examples/grape-param-estim/src/grape_param_estim/inspection.py": "5ec1ace319f86b031911a08de33ebfabd54abad70d1516e84c423c408ed19454",
+            "ros/examples/grape-param-estim/src/grape_param_estim/inspection_cli.py": "8a02148db9ff8172eb6c5b23f2a656833fd11598b01debbd48a642d51ffcbd62",
+            "ros/examples/grape-param-estim/src/grape_param_estim/parameterization.py": "926ab705b2c5f5d33fe9e02791650064866852fc1104bce8627eddd5b341bf11",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/__init__.py": "498717e0d5619eb1de2442a5052c1b1a2ee2dc4dd1344a9a8905d1352fe5de5b",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/artifact.py": "80a49bb1df1aec2756feff7c5eb4123823d0d0a032617c234bcef53b94a99a50",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/checkpoint.py": "96fca86e33143f02d172d26f04321ccf3597844fa57bd2d70d7e6cd0da2f58f3",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/cli.py": "d23afe8c61bd09c09c9f43f1682e168060f83ded508f4b06d960f03ffc6720c3",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/input.py": "bd96ef895b918b5f6278eafdb596c791cd92826971d88b9777a5bfacfc83ccf7",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/metrics.py": "1217722bcced3936397f88e2132676d385c5c01d69c3a0659f0f9749cb1e8cee",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/particle_search.py": "8299124bfc2208b466954fcb79b0c7ca0a19997d5f4a570c6a687f59fa6cc9f4",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/predictive.py": "a0baf4043e40482c3c1176da2397b3358403041543c1c21b08801b6692607fb2",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/proposal.py": "67bfbe821866b32cd447bcffb896aaae7312bf0b4863e198fbbce71e215f039f",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/request.py": "8216190d5ae9bb28583e59c97981d3d0db926979da529322b12f8481ce4b4aeb",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/__init__.py": "c4f1f85d66529fdc20ef16d883c26bbfd0ea7aedb2cda6b7f7f8ff5b070048b6",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/checkpoint.py": "f41fd4819f090fa66c4a1d572e62f199252992d82be7f4f2f8f7aa6cdfcb222e",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/delayed_acceptance.py": "e12845575ea4e79f721e4e904e22499dbe3bb1f06d27eb9f661d3010052e1650",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/diagnostics.py": "b0c39e932006b393b0d2a93b7680192ce3eebe584ff9911f0e987482a67c6d21",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/laplace_target.py": "b59b51c58a34980f24453d73dd5f11dd61759c82731aee9af911ee493f895c63",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/mcmc.py": "fb21ebe442851a51a285bdd6b26149ad76a0f8230a7086c507cf4d52b4f8bd04",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/representatives.py": "5eeeb97e86e9edadd3e8924aeb900cad37af43418f40b9119f509465f9049773",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/run.py": "b7dcc0a2ab7aa29b51f683a40ddda035f01b9e705cd09e619ac865154b1530ef",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior_sampling_cli.py": "aa76c8129fb4c4d6e713432889a37cdd718eb7b4f9a287f1fc78a95f8ad7dc18",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior_sampling_request.py": "c2432eacfebfc6d2f67abb76ca0aa81902661b69fdc2f5caf54baa55b3729555",
+            "ros/examples/grape-param-estim/src/grape_param_estim/progress.py": "3e867fbc5a4232186bc9c113d08d59aa62301455a1f965527dc07addcf23c89e",
+            "ros/examples/grape-param-estim/src/grape_param_estim/real_estimation.py": "373dd087c14c57b2610a495432702550c15a2e285520f1ebaa1c1f452aca8913",
+            "ros/examples/grape-param-estim/src/grape_param_estim/real_rosbag.py": "d4bc531d0c9552c4ef857b42b332b546980cfb17f9002a5dad3b54f137c8ab60",
+            "ros/examples/grape-param-estim/src/grape_param_estim/sensor_models.py": "a29baf715fde41d3487aaa1f6e856f07e18f38bacd1f81530d616902647833f6",
+            "ros/examples/grape-param-estim/src/grape_param_estim/synthetic.py": "b871b8d9e00586aaa4681a10a9e35cab171c180c58c7235b36460cee4b2b847b",
+            "ros/examples/grape-param-estim/src/grape_param_estim/synthetic_batch.py": "88b1f3ae4f0481de4b7bf23da71b5f9cd72aef5e75f0ad3599f8d71349d0acf0",
+            "ros/examples/grape-param-estim/src/grape_param_estim/synthetic_cli.py": "52cef3a1ab0cdeb6a18aa1427cbbaa7dbdc296d6acbeb759737d7eaae0a313a6",
+            "ros/examples/grape-param-estim/src/grape_param_estim/system.py": "474892806d9dcda9d192325f27eafa68c77adc0d8da1f2d1e5f4e924e52269cc",
+            "ros/examples/grape-param-estim/src/grape_param_estim/timing.py": "bb7b6c7740c762e552020cb4e2a380a2c6059d5a6749fcc3d47179a9513ca2ee",
+            "ros/examples/grape-param-estim/src/grape_param_estim/trajectory_sampling.py": "0da60e2318e84d7860a4c09e496818c7eefc0a9642286bda29a7793b5f20f53e"
+          }
+        },
+        "reference": {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/successful_gain_reference.json",
+          "sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938"
+        },
+        "role": "independent_full_controller",
+        "schema": "grape-param-estim/successful-controller-comparison/v1",
+        "path": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/successful_controller_comparison.json",
+        "sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
       }
     },
     "style": {
@@ -1212,7 +2016,7 @@
     "view": "PD",
     "panel_count": 8,
     "grid_size": 65,
-    "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. Blue diamonds locate successful gain coordinates only, with no assigned stability value. No success-100% condition is used.",
+    "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. Blue labels report a separate comparison with all 12 gains set to successful values; they are not stability values of the background slice. No success-100% condition is used.",
     "color_encoding": {
       "quantity": "stable_fraction",
       "range": [
@@ -1799,23 +2603,23 @@
     "files": {
       "pdf": {
         "path": "all_pid_failure_PD_grid_65.pdf",
-        "bytes": 109288,
-        "sha256": "90131c1f23585e5e11b5928b2338c91b8b5a052415be29872beed834d14448ff"
+        "bytes": 109749,
+        "sha256": "6781682bcdfe75b21050d57d9b02c6c6ed0e0f1138200382fa4adc3c26298e6c"
       },
       "svg": {
         "path": "all_pid_failure_PD_grid_65.svg",
-        "bytes": 928857,
-        "sha256": "a76da755613977abe9555f6ad7822621471c884cebe613c75577e31597da1151"
+        "bytes": 929844,
+        "sha256": "ce9c2810eec340e1967f868f2821069f309b90389f4834f44d475e5e0ecd0b17"
       },
       "png": {
         "path": "all_pid_failure_PD_grid_65.png",
-        "bytes": 575257,
-        "sha256": "090fb08ee818ca1900970d745da926ad676a3b62f824ea128f282974017c0180"
+        "bytes": 630695,
+        "sha256": "008d8ef6bc1b1ff70a09fd67a70d9d0e04f2f7dd6c432fe7ee85b1ed5f99d133"
       }
     },
     "success_reference": {
       "schema": "grape-param-estim/successful-controller-position-reference/v1",
-      "role": "coordinates_only",
+      "role": "coordinates_plus_independent_full_controller_comparison",
       "gain_order": [
         "xy",
         "z",
@@ -1855,7 +2659,7 @@
       "panels": {
         "failure1": {
           "roll_pitch": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               13.0,
               1.0,
@@ -1884,7 +2688,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 5.0,
@@ -1915,10 +2720,42 @@
             ],
             "inside_computed_box": false,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 127,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 0.9921875,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "yaw": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               6.0,
               1.0,
@@ -1947,7 +2784,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 1.0,
@@ -1978,10 +2816,42 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 127,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 0.9921875,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "xy": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               4.0,
               0.1,
@@ -2010,7 +2880,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 0.75,
@@ -2041,10 +2912,42 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 127,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 0.9921875,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "z": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               5.0,
               1.0,
@@ -2073,7 +2976,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 1.25,
@@ -2104,12 +3008,44 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": true,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 127,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 0.9921875,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           }
         },
         "failure2": {
           "roll_pitch": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               13.0,
               1.0,
@@ -2138,7 +3074,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 2.5,
@@ -2169,10 +3106,42 @@
             ],
             "inside_computed_box": false,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 128,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 1.0,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "yaw": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               6.0,
               1.0,
@@ -2201,7 +3170,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 1.0,
@@ -2232,10 +3202,42 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 128,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 1.0,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "xy": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               4.0,
               0.1,
@@ -2264,7 +3266,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 0.75,
@@ -2295,10 +3298,42 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": false,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 128,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 1.0,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           },
           "z": {
-            "role": "coordinates_only",
+            "role": "coordinates_plus_independent_full_controller_comparison",
             "gain": [
               5.0,
               1.0,
@@ -2327,7 +3362,8 @@
               ]
             ],
             "other_nine_gains_context": "this failure record, unchanged",
-            "stability_value_assigned": false,
+            "stability_value_assigned": true,
+            "background_stability_value_assigned": false,
             "computed_axis_limits": [
               [
                 1.25,
@@ -2358,9 +3394,581 @@
             ],
             "inside_computed_box": true,
             "coincides_with_failure": true,
-            "on_recorded_I_plane": true
+            "on_recorded_I_plane": true,
+            "stability_value_scope": "independent_full_controller",
+            "independent_full_controller": {
+              "role": "independent_full_controller",
+              "sample_count": 128,
+              "stable_count": 128,
+              "valid_count": 128,
+              "unresolved_count": 0,
+              "stable_fraction": 1.0,
+              "full_controller_gains": [
+                [
+                  4.0,
+                  0.1,
+                  2.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  13.0,
+                  1.0,
+                  20.0
+                ],
+                [
+                  6.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "comparison_source_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
+            }
           }
         }
+      },
+      "independent_full_controller_comparison": {
+        "cases": {
+          "failure1": {
+            "failure_replay": {
+              "maximum_finite_absolute_error": 0.0,
+              "same_ordered_radii": true,
+              "same_validity": true,
+              "stable_count": 62
+            },
+            "provenance": {
+              "controller_dt_seconds": 0.0049953460693359375,
+              "estimate_sha256": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+              "failure_reference_gains": [
+                [
+                  3.0,
+                  0.1,
+                  1.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  20.0,
+                  1.0,
+                  8.0
+                ],
+                [
+                  4.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "map_fingerprint": "50a8ef8e2ac14940315f242ce56a1b3ea180957d9556e575ad466e84faa30870",
+              "map_manifest_sha256": "900f0cf285ecb9669c825528a989cf2c82d3aee8cc39bd35ab6f62d0f587fea6",
+              "map_status_sha256": "1d13762e0c65c7515d2bf236b641bdf988bbbbebd8b31a2990c4bd2151bbc4b7",
+              "plant_samples_sha256": "b3e436c40ec9a2519198b4e6f4f75e5f29d95d9a15c9d4e02ca736e5ee8cb130",
+              "quotient_coordinates_sha256": "88976ecf40e11a055662ac209d3a83f9fe57d0e5d7b8015d387d2d8883a82e8e",
+              "resampled": false,
+              "sample_coordinates_sha256": "88976ecf40e11a055662ac209d3a83f9fe57d0e5d7b8015d387d2d8883a82e8e",
+              "sample_order_changed": false,
+              "vehicle_model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+              "warm_start": "independent evaluator; only freshly recomputed recorded-failure trims and cache"
+            },
+            "sample_count": 128,
+            "spectral_radius": [
+              0.9998942025088765,
+              0.9998735602885871,
+              0.9998749031671964,
+              0.9998735582825246,
+              0.999873561537864,
+              0.9998735574875298,
+              0.9998735584054017,
+              0.9998735633643041,
+              0.9998735596513205,
+              0.9998735589194837,
+              0.9998735588902061,
+              0.9998735588385712,
+              0.9998735599604487,
+              0.9998735600657152,
+              0.9998735610261682,
+              0.9998735581511852,
+              0.9998735607990128,
+              0.9998735587381129,
+              0.9998735623685157,
+              0.9998735593092296,
+              0.9998735592753492,
+              0.9998735588960752,
+              0.9998735590700588,
+              0.9998735591474852,
+              0.9998735584260752,
+              0.9998735616727591,
+              1.0000195565456116,
+              0.9998735577743272,
+              0.999873567869449,
+              0.9998735589319881,
+              0.9998735587399316,
+              0.9998735594784803,
+              0.9998735591528787,
+              0.9998735588756434,
+              0.999873557495564,
+              0.9998735633738416,
+              0.9998735590070881,
+              0.9998735588654368,
+              0.9998735595004448,
+              0.9998735628307546,
+              0.9998735587817454,
+              0.9998735648217444,
+              0.9998735600071922,
+              0.9998735584625064,
+              0.9998735617447406,
+              0.9998735590512527,
+              0.9998735572813895,
+              0.9998735619512533,
+              0.9998735578809014,
+              0.9998735608482977,
+              0.9998735606828988,
+              0.9998735589428569,
+              0.9998735621727635,
+              0.9998735588908505,
+              0.9998735585627626,
+              0.9998735624838853,
+              0.9998735588343975,
+              0.9998735601236752,
+              0.9998735609115464,
+              0.9998735599004913,
+              0.9998735587677883,
+              0.9998735613699076,
+              0.9998735589923465,
+              0.9998735588824076,
+              0.9998735582886266,
+              0.9998943466218979,
+              0.9998735617129575,
+              0.9998735578005531,
+              0.9998735650155196,
+              0.9998735580298538,
+              0.9998735598623556,
+              0.9998735607031757,
+              0.999873563894801,
+              0.9998735592771598,
+              0.9998735597382277,
+              0.9998735586925301,
+              0.9998735600734778,
+              0.9998735594658146,
+              0.9998735589272763,
+              0.999873559071011,
+              0.9998735588570804,
+              0.9998735586613766,
+              0.9998735602534311,
+              0.9998735593385039,
+              0.9998735594119419,
+              0.9998735590439745,
+              0.999873563320893,
+              0.9998735589010458,
+              0.9998735590762265,
+              0.9998735605356278,
+              0.9998735638658011,
+              0.9998735583901042,
+              0.9998735626045643,
+              0.9998735581289576,
+              0.9998735580417834,
+              0.9998735598531414,
+              0.9998735605391648,
+              0.9998735595531004,
+              0.9998735589377357,
+              0.9998735600647503,
+              0.9998735582693409,
+              0.9998735590301734,
+              0.9998735597153375,
+              0.9998735601691587,
+              0.9998735585561894,
+              0.9998735618483232,
+              0.9998735591762463,
+              0.999873559363458,
+              0.9998735656686544,
+              0.9998735574935842,
+              0.9998735582535331,
+              0.9998735662708013,
+              0.9998735573049299,
+              0.9998735673278568,
+              0.9998735631826863,
+              0.9998735586723991,
+              0.9998735587605919,
+              0.9998735590762892,
+              0.9998735584568982,
+              0.9998735680844121,
+              0.9998735596203189,
+              0.9998735632636119,
+              0.9998735577379537,
+              0.9998735594414582,
+              0.9998735591324525,
+              0.9998735614008789,
+              0.9998735590631178,
+              0.9998735590704817
+            ],
+            "stable_count": 127,
+            "stable_fraction": 0.9921875,
+            "unresolved_count": 0,
+            "valid_count": 128
+          },
+          "failure2": {
+            "failure_replay": {
+              "maximum_finite_absolute_error": 0.0,
+              "same_ordered_radii": true,
+              "same_validity": true,
+              "stable_count": 15
+            },
+            "provenance": {
+              "controller_dt_seconds": 0.005007743835449219,
+              "estimate_sha256": "37f88f9023ee1b55db090a1e2d38dd79eeecb65ff0fd190cda0e3d80bab4c8a1",
+              "failure_reference_gains": [
+                [
+                  3.0,
+                  0.1,
+                  1.0
+                ],
+                [
+                  5.0,
+                  1.0,
+                  2.5
+                ],
+                [
+                  10.0,
+                  1.0,
+                  8.0
+                ],
+                [
+                  4.0,
+                  1.0,
+                  2.0
+                ]
+              ],
+              "map_fingerprint": "4eac5cb12bf0c7898b5563285e9c0fcad337c11119b90dacc09cb806764aadb7",
+              "map_manifest_sha256": "280020942991fd25115e1d8ec0826c1f7832ebf97192824e71da60a51d215888",
+              "map_status_sha256": "033380dc28ec80663536becdcb72066b66304ecd45271665e10e5142dfbda9af",
+              "plant_samples_sha256": "685da7e6b70c4cd192f5458f8f37c21b4c082cbb3fdfcad835a1708edde4061b",
+              "quotient_coordinates_sha256": "11129fba86ca6d4f780ff398cfb0c794c255d9e6a223a0bedddbb2ecf89e9b8f",
+              "resampled": false,
+              "sample_coordinates_sha256": "11129fba86ca6d4f780ff398cfb0c794c255d9e6a223a0bedddbb2ecf89e9b8f",
+              "sample_order_changed": false,
+              "vehicle_model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+              "warm_start": "independent evaluator; only freshly recomputed recorded-failure trims and cache"
+            },
+            "sample_count": 128,
+            "spectral_radius": [
+              0.9998732427166978,
+              0.9998732426413404,
+              0.9998732423008774,
+              0.9998732423938661,
+              0.9998732421983619,
+              0.9998732428077245,
+              0.9998732426284329,
+              0.9998732422713884,
+              0.9998732422006238,
+              0.9998732425606441,
+              0.9998732426610067,
+              0.999873242435683,
+              0.9998732423860315,
+              0.9998732425166941,
+              0.9998732426107453,
+              0.999873242622838,
+              0.9998732427395954,
+              0.9998732423986811,
+              0.9998732422196344,
+              0.999873242681746,
+              0.9998732425291561,
+              0.9998732423009905,
+              0.9998732425260102,
+              0.9998732426489257,
+              0.9998732426090838,
+              0.9998732423834402,
+              0.9999904191742939,
+              0.9998732427619567,
+              0.9998732426530839,
+              0.9998732424942894,
+              0.9998732424650136,
+              0.9998732425672842,
+              0.9998732426487514,
+              0.99987324223382,
+              0.9998732424039333,
+              0.9998732425846987,
+              0.9998732425648194,
+              0.9998732424861916,
+              0.9998732425843526,
+              0.9998732425251945,
+              0.9998732425765653,
+              0.9998732423937611,
+              0.9998732425400394,
+              0.9998732425624139,
+              0.9998732426119347,
+              0.9998732425378962,
+              0.9998732424588385,
+              0.9998732424134499,
+              0.9998732426226989,
+              0.9998732425143567,
+              0.9998732423937078,
+              0.9998732423808554,
+              0.9998732423363754,
+              0.9998732429335141,
+              0.9998732426445307,
+              0.9998732422258363,
+              0.9998732422939492,
+              0.9998732424990007,
+              0.9998732427394141,
+              0.9998732425398731,
+              0.9998732424281258,
+              0.9998732424964918,
+              0.9998732425441095,
+              0.9998732424884652,
+              0.9998732424100116,
+              0.9998732425067631,
+              0.999873242585493,
+              0.9998732425396389,
+              0.999873242302391,
+              0.9998732426697742,
+              0.9998732426341629,
+              0.9998732423960736,
+              0.9998732424162748,
+              0.9998732424813416,
+              0.9998732425093044,
+              0.9998732425482802,
+              0.9998732423871318,
+              0.9998732427219271,
+              0.9998732426422068,
+              0.9998732422426025,
+              0.9998732427618843,
+              0.9998732425180145,
+              0.999873242343822,
+              0.9998732425694161,
+              0.9998732426711446,
+              0.999873242460313,
+              0.9998732422332699,
+              0.9998732425607295,
+              0.9998732425988989,
+              0.9998732421579808,
+              0.999873242365384,
+              0.999873242954399,
+              0.9998732424222119,
+              0.9998732425376784,
+              0.9998732424817599,
+              0.9998732425534376,
+              0.9998732426813144,
+              0.9998732425999544,
+              0.9998732423709048,
+              0.9998732423869162,
+              0.999873242599083,
+              0.9998732424803654,
+              0.9998732423798885,
+              0.9998732425928502,
+              0.9998732426599278,
+              0.9998732422388356,
+              0.9998732423368628,
+              0.9998732429248383,
+              0.9998732422395864,
+              0.999873242559103,
+              0.9998732426156384,
+              0.9998732424782056,
+              0.999873242553294,
+              0.9998732425620125,
+              0.9998732425100489,
+              0.9998732424263307,
+              0.9998732423781548,
+              0.9998732424919331,
+              0.9998732427955328,
+              0.9998732423730354,
+              0.9998732425048945,
+              0.9998732424485487,
+              0.9998732425634035,
+              0.9998732424795078,
+              0.9998732424630254,
+              0.9998732425903076,
+              0.999873242771033,
+              0.999873242202661
+            ],
+            "stable_count": 128,
+            "stable_fraction": 1.0,
+            "unresolved_count": 0,
+            "valid_count": 128
+          }
+        },
+        "comparison_script_sha256": "0afc25c63821cafd662d24d6fa0b2bbcb2c99f06ec378f99a45ef7306aba779c",
+        "conditioned_on_success": false,
+        "created_utc": "2026-10-30T13:47:59.310142+00:00",
+        "criterion": "count(finite spectral radius < 1) / ALL original N plants",
+        "gain_order": [
+          "xy",
+          "z",
+          "roll_pitch",
+          "yaw"
+        ],
+        "gains": [
+          [
+            4.0,
+            0.1,
+            2.0
+          ],
+          [
+            5.0,
+            1.0,
+            2.5
+          ],
+          [
+            13.0,
+            1.0,
+            20.0
+          ],
+          [
+            6.0,
+            1.0,
+            2.0
+          ]
+        ],
+        "numerical_source": {
+          "files_matching_frozen_snapshot": 133,
+          "sha256": {
+            "ros/examples/grape-param-estim/minimal/__init__.py": "84e7b850ad48b9c4da992add72047c2a97d6ccc6d3ce029bef128337a364e3a2",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_gain_voxels_fast.py": "2201171d7c1391a23de260cdb80f0b98d0b079a41443199d929fde0927118774",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_gain_voxels_interior.py": "5ca6513076fb681062aba19ddfbb851a047a23da4713090158a8b6ec1d652514",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_domains.json": "ee82e2d9fa1c61f49ecc539d4f59868a7227de627d621bd918949742b7e3c537",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_domains.py": "d373e381bb2060bfbb020b8b8e9bbaf7bfae780a4027c8bec4e0a3a929047407",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_fast_evaluator.py": "2002dfc67056de18df1c8690cb5aa84169d4b8f5a3a76bbef10cc62a27070c9a",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_survival.py": "bc4bca506cb5dca5f52082e354c480e7cd256b76bf9bd250a3183517b163c599",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/core.py": "de27ddb0481a2891c662f01f45c3fe0a8231872b044f2b726fbf08a0e1420873",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/estimate.py": "6cf0c2bde147499dd6a5d171b78fed98b3d383ca4db1820e96c68c6178326be3",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_contour.py": "9190d76d7ec80f4f27d018eb189b519f224c0e4fc72df9d5d9731344cce7a635",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_contour_affine_legacy.py": "137eab926338730898fbeaf04e144f8be43680d6c50bcfcc0f120ec956d1790b",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_region.py": "4cd339ee32f93abfc102976c296e28a14158b084b6c5bd7d850e324d48e73d7f",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_voxels.py": "92fa515d646dbfe2efc94539c161936cd0d5d47b206c78969e84a34251600475",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_safe_margin_full.py": "9bf9bf75fd56ad02b3872cc97fa195d810effad7bc8a580a06766900c28762b6",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_safe_margin_slices.py": "43de5094762b13e65bd9b340418c79c3c7c686f741e354a54ab0540a7c87ac3f",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_softmax_continuation.py": "2cd230724f7fe7c9d0baaf4b884e4929e676285d72feb2fb309f08370e3ca70f",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_spectral_gradient_path.py": "04885e04ed74c9faa40ae00b12099349212fbc5d92a830b3863c47b67f76d6b0",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/pid_spectral_gradient_sharpen.py": "409aa0e4f5b04e9bd474be71a0314c4ec8c3b9d86d4f74551e2d6effef094aba",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/render_outputs.py": "50099a5dcff08298ea76b5386694b57f2c9f07f4ee746494c3ab02ef9d8d06a6",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/reports.py": "28a4ae662c2187904e82cf1b163acc0be5dc3133eeeba4372e889009f1a4d8d2",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/run_all_estimates.py": "fc03565181f799c17fbd2f2f9b58b0419ac048b4d968cf3140f3b1c999fc685f",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/run_all_pid_gain_contours.py": "3840410656338a38ebd061530d03a56279ef87450ac5db720c132714134a7265",
+            "ros/examples/grape-param-estim/minimal/first-order-lag/run_all_pid_gain_regions.py": "193550f1f4079fa708d1bbdeca26c0e8d7295f103236a41243390140594fbf95",
+            "ros/examples/grape-param-estim/minimal/gimbal_savgol.py": "ea3c72016f307201ec7d37bbcd2ef7d42b55f0c746821629caf651ff67427281",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_gain_region.py": "0835afb9a8bb7c9037071cd193608c3e57bf39371ea30d3c22cad7e944835f35",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_local_pole_validation.py": "c732baa79b4bdd51f8b206a6ec341051e67cfbae66a89351f6b1d49a150768e1",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_mode_growth_validation.py": "4b3e29dcc3f06777d007ab396e4f2e47b95de6aeb44a2aebcc7e7b537bf84e2c",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_monte_carlo_postprocess.py": "c89c5aaad71c3d30b85911da36250455dd6a4eac9959450fad021abe60a21aaa",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_postprocess.py": "9254b2105a7d991049ad40e3a5674655e472f77ac4af9d517f2f251c2ba4e6d4",
+            "ros/examples/grape-param-estim/minimal/gimbalrotor_pid_postprocess_sensitivity.py": "f1042d00b095efa6b94e36bd014b04fc4cb8cf9ea1b3e0b5c2a340dd92594231",
+            "ros/examples/grape-param-estim/minimal/grape_vehicle_model.json": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+            "ros/examples/grape-param-estim/minimal/rotor_lag.py": "86a673c76faf404cfb8f2e42f1af18fe3d2bfd7f151ca69eaf0fa5562f8c85ed",
+            "ros/examples/grape-param-estim/minimal/savgol_trajectory.py": "f45c61d46cd13a06543cee365436db5eacf26c2d3f3d79db744eb1d81b92d78f",
+            "ros/examples/grape-param-estim/minimal/single_bag_cog_prior_reseed_refinement.py": "cff1b22cd6f286685e5374a7908b83a0df81d809d90fbf87b538b73d3fc96446",
+            "ros/examples/grape-param-estim/minimal/single_bag_cross_bag_consensus.py": "874c50242633e6f701b9e26af62b5387736d01e8966e429e92179e29d0cf5a12",
+            "ros/examples/grape-param-estim/minimal/single_bag_input.py": "9cd4c14dd4ec34a5b794be4fe7f25dc555c10b47f6878ce4d9bc35e2651696dc",
+            "ros/examples/grape-param-estim/minimal/single_bag_parameter_prior.py": "05a1a20c46e09c6933f7dd4057f25ac11c065cce97a4b5abd2d62fc2673f09ce",
+            "ros/examples/grape-param-estim/minimal/single_bag_prior_ablation.py": "11347bc12a6eebd5fe27ff3ba306169e07ff8f10c478de514ea76d269b977de6",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_ablation.py": "410e6b8da968e2e3f8d34402a8411810e8a20985aef2f10700a17c4baad0ab89",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_core.py": "38f23d477ebd65740d5855416bae1f402af2b3be27035ba6b475e70e1d3a85a7",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_covariance.py": "2a5cae5fc48150c0a56366c093eeacaba6d3b62fa7b39dd4deaa790f13ad22f1",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_estimator.py": "a9bf49d962904c8c2a7bec34900b1fa4a7ce9a2faca3569705d0ac6e9abacf1b",
+            "ros/examples/grape-param-estim/minimal/single_bag_savgol_reports.py": "67fdeaeddd52e955fc63842a57a48b51438c924702dea609f89ff3cf47a0148a",
+            "ros/examples/grape-param-estim/minimal/single_bag_wrench_replay.py": "9914fac5aa5c1f88d512746d5034fdac94e0529901c3edd11b4fce3138b2284d",
+            "ros/examples/grape-param-estim/minimal/smooth_command.py": "3b7c4345df73db36cdb24157a1e8853d632fe679332e9b3902277bc58764bffc",
+            "ros/examples/grape-param-estim/minimal/three_bag_cog_prior_reseed_consensus.py": "2c2e30f2d69462e181abc1cf9d34cd7e09f10dbc82e5d55f284f47c9feb3758f",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_coordinate_chart_comparison.py": "230983b3a2a71ef1518476d85114e4085f6ec64ea6aa25b499291fbf32a452c4",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_local_pole_validation.py": "30c1b195e0da1d395c4d1e61b1d17ad264b12273d515f0f183436fbf61dcb1a9",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_monte_carlo_postprocess.py": "285c34b5bb569dc84662c6600a78ba03df28b87de6fee3a52535fdb707ba0b42",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_postprocess_sensitivity_summary.py": "2c1ea5a23f6510fc87427457707f76067260e251e993bda23fb0ef08fa29bd39",
+            "ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_postprocess_summary.py": "30a9457c438ee3aa10f526d5fb5b7579fa61b968bed8a2e53c96823586e3573d",
+            "ros/examples/grape-param-estim/minimal/three_bag_prior_ablation_summary.py": "623d34fa2a8e279b59459d18df4d169b8d611877373d634c4a0eb878adbf47ca",
+            "ros/examples/grape-param-estim/src/grape_param_estim/__init__.py": "0d783ce257915cf1f69fdc9eadd5d579803863d90baffc1870ef83e4886cce0c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/articulated.py": "77a8641658e0fe5d71e0b30721b6821c88c962e713c99bf91b5426e6d052448b",
+            "ros/examples/grape-param-estim/src/grape_param_estim/artifact_io.py": "f1a4053083dfa66c368a6e77d06658f99fa387442322e2ef30d13aafa5cd2177",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/__init__.py": "c22a108d39fb9cffc4667f0e133734c5c05d52ae2d9439462ed0d68e6d990f7b",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/covariance.py": "8cdaa108301e6586ec8e62043023f98fe569683f1b423ad1bd9d45759457e888",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/dynamics_moments.py": "01ae9954f1e81512ab81b0f194da3bf6672845559f229c6116ed8ba2d19d3871",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/em_loop.py": "bffc9962c26cd19b994c7bb3c7bd4d640c5117521cac3fe5ec95efe35e83eb19",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/evidence.py": "946488f29f333604cb3e327ccb2aaac79bb968c8cebd4ae45beba1fce7b993ba",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factor.py": "3a7d1bf2e6bbcd27d97d821dd395902498d3720c1f463150d2ed6f1b5cc618d1",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/__init__.py": "f31ba5e4a8c3652482577bab492e9914730cf267515593641fd1d9381f9f9631",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/actuator.py": "6ee32921c71d7d1ec3777d4c5095daf39f474ced3b0205c84047ab2a5e871e13",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/controller.py": "aaa28eb1a0292f8e295922d373acd2a52853d0dc3805bae85acc073dd045a442",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/dynamics.py": "52e43b40cfe5f033f983c1751156197e0df9d743fadf4ab580623242b89d5d6c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/dynamics_factor.py": "e559670ee86414cc0a80880b84d52db8ec7b0b86477947157c9034087f3f6515",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/imu.py": "c58ddc0f76c7768354860de600c460c696b930427bb72e0b03ca5d10c69331c5",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/kinematics.py": "2c56b57a81123ad9a357b017491a200564d3c03661e3d1591c0daeccb298a116",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/pose.py": "b73320a98f4f8f9890fcde4ae5cf528e8a8741c1d2ebb0e7c44b3e52328734d2",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/prior.py": "6eefef1227e00fcc958515d5d5d4d50889d0ac8a702ebfebb2f39637b4aa772e",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/velocity.py": "a85589f0efc3aaa7cebc670bbb6298a7402f629c89067994819e4c9322bfe01a",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/graph_builder.py": "dff8d4af35c727338a997c0c39249bd1438dd4c115d89c77134f5911004275fe",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/ieks.py": "ab61cff3f9e8df0ab6288f13f67eaddef35083b80157b23fa27d70d80313593c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/lag_profile.py": "dfa3e92be66d73a428644f355113b84c44f4f4beff878a744a71afcd2c0fb37f",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/laplace_em.py": "f992f03702517b69135015056456f5e5126c4fbb51234b68bc4079d79c986423",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/layout.py": "cfd11d3d413bb816745835959de4ef7c2a2cf20ec18872e0581e837a0775f122",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/linearize.py": "fca42821e2bc861f48648312d282b291462ae20c48ba3634dacfa2b1313c6faa",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/lm.py": "babc1d81a5132bba72985eedfb42f2b334aa7c47587809362688a8ca714a39f2",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/preparation.py": "c167d21f85f267665232c1ded432578180df63619c5e5cf09940333e77da9cb1",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/problem.py": "8da4c26e80f76c27f4000f181e87a5c296a9c179f130cde59f426d9e6c0fb9ad",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/recorded_control_rollout.py": "aaa42194687fda5d79b0a08a31338a006ce085ebd62e320356dbc0079e65db42",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/ridge.py": "6930757c3a707a552bff639ea0a433243dab9a97da9f6f7944de546b41e32e13",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/sparse_solver.py": "0f89fdb254f5feb1fd4e75223b254cfdefb15232b74f720abebe59bc815cc713",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/state.py": "c2a3dd071e8b9c0ba7bce1c465069d8e137f7f11832dd26b8b06cca4af364cc5",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch/variables.py": "d2d4db829e7b735c16edc3bdafb1c68b25c6a19c247387d92094d527c68e9ecd",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_artifact.py": "bcc2ba3387ff808251d7602de9e8eca5b038a490e8c6bebffa09efa4e18ee9ce",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_artifact_export.py": "800f2c87950284e26bbf8fc329cabad1498ab78528c5bfde78e5677ce511f0ee",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_checkpoint.py": "d3f40c07ece153c93aa2757d8fe7eba73fe5dcfcd85c2406bc2277f5b22c87d1",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_estimation_cli.py": "a6d6724c043cf5c1d017bd9103ab193cc858febda224c1de84595d41bfed904f",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_performance.py": "ac24e0c54304d16fddec6926a9c2509644922923536659b4b63ad1a2874c3476",
+            "ros/examples/grape-param-estim/src/grape_param_estim/batch_request.py": "741ce79c04942f51278d2066d611ac4ab9c32fba09823d97d7db2829bc41e3bf",
+            "ros/examples/grape-param-estim/src/grape_param_estim/closed_loop_stepper.py": "e9ced7f71558408f7fba11df517420fba9f283d92d2850652bc852f89c8b8d7c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/controller.py": "97ceda713e95aa7eb3c08c6eae8e5cf3313565bba48d24b849f4f40cacc4acd9",
+            "ros/examples/grape-param-estim/src/grape_param_estim/controller_config.py": "135284bc972025b52b07f4c4a2ea3b51cb736751324256392fb1fd3a3f3676e7",
+            "ros/examples/grape-param-estim/src/grape_param_estim/dynamics.py": "fcaddbd6713eca538bf314adc26aca10bb0e08a23560f9b898dddf52bd092385",
+            "ros/examples/grape-param-estim/src/grape_param_estim/estimation.py": "6eb9fb4ba4d03ee47ff94d02255cf1e74f6e3aa0be87a5e2f6e69ad3c6e1243c",
+            "ros/examples/grape-param-estim/src/grape_param_estim/geometry.py": "2f054d076754cf58b7b71b91b37e5f927fca39f4a6ac14c842c4c5fdcb410e43",
+            "ros/examples/grape-param-estim/src/grape_param_estim/gimbalrotor_pid_postprocess.py": "e24ce723e09a18bd32a0fc44e5635721db3526006b0ae3625d35b9c11dba6d3a",
+            "ros/examples/grape-param-estim/src/grape_param_estim/held_out_validation.py": "9f3ca5a81753db4cefb43363595bfa2261a3ee88ad07d89495958040f6f23ce4",
+            "ros/examples/grape-param-estim/src/grape_param_estim/initialization.py": "ace6dff4e2e06387fec2bbf524b67741eb685c551b220a83d3dd6a2637795231",
+            "ros/examples/grape-param-estim/src/grape_param_estim/inspection.py": "5ec1ace319f86b031911a08de33ebfabd54abad70d1516e84c423c408ed19454",
+            "ros/examples/grape-param-estim/src/grape_param_estim/inspection_cli.py": "8a02148db9ff8172eb6c5b23f2a656833fd11598b01debbd48a642d51ffcbd62",
+            "ros/examples/grape-param-estim/src/grape_param_estim/parameterization.py": "926ab705b2c5f5d33fe9e02791650064866852fc1104bce8627eddd5b341bf11",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/__init__.py": "498717e0d5619eb1de2442a5052c1b1a2ee2dc4dd1344a9a8905d1352fe5de5b",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/artifact.py": "80a49bb1df1aec2756feff7c5eb4123823d0d0a032617c234bcef53b94a99a50",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/checkpoint.py": "96fca86e33143f02d172d26f04321ccf3597844fa57bd2d70d7e6cd0da2f58f3",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/cli.py": "d23afe8c61bd09c09c9f43f1682e168060f83ded508f4b06d960f03ffc6720c3",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/input.py": "bd96ef895b918b5f6278eafdb596c791cd92826971d88b9777a5bfacfc83ccf7",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/metrics.py": "1217722bcced3936397f88e2132676d385c5c01d69c3a0659f0f9749cb1e8cee",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/particle_search.py": "8299124bfc2208b466954fcb79b0c7ca0a19997d5f4a570c6a687f59fa6cc9f4",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/predictive.py": "a0baf4043e40482c3c1176da2397b3358403041543c1c21b08801b6692607fb2",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/proposal.py": "67bfbe821866b32cd447bcffb896aaae7312bf0b4863e198fbbce71e215f039f",
+            "ros/examples/grape-param-estim/src/grape_param_estim/pid/request.py": "8216190d5ae9bb28583e59c97981d3d0db926979da529322b12f8481ce4b4aeb",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/__init__.py": "c4f1f85d66529fdc20ef16d883c26bbfd0ea7aedb2cda6b7f7f8ff5b070048b6",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/checkpoint.py": "f41fd4819f090fa66c4a1d572e62f199252992d82be7f4f2f8f7aa6cdfcb222e",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/delayed_acceptance.py": "e12845575ea4e79f721e4e904e22499dbe3bb1f06d27eb9f661d3010052e1650",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/diagnostics.py": "b0c39e932006b393b0d2a93b7680192ce3eebe584ff9911f0e987482a67c6d21",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/laplace_target.py": "b59b51c58a34980f24453d73dd5f11dd61759c82731aee9af911ee493f895c63",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/mcmc.py": "fb21ebe442851a51a285bdd6b26149ad76a0f8230a7086c507cf4d52b4f8bd04",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/representatives.py": "5eeeb97e86e9edadd3e8924aeb900cad37af43418f40b9119f509465f9049773",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior/run.py": "b7dcc0a2ab7aa29b51f683a40ddda035f01b9e705cd09e619ac865154b1530ef",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior_sampling_cli.py": "aa76c8129fb4c4d6e713432889a37cdd718eb7b4f9a287f1fc78a95f8ad7dc18",
+            "ros/examples/grape-param-estim/src/grape_param_estim/posterior_sampling_request.py": "c2432eacfebfc6d2f67abb76ca0aa81902661b69fdc2f5caf54baa55b3729555",
+            "ros/examples/grape-param-estim/src/grape_param_estim/progress.py": "3e867fbc5a4232186bc9c113d08d59aa62301455a1f965527dc07addcf23c89e",
+            "ros/examples/grape-param-estim/src/grape_param_estim/real_estimation.py": "373dd087c14c57b2610a495432702550c15a2e285520f1ebaa1c1f452aca8913",
+            "ros/examples/grape-param-estim/src/grape_param_estim/real_rosbag.py": "d4bc531d0c9552c4ef857b42b332b546980cfb17f9002a5dad3b54f137c8ab60",
+            "ros/examples/grape-param-estim/src/grape_param_estim/sensor_models.py": "a29baf715fde41d3487aaa1f6e856f07e18f38bacd1f81530d616902647833f6",
+            "ros/examples/grape-param-estim/src/grape_param_estim/synthetic.py": "b871b8d9e00586aaa4681a10a9e35cab171c180c58c7235b36460cee4b2b847b",
+            "ros/examples/grape-param-estim/src/grape_param_estim/synthetic_batch.py": "88b1f3ae4f0481de4b7bf23da71b5f9cd72aef5e75f0ad3599f8d71349d0acf0",
+            "ros/examples/grape-param-estim/src/grape_param_estim/synthetic_cli.py": "52cef3a1ab0cdeb6a18aa1427cbbaa7dbdc296d6acbeb759737d7eaae0a313a6",
+            "ros/examples/grape-param-estim/src/grape_param_estim/system.py": "474892806d9dcda9d192325f27eafa68c77adc0d8da1f2d1e5f4e924e52269cc",
+            "ros/examples/grape-param-estim/src/grape_param_estim/timing.py": "bb7b6c7740c762e552020cb4e2a380a2c6059d5a6749fcc3d47179a9513ca2ee",
+            "ros/examples/grape-param-estim/src/grape_param_estim/trajectory_sampling.py": "0da60e2318e84d7860a4c09e496818c7eefc0a9642286bda29a7793b5f20f53e"
+          }
+        },
+        "reference": {
+          "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/successful_gain_reference.json",
+          "sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938"
+        },
+        "role": "independent_full_controller",
+        "schema": "grape-param-estim/successful-controller-comparison/v1",
+        "path": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/successful_controller_comparison.json",
+        "sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
       }
     },
     "style": {

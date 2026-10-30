@@ -341,7 +341,7 @@ def test_successful_coordinates_are_visible_without_modifying_grid_or_colors(tmp
             if group == "z":
                 assert len(failure.get_facecolors()) == 0  # purple outer ring and blue diamond
             annotation = next(text for text in ax.texts if text.get_gid() == "success_reference_label")
-            assert "position only" in annotation.get_text() and "rate" not in annotation.get_text()
+            assert "position only" not in annotation.get_text() and "rate" not in annotation.get_text()
             metadata = paper.success_panel_metadata(grid, reference, settings, view)
             assert metadata["role"] == "coordinates_only" and not metadata["stability_value_assigned"]
             assert metadata["inside_computed_box"] is (group != "roll_pitch")

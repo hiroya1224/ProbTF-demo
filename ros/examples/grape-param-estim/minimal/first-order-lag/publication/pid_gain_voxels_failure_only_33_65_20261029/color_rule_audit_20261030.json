@@ -434,7 +434,7 @@
   "previous_publication_commit": "96dd634a91aa7e56f8ac0b918861bc4802181410",
   "renderer": {
     "path": "../../automation/render_failure_publication.py",
-    "sha256": "b40d10b62adba462f9e67dc2c66afeb7ab17b36c053d12ece1a6572de0657dc5"
+    "sha256": "281fa8c3239060e814a4e15a60c61305c8100d4e70e22a8477fa3472ba845ea5"
   },
   "schema": "grape-param-estim/figure-color-rule-audit/v1",
   "scope": "static 2x4 paper figures, not the thresholded interactive viewer",

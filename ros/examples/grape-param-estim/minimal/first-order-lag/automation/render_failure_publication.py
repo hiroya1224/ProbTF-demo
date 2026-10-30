@@ -320,7 +320,7 @@ def success_point_style(settings):
 
 def success_point_text(gain):
     gains = "(" + ", ".join(format(float(v), ".5g") for v in gain) + ")"
-    return "Success ref.\n" + gains + "\nposition only"
+    return "Success ref.\n" + gains
 
 
 def annotation_style(settings, success=False):

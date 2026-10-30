@@ -13,17 +13,17 @@
     },
     {
       "path": "README.md",
-      "sha256": "fb7e665833219b87978be2ab5eec05808bdbd3935c38ce1eb254d45a9aa6dc0e",
-      "size_bytes": 2465
+      "sha256": "529bd5ad9c81c31097a9713d6ef88b9642f847006c95ddb7ffe2e5229d456e80",
+      "size_bytes": 2472
     },
     {
       "path": "SUCCESS_GAIN_OVERLAY_20261030.md",
-      "sha256": "2cc9127d16f430ae5901a9535b42755ab8b3cb2874ff3684544542fe275ff773",
-      "size_bytes": 2823
+      "sha256": "6a0d651dfa21bc6936464eb7694d395ad6c8c2ad2328e1d55c91e0221fadc56d",
+      "size_bytes": 2820
     },
     {
       "path": "color_rule_audit_20261030.json",
-      "sha256": "77f4ec52777fa6c43b93aa1b6aae2536aadccada928fd6ddf82c3a6e18cd0678",
+      "sha256": "56720c7042cde7c0e8a1d152ac8dd8c3940a1beed9b12c3e1f0c6a6ec6a0ff3b",
       "size_bytes": 18506
     },
     {
@@ -513,33 +513,33 @@
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.pdf",
-      "sha256": "99bf2635171659860493f84b611581db9ca13cd55d6a68771bc3b84319f8edcf",
-      "size_bytes": 635997
+      "sha256": "55c84307f6daafe6652d7d34c8ff3222a100a1a43e48af68742dbc2e31bfa17f",
+      "size_bytes": 635904
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.png",
-      "sha256": "d22522ac042b42ea59cd90d4aa019890a7abea385e01f349efa74163b3b71c33",
-      "size_bytes": 2515853
+      "sha256": "c7da7e62080411f3e3092946b929b267324139be1af748771ad8b754ad51534c",
+      "size_bytes": 2484713
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.svg",
-      "sha256": "d01ca4677cdae1d628627d46822bee8cb49e509d9bf126ecfabaae2006b4c964",
-      "size_bytes": 1228358
+      "sha256": "dc4a5cb0823f39171f2f8184c1591d6af37457d614f150e0542b710638a9bba1",
+      "size_bytes": 1227358
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.pdf",
-      "sha256": "ba1128f69d7de912b5988f5ad56e3f6f82cb1ee2f185f336394f3242bb6fce49",
-      "size_bytes": 59242
+      "sha256": "fda08dc609a4502c5e0484b6c965335fcf747aa8fb8a802501714f1baae7732d",
+      "size_bytes": 58974
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.png",
-      "sha256": "f8ac2fcbbe1c184746fc379885485f49c733f9a7a949bc560ccbd1633ad41350",
-      "size_bytes": 611062
+      "sha256": "581038a9c4df8c147249135d4cdcd7562a7895b831396fb87f3cb12961479866",
+      "size_bytes": 561352
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.svg",
-      "sha256": "18608b352219a81081f89ab3a18d0e6892a1a935c65868d088c1fb7e2c6c193b",
-      "size_bytes": 395096
+      "sha256": "096908a44d2b622095201f67632d4804fad2319bbd5d246da2de0e2d4aa3c09c",
+      "size_bytes": 394109
     },
     {
       "path": "figures/grid_33/figure_index.csv",
@@ -548,38 +548,38 @@
     },
     {
       "path": "figures/grid_33/figure_index.json",
-      "sha256": "d56ea92d91b5307563528b5035e73a5f4b786bf531ab44f96476e97878c93cdd",
+      "sha256": "39e8ad101c68e67fbb94c86c68b970996d0ba98481e7173412700f19973fcf39",
       "size_bytes": 58466
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.pdf",
-      "sha256": "489c20e59e4a69a60aa32bad0f3f14ba9057c72fb2ab832879ab8f7d2f9c68a1",
-      "size_bytes": 744609
+      "sha256": "7b665d794eae132bfc4e2ee0db33872a8b89e257aedce9b321ccdbb68aacc61c",
+      "size_bytes": 744516
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.png",
-      "sha256": "87d32c62fc59f71abbac434aa22702738779369ad806d1319ecb679619839819",
-      "size_bytes": 3063463
+      "sha256": "8de90f12eef71a468ea399f187afbf1f11d41d4e15a6d420b4f056d14276ac42",
+      "size_bytes": 3047663
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.svg",
-      "sha256": "01aecdd2f017920417cc325a8848e621f05a408aee7df9752d01a537bc56c281",
-      "size_bytes": 1467150
+      "sha256": "5f84b01026ec66241a9d82c421bf6963a29ac3d4877833e38bdeee2482e1df69",
+      "size_bytes": 1466150
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.pdf",
-      "sha256": "f9a585b77c6c43eb2bee937f7d2c9fa34871a13ffcae0b807f315ffbe0b656fc",
-      "size_bytes": 109606
+      "sha256": "90131c1f23585e5e11b5928b2338c91b8b5a052415be29872beed834d14448ff",
+      "size_bytes": 109288
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.png",
-      "sha256": "9727670e89a680fdd24e9c01b10232ad6acdff314a91a81299ec41b7568fdfc4",
-      "size_bytes": 623069
+      "sha256": "090fb08ee818ca1900970d745da926ad676a3b62f824ea128f282974017c0180",
+      "size_bytes": 575257
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.svg",
-      "sha256": "d158cfd10a709ccf72a4e0acd0f58124245930193d1a51afcd9c56b2af6f046f",
-      "size_bytes": 929844
+      "sha256": "a76da755613977abe9555f6ad7822621471c884cebe613c75577e31597da1151",
+      "size_bytes": 928857
     },
     {
       "path": "figures/grid_65/figure_index.csv",
@@ -588,7 +588,7 @@
     },
     {
       "path": "figures/grid_65/figure_index.json",
-      "sha256": "9a71d62f7da687551bd5261f5ecf89308df2f94957cc82019568755bc6520837",
+      "sha256": "fe25d4a528490b8116ebdc7aa74a040778e22eb03cf5d9fbddef45f68d3ea55e",
       "size_bytes": 58467
     },
     {
@@ -627,7 +627,7 @@
     "script": "ros/examples/grape-param-estim/minimal/first-order-lag/automation/render_failure_publication.py",
     "settings": "figure_settings.json",
     "settings_sha256": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b",
-    "sha256": "b40d10b62adba462f9e67dc2c66afeb7ab17b36c053d12ece1a6572de0657dc5",
+    "sha256": "281fa8c3239060e814a4e15a60c61305c8100d4e70e22a8477fa3472ba845ea5",
     "success_gains_json": "successful_gain_reference.json",
     "success_gains_sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938"
   },
@@ -651,7 +651,16 @@
     "tests_passed": 18,
     "updated_utc": "2026-10-30T13:27:04.290454+00:00"
   },
-  "total_bytes": 14826681,
-  "transfer_total_bytes": 14851234,
+  "success_label_revision": {
+    "change": "Remove position only from successful-reference labels; retain Success ref. and coordinates.",
+    "numerical_data_unchanged": true,
+    "numerical_files_verified": 96,
+    "pdf_svg_labels_verified": 64,
+    "previous_publication_commit": "d9783f5",
+    "tests_passed": 18,
+    "updated_utc": "2026-10-30T13:42:08.784617+00:00"
+  },
+  "total_bytes": 14677477,
+  "transfer_total_bytes": 14702407,
   "within_budget": true
 }

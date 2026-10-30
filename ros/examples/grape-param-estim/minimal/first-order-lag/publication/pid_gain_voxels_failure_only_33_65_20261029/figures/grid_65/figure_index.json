@@ -602,18 +602,18 @@
     "files": {
       "pdf": {
         "path": "all_pid_failure_3D_grid_65.pdf",
-        "bytes": 744522,
-        "sha256": "3f9f2b301ea7dd00a5773fea9cbb886ec189aa65fe00f8c5e5c79946e621b502"
+        "bytes": 744390,
+        "sha256": "57ad80d14eb690f10fce89dd0fcf382985cc56e11cfb9c27706771af959e870c"
       },
       "svg": {
         "path": "all_pid_failure_3D_grid_65.svg",
-        "bytes": 1467158,
-        "sha256": "69888ddfd1766caf2ac78e8e41c6bc969724bbd7657417616bca444f2cbad3d4"
+        "bytes": 1469241,
+        "sha256": "985d4ff7cde8c8fcbd1b9f23f5cb52fd4446ff2f398be097056d6b7c40c51bc7"
       },
       "png": {
         "path": "all_pid_failure_3D_grid_65.png",
-        "bytes": 3076462,
-        "sha256": "f7ef7765063c617f8103066a72035874031cef9899a8dadc318ea077ee65f9d0"
+        "bytes": 2648083,
+        "sha256": "c0aaf03f59bbfbf71e4948be204c75b5add68d4343353e32547ca05aea999871"
       }
     },
     "success_reference": {
@@ -2603,18 +2603,18 @@
     "files": {
       "pdf": {
         "path": "all_pid_failure_PD_grid_65.pdf",
-        "bytes": 109749,
-        "sha256": "6781682bcdfe75b21050d57d9b02c6c6ed0e0f1138200382fa4adc3c26298e6c"
+        "bytes": 110368,
+        "sha256": "da9d0dae935125cd7726176121145553ce31a893780f68034fb5f16905dc3959"
       },
       "svg": {
         "path": "all_pid_failure_PD_grid_65.svg",
-        "bytes": 929844,
-        "sha256": "ce9c2810eec340e1967f868f2821069f309b90389f4834f44d475e5e0ecd0b17"
+        "bytes": 931983,
+        "sha256": "9cb53e078c5bdedd117a2533b49cdf8020258e4b1e58a7c08815ab0f0169fe1b"
       },
       "png": {
         "path": "all_pid_failure_PD_grid_65.png",
-        "bytes": 630695,
-        "sha256": "008d8ef6bc1b1ff70a09fd67a70d9d0e04f2f7dd6c432fe7ee85b1ed5f99d133"
+        "bytes": 663483,
+        "sha256": "3ff9d7a2b15377a2dbd0e7b6b790948fee390d9f72d55e08e527d7bf978b3a64"
       }
     },
     "success_reference": {

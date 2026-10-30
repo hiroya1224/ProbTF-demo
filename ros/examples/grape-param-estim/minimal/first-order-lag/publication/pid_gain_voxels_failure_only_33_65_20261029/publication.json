@@ -13,18 +13,18 @@
     },
     {
       "path": "README.md",
-      "sha256": "36362e1b703ae0533eef527c17e457db55409f10ca3afbc059f3b0a36dcbf31c",
-      "size_bytes": 2703
+      "sha256": "5e369bd1ac6b2f6a053af1708dad4120583a5f4b9e14fc3971ab75d046a52e12",
+      "size_bytes": 3067
     },
     {
       "path": "SUCCESS_GAIN_OVERLAY_20261030.md",
-      "sha256": "4ca6cde6f006dad4a4d4a6ef66f8e2ef14fd43e6b76d76f3e7714272b67bb539",
-      "size_bytes": 5359
+      "sha256": "62eeabc03844daf1deb5676bc9a494b8fdf4dd1797a4d7a213dfa93b02787d1e",
+      "size_bytes": 5774
     },
     {
       "path": "color_rule_audit_20261030.json",
-      "sha256": "ccf82c6d73b0380462f53387a6cd23250af39cbbb3d7311c4c4f526fb93d8ec0",
-      "size_bytes": 19282
+      "sha256": "d79f52c5bdae9f6429a80ef8d22b23189b84718f0a1c3ab90c46da95ec429768",
+      "size_bytes": 19578
     },
     {
       "path": "data/failure1/inputs/original_estimate.json",
@@ -513,33 +513,33 @@
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.pdf",
-      "sha256": "d44435e11664611f314517cd41ba726eaf99341754d0d874e4cbf99a64cde9af",
-      "size_bytes": 635910
+      "sha256": "59e4a1e4b71de2e4aaf4eb5251115c4935fe92dbccb08e7161d65d6319c0fada",
+      "size_bytes": 635778
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.png",
-      "sha256": "0334d293258b6cb442e601f197687acb6370f076311b2714c03f0ea321a2fa57",
-      "size_bytes": 2525034
+      "sha256": "951d21bdfaaec7169f9e5798d703b4ca4626658dd5d441fd204e4cb9539cf71a",
+      "size_bytes": 2178603
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.svg",
-      "sha256": "e27105fa38393d1d9926d42f9d4b904d36ddbc55053c31c417974c3b86e02758",
-      "size_bytes": 1228366
+      "sha256": "9250c613b198a17088e86de0c200f3025e783a0dda571aed17bed3650beb2c89",
+      "size_bytes": 1230449
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.pdf",
-      "sha256": "9eefe5e0ba36c0ea651e29646deec120b6eaeb8f5b37d0466b3872452fac4feb",
-      "size_bytes": 59413
+      "sha256": "82a75f6cefb0e4e3ea9d193a58500a8890ab496eb1b97bd5c4c39dccd622087f",
+      "size_bytes": 59799
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.png",
-      "sha256": "5d33f43f47e62763affd3e5d756bb3690a8e1ceb429d1bf56376b013be196fa8",
-      "size_bytes": 619140
+      "sha256": "311a680a9ef52f841d0f27b8ab002ffe02c9c109a707f1c7c86d0d4de8d74443",
+      "size_bytes": 653723
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.svg",
-      "sha256": "003b9139b83eca2888bf5dc19e32259f60c30f829665d00d252d3150ea176c5e",
-      "size_bytes": 395096
+      "sha256": "f4dbe301793104b4225e0fc754585c95aae7723caec761a9f3ea57d29f91a2bb",
+      "size_bytes": 397235
     },
     {
       "path": "figures/grid_33/figure_index.csv",
@@ -548,38 +548,38 @@
     },
     {
       "path": "figures/grid_33/figure_index.json",
-      "sha256": "e8f176c0306d3d8d63c11a22e96107ff0a189217d34b3ff42fa063b940a4e64a",
+      "sha256": "b16f1993d1828b683cc796f82443d05485dcaf581f2c28629d374f88ef7e3cb1",
       "size_bytes": 146154
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.pdf",
-      "sha256": "3f9f2b301ea7dd00a5773fea9cbb886ec189aa65fe00f8c5e5c79946e621b502",
-      "size_bytes": 744522
+      "sha256": "57ad80d14eb690f10fce89dd0fcf382985cc56e11cfb9c27706771af959e870c",
+      "size_bytes": 744390
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.png",
-      "sha256": "f7ef7765063c617f8103066a72035874031cef9899a8dadc318ea077ee65f9d0",
-      "size_bytes": 3076462
+      "sha256": "c0aaf03f59bbfbf71e4948be204c75b5add68d4343353e32547ca05aea999871",
+      "size_bytes": 2648083
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.svg",
-      "sha256": "69888ddfd1766caf2ac78e8e41c6bc969724bbd7657417616bca444f2cbad3d4",
-      "size_bytes": 1467158
+      "sha256": "985d4ff7cde8c8fcbd1b9f23f5cb52fd4446ff2f398be097056d6b7c40c51bc7",
+      "size_bytes": 1469241
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.pdf",
-      "sha256": "6781682bcdfe75b21050d57d9b02c6c6ed0e0f1138200382fa4adc3c26298e6c",
-      "size_bytes": 109749
+      "sha256": "da9d0dae935125cd7726176121145553ce31a893780f68034fb5f16905dc3959",
+      "size_bytes": 110368
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.png",
-      "sha256": "008d8ef6bc1b1ff70a09fd67a70d9d0e04f2f7dd6c432fe7ee85b1ed5f99d133",
-      "size_bytes": 630695
+      "sha256": "3ff9d7a2b15377a2dbd0e7b6b790948fee390d9f72d55e08e527d7bf978b3a64",
+      "size_bytes": 663483
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.svg",
-      "sha256": "ce9c2810eec340e1967f868f2821069f309b90389f4834f44d475e5e0ecd0b17",
-      "size_bytes": 929844
+      "sha256": "9cb53e078c5bdedd117a2533b49cdf8020258e4b1e58a7c08815ab0f0169fe1b",
+      "size_bytes": 931983
     },
     {
       "path": "figures/grid_65/figure_index.csv",
@@ -588,7 +588,7 @@
     },
     {
       "path": "figures/grid_65/figure_index.json",
-      "sha256": "8061ae0736514caba0ce274ce9857425267c73b1d42352a07b5bec5ff7dc1e42",
+      "sha256": "04384f58fa26c54ab4cf37669c33c34e3bca16e08829704a61a07bdf968c5ac1",
       "size_bytes": 146155
     },
     {
@@ -615,6 +615,24 @@
   "max_total_bytes": 49000000,
   "over_budget_reason": "",
   "prepared_utc": "2026-10-29T11:36:43.780205+00:00",
+  "rate_context_label_revision": {
+    "contexts": {
+      "definition": "rest gains means the nine controller gains outside the displayed P/I/D triple; original plant samples, denominator and stability criterion are unchanged.",
+      "failure": "rate (rest gains: failure)",
+      "success": "rate (rest gains: success)"
+    },
+    "failure_annotation_contexts_verified": 64,
+    "failure_colorbar_contexts_verified": 8,
+    "gain_reference_and_independent_comparison_unchanged": true,
+    "numerical_files_unchanged": 96,
+    "palette_unchanged": true,
+    "pdf_svg_files_verified": 8,
+    "previous_publication_commit": "8a72fca",
+    "same_existing_filenames": true,
+    "success_annotation_contexts_verified": 64,
+    "tests_passed": 30,
+    "updated_utc": "2026-10-30T14:13:58.691303+00:00"
+  },
   "render_revision": {
     "audit": "color_rule_audit_20261030.json",
     "numerical_data_unchanged": true,
@@ -632,7 +650,7 @@
     "script": "ros/examples/grape-param-estim/minimal/first-order-lag/automation/render_failure_publication.py",
     "settings": "figure_settings.json",
     "settings_sha256": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b",
-    "sha256": "f80e846b89ffac53779377bdda707a1dde825e8ec2d184b2e938ae9313b868e3",
+    "sha256": "56047843d74d945a0515afd6abdb2f0c97ae7aaaad3d383c7e2945c474ad90ba",
     "success_comparison_json": "successful_controller_comparison.json",
     "success_comparison_sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b",
     "success_gains_json": "successful_gain_reference.json",
@@ -695,7 +713,7 @@
     "tests_passed": 30,
     "updated_utc": "2026-10-30T13:53:27.990605+00:00"
   },
-  "total_bytes": 15075696,
-  "transfer_total_bytes": 15101980,
+  "total_bytes": 14378517,
+  "transfer_total_bytes": 14405604,
   "within_budget": true
 }

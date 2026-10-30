@@ -472,7 +472,9 @@ def test_independent_success_rates_are_distinct_from_unchanged_background(tmp_pa
     try:
         for ax, (case, group) in zip(figure.axes, ((c, g) for c in paper.CASES for g in paper.GROUPS)):
             label = next(text for text in ax.texts if text.get_gid() == "success_reference_label")
-            assert label.get_text().endswith("rate: " + ("75.0%" if case == "failure1" else "25.0%"))
+            assert label.get_text().endswith("rate (rest gains: success)\n" + ("75.0%" if case == "failure1" else "25.0%"))
+            failure_label = next(text for text in ax.texts if text.get_text().startswith("Failure\n"))
+            assert "rate (rest gains: failure)" in failure_label.get_text()
             assert "position only" not in label.get_text()
             grid = grids[case, group]
             np.testing.assert_array_equal(grid.stable_fraction, before[case, group])

@@ -432,9 +432,14 @@
   "palette_entries": 4096,
   "palette_rgba_sha256": "dd2a6801c50897e25c4a0ee4fe90bf0e7d5271ac31be750fbe120a05108c5501",
   "previous_publication_commit": "96dd634a91aa7e56f8ac0b918861bc4802181410",
+  "rate_label_contexts": {
+    "definition": "rest gains means the nine controller gains outside the displayed P/I/D triple; original plant samples, denominator and stability criterion are unchanged.",
+    "failure": "rate (rest gains: failure)",
+    "success": "rate (rest gains: success)"
+  },
   "renderer": {
     "path": "../../automation/render_failure_publication.py",
-    "sha256": "f80e846b89ffac53779377bdda707a1dde825e8ec2d184b2e938ae9313b868e3"
+    "sha256": "56047843d74d945a0515afd6abdb2f0c97ae7aaaad3d383c7e2945c474ad90ba"
   },
   "schema": "grape-param-estim/figure-color-rule-audit/v1",
   "scope": "static 2x4 paper figures, not the thresholded interactive viewer",

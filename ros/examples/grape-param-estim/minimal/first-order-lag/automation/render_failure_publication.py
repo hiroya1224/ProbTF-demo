@@ -354,7 +354,7 @@ def exposed_faces(values, axes):
 def point_text(grid):
     mark = grid.mark()
     gains = "(" + ", ".join(format(float(v), ".5g") for v in mark["gain"]) + ")"
-    return "Failure\n" + gains + "\nrate : " + format(100 * mark["stable_fraction"], ".1f") + "%"
+    return "Failure\n" + gains + "\nrate (rest gains: failure)\n" + format(100 * mark["stable_fraction"], ".1f") + "%"
 
 
 def point_style(settings, coincident=False):
@@ -372,13 +372,13 @@ def success_point_text(gain, comparison_case=None):
     gains = "(" + ", ".join(format(float(v), ".5g") for v in gain) + ")"
     label = "Success ref.\n" + gains
     if comparison_case is not None:
-        label += "\nrate: " + format(100 * comparison_case["stable_fraction"], ".1f") + "%"
+        label += "\nrate (rest gains: success)\n" + format(100 * comparison_case["stable_fraction"], ".1f") + "%"
     return label
 
 
 def annotation_style(settings, success=False):
     color = settings["success_color" if success else "recorded_color"]
-    return dict(ha="center", va="center", fontsize=9.5, color=color, zorder=10,
+    return dict(ha="center", va="center", fontsize=9.5, color=color, zorder=9 if success else 10,
                 annotation_clip=False,
                 arrowprops={"arrowstyle": "->", "lw": 1.55, "color": color, "shrinkA": 4, "shrinkB": 7},
                 bbox={"facecolor": "white", "edgecolor": color, "linewidth": .6, "alpha": .97, "pad": 3})
@@ -410,25 +410,18 @@ def comparison_slice(grids, settings, success_reference=None, success_comparison
             ax.tick_params(labelsize=9); ax.spines[["top", "right"]].set_visible(False)
             ax.set_title(LABELS[group], fontsize=11, color="#263238", pad=3)
             ax.text(.98, .98, "I = " + format(grid.gain[1], ".5g"), transform=ax.transAxes, ha="right", va="top", fontsize=9)
-            pspan, dspan = [edge[-1] - edge[0] for edge in edges]
             gain = grid.gain
             coincident = success is not None and np.array_equal(gain, success)
             failure_point = ax.scatter(gain[0], gain[2], **point_style(settings, coincident))
             failure_point.set_gid("failure_reference")
-            if group == "roll_pitch":
-                offset = ((-.35 if case == "failure1" else .40) * pspan, -.09 * dspan)
-            else:
-                offset = ((.10 if group == "z" else -.12) * pspan, -.18 * dspan)
             ax.annotate(point_text(grid), xy=(gain[0], gain[2]),
-                        xytext=(gain[0] + offset[0], gain[2] + offset[1]), **annotation_style(settings))
+                        xytext=(.35, .18), textcoords="axes fraction", **annotation_style(settings))
             if success is not None:
                 point = ax.scatter(success[0], success[2], **success_point_style(settings))
                 point.set_gid("success_reference")
-                offset = ((-.12 * pspan, -.28 * dspan) if group == "roll_pitch" else
-                          (.06 * pspan, -.18 * dspan) if group == "xy" else
-                          (-.06 * pspan, .18 * dspan) if group == "z" else (.06 * pspan, .18 * dspan))
+                label_position = (.65 if group in ("xy", "yaw") else .35, .72)
                 text = ax.annotate(success_point_text(success, None if success_comparison is None else success_comparison["cases"][case]), xy=(success[0], success[2]),
-                                   xytext=(success[0] + offset[0], success[2] + offset[1]),
+                                   xytext=label_position, textcoords="axes fraction",
                                    **annotation_style(settings, success=True))
                 text.set_gid("success_reference_label")
     return fig
@@ -469,16 +462,16 @@ def comparison_volume(grids, settings, success_reference=None, success_compariso
             failure_point = ax.scatter(*gain, depthshade=False, **point_style(settings, coincident))
             failure_point.set_gid("failure_reference")
             x, y, _ = proj3d.proj_transform(*gain, ax.get_proj())
-            offset = ((22, -28) if case == "failure1" else (-12, -28)) if group == "roll_pitch" else {
-                "yaw": (-28, -30), "xy": (-8, -30), "z": (28, -32)}[group]
-            ax.annotate(point_text(grid), xy=(x, y), xytext=offset, textcoords="offset points", **annotation_style(settings))
+            label_position = ((.50, .54) if group == "roll_pitch" and case == "failure1" else
+                              (.67, .49) if group in ("roll_pitch", "xy") else (.50, .56))
+            ax.annotate(point_text(grid), xy=(x, y), xytext=label_position,
+                        textcoords="axes fraction", **annotation_style(settings))
             if success is not None:
                 point = ax.scatter(*success, depthshade=False, **success_point_style(settings))
                 point.set_gid("success_reference")
                 x, y, _ = proj3d.proj_transform(*success, ax.get_proj())
-                offset = (17, 32) if group in ("yaw", "xy") else (-20, 34)
-                text = ax.annotate(success_point_text(success, None if success_comparison is None else success_comparison["cases"][case]), xy=(x, y), xytext=offset,
-                                   textcoords="offset points", **annotation_style(settings, success=True))
+                text = ax.annotate(success_point_text(success, None if success_comparison is None else success_comparison["cases"][case]), xy=(x, y), xytext=(.45, .84),
+                                   textcoords="axes fraction", **annotation_style(settings, success=True))
                 text.set_gid("success_reference_label")
     return fig
 
@@ -490,7 +483,7 @@ def save_comparison(fig, grids, settings, output: Path, view: str, grid_size: in
                       cax=bar_axes, orientation="horizontal", ticks=[0, .25, .5, .75, 1])
     bar.ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"])
     bar.ax.tick_params(labelsize=10, length=2, pad=2); bar.outline.set_linewidth(.5)
-    fig.text(.36, .077, "rate (%)", ha="right", va="center", fontsize=11)
+    fig.text(.36, .077, "rate (rest gains: failure)", ha="right", va="center", fontsize=11)
     note = "3D volumes are cut at each recorded I." if view == "3D" else "Each exact P-D slice passes through the recorded failure point."
     markers = (" Purple: failure gains; blue: successful gains." if success_comparison is not None else
                " Purple: failure gains; blue: successful gain coordinates only." if success_reference is not None else

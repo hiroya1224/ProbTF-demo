@@ -9,3 +9,5 @@ The figures follow the earlier publication layout and styles; the withdrawn succ
 Original and runtime estimate files retain their exact numerical values. The runtime input still points to its local frozen model; a byte-identical `inputs/vehicle_model.json` is included for portability.
 
 See `figures/grid_33/` and `figures/grid_65/` for the PDF, SVG and PNG panel figures.
+
+The [October 30 color-rule comparison](COLOR_RULE_AUDIT_20261030.md) explains why the corrected numerical fractions change the colors. The continuous 0–100% palette and opacity are retained; its historical 8-bit color-anchor rounding is now reproduced exactly. Both resolutions have been redrawn from unchanged final data. [Machine-readable comparisons](color_rule_audit_20261030.json) include all numerical-file hashes and the exact palette comparison.

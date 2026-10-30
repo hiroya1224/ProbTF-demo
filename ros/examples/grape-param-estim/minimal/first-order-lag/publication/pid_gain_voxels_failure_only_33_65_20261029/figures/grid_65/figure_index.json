@@ -308,7 +308,7 @@
     "source_grids": {
       "failure1": {
         "roll_pitch": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/roll_pitch/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure1/roll_pitch/grid_65/stability_fraction.npz",
           "source_sha256": "6a163da1bf93554e4ca0fb5c869e053a64b8c4e6139d6c4a2cba7cf752666322",
           "metadata_sha256": "fb0d03237da091528129a0ab7b8a44bb4d888df3819b16a95ed3fbda0862137c",
           "sample_count": 128,
@@ -317,7 +317,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -344,7 +344,7 @@
           ]
         },
         "yaw": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/yaw/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure1/yaw/grid_65/stability_fraction.npz",
           "source_sha256": "823742c9312087fd23e10be6bedfc19d1b03af119d2746faa03f3bee5cc72427",
           "metadata_sha256": "8eddda26ca4a846e0f69e5c9eab7d497f417b2292deaf41c57efe9b1354db676",
           "sample_count": 128,
@@ -353,7 +353,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -380,7 +380,7 @@
           ]
         },
         "xy": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/xy/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure1/xy/grid_65/stability_fraction.npz",
           "source_sha256": "b8a857aeb135653d1ee48e027731df51914e6e5259f47383c6b61ea2b60579fb",
           "metadata_sha256": "6ddfbbc7b13124762d5874cb65c46c6818b8815785507c884002a281b6b60bc0",
           "sample_count": 128,
@@ -389,7 +389,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -416,7 +416,7 @@
           ]
         },
         "z": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/z/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure1/z/grid_65/stability_fraction.npz",
           "source_sha256": "5293efa97d868f45681d3af57d159533ab27561148a47739c3b00afeb328720c",
           "metadata_sha256": "4c866a240e09b669f9940669cc11757c0db9b70e92e84c32839dc2bc22d4d053",
           "sample_count": 128,
@@ -425,7 +425,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -454,7 +454,7 @@
       },
       "failure2": {
         "roll_pitch": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure2/roll_pitch/grid_65/stability_fraction.npz",
           "source_sha256": "0fee2c00cc1cea4dedab4fff83d821c1fc201665acd4583c458768f094022da5",
           "metadata_sha256": "e9dc457f7547629718f5ffabe3055acded27eb4fe7f84731418c2db23893e49a",
           "sample_count": 128,
@@ -463,7 +463,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -490,7 +490,7 @@
           ]
         },
         "yaw": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure2/yaw/grid_65/stability_fraction.npz",
           "source_sha256": "d015ec93ac903e316bfdbfb23fc02b829c1e9d74d5048780578bf61ceeebf586",
           "metadata_sha256": "88c1f9a62713e0956bf5056292d8fe46fc1810d05b145f326e8377f090b64c2e",
           "sample_count": 128,
@@ -499,7 +499,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -526,7 +526,7 @@
           ]
         },
         "xy": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure2/xy/grid_65/stability_fraction.npz",
           "source_sha256": "c293c9c7ee2d8adf726c5e00cf77a674c25654d7144fc2f0012b03bec598f743",
           "metadata_sha256": "15a917cad0373cae0e2aff82189e737982906ebf6442b9ef09e9565fb2330883",
           "sample_count": 128,
@@ -535,7 +535,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -562,7 +562,7 @@
           ]
         },
         "z": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure2/z/grid_65/stability_fraction.npz",
           "source_sha256": "31d076270a8bcf84cf69e2e8f86a2ad6df38ef9ffd798ebefd2152badc1c5a84",
           "metadata_sha256": "9d7005b19689e8bfb79990453e0d31a70b71640a6d86a17e13ea7415812b3928",
           "sample_count": 128,
@@ -571,7 +571,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -602,22 +602,22 @@
     "files": {
       "pdf": {
         "path": "all_pid_failure_3D_grid_65.pdf",
-        "bytes": 767118,
-        "sha256": "eedce68b22b699af703f22f7f45c377550241a8a9e008dc6f5860c6a34ef2a42"
+        "bytes": 760667,
+        "sha256": "ec0c8a324a2bcf2cd37639458aad1bfe771deea77072733f222422cea7fdb3ad"
       },
       "svg": {
         "path": "all_pid_failure_3D_grid_65.svg",
-        "bytes": 1523101,
-        "sha256": "95767792d79c288fba8b49d6fe770d7c65602e3f6e14a8cc26efe1b41cddb36a"
+        "bytes": 1513193,
+        "sha256": "fa82022fd68adb43dd35f22a4c5ae50c5be6838dba3217ff7b10a83f22ea441b"
       },
       "png": {
         "path": "all_pid_failure_3D_grid_65.png",
-        "bytes": 3053112,
-        "sha256": "987b1621afb9e934a0071f50d613619d4e2a1727f9b7022272f9582b6ad64841"
+        "bytes": 3063058,
+        "sha256": "03827d33dfee358edc5a83373914b0419d71778aa5b2b4b8e561336dff67955c"
       }
     },
     "style": {
-      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/publication_watch/frozen_code/figure_settings.json",
+      "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/figure_settings.json",
       "source_sha256": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b",
       "settings": {
         "rate_colormap": "RdYlGn",
@@ -955,7 +955,7 @@
     "source_grids": {
       "failure1": {
         "roll_pitch": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/roll_pitch/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure1/roll_pitch/grid_65/stability_fraction.npz",
           "source_sha256": "6a163da1bf93554e4ca0fb5c869e053a64b8c4e6139d6c4a2cba7cf752666322",
           "metadata_sha256": "fb0d03237da091528129a0ab7b8a44bb4d888df3819b16a95ed3fbda0862137c",
           "sample_count": 128,
@@ -964,7 +964,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -991,7 +991,7 @@
           ]
         },
         "yaw": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/yaw/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure1/yaw/grid_65/stability_fraction.npz",
           "source_sha256": "823742c9312087fd23e10be6bedfc19d1b03af119d2746faa03f3bee5cc72427",
           "metadata_sha256": "8eddda26ca4a846e0f69e5c9eab7d497f417b2292deaf41c57efe9b1354db676",
           "sample_count": 128,
@@ -1000,7 +1000,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -1027,7 +1027,7 @@
           ]
         },
         "xy": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/xy/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure1/xy/grid_65/stability_fraction.npz",
           "source_sha256": "b8a857aeb135653d1ee48e027731df51914e6e5259f47383c6b61ea2b60579fb",
           "metadata_sha256": "6ddfbbc7b13124762d5874cb65c46c6818b8815785507c884002a281b6b60bc0",
           "sample_count": 128,
@@ -1036,7 +1036,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -1063,7 +1063,7 @@
           ]
         },
         "z": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure1/z/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure1/z/grid_65/stability_fraction.npz",
           "source_sha256": "5293efa97d868f45681d3af57d159533ab27561148a47739c3b00afeb328720c",
           "metadata_sha256": "4c866a240e09b669f9940669cc11757c0db9b70e92e84c32839dc2bc22d4d053",
           "sample_count": 128,
@@ -1072,7 +1072,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -1101,7 +1101,7 @@
       },
       "failure2": {
         "roll_pitch": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/roll_pitch/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure2/roll_pitch/grid_65/stability_fraction.npz",
           "source_sha256": "0fee2c00cc1cea4dedab4fff83d821c1fc201665acd4583c458768f094022da5",
           "metadata_sha256": "e9dc457f7547629718f5ffabe3055acded27eb4fe7f84731418c2db23893e49a",
           "sample_count": 128,
@@ -1110,7 +1110,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -1137,7 +1137,7 @@
           ]
         },
         "yaw": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/yaw/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure2/yaw/grid_65/stability_fraction.npz",
           "source_sha256": "d015ec93ac903e316bfdbfb23fc02b829c1e9d74d5048780578bf61ceeebf586",
           "metadata_sha256": "88c1f9a62713e0956bf5056292d8fe46fc1810d05b145f326e8377f090b64c2e",
           "sample_count": 128,
@@ -1146,7 +1146,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -1173,7 +1173,7 @@
           ]
         },
         "xy": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/xy/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure2/xy/grid_65/stability_fraction.npz",
           "source_sha256": "c293c9c7ee2d8adf726c5e00cf77a674c25654d7144fc2f0012b03bec598f743",
           "metadata_sha256": "15a917cad0373cae0e2aff82189e737982906ebf6442b9ef09e9565fb2330883",
           "sample_count": 128,
@@ -1182,7 +1182,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -1209,7 +1209,7 @@
           ]
         },
         "z": {
-          "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/failure2/z/grid_65/stability_fraction.npz",
+          "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/data/failure2/z/grid_65/stability_fraction.npz",
           "source_sha256": "31d076270a8bcf84cf69e2e8f86a2ad6df38ef9ffd798ebefd2152badc1c5a84",
           "metadata_sha256": "9d7005b19689e8bfb79990453e0d31a70b71640a6d86a17e13ea7415812b3928",
           "sample_count": 128,
@@ -1218,7 +1218,7 @@
             66,
             66
           ],
-          "per_sample_check": "per-sample memmaps",
+          "per_sample_check": "complete per-sample stable/valid bit archive",
           "conditioned_on_success": false,
           "fixed_context": "this failure record",
           "full_fixed_controller_gains": [
@@ -1249,22 +1249,22 @@
     "files": {
       "pdf": {
         "path": "all_pid_failure_PD_grid_65.pdf",
-        "bytes": 112528,
-        "sha256": "9d848b0e573e0fa8f5b675fc5050dbe2e4bf22a76b71cc70dd51d6193b957352"
+        "bytes": 106533,
+        "sha256": "024fb8bd6752aed0ecf32f461233e16f9e566a81dccdf4fc8a077e786501a8ff"
       },
       "svg": {
         "path": "all_pid_failure_PD_grid_65.svg",
-        "bytes": 917996,
-        "sha256": "ba015bf16ad8bb72a10470921b5919a42b185bc55647efcb1af5aff46e3da87c"
+        "bytes": 917896,
+        "sha256": "b63bd88dc84429a229384c6b5ce8e7b2c5d301c476e82baa0f38bae2e4d5fc81"
       },
       "png": {
         "path": "all_pid_failure_PD_grid_65.png",
-        "bytes": 457091,
-        "sha256": "520dc079be46c103e21343ee6518a65a85f3335faec6c1b4e3338d0881af5a31"
+        "bytes": 457298,
+        "sha256": "d52f137fba22e2f4c9dc023a9a1fdc7b9d5f614ceb59b2b145408b001a4c30db"
       }
     },
     "style": {
-      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/publication_watch/frozen_code/figure_settings.json",
+      "source": "ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels_failure_only_33_65_20261029/figure_settings.json",
       "source_sha256": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b",
       "settings": {
         "rate_colormap": "RdYlGn",

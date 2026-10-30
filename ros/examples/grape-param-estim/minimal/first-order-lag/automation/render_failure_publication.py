@@ -60,7 +60,10 @@ def rate_colormap(settings: Mapping[str, Any]):
     if not 0 <= white < 1:
         raise ValueError("white_mix must lie in [0, 1)")
     rgb = white + (1 - white) * rgb
-    return colors.LinearSegmentedColormap.from_list("continuous_rate", list(zip(positions, rgb)), N=4096)
+    # Preserve the historical palette's 8-bit hexadecimal anchors before
+    # interpolation, including its rounding. This changes no stability values.
+    anchors = [(float(q), colors.to_hex(color)) for q, color in zip(positions, rgb)]
+    return colors.LinearSegmentedColormap.from_list("continuous_rate", anchors, N=4096)
 
 
 @dataclass

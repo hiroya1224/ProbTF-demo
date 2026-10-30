@@ -1,0 +1,446 @@
+{
+  "schema": "grape-param-estim/figure-color-rule-audit/v1",
+  "date": "2026-10-30",
+  "historical_publication": "../pid_gain_voxels",
+  "previous_publication_commit": "96dd634a91aa7e56f8ac0b918861bc4802181410",
+  "scope": "static 2x4 paper figures, not the thresholded interactive viewer",
+  "settings_identical": true,
+  "fixed_color_range": [
+    0,
+    1
+  ],
+  "palette_entries": 4096,
+  "old_vs_previous_max_rgba_abs_error": 0.0019607843137254832,
+  "old_vs_corrected_max_rgba_abs_error": 0.0,
+  "corrected_palette_bitwise_equal": true,
+  "palette_rgba_sha256": "dd2a6801c50897e25c4a0ee4fe90bf0e7d5271ac31be750fbe120a05108c5501",
+  "cases": [
+    {
+      "case": "failure1",
+      "group": "roll_pitch",
+      "old_conditioned_denominator": 127,
+      "old_N": 128,
+      "old_projected_failure_rate": 0.5590551181102362,
+      "new_actual_failure_rate": 0.484375,
+      "new_N": 128,
+      "new_max_rate": 0.9765625,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_axis_limits": [
+        [
+          5.0,
+          25.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          4.0,
+          28.0
+        ]
+      ],
+      "new_axis_limits": [
+        [
+          5.0,
+          40.0
+        ],
+        [
+          0.25,
+          2.0
+        ],
+        [
+          2.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "case": "failure1",
+      "group": "yaw",
+      "old_conditioned_denominator": 127,
+      "old_N": 128,
+      "old_projected_failure_rate": 0.9685039370078741,
+      "new_actual_failure_rate": 0.484375,
+      "new_N": 128,
+      "new_max_rate": 0.515625,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_axis_limits": [
+        [
+          2.0,
+          10.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          0.5,
+          5.0
+        ]
+      ],
+      "new_axis_limits": [
+        [
+          1.0,
+          8.0
+        ],
+        [
+          0.25,
+          2.0
+        ],
+        [
+          0.5,
+          4.0
+        ]
+      ]
+    },
+    {
+      "case": "failure1",
+      "group": "xy",
+      "old_conditioned_denominator": 127,
+      "old_N": 128,
+      "old_projected_failure_rate": 1.0,
+      "new_actual_failure_rate": 0.484375,
+      "new_N": 128,
+      "new_max_rate": 0.578125,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_axis_limits": [
+        [
+          1.5,
+          6.0
+        ],
+        [
+          0.025,
+          0.3
+        ],
+        [
+          0.25,
+          3.0
+        ]
+      ],
+      "new_axis_limits": [
+        [
+          0.75,
+          6.0
+        ],
+        [
+          0.025,
+          0.2
+        ],
+        [
+          0.25,
+          2.0
+        ]
+      ]
+    },
+    {
+      "case": "failure1",
+      "group": "z",
+      "old_conditioned_denominator": 127,
+      "old_N": 128,
+      "old_projected_failure_rate": 1.0,
+      "new_actual_failure_rate": 0.484375,
+      "new_N": 128,
+      "new_max_rate": 0.546875,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_axis_limits": [
+        [
+          2.0,
+          10.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          0.75,
+          5.0
+        ]
+      ],
+      "new_axis_limits": [
+        [
+          1.25,
+          10.0
+        ],
+        [
+          0.25,
+          2.0
+        ],
+        [
+          0.625,
+          5.0
+        ]
+      ]
+    },
+    {
+      "case": "failure2",
+      "group": "roll_pitch",
+      "old_conditioned_denominator": 128,
+      "old_N": 128,
+      "old_projected_failure_rate": 0.140625,
+      "new_actual_failure_rate": 0.1171875,
+      "new_N": 128,
+      "new_max_rate": 0.9921875,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_axis_limits": [
+        [
+          5.0,
+          25.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          4.0,
+          28.0
+        ]
+      ],
+      "new_axis_limits": [
+        [
+          2.5,
+          20.0
+        ],
+        [
+          0.25,
+          2.0
+        ],
+        [
+          2.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "case": "failure2",
+      "group": "yaw",
+      "old_conditioned_denominator": 128,
+      "old_N": 128,
+      "old_projected_failure_rate": 0.984375,
+      "new_actual_failure_rate": 0.1171875,
+      "new_N": 128,
+      "new_max_rate": 0.234375,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_axis_limits": [
+        [
+          2.0,
+          10.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          0.5,
+          5.0
+        ]
+      ],
+      "new_axis_limits": [
+        [
+          1.0,
+          8.0
+        ],
+        [
+          0.25,
+          2.0
+        ],
+        [
+          0.5,
+          4.0
+        ]
+      ]
+    },
+    {
+      "case": "failure2",
+      "group": "xy",
+      "old_conditioned_denominator": 128,
+      "old_N": 128,
+      "old_projected_failure_rate": 1.0,
+      "new_actual_failure_rate": 0.1171875,
+      "new_N": 128,
+      "new_max_rate": 0.1328125,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_axis_limits": [
+        [
+          1.5,
+          6.0
+        ],
+        [
+          0.025,
+          0.3
+        ],
+        [
+          0.25,
+          3.0
+        ]
+      ],
+      "new_axis_limits": [
+        [
+          0.75,
+          6.0
+        ],
+        [
+          0.025,
+          0.2
+        ],
+        [
+          0.25,
+          2.0
+        ]
+      ]
+    },
+    {
+      "case": "failure2",
+      "group": "z",
+      "old_conditioned_denominator": 128,
+      "old_N": 128,
+      "old_projected_failure_rate": 1.0,
+      "new_actual_failure_rate": 0.1171875,
+      "new_N": 128,
+      "new_max_rate": 0.125,
+      "new_min_rate": 0.0,
+      "new_unresolved_max": 0,
+      "old_axis_limits": [
+        [
+          2.0,
+          10.0
+        ],
+        [
+          0.25,
+          3.0
+        ],
+        [
+          0.75,
+          5.0
+        ]
+      ],
+      "new_axis_limits": [
+        [
+          1.25,
+          10.0
+        ],
+        [
+          0.25,
+          2.0
+        ],
+        [
+          0.625,
+          5.0
+        ]
+      ]
+    }
+  ],
+  "numerical_files_unchanged": true,
+  "numerical_file_sha256": {
+    "data/failure1/inputs/original_estimate.json": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+    "data/failure1/inputs/runtime_estimate.json": "fb1438465aa8d64f537bdbb2eb6ca56a376014c05b006c2e1119b2fa95fba524",
+    "data/failure1/inputs/vehicle_model.json": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+    "data/failure1/manifest.json": "900f0cf285ecb9669c825528a989cf2c82d3aee8cc39bd35ab6f62d0f587fea6",
+    "data/failure1/plant_samples.npz": "b3e436c40ec9a2519198b4e6f4f75e5f29d95d9a15c9d4e02ca736e5ee8cb130",
+    "data/failure1/references.json": "f9a7fa5cd9056bfc50767766b6e7041628eafdc408398bd58bd2c719cb2d4d87",
+    "data/failure1/retention.json": "741a88f3fe9c1edd17d885b89b9b661ae509eacdf9f5d9040979ba389e816a82",
+    "data/failure1/roll_pitch/grid_33/metadata.json": "6826255365493b3c5a178f44ca3f43faa8e8fa7e4fc1d81b204512cd2ef96cd2",
+    "data/failure1/roll_pitch/grid_33/sample_bits.npz": "f728373b8ff40f969d567151906945da32fede03bd67bc6d1f4b3ee8c3000d35",
+    "data/failure1/roll_pitch/grid_33/stability_fraction.json": "1ba745fbec9d7376db91a2a526c9ea1b4daab67533a208907e56abc98d1d48aa",
+    "data/failure1/roll_pitch/grid_33/stability_fraction.npz": "7a787135c5e3befe072a826808d1e2969c55e007d63524be92830444486cb56a",
+    "data/failure1/roll_pitch/grid_33/status.json": "e48049f21eadd97a505f303146cf53fcf97d0c9ddadfebe9be887ea7abacb895",
+    "data/failure1/roll_pitch/grid_65/metadata.json": "fb0d03237da091528129a0ab7b8a44bb4d888df3819b16a95ed3fbda0862137c",
+    "data/failure1/roll_pitch/grid_65/sample_bits.npz": "b502f1bfea2dd77288e480bf3198097823355acfe8690db7bb5bff23e95c1815",
+    "data/failure1/roll_pitch/grid_65/stability_fraction.json": "cf3152ed99a3411dd7853afeb3d61ae763aad07e258f41f55f90800a803e5b21",
+    "data/failure1/roll_pitch/grid_65/stability_fraction.npz": "6a163da1bf93554e4ca0fb5c869e053a64b8c4e6139d6c4a2cba7cf752666322",
+    "data/failure1/roll_pitch/grid_65/status.json": "d05060b07858992ba65cd51f97f53e5c528744a74e20939adefe50523c768a59",
+    "data/failure1/status.json": "1d13762e0c65c7515d2bf236b641bdf988bbbbebd8b31a2990c4bd2151bbc4b7",
+    "data/failure1/xy/grid_33/metadata.json": "04bc3dfe8fc1e033c0e4233f9c1de76ce69c3a4f885dd95c11454683828738aa",
+    "data/failure1/xy/grid_33/sample_bits.npz": "bfc4e539e583b9c62b7c033a489f999a769c4ca0cd5c73f496d0de6c7725bd96",
+    "data/failure1/xy/grid_33/stability_fraction.json": "8c6144774503cac72a92606ef5b817ad96a089f9ca95bcb8d43e461296d41c94",
+    "data/failure1/xy/grid_33/stability_fraction.npz": "ade5d840d4bae29309aa5b8e5b8f616a97277e17656c5d794998c36058c3aa09",
+    "data/failure1/xy/grid_33/status.json": "911b4ba8d9139c4e1f900e49c36fb3d02c1f6f53004f8749686b2775d2c7c4d5",
+    "data/failure1/xy/grid_65/metadata.json": "6ddfbbc7b13124762d5874cb65c46c6818b8815785507c884002a281b6b60bc0",
+    "data/failure1/xy/grid_65/sample_bits.npz": "7b6124ea2197931ac4c4d5e0ed84a6fc96738eeceef7ffc4bfa6e138a68b5b21",
+    "data/failure1/xy/grid_65/stability_fraction.json": "d05cf12d37f84453e4343e0c49b90b2428928fde049854cfa71457c032eb7049",
+    "data/failure1/xy/grid_65/stability_fraction.npz": "b8a857aeb135653d1ee48e027731df51914e6e5259f47383c6b61ea2b60579fb",
+    "data/failure1/xy/grid_65/status.json": "c334ca0b7a6eb99ccc99cb9d974f7260b23ae8a8f99169c6044eeeb391278113",
+    "data/failure1/yaw/grid_33/metadata.json": "1c28e03969f994749663458a48008307e02e2d85e4fbf563e50765f440e4522c",
+    "data/failure1/yaw/grid_33/sample_bits.npz": "77ae8cd86e17c713f6993cd7df4c1f16c583a8c05a40dec7739999823c853b74",
+    "data/failure1/yaw/grid_33/stability_fraction.json": "8c6144774503cac72a92606ef5b817ad96a089f9ca95bcb8d43e461296d41c94",
+    "data/failure1/yaw/grid_33/stability_fraction.npz": "a6959f7ec245da4e322428706237e2d9be5094e3014ece79e92f8b3e704cf932",
+    "data/failure1/yaw/grid_33/status.json": "9083a19859a39da1c4538a91a9c560bf60f39986075ba8deeef6683ebf52d22a",
+    "data/failure1/yaw/grid_65/metadata.json": "8eddda26ca4a846e0f69e5c9eab7d497f417b2292deaf41c57efe9b1354db676",
+    "data/failure1/yaw/grid_65/sample_bits.npz": "a97fa33b563e932294d8f8f29ea40984b11c7074df5e16681bac96301849ba73",
+    "data/failure1/yaw/grid_65/stability_fraction.json": "d05cf12d37f84453e4343e0c49b90b2428928fde049854cfa71457c032eb7049",
+    "data/failure1/yaw/grid_65/stability_fraction.npz": "823742c9312087fd23e10be6bedfc19d1b03af119d2746faa03f3bee5cc72427",
+    "data/failure1/yaw/grid_65/status.json": "4363209cbff70fda851132888558d58ba1b82d79decf2423d26a6ae6d05942c4",
+    "data/failure1/z/grid_33/metadata.json": "0d4930bb126e558fe1fd48dfad4240ee260b9b09368068c7f4763b33e5229ba1",
+    "data/failure1/z/grid_33/sample_bits.npz": "6a98807c8f35f33162d8e7775eb5a576a189609f2c969dc8e83d53f5c3f09177",
+    "data/failure1/z/grid_33/stability_fraction.json": "8c6144774503cac72a92606ef5b817ad96a089f9ca95bcb8d43e461296d41c94",
+    "data/failure1/z/grid_33/stability_fraction.npz": "1fa428a889c95709ecdac0d4626b6fb648ba3cd98170dcf1fecd0f65602e84eb",
+    "data/failure1/z/grid_33/status.json": "db9feccbea4f73267d8ab5ef004f850fea09ae9e3fbea91b216f042bf52a5ebc",
+    "data/failure1/z/grid_65/metadata.json": "4c866a240e09b669f9940669cc11757c0db9b70e92e84c32839dc2bc22d4d053",
+    "data/failure1/z/grid_65/sample_bits.npz": "9fd47292162a9212b74dcbc50364484fc4b1cfd7f03fd45dd7561ba962a2e29a",
+    "data/failure1/z/grid_65/stability_fraction.json": "d05cf12d37f84453e4343e0c49b90b2428928fde049854cfa71457c032eb7049",
+    "data/failure1/z/grid_65/stability_fraction.npz": "5293efa97d868f45681d3af57d159533ab27561148a47739c3b00afeb328720c",
+    "data/failure1/z/grid_65/status.json": "f357dc073ee85ebe514540b682547d5851c88f3f6019ee91ef79b3e0f09cc3b2",
+    "data/failure2/inputs/original_estimate.json": "37f88f9023ee1b55db090a1e2d38dd79eeecb65ff0fd190cda0e3d80bab4c8a1",
+    "data/failure2/inputs/runtime_estimate.json": "e416900ac4b4dfaf5982da9cc237133499e176cb73e6437c531d0d7490b6626a",
+    "data/failure2/inputs/vehicle_model.json": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+    "data/failure2/manifest.json": "280020942991fd25115e1d8ec0826c1f7832ebf97192824e71da60a51d215888",
+    "data/failure2/plant_samples.npz": "685da7e6b70c4cd192f5458f8f37c21b4c082cbb3fdfcad835a1708edde4061b",
+    "data/failure2/references.json": "4f48a167b1fd837aa0e9779f1f1a57432e33eb24d7e14bae1536846e423c927c",
+    "data/failure2/retention.json": "2afb197d7c33426f49ce3b64ddc82648b76c32c438631d2a7e776b0fe02c6221",
+    "data/failure2/roll_pitch/grid_33/metadata.json": "bfa3aa6e736f65d66e694d1aa8c1251642e532337623b0eeb0d7dc7fad19da4e",
+    "data/failure2/roll_pitch/grid_33/sample_bits.npz": "3d080c7917e64b0ba4569f858787e5d0557f9ebeadddd576c59c807e0ed9421e",
+    "data/failure2/roll_pitch/grid_33/stability_fraction.json": "409d4828a0c11c4a14c2852991f5a708ff1fc628e0fb6b43c6918ad9c4341449",
+    "data/failure2/roll_pitch/grid_33/stability_fraction.npz": "de340ab742cae22e3f34889fd46921a7c78cd02ca03aad8cd93df0c94df722a3",
+    "data/failure2/roll_pitch/grid_33/status.json": "88dbb2497d89a5ae5511cff445e2a881d373345212d020574fe31958569a9ec8",
+    "data/failure2/roll_pitch/grid_65/metadata.json": "e9dc457f7547629718f5ffabe3055acded27eb4fe7f84731418c2db23893e49a",
+    "data/failure2/roll_pitch/grid_65/sample_bits.npz": "fb633333cfba81ed60ae5dfc52046b74c2a5fb4fea8262426b1fca4f1ad75c38",
+    "data/failure2/roll_pitch/grid_65/stability_fraction.json": "6be76321c55291a633a463902e48d7b9e170ecb43af38b5694f0cd200b2fd692",
+    "data/failure2/roll_pitch/grid_65/stability_fraction.npz": "0fee2c00cc1cea4dedab4fff83d821c1fc201665acd4583c458768f094022da5",
+    "data/failure2/roll_pitch/grid_65/status.json": "10f9282bc194d78544c13be7526d6c1ec3c732ce90db94ad9d8e78fdcf364e50",
+    "data/failure2/status.json": "033380dc28ec80663536becdcb72066b66304ecd45271665e10e5142dfbda9af",
+    "data/failure2/xy/grid_33/metadata.json": "0a2fec75488899bd05427a90c378882a69dfa2c4b769a75de98ab08a3a0f217c",
+    "data/failure2/xy/grid_33/sample_bits.npz": "abc52516240bc1b17c1156e08246666d9640dcfbfd8932753f10fdceb5a9c7ed",
+    "data/failure2/xy/grid_33/stability_fraction.json": "8c6144774503cac72a92606ef5b817ad96a089f9ca95bcb8d43e461296d41c94",
+    "data/failure2/xy/grid_33/stability_fraction.npz": "f570e81f1bb09dccc4758c54e203f6e454c76a10dfa54e8d4c55aef117c99110",
+    "data/failure2/xy/grid_33/status.json": "5cdad48c7f5b972535349b60ec7b451a7742713ee386dbb5536f3b1d12b2532d",
+    "data/failure2/xy/grid_65/metadata.json": "15a917cad0373cae0e2aff82189e737982906ebf6442b9ef09e9565fb2330883",
+    "data/failure2/xy/grid_65/sample_bits.npz": "55773ba1bec8bce304e370310aabbffdf155a95b27d5077e28ec5aacb5b2d746",
+    "data/failure2/xy/grid_65/stability_fraction.json": "d05cf12d37f84453e4343e0c49b90b2428928fde049854cfa71457c032eb7049",
+    "data/failure2/xy/grid_65/stability_fraction.npz": "c293c9c7ee2d8adf726c5e00cf77a674c25654d7144fc2f0012b03bec598f743",
+    "data/failure2/xy/grid_65/status.json": "bd67a23b6d26d767d472bcdae5c182df2999ed9fcf599b44b85c70039db3db91",
+    "data/failure2/yaw/grid_33/metadata.json": "00b1a861763ba8c49994ad975bbf27a7e58ab89b79628a3762df66dd12860bd9",
+    "data/failure2/yaw/grid_33/sample_bits.npz": "3439a918fcd4ca6fabc305af7f44eeac2edee922df7ba6bda91fdb118e1aaea9",
+    "data/failure2/yaw/grid_33/stability_fraction.json": "8c6144774503cac72a92606ef5b817ad96a089f9ca95bcb8d43e461296d41c94",
+    "data/failure2/yaw/grid_33/stability_fraction.npz": "f8275eacfa6eb5e435a91fe0202058bf400e549a422b1929b8614e79a4ea16b6",
+    "data/failure2/yaw/grid_33/status.json": "a0d994b79f8a4ade243777a2c243f4fbf8c306786bb6f70905dd228144316937",
+    "data/failure2/yaw/grid_65/metadata.json": "88c1f9a62713e0956bf5056292d8fe46fc1810d05b145f326e8377f090b64c2e",
+    "data/failure2/yaw/grid_65/sample_bits.npz": "4464aa56640ab1e06b3ed6581308e2eb703ead93164dbe31b76bc5832c3507b5",
+    "data/failure2/yaw/grid_65/stability_fraction.json": "d05cf12d37f84453e4343e0c49b90b2428928fde049854cfa71457c032eb7049",
+    "data/failure2/yaw/grid_65/stability_fraction.npz": "d015ec93ac903e316bfdbfb23fc02b829c1e9d74d5048780578bf61ceeebf586",
+    "data/failure2/yaw/grid_65/status.json": "7ac1ea2fef890701eea30df65e1bcb8b13f03ef56e16eaadd33682dc8c5b6f4e",
+    "data/failure2/z/grid_33/metadata.json": "068d7eed536829fba42f8193dd58c42830806b63a57620fe13bcfc2e13a12984",
+    "data/failure2/z/grid_33/sample_bits.npz": "7d7f3a684c28e9686daa052d423c69bccf62b8ffaaa9c66ee11139a5639c51bc",
+    "data/failure2/z/grid_33/stability_fraction.json": "8c6144774503cac72a92606ef5b817ad96a089f9ca95bcb8d43e461296d41c94",
+    "data/failure2/z/grid_33/stability_fraction.npz": "c5640a01d48e80ec74fe368d10d196c589f3277ed5d7fa15df6b52f0efacca1f",
+    "data/failure2/z/grid_33/status.json": "d298ca9c1d96fcac8214da84b289f271cb007e3bb3164a1769ebaf8afb919e0b",
+    "data/failure2/z/grid_65/metadata.json": "9d7005b19689e8bfb79990453e0d31a70b71640a6d86a17e13ea7415812b3928",
+    "data/failure2/z/grid_65/sample_bits.npz": "43620209883924f343ece8f0452675b317a6c34d2cf74a6ad3d31abb0ec49686",
+    "data/failure2/z/grid_65/stability_fraction.json": "d05cf12d37f84453e4343e0c49b90b2428928fde049854cfa71457c032eb7049",
+    "data/failure2/z/grid_65/stability_fraction.npz": "31d076270a8bcf84cf69e2e8f86a2ad6df38ef9ffd798ebefd2152badc1c5a84",
+    "data/failure2/z/grid_65/status.json": "3b551c7d78244181655d62ec884817abeb533167a184b879fbc0e360216139fc"
+  },
+  "tests": {
+    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/pid-figure-audit-pytest OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_render_failure_publication.py",
+    "passed": 13
+  },
+  "renderer": {
+    "path": "../../automation/render_failure_publication.py",
+    "sha256": "1ecd720ece6d8b2b8511636359b8ab54817166fbdfa99d693ffd81868959df50"
+  }
+}

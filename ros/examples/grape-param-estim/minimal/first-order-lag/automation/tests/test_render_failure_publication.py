@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +15,90 @@ AUTOMATION = Path(__file__).resolve().parents[1]
 if str(AUTOMATION) not in sys.path:
     sys.path.insert(0, str(AUTOMATION))
 import render_failure_publication as paper
+
+
+@pytest.fixture
+def historical_rendering(monkeypatch):
+    """Read the archived visual helpers without using their numerical data."""
+    scripts = paper.DEFAULT_SETTINGS.parent / "scripts"
+
+    def load(name, filename):
+        spec = importlib.util.spec_from_file_location(name, scripts / filename)
+        module = importlib.util.module_from_spec(spec)
+        monkeypatch.setitem(sys.modules, name, module)
+        spec.loader.exec_module(module)
+        return module
+
+    data = load("data_io", "data_io.py")
+    palette = load("rate_colors", "rate_colors.py")
+    plots = load("historical_pid_paper_figures", "plot_paper_figures.py")
+    return SimpleNamespace(data=data, palette=palette, plots=plots)
+
+
+def test_all_4096_palette_colors_match_historical_hex_anchor_rounding(historical_rendering):
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    rates = np.linspace(0., 1., 4096)
+    expected = historical_rendering.palette.rate_colormap(settings)(rates)
+    actual = paper.rate_colormap(settings)(rates)
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_nonuniform_field_faces_and_pd_cells_match_historical_mapping(historical_rendering):
+    axes = (np.array([.2, 1., 3., 7.]), np.array([.1, .7, 2.]),
+            np.array([.3, 1., 2.5]))
+    # Adjacent equal cells and several distinct rates exercise both face removal
+    # and exact rectangle merging; no thresholding or interpolation is allowed.
+    values = np.array([0., 0., .25, .5, .75, 1., .5, .5, .25,
+                       .25, .25, .5, 1., 1., .75, .25, .25, 0.,
+                       .5, .5, .75, .25, .25, .5, 1., 1., .75,
+                       1., .75, .5, .5, .25, 0., 0., .25, .5]).reshape(4, 3, 3)
+    old_grid = historical_rendering.data.Grid(
+        "failure1", "roll_pitch", 65,
+        dict(zip(("p", "i", "d"), axes), survival_fraction=values), {}, {})
+    old_faces, old_rates = historical_rendering.data.exposed_faces(old_grid)
+    faces, rates = paper.exposed_faces(values, axes)
+    np.testing.assert_array_equal(faces, old_faces)
+    np.testing.assert_array_equal(rates, old_rates)
+    _, old_slice, old_edges = historical_rendering.data.slice_at(old_grid, 1, 1)
+    np.testing.assert_array_equal(values[:, 1, :].T, old_slice)
+    new_edges = (paper.midpoint_edges(axes[0]), paper.midpoint_edges(axes[2]))
+    old_vertices, old_slice_rates, old_rectangles = historical_rendering.plots.merge_uniform_cells(
+        old_slice, *old_edges)
+    vertices, slice_rates, rectangles = paper.merge_uniform_cells(values[:, 1, :].T, *new_edges)
+    np.testing.assert_array_equal(vertices, old_vertices)
+    np.testing.assert_array_equal(slice_rates, old_slice_rates)
+    assert rectangles == old_rectangles
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    np.testing.assert_array_equal(paper.rate_colormap(settings)(rates),
+                                  historical_rendering.palette.rate_colormap(settings)(old_rates))
+    np.testing.assert_array_equal(paper.rate_colormap(settings)(slice_rates),
+                                  historical_rendering.palette.rate_colormap(settings)(old_slice_rates))
+
+
+def test_2d_and_3d_use_same_historical_rate_color_and_fixed_normalization(tmp_path, historical_rendering):
+    grids = {}
+    for case in paper.CASES:
+        for group in paper.GROUPS:
+            source_grid(tmp_path, case, group)
+            grids[case, group] = paper.load_grid(tmp_path, case, group, 33)
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    expected_2d = historical_rendering.palette.rate_colormap(settings)(.5)
+    expected_3d = np.array(expected_2d)
+    expected_3d[3] = settings["voxel_opacity"]
+    slice_figure = paper.comparison_slice(grids, settings)
+    volume_figure = paper.comparison_volume(grids, settings)
+    try:
+        for ax in slice_figure.axes:
+            field = ax.collections[0]
+            assert (field.norm.vmin, field.norm.vmax) == (0., 1.)
+            np.testing.assert_array_equal(field.to_rgba(field.get_array()),
+                                          np.broadcast_to(expected_2d, (len(field.get_array()), 4)))
+        for ax in volume_figure.axes:
+            faces = np.asarray(ax.collections[0].get_facecolor())
+            np.testing.assert_array_equal(faces, np.broadcast_to(expected_3d, faces.shape))
+    finally:
+        plt.close(slice_figure)
+        plt.close(volume_figure)
 
 
 def source_grid(root, case="failure1", group="roll_pitch", size=33):

@@ -7,9 +7,19 @@
       "size_bytes": 28
     },
     {
+      "path": "COLOR_RULE_AUDIT_20261030.md",
+      "sha256": "0e9abd62fb8fdc14fa5ef60a429517bdeae7193eac79295ec6bd5b656c22610d",
+      "size_bytes": 5170
+    },
+    {
       "path": "README.md",
-      "sha256": "6a36754abb93e86163cb981d0c022011a84aad45dfed218d6124675e9399b956",
-      "size_bytes": 1070
+      "sha256": "f9aad993645dfb32022549dad66fca8df79eb5d924e6259d5d9ab700fe247cd6",
+      "size_bytes": 1527
+    },
+    {
+      "path": "color_rule_audit_20261030.json",
+      "sha256": "056563cf6888917bd63323491b3774e6deda2b904a14978a56554b8eef8d4322",
+      "size_bytes": 18106
     },
     {
       "path": "data/failure1/inputs/original_estimate.json",
@@ -498,33 +508,33 @@
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.pdf",
-      "sha256": "e0a3976d0c9631603255ce4c10c81729fb3a090e1fc4556fe8416bc9fac421cc",
-      "size_bytes": 648220
+      "sha256": "f1215d35e81ae68e329d5a2455a66103b3d49e47a50092cb15734f5bde1d9b57",
+      "size_bytes": 644084
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.png",
-      "sha256": "7ec8beb1f9a83f2bef1791c5c1ad8b5e6eb3fdcb135bf177b53fbb8ffea812a0",
-      "size_bytes": 2428022
+      "sha256": "929e1f39590bd65e8d7b3f0dfb14f01a156b3820e05012b5aa231a30745af13a",
+      "size_bytes": 2436588
     },
     {
       "path": "figures/grid_33/all_pid_failure_3D_grid_33.svg",
-      "sha256": "108d93e8f4c956ecb0e2d25b557f662f51dc81ac8d4c5c218fe2eb9120f601df",
-      "size_bytes": 1256177
+      "sha256": "599810509a3f40efed580422f56d3aba2ee0edac4706504a27a83d71bd37e195",
+      "size_bytes": 1250605
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.pdf",
-      "sha256": "3ef42077bafd2bdc3362b0a296b72dcffe4d17c50575da8f4214b89fea30571f",
-      "size_bytes": 59165
+      "sha256": "d7ba7b1a69d95457c04701621a96aae13a3e2691fd650062d5cfebb9153d0c3d",
+      "size_bytes": 56263
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.png",
-      "sha256": "34efc871813e997863b7c1da1bb462913b3717098a5307e969bfb29efbde976d",
-      "size_bytes": 444484
+      "sha256": "03710664bf253214b3b2e0d72b7b1ffd7d76cf32d42d5c12271e3a403e01e4c1",
+      "size_bytes": 444803
     },
     {
       "path": "figures/grid_33/all_pid_failure_PD_grid_33.svg",
-      "sha256": "94b2dbd8d9bfabc5d7572d47733251412e41426f1f5c623710d8039cae6c9659",
-      "size_bytes": 383784
+      "sha256": "08c0957e36de9c1798f8994449ec37eaa374d4674eb258134f48afc005f24031",
+      "size_bytes": 383684
     },
     {
       "path": "figures/grid_33/figure_index.csv",
@@ -533,38 +543,38 @@
     },
     {
       "path": "figures/grid_33/figure_index.json",
-      "sha256": "ca0ac1140731b6e857e6340bafa72468744f3e326fd36dec9fe369f63ba244fe",
-      "size_bytes": 32790
+      "sha256": "035ff38597e572f40e78b0abdfe8f59909c79718061c8cee68095543c928a60b",
+      "size_bytes": 32920
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.pdf",
-      "sha256": "eedce68b22b699af703f22f7f45c377550241a8a9e008dc6f5860c6a34ef2a42",
-      "size_bytes": 767118
+      "sha256": "ec0c8a324a2bcf2cd37639458aad1bfe771deea77072733f222422cea7fdb3ad",
+      "size_bytes": 760667
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.png",
-      "sha256": "987b1621afb9e934a0071f50d613619d4e2a1727f9b7022272f9582b6ad64841",
-      "size_bytes": 3053112
+      "sha256": "03827d33dfee358edc5a83373914b0419d71778aa5b2b4b8e561336dff67955c",
+      "size_bytes": 3063058
     },
     {
       "path": "figures/grid_65/all_pid_failure_3D_grid_65.svg",
-      "sha256": "95767792d79c288fba8b49d6fe770d7c65602e3f6e14a8cc26efe1b41cddb36a",
-      "size_bytes": 1523101
+      "sha256": "fa82022fd68adb43dd35f22a4c5ae50c5be6838dba3217ff7b10a83f22ea441b",
+      "size_bytes": 1513193
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.pdf",
-      "sha256": "9d848b0e573e0fa8f5b675fc5050dbe2e4bf22a76b71cc70dd51d6193b957352",
-      "size_bytes": 112528
+      "sha256": "024fb8bd6752aed0ecf32f461233e16f9e566a81dccdf4fc8a077e786501a8ff",
+      "size_bytes": 106533
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.png",
-      "sha256": "520dc079be46c103e21343ee6518a65a85f3335faec6c1b4e3338d0881af5a31",
-      "size_bytes": 457091
+      "sha256": "d52f137fba22e2f4c9dc023a9a1fdc7b9d5f614ceb59b2b145408b001a4c30db",
+      "size_bytes": 457298
     },
     {
       "path": "figures/grid_65/all_pid_failure_PD_grid_65.svg",
-      "sha256": "ba015bf16ad8bb72a10470921b5919a42b185bc55647efcb1af5aff46e3da87c",
-      "size_bytes": 917996
+      "sha256": "b63bd88dc84429a229384c6b5ce8e7b2c5d301c476e82baa0f38bae2e4d5fc81",
+      "size_bytes": 917896
     },
     {
       "path": "figures/grid_65/figure_index.csv",
@@ -573,8 +583,8 @@
     },
     {
       "path": "figures/grid_65/figure_index.json",
-      "sha256": "003375119b7d9478ec94f58ba266f8faa2422712dfdbdae15df7fc369ae05bc6",
-      "size_bytes": 32791
+      "sha256": "750db5526fce6d9c6125e1eb0da3316d1cba7adcdd59c9a7527bbb2c40de980a",
+      "size_bytes": 32921
     },
     {
       "path": "local_data_catalog.json",
@@ -590,14 +600,27 @@
   "max_total_bytes": 49000000,
   "over_budget_reason": "",
   "prepared_utc": "2026-10-29T11:36:43.780205+00:00",
+  "render_revision": {
+    "audit": "color_rule_audit_20261030.json",
+    "numerical_data_unchanged": true,
+    "previous_publication_commit": "96dd634a91aa7e56f8ac0b918861bc4802181410",
+    "previous_renderer": {
+      "script": "ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/publication_watch/frozen_code/render_failure_publication.py",
+      "settings": "figure_settings.json",
+      "settings_sha256": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b",
+      "sha256": "f533921315a4da91249b04c604a1b3f92ee37b2b9a108f5f7df3d2ccb4416dcf"
+    },
+    "reason": "Match historical 8-bit hex color anchors exactly; all original stability data and the continuous 0-100% rule are unchanged.",
+    "redrawn_utc": "2026-10-30T12:58:48.897356+00:00"
+  },
   "renderer": {
-    "script": "ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure_only_33_65_20261028/publication_watch/frozen_code/render_failure_publication.py",
+    "script": "ros/examples/grape-param-estim/minimal/first-order-lag/automation/render_failure_publication.py",
     "settings": "figure_settings.json",
     "settings_sha256": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b",
-    "sha256": "f533921315a4da91249b04c604a1b3f92ee37b2b9a108f5f7df3d2ccb4416dcf"
+    "sha256": "1ecd720ece6d8b2b8511636359b8ab54817166fbdfa99d693ffd81868959df50"
   },
   "schema": "grape-param-estim/failure-publication/v1",
-  "total_bytes": 14413817,
-  "transfer_total_bytes": 14435819,
+  "total_bytes": 14421684,
+  "transfer_total_bytes": 14444779,
   "within_budget": true
 }

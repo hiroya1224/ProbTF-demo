@@ -40,6 +40,7 @@ LABELS = {"roll_pitch": "Roll / Pitch", "yaw": "Yaw", "xy": "XY", "z": "Z"}
 SCHEMA = "grape-param-estim/failure-only-paper-figures/v1"
 SUCCESS_REFERENCE_SCHEMA = "grape-param-estim/successful-controller-position-reference/v1"
 SUCCESS_COMPARISON_SCHEMA = "grape-param-estim/successful-controller-comparison/v1"
+REST_PID_COMPARISON_SCHEMA = "grape-param-estim/rest-pid-controller-comparison/v1"
 
 
 def sha256(path: Path) -> str:
@@ -130,6 +131,73 @@ def independent_success_summary(comparison, case):
             "comparison_source_sha256": comparison["sha256"]}
 
 
+def load_rest_pid_comparison(path: Path, reference, grids, input_root: Path) -> dict[str, Any]:
+    """Verify both rest-nine contexts at each fixed three-gain reference point."""
+    if reference is None:
+        raise ValueError("rest-PID comparisons require the successful gain coordinate reference")
+    path = Path(path)
+    payload = json.loads(path.read_text())
+    successful = np.asarray(payload.get("successful_gains"), dtype=float)
+    if (payload.get("schema") != REST_PID_COMPARISON_SCHEMA
+            or payload.get("role") != "paired_rest_pid_contexts"
+            or payload.get("gain_order") != list(SOURCE_GROUPS)
+            or not np.array_equal(successful, reference["gains"])):
+        raise ValueError("rest-PID comparison schema, role, order or successful gains differ")
+    for case in CASES:
+        case_data = payload.get("cases", {}).get(case, {})
+        n = case_data.get("sample_count")
+        failure = np.asarray(case_data.get("failure_gains"), dtype=float)
+        if (type(n) is not int or n <= 0
+                or any(grids[case, group].sample_count != n
+                       or not np.array_equal(failure, grids[case, group].recorded_gains) for group in GROUPS)):
+            raise ValueError("rest-PID comparison must retain the failure controller and ALL original samples")
+        sample_file = Path(input_root) / case / "plant_samples.npz"
+        with np.load(sample_file, allow_pickle=False) as saved:
+            coordinates = np.ascontiguousarray(saved["quotient_coordinates"], dtype=np.float64)
+        provenance = case_data.get("provenance", {})
+        if (len(coordinates) != n or provenance.get("plant_samples_sha256") != sha256(sample_file)
+                or provenance.get("quotient_coordinates_sha256") != hashlib.sha256(coordinates.tobytes()).hexdigest()):
+            raise ValueError("rest-PID comparison must use the same original plant samples and ordering")
+        for group in GROUPS:
+            row_index = SOURCE_GROUPS.index(group)
+            group_data = case_data.get("groups", {}).get(group, {})
+            for point in ("failure", "success"):
+                point_data = group_data.get(point, {})
+                gain = (failure if point == "failure" else successful)[row_index]
+                if not np.array_equal(np.asarray(point_data.get("gain"), dtype=float), gain):
+                    raise ValueError("rest-PID comparison changed the reference point's three gains")
+                for context in ("success", "failure"):
+                    score = point_data.get("rest_pid", {}).get(context, {})
+                    expected = (successful if context == "success" else failure).copy()
+                    expected[row_index] = gain
+                    if not np.array_equal(np.asarray(score.get("full_controller_gains"), dtype=float), expected):
+                        raise ValueError("rest-PID controller must combine the point's three gains with the stated other nine")
+                    counts = [score.get(key) for key in ("sample_count", "stable_count", "valid_count", "unresolved_count")]
+                    radii = np.asarray(score.get("spectral_radius"), dtype=float)
+                    if any(type(value) is not int for value in counts):
+                        raise ValueError("rest-PID comparison requires explicit integer ALL-N counts")
+                    count_n, stable, valid, unresolved = counts
+                    if (count_n != n or radii.shape != (n,) or not 0 <= stable <= valid <= n
+                            or valid + unresolved != n or score.get("stable_fraction") != stable / n
+                            or valid != int(np.count_nonzero(np.isfinite(radii)))
+                            or stable != int(np.count_nonzero(np.isfinite(radii) & (radii < 1.0)))):
+                        raise ValueError("rest-PID counts/rate must retain and recount ALL original samples")
+                    if point == context == "failure":
+                        mark = grids[case, group].mark()
+                        if any(score[key] != mark[key] for key in ("sample_count", "stable_count", "valid_count", "unresolved_count", "stable_fraction")):
+                            raise ValueError("failure/rest-failure comparison differs from the unchanged background anchor")
+    return {**payload, "path": str(path), "sha256": sha256(path)}
+
+
+def rest_pid_point_summary(comparison, case, group, point):
+    source = comparison["cases"][case]["groups"][group][point]
+    return {"role": "paired_rest_pid_contexts", "gain": source["gain"],
+            "comparison_source_sha256": comparison["sha256"],
+            "rest_pid": {context: {key: source["rest_pid"][context][key] for key in (
+                "full_controller_gains", "sample_count", "stable_count", "valid_count", "unresolved_count", "stable_fraction")}
+                for context in ("success", "failure")}}
+
+
 def padded_limits(axis, padding, reference=None):
     """Expand the display frame for a marker, never the evaluated data domain."""
     lower, upper = float(axis[0]), float(axis[-1])
@@ -139,7 +207,7 @@ def padded_limits(axis, padding, reference=None):
     return lower - padding * span, upper + padding * span
 
 
-def success_panel_metadata(grid, reference, settings, view, comparison=None):
+def success_panel_metadata(grid, reference, settings, view, comparison=None, rest_pid_comparison=None):
     gain = reference_gain(reference, grid.group)
     if view == "PD" and gain[1] != grid.gain[1]:
         raise ValueError("successful reference I does not lie on this exact P-D slice")
@@ -160,7 +228,13 @@ def success_panel_metadata(grid, reference, settings, view, comparison=None):
                                              for axis, value in zip(grid.axes, gain))),
             "coincides_with_failure": bool(np.array_equal(gain, grid.gain)),
             "on_recorded_I_plane": bool(gain[1] == grid.gain[1])}
-    if comparison is not None:
+    if rest_pid_comparison is not None:
+        result.update(role="paired_rest_pid_contexts", stability_value_assigned=True,
+                      stability_value_scope="paired_rest_pid_point_evaluations", grid_value_replaced=False,
+                      other_nine_gains_context="both successful and failure records, evaluated separately",
+                      background_other_nine_gains_context="this failure record, unchanged",
+                      rest_pid=rest_pid_point_summary(rest_pid_comparison, grid.case, grid.group, "success")["rest_pid"])
+    elif comparison is not None:
         result.update(role="coordinates_plus_independent_full_controller_comparison",
                       stability_value_assigned=True, stability_value_scope="independent_full_controller",
                       independent_full_controller=independent_success_summary(comparison, grid.case))
@@ -351,9 +425,17 @@ def exposed_faces(values, axes):
     return np.concatenate(faces_all), np.concatenate(rates_all)
 
 
-def point_text(grid):
+def rest_pid_text(point):
+    return ("\nrest PID\n"
+            + "\n".join(context + ": rate = " + format(100 * point["rest_pid"][context]["stable_fraction"], ".1f") + "%"
+                         for context in ("success", "failure")))
+
+
+def point_text(grid, rest_pid_point=None):
     mark = grid.mark()
     gains = "(" + ", ".join(format(float(v), ".5g") for v in mark["gain"]) + ")"
+    if rest_pid_point is not None:
+        return "Failure\n" + gains + rest_pid_text(rest_pid_point)
     return "Failure\n" + gains + "\nrate (rest gains: failure)\n" + format(100 * mark["stable_fraction"], ".1f") + "%"
 
 
@@ -368,23 +450,25 @@ def success_point_style(settings):
     return dict(marker="D", s=68, color=settings["success_color"], edgecolor="white", linewidth=1.1, zorder=8)
 
 
-def success_point_text(gain, comparison_case=None):
+def success_point_text(gain, comparison_case=None, rest_pid_point=None):
     gains = "(" + ", ".join(format(float(v), ".5g") for v in gain) + ")"
     label = "Success ref.\n" + gains
-    if comparison_case is not None:
+    if rest_pid_point is not None:
+        label += rest_pid_text(rest_pid_point)
+    elif comparison_case is not None:
         label += "\nrate (rest gains: success)\n" + format(100 * comparison_case["stable_fraction"], ".1f") + "%"
     return label
 
 
 def annotation_style(settings, success=False):
     color = settings["success_color" if success else "recorded_color"]
-    return dict(ha="center", va="center", fontsize=9.5, color=color, zorder=9 if success else 10,
+    return dict(ha="center", va="center", multialignment="center", fontsize=9.5, color=color, zorder=9 if success else 10,
                 annotation_clip=False,
                 arrowprops={"arrowstyle": "->", "lw": 1.55, "color": color, "shrinkA": 4, "shrinkB": 7},
                 bbox={"facecolor": "white", "edgecolor": color, "linewidth": .6, "alpha": .97, "pad": 3})
 
 
-def comparison_slice(grids, settings, success_reference=None, success_comparison=None):
+def comparison_slice(grids, settings, success_reference=None, success_comparison=None, rest_pid_comparison=None):
     cmap = rate_colormap(settings)
     fig, axes = plt.subplots(2, 4, figsize=(16, 8.6))
     fig.subplots_adjust(left=.055, right=.982, top=.87, bottom=.15, wspace=.34, hspace=.48)
@@ -411,23 +495,27 @@ def comparison_slice(grids, settings, success_reference=None, success_comparison
             ax.set_title(LABELS[group], fontsize=11, color="#263238", pad=3)
             ax.text(.98, .98, "I = " + format(grid.gain[1], ".5g"), transform=ax.transAxes, ha="right", va="top", fontsize=9)
             gain = grid.gain
+            rest_points = (rest_pid_comparison["cases"][case]["groups"][group]
+                           if rest_pid_comparison is not None else None)
             coincident = success is not None and np.array_equal(gain, success)
             failure_point = ax.scatter(gain[0], gain[2], **point_style(settings, coincident))
             failure_point.set_gid("failure_reference")
-            ax.annotate(point_text(grid), xy=(gain[0], gain[2]),
-                        xytext=(.35, .18), textcoords="axes fraction", **annotation_style(settings))
+            failure_label_position = (.74 if rest_points is not None and group == "roll_pitch" else .35, .18)
+            ax.annotate(point_text(grid, None if rest_points is None else rest_points["failure"]), xy=(gain[0], gain[2]),
+                        xytext=failure_label_position, textcoords="axes fraction", **annotation_style(settings))
             if success is not None:
                 point = ax.scatter(success[0], success[2], **success_point_style(settings))
                 point.set_gid("success_reference")
                 label_position = (.65 if group in ("xy", "yaw") else .35, .72)
-                text = ax.annotate(success_point_text(success, None if success_comparison is None else success_comparison["cases"][case]), xy=(success[0], success[2]),
+                text = ax.annotate(success_point_text(success, None if success_comparison is None else success_comparison["cases"][case],
+                                                      None if rest_points is None else rest_points["success"]), xy=(success[0], success[2]),
                                    xytext=label_position, textcoords="axes fraction",
                                    **annotation_style(settings, success=True))
                 text.set_gid("success_reference_label")
     return fig
 
 
-def comparison_volume(grids, settings, success_reference=None, success_comparison=None):
+def comparison_volume(grids, settings, success_reference=None, success_comparison=None, rest_pid_comparison=None):
     cmap = rate_colormap(settings)
     fig = plt.figure(figsize=(16, 8.6))
     for row, case in enumerate(CASES):
@@ -458,39 +546,47 @@ def comparison_volume(grids, settings, success_reference=None, success_compariso
             ax.view_init(elev=camera["elevation"], azim=camera["azimuth"])
             ax.set_title(LABELS[group], fontsize=11, color="#263238", pad=3)
             gain = grid.gain
+            rest_points = (rest_pid_comparison["cases"][case]["groups"][group]
+                           if rest_pid_comparison is not None else None)
             coincident = success is not None and np.array_equal(gain, success)
             failure_point = ax.scatter(*gain, depthshade=False, **point_style(settings, coincident))
             failure_point.set_gid("failure_reference")
             x, y, _ = proj3d.proj_transform(*gain, ax.get_proj())
             label_position = ((.50, .54) if group == "roll_pitch" and case == "failure1" else
                               (.67, .49) if group in ("roll_pitch", "xy") else (.50, .56))
-            ax.annotate(point_text(grid), xy=(x, y), xytext=label_position,
+            if rest_points is not None:
+                label_position = ((.68, .50) if group == "roll_pitch" and case == "failure1" else
+                                  (.68, .47) if group in ("roll_pitch", "xy") else (.68, .55))
+            ax.annotate(point_text(grid, None if rest_points is None else rest_points["failure"]), xy=(x, y), xytext=label_position,
                         textcoords="axes fraction", **annotation_style(settings))
             if success is not None:
                 point = ax.scatter(*success, depthshade=False, **success_point_style(settings))
                 point.set_gid("success_reference")
                 x, y, _ = proj3d.proj_transform(*success, ax.get_proj())
-                text = ax.annotate(success_point_text(success, None if success_comparison is None else success_comparison["cases"][case]), xy=(x, y), xytext=(.45, .84),
+                text = ax.annotate(success_point_text(success, None if success_comparison is None else success_comparison["cases"][case],
+                                                      None if rest_points is None else rest_points["success"]), xy=(x, y), xytext=(.45, .85 if rest_points is not None else .84),
                                    textcoords="axes fraction", **annotation_style(settings, success=True))
                 text.set_gid("success_reference_label")
     return fig
 
 
 def save_comparison(fig, grids, settings, output: Path, view: str, grid_size: int,
-                    success_reference=None, success_comparison=None):
+                    success_reference=None, success_comparison=None, rest_pid_comparison=None):
     bar_axes = fig.add_axes([.375, .071, .25, .012])
     bar = fig.colorbar(ScalarMappable(norm=colors.Normalize(0, 1), cmap=rate_colormap(settings)),
                       cax=bar_axes, orientation="horizontal", ticks=[0, .25, .5, .75, 1])
     bar.ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"])
     bar.ax.tick_params(labelsize=10, length=2, pad=2); bar.outline.set_linewidth(.5)
-    fig.text(.36, .077, "rate (rest gains: failure)", ha="right", va="center", fontsize=11)
+    fig.text(.36, .077, "rate (rest PID: failure)" if rest_pid_comparison is not None else "rate (rest gains: failure)",
+             ha="right", va="center", fontsize=11)
     note = "3D volumes are cut at each recorded I." if view == "3D" else "Each exact P-D slice passes through the recorded failure point."
-    markers = (" Purple: failure gains; blue: successful gains." if success_comparison is not None else
+    markers = (" Purple: failure gains; blue: successful gains." if success_comparison is not None or rest_pid_comparison is not None else
                " Purple: failure gains; blue: successful gain coordinates only." if success_reference is not None else
                " Purple marks identify the failure-flight gains.")
     fig.text(.5, .03, note + markers, ha="center", fontsize=10, color="#52606B")
-    footer = ("Success rates: all 12 gains set to successful values; background: other 9 at failure values. All original samples retained."
-              if success_comparison is not None else
+    footer = ("At both points, rest PID compares the other 9 successful/failure gains. Background: other 9 at failure values; all original samples."
+              if rest_pid_comparison is not None else
+              "Success rates: all 12 gains set to successful values; background: other 9 at failure values. All original samples retained." if success_comparison is not None else
               "Each case uses all original plant samples; other nine gains are fixed to that failure record.")
     fig.text(.5, .007, footer, ha="center", fontsize=9, color="#52606B")
     name = f"all_pid_failure_{view}_grid_{grid_size}"
@@ -505,18 +601,29 @@ def save_comparison(fig, grids, settings, output: Path, view: str, grid_size: in
     record = {"schema": SCHEMA, "figure": name, "groups": list(GROUPS), "cases": list(CASES),
             "view": view, "panel_count": 8, "grid_size": grid_size,
             "caption": "Unconditional local stability fraction on all original plant samples. Other nine gains are fixed independently to the corresponding failure record. "
-                       + ("Blue labels report a separate comparison with all 12 gains set to successful values; they are not stability values of the background slice. " if success_comparison is not None else
+                       + ("At both reference points the three displayed gains are fixed while both successful and failure settings of the other nine gains are evaluated separately. " if rest_pid_comparison is not None else
+                          "Blue labels report a separate comparison with all 12 gains set to successful values; they are not stability values of the background slice. " if success_comparison is not None else
                           "Blue diamonds locate successful gain coordinates only, with no assigned stability value. " if success_reference is not None else "")
                        + "No success-100% condition is used.",
             "color_encoding": {"quantity": "stable_fraction", "range": [0, 1], "colormap": settings["rate_colormap"], "white_mix": settings["white_mix"], "continuous": True, "surface_opacity": settings["voxel_opacity"]},
             "references": {case: {group: grids[case, group].mark() for group in GROUPS} for case in CASES},
             "source_grids": {case: {group: grids[case, group].provenance for group in GROUPS} for case in CASES},
             "files": files}
+    if rest_pid_comparison is not None:
+        record["rest_pid_comparison"] = rest_pid_comparison
+        record["color_encoding"]["rest_pid_context"] = "failure"
+        for case in CASES:
+            for group in GROUPS:
+                record["references"][case][group].update(
+                    rest_pid_point_summary(rest_pid_comparison, case, group, "failure"))
     if success_reference is not None:
         record["success_reference"] = {**success_reference,
-            "panels": {case: {group: success_panel_metadata(grids[case, group], success_reference, settings, view, success_comparison)
+            "panels": {case: {group: success_panel_metadata(grids[case, group], success_reference, settings, view, success_comparison, rest_pid_comparison)
                                for group in GROUPS} for case in CASES}}
-        if success_comparison is not None:
+        if rest_pid_comparison is not None:
+            record["success_reference"].update(role="paired_rest_pid_contexts",
+                                               rest_pid_comparison_source_sha256=rest_pid_comparison["sha256"])
+        elif success_comparison is not None:
             record["success_reference"].update(
                 role="coordinates_plus_independent_full_controller_comparison",
                 independent_full_controller_comparison=success_comparison)
@@ -524,7 +631,7 @@ def save_comparison(fig, grids, settings, output: Path, view: str, grid_size: in
 
 
 def render(input_root: Path, output: Path, grid_size: int, settings_path: Path = DEFAULT_SETTINGS,
-           view="both", success_reference_path=None, success_comparison_path=None):
+           view="both", success_reference_path=None, success_comparison_path=None, rest_pid_comparison_path=None):
     input_root, output, settings_path = Path(input_root), Path(output), Path(settings_path)
     settings = json.loads(settings_path.read_text())
     plt.rcParams.update({"font.family": settings["font_family"], "font.size": settings["font_size"],
@@ -535,12 +642,14 @@ def render(input_root: Path, output: Path, grid_size: int, settings_path: Path =
     success_reference = load_success_reference(success_reference_path) if success_reference_path is not None else None
     success_comparison = (load_success_comparison(success_comparison_path, success_reference, grids, input_root)
                           if success_comparison_path is not None else None)
+    rest_pid_comparison = (load_rest_pid_comparison(rest_pid_comparison_path, success_reference, grids, input_root)
+                           if rest_pid_comparison_path is not None else None)
     output.mkdir(parents=True, exist_ok=True)
     records = []
     for kind, draw in (("3D", comparison_volume), ("PD", comparison_slice)):
         if view in (kind, "both"):
-            record = save_comparison(draw(grids, settings, success_reference, success_comparison), grids, settings,
-                                     output, kind, grid_size, success_reference, success_comparison)
+            record = save_comparison(draw(grids, settings, success_reference, success_comparison, rest_pid_comparison), grids, settings,
+                                     output, kind, grid_size, success_reference, success_comparison, rest_pid_comparison)
             record["style"] = {"source": str(settings_path), "source_sha256": sha256(settings_path), "settings": settings}
             records.append(record)
     (output / "figure_index.json").write_text(json.dumps(records, indent=2) + "\n")
@@ -562,9 +671,11 @@ def main(argv=None):
                         help="Optional post-map successful gain coordinates only; does not assign a stability rate")
     parser.add_argument("--success-comparison-json", type=Path,
                         help="Optional separate ALL-N full-successful-controller comparison for blue-label rates")
+    parser.add_argument("--rest-pid-comparison-json", type=Path,
+                        help="Optional paired ALL-N comparisons of successful/failure rest-nine gains at both reference points")
     args = parser.parse_args(argv)
     records = render(args.input_root, args.output, args.grid, args.settings, args.view,
-                     args.success_gains_json, args.success_comparison_json)
+                     args.success_gains_json, args.success_comparison_json, args.rest_pid_comparison_json)
     print(json.dumps({"grid": args.grid, "figures": [row["figure"] for row in records], "panel_count": 8}, indent=2))
     return 0
 

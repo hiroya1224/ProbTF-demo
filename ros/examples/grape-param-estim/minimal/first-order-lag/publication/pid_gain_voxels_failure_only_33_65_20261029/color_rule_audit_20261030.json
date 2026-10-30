@@ -429,17 +429,36 @@
   "numerical_files_unchanged": true,
   "old_vs_corrected_max_rgba_abs_error": 0.0,
   "old_vs_previous_max_rgba_abs_error": 0.0019607843137254832,
+  "paired_rest_pid_comparison": {
+    "background_data_unchanged": true,
+    "distinct_controllers_per_case": {
+      "failure1": 8,
+      "failure2": 8
+    },
+    "file": "rest_pid_comparison.json",
+    "row_count": 32,
+    "same_original_N": 128,
+    "sha256": "4077164890c666321844304415e990eddfc10d1b3f9b6735254453bdc7a3e6eb"
+  },
   "palette_entries": 4096,
   "palette_rgba_sha256": "dd2a6801c50897e25c4a0ee4fe90bf0e7d5271ac31be750fbe120a05108c5501",
   "previous_publication_commit": "96dd634a91aa7e56f8ac0b918861bc4802181410",
   "rate_label_contexts": {
-    "definition": "rest gains means the nine controller gains outside the displayed P/I/D triple; original plant samples, denominator and stability criterion are unchanged.",
-    "failure": "rate (rest gains: failure)",
-    "success": "rate (rest gains: success)"
+    "alignment": "center; no literal padding",
+    "definition": "For each point keep its three displayed gains fixed; set the other nine gains to each context. Background remains rest PID=failure.",
+    "heading": "rest PID",
+    "points": [
+      "failure",
+      "success"
+    ],
+    "rows": [
+      "success: rate = xx.x%",
+      "failure: rate = yy.y%"
+    ]
   },
   "renderer": {
     "path": "../../automation/render_failure_publication.py",
-    "sha256": "56047843d74d945a0515afd6abdb2f0c97ae7aaaad3d383c7e2945c474ad90ba"
+    "sha256": "94f44cafb2b86134034e3e9e124e5ff2151e26ac8adbba8dedf2b4f27e4cde6f"
   },
   "schema": "grape-param-estim/figure-color-rule-audit/v1",
   "scope": "static 2x4 paper figures, not the thresholded interactive viewer",
@@ -466,15 +485,15 @@
     "sha256": "d7fbcacd879498e36c20b64a077d5641c6e200d316014bedfe955c94732d942b"
   },
   "success_gain_overlay": {
-    "note": "Blue labels carry separately evaluated full-12-controller rates, not background slice values; all failure-only map data are unchanged.",
+    "note": "Both reference points report both remaining-nine PID contexts. Original samples, denominator and background maps are unchanged.",
     "numerical_files_unchanged": 96,
     "panel_metadata_verified": 32,
     "reference": "successful_gain_reference.json",
     "reference_sha256": "7ff78a5c3bbc9c9c85ba9e13b5773121d204e6f7618f708e27a4ba905398b938",
-    "role": "coordinates_plus_independent_full_controller_comparison"
+    "role": "paired_rest_pid_contexts"
   },
   "tests": {
-    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/pid-figure-audit-pytest OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_render_failure_publication.py ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_evaluate_success_reference.py",
-    "passed": 30
+    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/pid-figure-audit-pytest OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_render_failure_publication.py ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_evaluate_success_reference.py ros/examples/grape-param-estim/minimal/first-order-lag/automation/tests/test_evaluate_rest_pid_reference.py",
+    "passed": 42
   }
 }

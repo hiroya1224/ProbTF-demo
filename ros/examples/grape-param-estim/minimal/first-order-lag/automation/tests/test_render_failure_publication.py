@@ -522,3 +522,137 @@ def test_comparison_loaded_after_all_grids_and_reference_and_saved_with_separate
     assert record["success_reference"]["independent_full_controller_comparison"]["sha256"] == paper.sha256(comparison_path)
     assert "not stability values of the background slice" in record["caption"]
     assert record["references"]["failure1"]["z"]["stable_fraction"] == .5
+
+
+def rest_pid_fixture(root, reference_path, comparison_path):
+    grids = {}
+    for case in paper.CASES:
+        for group in paper.GROUPS:
+            source_grid(root, case, group)
+            grids[case, group] = paper.load_grid(root, case, group, 33)
+    reference = successful_reference(reference_path, np.tile([1.5, 1., 1.75], (4, 1)))
+    successful = np.array(reference["gains"])
+    cases = {}
+    for case in paper.CASES:
+        failure = grids[case, "xy"].recorded_gains
+        coordinates = np.arange(52, dtype=np.float64).reshape(4, 13)
+        sample_file = root / case / "plant_samples.npz"
+        np.savez_compressed(sample_file, quotient_coordinates=coordinates)
+        groups = {}
+        for group in paper.GROUPS:
+            index = paper.SOURCE_GROUPS.index(group)
+            points = {}
+            for point in ("failure", "success"):
+                gain = (failure if point == "failure" else successful)[index]
+                scores = {}
+                for context in ("success", "failure"):
+                    full = (successful if context == "success" else failure).copy()
+                    full[index] = gain
+                    radii = ([.9, 1.2, 1.1, None] if context == "success" else [.9, .99, 1.02, None]) if point == "failure" else (
+                        [.9, .95, .99, .98] if context == "success" else [.9, .95, .99, 1.2])
+                    array = np.array(radii, dtype=float)
+                    stable = int(np.count_nonzero(np.isfinite(array) & (array < 1)))
+                    valid = int(np.count_nonzero(np.isfinite(array)))
+                    scores[context] = {"full_controller_gains": full.tolist(), "sample_count": 4,
+                                       "stable_count": stable, "valid_count": valid,
+                                       "unresolved_count": 4 - valid, "stable_fraction": stable / 4,
+                                       "spectral_radius": radii}
+                points[point] = {"gain": gain.tolist(), "rest_pid": scores}
+            groups[group] = points
+        cases[case] = {"sample_count": 4, "failure_gains": failure.tolist(), "groups": groups,
+                       "provenance": {"plant_samples_sha256": paper.sha256(sample_file),
+                                      "quotient_coordinates_sha256": hashlib.sha256(coordinates.tobytes()).hexdigest()}}
+    payload = {"schema": paper.REST_PID_COMPARISON_SCHEMA, "role": "paired_rest_pid_contexts",
+               "gain_order": list(paper.SOURCE_GROUPS), "successful_gains": successful.tolist(), "cases": cases}
+    comparison_path.write_text(json.dumps(payload))
+    return grids, reference, payload
+
+
+@pytest.mark.parametrize("change,match", [
+    ("point", "point's three gains"), ("other_nine", "stated other nine"),
+    ("valid_only_rate", "ALL original"), ("sample_order", "same original plant samples"),
+    ("failure_anchor", "unchanged background anchor")])
+def test_rest_pid_comparison_checks_fixed_point_both_contexts_and_original_population(tmp_path, change, match):
+    root, path = tmp_path / "source", tmp_path / "rest_pid.json"
+    grids, reference, payload = rest_pid_fixture(root, tmp_path / "reference.json", path)
+    point = payload["cases"]["failure1"]["groups"]["xy"]["failure"]
+    if change == "point":
+        point["gain"][0] = 1.25
+    elif change == "other_nine":
+        point["rest_pid"]["success"]["full_controller_gains"][1][0] = 1.25
+    elif change == "valid_only_rate":
+        point["rest_pid"]["success"]["stable_fraction"] = 1 / 3
+    elif change == "sample_order":
+        payload["cases"]["failure1"]["provenance"]["quotient_coordinates_sha256"] = "wrong"
+    elif change == "failure_anchor":
+        point["rest_pid"]["failure"].update(spectral_radius=[.9, .99, .98, None],
+                                            stable_count=3, stable_fraction=.75)
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match=match):
+        paper.load_rest_pid_comparison(path, reference, grids, root)
+
+
+@pytest.mark.parametrize("view", ["PD", "3D"])
+def test_both_reference_points_show_both_rest_pid_contexts_without_changing_maps(tmp_path, view):
+    root, path = tmp_path / "source", tmp_path / "rest_pid.json"
+    grids, reference, _ = rest_pid_fixture(root, tmp_path / "reference.json", path)
+    comparison = paper.load_rest_pid_comparison(path, reference, grids, root)
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    before = {key: (tuple(a.copy() for a in grid.axes), grid.stable_fraction.copy()) for key, grid in grids.items()}
+    draw = paper.comparison_slice if view == "PD" else paper.comparison_volume
+    figure = draw(grids, settings, reference, None, comparison)
+    try:
+        for ax, (case, group) in zip(figure.axes, ((c, g) for c in paper.CASES for g in paper.GROUPS)):
+            failure = next(t for t in ax.texts if t.get_text().startswith("Failure\n"))
+            success = next(t for t in ax.texts if t.get_gid() == "success_reference_label")
+            for text, expected in [(failure, ("25.0%", "50.0%")), (success, ("100.0%", "75.0%"))]:
+                lines = text.get_text().splitlines()
+                assert len(lines) == 5 and lines[2] == "rest PID"
+                assert lines[3:] == ["success: rate = " + expected[0], "failure: rate = " + expected[1]]
+                assert text.get_ha() == "center" and text._get_multialignment() == "center"
+                assert "position only" not in text.get_text()
+            grid = grids[case, group]
+            for old, current in zip(before[case, group][0], grid.axes):
+                np.testing.assert_array_equal(old, current)
+            np.testing.assert_array_equal(before[case, group][1], grid.stable_fraction)
+            metadata = paper.success_panel_metadata(grid, reference, settings, view, None, comparison)
+            assert metadata["role"] == "paired_rest_pid_contexts" and not metadata["grid_value_replaced"]
+            assert metadata["rest_pid"]["success"]["stable_fraction"] == 1
+            assert metadata["rest_pid"]["failure"]["stable_fraction"] == .75
+    finally:
+        plt.close(figure)
+
+
+def test_rest_pid_comparison_loaded_after_maps_and_saved_for_both_points(tmp_path, monkeypatch):
+    root, path, reference_path = tmp_path / "source", tmp_path / "rest_pid.json", tmp_path / "reference.json"
+    rest_pid_fixture(root, reference_path, path)
+    calls = []
+    load_grid, load_reference, load_rest = paper.load_grid, paper.load_success_reference, paper.load_rest_pid_comparison
+
+    def tracked_grid(*args):
+        calls.append("grid")
+        return load_grid(*args)
+
+    def tracked_reference(*args):
+        calls.append("reference")
+        return load_reference(*args)
+
+    def tracked_rest(*args):
+        calls.append("rest")
+        return load_rest(*args)
+
+    monkeypatch.setattr(paper, "load_grid", tracked_grid)
+    monkeypatch.setattr(paper, "load_success_reference", tracked_reference)
+    monkeypatch.setattr(paper, "load_rest_pid_comparison", tracked_rest)
+    settings = json.loads(paper.DEFAULT_SETTINGS.read_text())
+    settings.update(formats=["png"], dpi=25)
+    style = tmp_path / "settings.json"
+    style.write_text(json.dumps(settings))
+    record = paper.render(root, tmp_path / "figures", 33, style, "PD", reference_path, None, path)[0]
+    assert calls == ["grid"] * 8 + ["reference", "rest"]
+    assert record["rest_pid_comparison"]["role"] == "paired_rest_pid_contexts"
+    assert record["rest_pid_comparison"]["sha256"] == paper.sha256(path)
+    assert record["success_reference"]["role"] == "paired_rest_pid_contexts"
+    assert "independent_full_controller_comparison" not in record["success_reference"]
+    assert record["references"]["failure1"]["xy"]["rest_pid"]["success"]["stable_fraction"] == .25
+    assert record["success_reference"]["panels"]["failure1"]["xy"]["rest_pid"]["failure"]["stable_fraction"] == .75

@@ -1,7 +1,16 @@
 {
   "case_name": "success",
-  "elapsed_seconds": 7.23378663099902,
+  "elapsed_seconds": 7.203456041999743,
   "evaluation": {
+    "applied_residual_wrench_clock": "same original IMU/replay timestamps; interpolation in dynamics uses this same mean and uncertainty law",
+    "applied_residual_wrench_rms": [
+      0.26326255286858014,
+      0.1046918615567334,
+      0.19866306400548156,
+      0.08236275921996679,
+      0.05291962647008676,
+      0.04663431567586808
+    ],
     "attitude_comparison": {
       "GA": {
         "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation",
@@ -21,14 +30,14 @@
         "maximum_deg": 16.691378662160027,
         "rms_deg": 4.733378927816799
       },
-      "model replay": {
+      "model + residual wrench": {
         "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation",
         "count": 1200,
-        "final_deg": 68.76790205673896,
+        "final_deg": 0.7552527815814221,
         "first_time": 65.00249793900001,
         "last_time": 74.995735685,
-        "maximum_deg": 70.91682853768378,
-        "rms_deg": 50.23386341128141
+        "maximum_deg": 1.5895176591446312,
+        "rms_deg": 0.4994305165785889
       }
     },
     "covariance_approximation": "local Gaussian; conservative bounds for modeled shared terms, not systematic-bias coverage",
@@ -134,7 +143,7 @@
     "sensor_lag_polynomial_degree": 3,
     "sensor_lag_window_seconds": 0.08,
     "shared_acceleration_attitude_information": "conservative data-dependent envelope; not exact Bayes with shared observations",
-    "wall_seconds": 10.173088505000123
+    "wall_seconds": 10.02627361699706
   },
   "parameter_distribution": {
     "common_scale_gauge": "physical chart projected onto existing 13-D orthogonal common-scale section; tau coordinates unaffected",
@@ -1930,9 +1939,9 @@
     "native_inputs": {
       "archived_arrays": "inputs/success.npz",
       "archived_metadata": "inputs/success.json",
-      "arrays_path": "/tmp/imu-first-order-lag-inputs/success.npz",
+      "arrays_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/inputs/success.npz",
       "arrays_sha256": "fc0baf8010f0489e072c0a5a2267b763e5d8401ab002681f6f3e675bb23af3ae",
-      "metadata_path": "/tmp/imu-first-order-lag-inputs/success.json",
+      "metadata_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/inputs/success.json",
       "metadata_sha256": "a2fc774b5cb7a8087f56aabf4efc5f8526b7c9164e4294036d83f4ae076bdba2"
     },
     "ongoing_mocap_used": false,
@@ -1970,7 +1979,7 @@
     "initial_condition_frame": "FC nominal sensor-origin position/velocity in world; body-to-world wxyz quaternion",
     "initial_state_source_cross_assumption": "initial rotation, past-prefix velocity and fixed-tau gyro noise blocks independent; parameter/source cross then bounded by factor 3",
     "integration_max_step_seconds": 0.005,
-    "model_discrepancy_mean": [
+    "model_additional_persistent_wrench_error_mean": [
       0.0,
       0.0,
       0.0,
@@ -1978,14 +1987,18 @@
       0.0,
       0.0
     ],
-    "model_discrepancy_uncertainty": "persistent whole-window zero-mean body wrench, uncentred second moment of IMU-fit residual wrench",
+    "model_applied_wrench_uncertainty": "same full parameter factor plus additional empirical persistent-wrench factor, under the same three-source covariance bound as trajectory",
+    "model_discrepancy_mean": "full native IMU-fit residual wrench time series, body frame about CoG, added to the mean dynamics at every RK4 stage",
+    "model_discrepancy_uncertainty": "additional persistent zero-mean empirical envelope from uncentred second moment of the IMU-fit residual wrench; not exact sensor-noise covariance or a systematic-error coverage guarantee",
     "model_integration": "canonical full-six-DoF ambient-13 RK4 with exact thrust-history values at all stages; intermediate quaternion-rate/Jacobian sign transported to raw stage hemisphere, full-step normalization differentiated",
     "model_parameter_uncertainty": "all 16 quotient/log-tau modes propagated as rectangular Gram factor; first-order sensitivity approximation",
+    "model_residual_wrench_interpolation": "piecewise linear on original IMU stamps, no extrapolation; identical interpolation for all 16 parameter derivatives",
+    "model_residual_wrench_parameter_jacobian": "w=G*e; dw/dz=G*de/dz+(dG/dz)*e; same parameters/log-taus as model, not an independent fixed force",
     "model_unknown_cross_bound": "3*(parameter + initial-state + persistent-wrench propagated covariance)",
     "monte_carlo_used": false,
     "ongoing_mocap_used": false,
     "predicted_sensor_columns": "underlying physical gyro/specific-force inputs before forward sensor lag",
-    "schema": "grape-param-estim/imu-first-order-lag-replay/v1",
+    "schema": "grape-param-estim/imu-first-order-lag-replay/v2",
     "sensor_extrinsic_assumption": "known nominal FC frame/position, not independently calibrated physical chip lever",
     "state_covariance_order": [
       "position_FC_world",

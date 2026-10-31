@@ -29,5 +29,5 @@
   "sensor_lag_polynomial_degree": 3,
   "sensor_lag_window_seconds": 0.08,
   "shared_acceleration_attitude_information": "conservative data-dependent envelope; not exact Bayes with shared observations",
-  "wall_seconds": 5.585782068999833
+  "wall_seconds": 5.548141406005016
 }

@@ -20,7 +20,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 CASES = ("failure1", "failure2", "success")
-SCHEMA = "grape-param-estim/imu-first-order-lag-run/v1"
+SCHEMA = "grape-param-estim/imu-first-order-lag-run/v2"
 
 
 def digest(path):

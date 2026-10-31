@@ -16,6 +16,7 @@ def compact_arrays(arrays):
                  for branch in ("model", "imu_dead_reckoning")
                  for key in ("covariance_state", "position_covariance_factor_fc", "rotation_covariance_factor")}
     duplicate.update("orientation_right_rotation_covariance_" + key for key in ("recursive", "output"))
+    duplicate.add("model_applied_residual_wrench_parameter_jacobian")
     return {key: arrays[key] for key in arrays if key not in duplicate and not key.startswith("native_")}
 
 
@@ -60,7 +61,8 @@ def publish(source, destination):
         key: manifest[key] for key in ("schema", "completed_utc", "cases", "source_sha256")})
     files = [{"path": str(p.relative_to(destination)), "bytes": p.stat().st_size, "sha256": digest(p)}
              for p in sorted(destination.rglob("*")) if p.is_file()]
-    result = {"schema": "grape-param-estim/imu-first-order-lag-publication/v1",
+    result = {"schema": "grape-param-estim/imu-first-order-lag-publication/v2",
+              "model_trajectory": "identified model plus original-clock IMU-derived residual wrench in mean dynamics",
               "source_manifest_sha256": digest(source / "manifest.json"),
               "publication_source_sha256": {"publish_results.py": digest(HERE / "publish_results.py")},
               "csv_serialization": "CRLF converted to LF for Git; all numeric text unchanged",
@@ -68,10 +70,15 @@ def publish(source, destination):
               "total_bytes": sum(row["bytes"] for row in files),
               "native_arrays": "inputs/<case>.npz; original extracted sensor/command/mocap clocks and indices",
               "state_covariance_recovery": "C_state[k] = state_covariance_factor[k] @ state_covariance_factor[k].T; order in replay_metadata.json",
+              "shared_wrench_state_factor_columns": {
+                  "state": {"parameter": [0, 16], "initial": [16, 25], "additional_wrench": [25, 31]},
+                  "applied_wrench": {"parameter": [0, 16], "additional_wrench": [16, 22]},
+                  "joint_cross": "Insert 9 zero initial columns into applied-wrench factor after column 16; C_state,wrench = L_state @ L_wrench_aligned.T"},
               "removed_only": ["duplicated native arrays (archived inputs retained)",
                                "duplicated covariance_state and marginal factor views (full state Gram factor retained)",
                                "duplicate right_rotation covariance aliases", "SVG versions of PNG/PDF figures",
                                "optimizer Jacobians/whitening/noise intermediates (inputs/code/full parameter covariance retained)",
+                               "residual-wrench linearization intermediate (applied mean and full covariance factor retained)",
                                "PDF body/appendix intermediates (included in report.pdf and combined PDF)"],
               "raw_bags_included": False, "monte_carlo": False}
     write_json(destination / "manifest.json", result)

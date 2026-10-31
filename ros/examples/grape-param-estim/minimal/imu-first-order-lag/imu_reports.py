@@ -23,7 +23,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 HERE = Path(__file__).resolve().parent
 WRENCH_LABELS = ("Fx", "Fy", "Fz", "Tx", "Ty", "Tz")
 COLORS = {"mocap": "black", "GA": "tab:blue", "GA + magnetic output": "tab:orange",
-          "model replay": "tab:green", "IMU dead reckoning": "tab:purple"}
+          "model + residual wrench": "tab:green", "IMU dead reckoning": "tab:purple"}
 
 
 def rotations(q_wxyz):
@@ -103,6 +103,18 @@ def covariance_wireframes(mean, factor, sigma=2., count=61):
     return circles
 
 
+def applied_wrench_distribution(model_replay, native_time):
+    """Read the exact applied wrench law; never substitute a display residual."""
+    time = np.asarray(model_replay["time"])
+    if not np.array_equal(time, np.asarray(native_time)):
+        raise ValueError("applied residual-wrench report requires the original replay clock")
+    mean = np.asarray(model_replay["applied_residual_wrench_body"])
+    factor = np.asarray(model_replay["applied_residual_wrench_covariance_factor"])
+    if mean.shape != (len(time), 6) or factor.ndim != 3 or factor.shape[:2] != mean.shape:
+        raise ValueError("applied residual-wrench mean/factor do not share six-dimensional native rows")
+    return mean, factor, np.sqrt(np.sum(factor**2, axis=2))
+
+
 def _lomb(time, wrench):
     # Reuse the original spectrum helper only. No old estimator/replay is run.
     spec = importlib.util.spec_from_file_location("imu_readonly_original_reports", HERE.parent / "first-order-lag/reports.py")
@@ -131,13 +143,13 @@ def _save_parameter_csv(output, distribution):
     if value.shape != (17,) or covariance.shape != (17, 17) or len(labels) != 17:
         raise ValueError("report requires the complete actual 17-parameter distribution")
     with (output / "parameter_values_si.csv").open("w", newline="") as stream:
-        writer = csv.writer(stream)
+        writer = csv.writer(stream, lineterminator="\n")
         writer.writerow(["index", "parameter", "unit", "estimated_value", "standard_deviation"])
         for k, label in enumerate(labels):
             writer.writerow([k + 1, label, _units(label), format(value[k], ".17g"),
                              format(np.sqrt(covariance[k, k]), ".17g")])
     with (output / "parameter_covariance_si.csv").open("w", newline="") as stream:
-        writer = csv.writer(stream)
+        writer = csv.writer(stream, lineterminator="\n")
         writer.writerow(["row_parameter / column_parameter", *labels])
         for label, row in zip(labels, covariance):
             writer.writerow([label, *[format(x, ".17g") for x in row]])
@@ -159,7 +171,7 @@ def write_reports(output, data, fit, orientation, replay):
     mocap_position = np.asarray(data["mocap_position"])[original_mocap]
     tracks = {"GA": (orientation["q_recursive_wxyz"], orientation["covariance_recursive"]),
               "GA + magnetic output": (orientation["q_output_wxyz"], orientation["covariance_output"]),
-              "model replay": (replay["model"]["quaternion_wxyz"], replay["model"]["covariance_rotation"])}
+              "model + residual wrench": (replay["model"]["quaternion_wxyz"], replay["model"]["covariance_rotation"])}
     comparisons = {label: orientation_comparison(mt, mocap_q, t, q) for label, (q, _) in tracks.items()}
     distribution = estimate["parameter_distribution"]
     labels, value, covariance = _save_parameter_csv(output, distribution)
@@ -211,7 +223,7 @@ def write_reports(output, data, fit, orientation, replay):
             "Shared acceleration/attitude information uses declared conservative covariance bounds.",
             "These algebraic bounds do not guarantee coverage of systematic acceleration or magnetic bias.",
             "Magnetic output can be worse on these data; no mocap-based gating, tuning or recursive feedback.",
-            "Pure model replay has no mean-wrench fitting or mocap resets; divergence is displayed as obtained.",
+            "Model reconstruction adds the native-IMU residual wrench time series to the physical dynamics.",
             "No Monte Carlo, artificial display variance, eigenvalue clipping or uncertainty-based sample selection.",
             "Mass / inertia / thrust scale use a common-scale gauge; chip lever arm is fixed, not calibrated.",
             "All 17 actual SI estimates and the complete joint covariance are appended at the end.",
@@ -257,6 +269,19 @@ def write_reports(output, data, fit, orientation, replay):
             ax.set_ylabel(WRENCH_LABELS[k] + " normalized power")
         save(fig, "residual_wrench_spectrum", "residual_wrench.pdf")
 
+        applied_wrench, applied_factor, applied_std = applied_wrench_distribution(replay["model"], t)
+        fig, axs = axes_grid(3, 2, "Applied residual wrench in reconstructed dynamics (body frame, about CoG)")
+        for k, ax in enumerate(axs.flat):
+            ax.fill_between(relative, applied_wrench[:, k] - 2 * applied_std[:, k],
+                            applied_wrench[:, k] + 2 * applied_std[:, k],
+                            color=COLORS["model + residual wrench"], alpha=.2, label="applied law ±2σ")
+            ax.plot(relative, applied_wrench[:, k], color=COLORS["model + residual wrench"],
+                    label="added residual-wrench mean")
+            ax.set_ylabel(WRENCH_LABELS[k] + (" [N]" if k < 3 else " [N m]"))
+            ax.legend()
+        fig.text(.04, .012, "The native-IMU residual wrench is added to the dynamics; this is not a model-only free replay.", fontsize=9)
+        save(fig, "applied_residual_wrench", "residual_wrench.pdf")
+
         # Model response is a measurement-state replay, not a new sensor fit.
         sensor_responses = {}
         for signal, tau_key, predicted, unit in (
@@ -270,7 +295,7 @@ def write_reports(output, data, fit, orientation, replay):
             for k, ax in enumerate(axs[:, 0]):
                 ax.plot(relative, data[signal][:, k], label="raw native sensor", alpha=.5)
                 ax.plot(relative, orientation["corrected_" + signal][:, k], label="inverse-lag corrected")
-                ax.plot(relative, physical[:, k], label="pure model physical input", alpha=.8)
+                ax.plot(relative, physical[:, k], label="model + residual wrench physical input", alpha=.8)
                 ax.plot(relative, response[:, k], label="model first-order sensor response", linestyle="--")
                 ax.set_ylabel("xyz"[k] + " [" + unit + "]")
                 ax.legend()
@@ -305,7 +330,7 @@ def write_reports(output, data, fit, orientation, replay):
             fig, axs = axes_grid(3, 1, name + ": local attitude mean and ±2σ uncertainty")
             rpy = np.rad2deg(np.unwrap(rotations(q).as_euler("xyz"), axis=0))
             rpy += 360 * np.round((mocap_rpy[0] - rpy[0]) / 360)
-            factor = replay["model"].get("rotation_covariance_factor") if name == "model replay" else None
+            factor = replay["model"].get("rotation_covariance_factor") if name == "model + residual wrench" else None
             std = rpy_standard_deviation(q, p, factor)
             for k, ax in enumerate(axs[:, 0]):
                 ax.fill_between(relative, rpy[:, k] - 2 * std[:, k], rpy[:, k] + 2 * std[:, k],
@@ -314,7 +339,7 @@ def write_reports(output, data, fit, orientation, replay):
                 ax.plot(mr, mocap_rpy[:, k], color="black", label="mocap")
                 ax.set_ylabel(("roll", "pitch", "yaw")[k] + " [deg]")
                 ax.legend()
-            save(fig, "attitude_uncertainty_" + ("model" if name == "model replay" else "ga" if name == "GA" else "magnetic"),
+            save(fig, "attitude_uncertainty_" + ("model" if name == "model + residual wrench" else "ga" if name == "GA" else "magnetic"),
                  "trajectory_replay.pdf")
 
         def position_figure(uncertainty):
@@ -328,7 +353,7 @@ def write_reports(output, data, fit, orientation, replay):
                 ax.set_ylabel("xyz"[k] + " FC position [m]")
                 ax.grid(alpha=.25)
             ax3.plot(*mocap_position.T, color="black", label="mocap")
-            for key, name in (("model", "model replay"), ("imu_dead_reckoning", "IMU dead reckoning")):
+            for key, name in (("model", "model + residual wrench"), ("imu_dead_reckoning", "IMU dead reckoning")):
                 branch, color = replay[key], COLORS[name]
                 position, factor = branch["position_fc_world"], branch["position_covariance_factor_fc"]
                 std = np.sqrt(np.sum(factor**2, axis=2))
@@ -346,7 +371,7 @@ def write_reports(output, data, fit, orientation, replay):
                 ax.legend()
             ax3.set(xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
             fig.text(.04, .012, "FC origin; local Gaussian linearization. Ellipsoids: deterministic 2σ factor-SVD wireframes, not samples."
-                     if uncertainty else "Pure physical replay and IMU integration are not reset to later mocap.", fontsize=9)
+                     if uncertainty else "Residual-wrench model replay and IMU integration are not reset to later mocap.", fontsize=9)
             return fig
         save(position_figure(False), "position_reconstruction", "trajectory_replay.pdf")
         save(position_figure(True), "position_uncertainty", "trajectory_replay.pdf")
@@ -386,6 +411,8 @@ def write_reports(output, data, fit, orientation, replay):
 
     statistics = {"attitude_comparison": {name: item["statistics"] for name, item in comparisons.items()},
                   "residual_wrench_rms": np.sqrt(np.mean(residual[valid]**2, axis=0)).tolist(),
+                  "applied_residual_wrench_rms": np.sqrt(np.mean(applied_wrench**2, axis=0)).tolist(),
+                  "applied_residual_wrench_clock": "same original IMU/replay timestamps; interpolation in dynamics uses this same mean and uncertainty law",
                   "residual_wrench_peak_frequency_hz": [None if not np.isfinite(x) else float(x) for x in peaks],
                   "mocap_comparison_clock": "original supported mocap stamps; Slerp reconstruction only; no extrapolation",
                   "parameter_count": 17, "covariance_entry_count": 289,
@@ -393,7 +420,8 @@ def write_reports(output, data, fit, orientation, replay):
     result = {"files": files, "statistics": statistics, "appendix_start_page": appendix_start,
               "report_page_count": pages, "body_page_count": appendix_start - 1,
               "parameter_appendix_page_count": pages - appendix_start + 1,
-              "monte_carlo": False, "mocap_used_for_parameter_identification": False}
+              "monte_carlo": False, "mocap_used_for_parameter_identification": False,
+              "model_replay_includes_residual_wrench": True}
     (output / "residual_wrench_summary.json").write_text(json.dumps(statistics, indent=2, allow_nan=False) + "\n")
     files.append("residual_wrench_summary.json")
     return result

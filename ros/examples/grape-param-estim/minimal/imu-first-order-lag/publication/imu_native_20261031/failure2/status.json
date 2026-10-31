@@ -1,16 +1,16 @@
 {
   "case": "failure2",
-  "elapsed_seconds": 13.900330003998533,
+  "elapsed_seconds": 13.910104472000967,
   "numerical_source": "IMU; mocap only initialization/evaluation",
   "report": "report.pdf",
-  "schema": "grape-param-estim/imu-first-order-lag-run/v1",
+  "schema": "grape-param-estim/imu-first-order-lag-run/v2",
   "stage": "completed",
   "status": "completed",
   "timing": {
-    "identification_wall_seconds": 4.10968975400101,
-    "orientation_wall_seconds": 5.6846560159992805,
-    "reconstruction_wall_seconds": 3.719360097999015,
-    "report_wall_seconds": 9.520713662999697,
-    "total_wall_seconds": 23.424093848998382
+    "identification_wall_seconds": 4.087038423997001,
+    "orientation_wall_seconds": 5.644083266000962,
+    "reconstruction_wall_seconds": 3.731733168999199,
+    "report_wall_seconds": 10.46239528899605,
+    "total_wall_seconds": 24.37564741099777
   }
 }

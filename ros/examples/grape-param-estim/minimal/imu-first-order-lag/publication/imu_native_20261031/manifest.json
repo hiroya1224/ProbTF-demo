@@ -3,24 +3,29 @@
   "csv_serialization": "CRLF converted to LF for Git; all numeric text unchanged",
   "files": [
     {
-      "bytes": 434001,
+      "bytes": 418230,
       "path": "failure1/accel_reconstruction.png",
-      "sha256": "6ce13eea4dda60988224666482e4c86063be4c1bb77b72c175d88148f6e4962c"
+      "sha256": "4263cc020611b2246ca46614cc219ff40e0e6b76fb820c86ef67f7fe471b1c5d"
     },
     {
-      "bytes": 4941834,
+      "bytes": 328865,
+      "path": "failure1/applied_residual_wrench.png",
+      "sha256": "e564a1b625abc38afa87c5b41d38df25b5c0dff243e9f369f3434d4ef7cedd18"
+    },
+    {
+      "bytes": 5922640,
       "path": "failure1/arrays.npz",
-      "sha256": "da9418dc5f1c8a6fc8ce2664398496143d4f8c73f8ab0c54d2696f5e3dd9a3ab"
+      "sha256": "47c843581eb82f58c5899d87d97730b20446621be1de198ccc0334fe9b421054"
     },
     {
-      "bytes": 238981,
+      "bytes": 371244,
       "path": "failure1/attitude_comparison.png",
-      "sha256": "4f5f550547faa6af8eec65d86fbb9608ae7f23fd83cb7c1da8a4a796c190fcf5"
+      "sha256": "4442bfa29bf7c644de78ce6ff006382a0b8c936bf18d36b10b7f29094fa74263"
     },
     {
-      "bytes": 152916,
+      "bytes": 320853,
       "path": "failure1/attitude_error.png",
-      "sha256": "f76c8c8bc3cb27455c7327d6a5c81c3fdb4e5bb2da65fe088d43268e93d95acc"
+      "sha256": "015b64dc12bcd38d11c97b5dc055fd01420cd1ace49d8585a3b6d2b791ea0af1"
     },
     {
       "bytes": 258279,
@@ -33,9 +38,9 @@
       "sha256": "b7fb15fd6efe43cf4a2873cb4e970a40ba4562e40a4d023f0c61c829db0d2069"
     },
     {
-      "bytes": 162178,
+      "bytes": 169401,
       "path": "failure1/attitude_uncertainty_model.png",
-      "sha256": "e76454682d2a951a5240796f0b4affdf2ce1fe2ef317c436d08f6e73a8614d51"
+      "sha256": "2358519c1b48dd006ab9174aec691992ac0074c18b2a2d31474111342efd7ebc"
     },
     {
       "bytes": 192615,
@@ -43,9 +48,9 @@
       "sha256": "19af558031bd3ed1561845497e9c13c54d436f453fcb75792b34ab71cdb3fc5c"
     },
     {
-      "bytes": 53981,
+      "bytes": 55294,
       "path": "failure1/estimate.json",
-      "sha256": "21970cc25114e7c8e857ba131598943a20446673338e874f819f4ead9d26818e"
+      "sha256": "6c1f3ea7fcf53e3a85c440cb4572dbb43d6d6148e7086f1e30ce7bbe20133b0c"
     },
     {
       "bytes": 441370,
@@ -58,14 +63,14 @@
       "sha256": "e3610694b38ff7e1029a1a6e38dbffe29e3ca2ff5ec6a5d47e50c33ca02c8626"
     },
     {
-      "bytes": 396678,
+      "bytes": 386337,
       "path": "failure1/gyro_reconstruction.png",
-      "sha256": "3116ccf496539e3b4474220fa84bf61dae377d620c21264752752c38b79dd63c"
+      "sha256": "5c6b1f9d2a11bb8882496b355574ccf732011d422e5d0d2767dae0df1c2b5083"
     },
     {
-      "bytes": 1790,
+      "bytes": 1789,
       "path": "failure1/orientation_metadata.json",
-      "sha256": "ac5bc3a010efe85994c529307ddbc3ec2fd3f8a32099593f12bbcb1de275f61a"
+      "sha256": "aab1487839cb18f485ebc832debc436bd4c83145f7b363ab3e4a58d7db3b0c78"
     },
     {
       "bytes": 6532,
@@ -78,34 +83,34 @@
       "sha256": "6498f504bbf3580b4b51cc47c262591708ad062c76e71a59ffdd901994f07cc2"
     },
     {
-      "bytes": 238108,
+      "bytes": 284337,
       "path": "failure1/position_reconstruction.png",
-      "sha256": "088cf510819370b17431b28d6eb4af5140f5ba2319832d9d7d05aaec30b93a31"
+      "sha256": "3468d6ea7f6ff0f315bbf8dbb27107939c2b3ce8dc8905fe75355fc400078f38"
     },
     {
-      "bytes": 283362,
+      "bytes": 287769,
       "path": "failure1/position_uncertainty.png",
-      "sha256": "e6695defb1a1d8949d47a68232db327739d55233820fe89e1a251f531f314cdb"
+      "sha256": "7d0b26f1e2788c76e2aba5d78308c9e40f88b8a4ec588c2cb057033dd2605980"
     },
     {
-      "bytes": 2257,
+      "bytes": 3003,
       "path": "failure1/replay_metadata.json",
-      "sha256": "2b2d8dc05779a8ae93abf4371dfabb0632c73641f2dae412e79e3106da96b566"
+      "sha256": "a47ec552a8360f94de72166173cb844bd7b4140818d329f19d7f60aa95d70451"
     },
     {
-      "bytes": 885223,
+      "bytes": 1063825,
       "path": "failure1/report.pdf",
-      "sha256": "27e750a375d151ef67458e8fa20bef9ff0e5d2e721b957c7c05e17c43b75b768"
+      "sha256": "7a4b810174e70fd48dc80dc4237de2d41a299f827a526fe82286e522adf01431"
     },
     {
-      "bytes": 3236,
+      "bytes": 3709,
       "path": "failure1/report_metadata.json",
-      "sha256": "ced41a40f9dc0f249bebd341b9a135e7ef7b5bcdded426e0f1a9578b553a43d3"
+      "sha256": "7f2d3ff748a1313eac6236dd2128c2595c9798e02b212561624a14687e959f03"
     },
     {
-      "bytes": 68510,
+      "bytes": 217407,
       "path": "failure1/residual_wrench.pdf",
-      "sha256": "3cf716276e7ac3d3c8b4deb837ddcd18489370ba3a9db44596dc2957a3cc221c"
+      "sha256": "a039834dddd7ea0e983197cfba7241fbcac42241cf01e7e5c484fc9d3bc3fd57"
     },
     {
       "bytes": 230001,
@@ -118,54 +123,59 @@
       "sha256": "e95e26eed20e04494e4af9d5d01c013f94144e0a26cd3f1fd6ffffb64c55df38"
     },
     {
-      "bytes": 1725,
+      "bytes": 2061,
       "path": "failure1/residual_wrench_summary.json",
-      "sha256": "987009587082d778c8b91c731e06ccf2a271d8033992746eb6b6afc8a544b406"
+      "sha256": "ea2fc59863ca32703dbf46a52d484db48daf892b9bd9e5fe815b9fbed8c75449"
     },
     {
-      "bytes": 59039,
+      "bytes": 59098,
       "path": "failure1/sensor_measurement_response.npz",
-      "sha256": "600797ed074f98f8e9e2ca12b1205c9d89c5f255bce4031c10cea18e9481e607"
+      "sha256": "6e9deb6872d195a38266bc9971439e341fa83ca3bdabd9502901db0b03806b5a"
     },
     {
-      "bytes": 145777,
+      "bytes": 148310,
       "path": "failure1/sensor_reconstruction.pdf",
-      "sha256": "573ff82b6d3a20cc538c30e7703e129c9454e4c6cb788621efec16eaa9c5ac6b"
+      "sha256": "994a18e340b10d1c4780ca1b98ad472914eb4a64333008eff602819fa3831073"
     },
     {
-      "bytes": 538,
+      "bytes": 539,
       "path": "failure1/status.json",
-      "sha256": "bb6af7c3e20318ea432a990fc8115b8fa53408cea3c5656a77c4073f4e0fbb69"
+      "sha256": "1966f0dafa8c9876993ad899ad406c9c26fd123cb500463939966c6aabc47c4f"
     },
     {
       "bytes": 246,
       "path": "failure1/timing.json",
-      "sha256": "279c112237a764edb11b44f8f99131696eafc8e72b985e7dd91969c266538a17"
+      "sha256": "54e5213e73b23c1c42cfb39ecc7c21db669915009ce895a7eab1a9c672d2083b"
     },
     {
-      "bytes": 518703,
+      "bytes": 548361,
       "path": "failure1/trajectory_replay.pdf",
-      "sha256": "6aeddf0ab8ecd4bba3888f4be8504f00703ebf062074cd73047872d60573a3ce"
+      "sha256": "4a6d5fdabab62201e9f3651886edbf83f69f6d20fd513b927163cf6b7dbf2832"
     },
     {
-      "bytes": 428018,
+      "bytes": 403648,
       "path": "failure2/accel_reconstruction.png",
-      "sha256": "4c3b44ba945baf035230ffe986e78067073f0d1b55fca68a8560d44f298aac2e"
+      "sha256": "94a801c4ce78e0214143b1cedea9e6f778d4ed7d7b19215e8d1a05f0e8ccfd0d"
     },
     {
-      "bytes": 4525875,
+      "bytes": 341364,
+      "path": "failure2/applied_residual_wrench.png",
+      "sha256": "f09df32814e26118ade8321a3dd313dfd69c703284024ee32d2200251bf1eb3e"
+    },
+    {
+      "bytes": 5433764,
       "path": "failure2/arrays.npz",
-      "sha256": "1b13d00af11c1ea9480ce5fe13c5f27f2daa6599f62a4fd1588ce50816116276"
+      "sha256": "757e2b41b3b363ae91d3b535c55499e88ce8bd2a544ac4899886d82eb752b163"
     },
     {
-      "bytes": 254654,
+      "bytes": 343228,
       "path": "failure2/attitude_comparison.png",
-      "sha256": "37db4c2cdc85bf2f4410999aa36ac50debddb4c691f8dbfac327e310befea1e4"
+      "sha256": "98b471b52c2eb0314cba342f6a3e460b6b5aba0bdfe4315e0808b976ff89436f"
     },
     {
-      "bytes": 305985,
+      "bytes": 380901,
       "path": "failure2/attitude_error.png",
-      "sha256": "87663e7670ff821eda801aed7acc68651390ee264dc632fb22ed4a2a1774888c"
+      "sha256": "1c18003b04ce2414875c0279c0cab7ff2bbcba6cd139d97fb550c53b97641d67"
     },
     {
       "bytes": 220923,
@@ -178,9 +188,9 @@
       "sha256": "5cd2dba85e0d825446ac6c718044b5814d71724d810fc8d4644a49764345f376"
     },
     {
-      "bytes": 155610,
+      "bytes": 153476,
       "path": "failure2/attitude_uncertainty_model.png",
-      "sha256": "51402821071518b4f3a03d94538b9e32c6a96531d290af4268c6308b12e233bd"
+      "sha256": "ffdc94e596d6c8c23b9783a1ff4fae2203fcfc6139ffd1b392aa5649d5d83217"
     },
     {
       "bytes": 165657,
@@ -188,9 +198,9 @@
       "sha256": "a2dc68f4b3ecf81a245e4858b5cbe12e83b547cc721087c36bf131410c633d85"
     },
     {
-      "bytes": 54160,
+      "bytes": 55473,
       "path": "failure2/estimate.json",
-      "sha256": "a2c40d6f5ae6061478089221cbfc8e9549a32c1b1ac0b6074da1b486a4019afb"
+      "sha256": "4a471b787c9f864d857c0c9b9d4ec42da425c08e4ad681e2107474e95e544fc8"
     },
     {
       "bytes": 392659,
@@ -203,14 +213,14 @@
       "sha256": "b25f0e0221929c84023541f0ef31466a7309ca61431a5874d508c54181d24e0f"
     },
     {
-      "bytes": 448334,
+      "bytes": 435508,
       "path": "failure2/gyro_reconstruction.png",
-      "sha256": "750b1c9887762504e0aeefd0457ccecffb1f821018c9113bb72ee802e8af3618"
+      "sha256": "11d3e6ba3f711a4839b75fe77791a2a0c967dcc04aa43b29586aae55ce032670"
     },
     {
       "bytes": 1792,
       "path": "failure2/orientation_metadata.json",
-      "sha256": "ac04112aaa3d0c5e55887423741608c52d2d5d1a86cb6ada140edad854b35def"
+      "sha256": "c02b7099367fe5ee67a5bb09e5f53c09cb1a0e445069fcfed6b4fe5aa977b5cb"
     },
     {
       "bytes": 6573,
@@ -223,34 +233,34 @@
       "sha256": "e07839ea81e0a39c9ec7d3d756a783b012a7571896020b166547e3e526c36e67"
     },
     {
-      "bytes": 237788,
+      "bytes": 288577,
       "path": "failure2/position_reconstruction.png",
-      "sha256": "7960d59b8e0c1a8a0939d80c0eb78a741d6040ddd72f95cb11846f7818a74689"
+      "sha256": "6081dc7beeb148ed4c2b68f7dc374098e1518c355af89dd1e352cdeaf4e30afd"
     },
     {
-      "bytes": 287249,
+      "bytes": 298927,
       "path": "failure2/position_uncertainty.png",
-      "sha256": "a9f0c56746d6fd6739cbc0865b04d82b2be6834b2210161992bc83c316d81112"
+      "sha256": "c65d9b1299ee85aa60a9a69a0ef06c17e7ae1b3689ba3043ca61d358a5e71c2f"
     },
     {
-      "bytes": 2257,
+      "bytes": 3003,
       "path": "failure2/replay_metadata.json",
-      "sha256": "2b2d8dc05779a8ae93abf4371dfabb0632c73641f2dae412e79e3106da96b566"
+      "sha256": "a47ec552a8360f94de72166173cb844bd7b4140818d329f19d7f60aa95d70451"
     },
     {
-      "bytes": 833273,
+      "bytes": 1012024,
       "path": "failure2/report.pdf",
-      "sha256": "5318869de6eada769c1c8ee82e975b1b9aefcdebde40b7dd57835832178b86d6"
+      "sha256": "611294e36cdf3ce67e084a06b154ceb9f4cda8cd80f08f9afdbc8183d4b38643"
     },
     {
-      "bytes": 3242,
+      "bytes": 3716,
       "path": "failure2/report_metadata.json",
-      "sha256": "72427d755623ed0ed18570489cf58691a4e630d63345c398156d1e0fb2bde224"
+      "sha256": "9653ac098b327b9da323f75130dde05397cc2d2bb972d1e6a42dff6d3d643663"
     },
     {
-      "bytes": 58092,
+      "bytes": 195546,
       "path": "failure2/residual_wrench.pdf",
-      "sha256": "b1d59bb7546339ba4b1ed620fbfce1ef30d2a1092bd167d5bfeade8158cb0e48"
+      "sha256": "486a7cad29aa2b9a5d4334ad70260a699dc24befa68593d1fe65e38f97c4b65f"
     },
     {
       "bytes": 234707,
@@ -263,39 +273,39 @@
       "sha256": "41027e20d3489b89a33669916794863518b0bd33cee7edb673f46d06d9099a34"
     },
     {
-      "bytes": 1731,
+      "bytes": 2068,
       "path": "failure2/residual_wrench_summary.json",
-      "sha256": "1d18142ba348a640a828d6ef9571f36a9444c2df9c8c8990e62d873130c52669"
+      "sha256": "edc20a2660e35ebeb110e92eb0d4584b6cfc698ff5bfdc782fabdff10de6ec50"
     },
     {
-      "bytes": 53809,
+      "bytes": 53881,
       "path": "failure2/sensor_measurement_response.npz",
-      "sha256": "50b8397797dbaca94a0d0e910b05031fd73de0d949a51c614ca47a31e4458076"
+      "sha256": "d5e1d4f41a4b30e7004b218c47faed81148646a7c79afaa202d13384bd605452"
     },
     {
-      "bytes": 145041,
+      "bytes": 145440,
       "path": "failure2/sensor_reconstruction.pdf",
-      "sha256": "94e274902b51314329fdcf422493c1a5c5c75630595ed37b2032be834ef00b56"
+      "sha256": "ef8fb88a158b74c59a1d773898d136c3784f90c60a3f9d8966fe03e97d394b46"
     },
     {
-      "bytes": 537,
+      "bytes": 536,
       "path": "failure2/status.json",
-      "sha256": "65c631f41f8d7dff67b9bc11f6f0bca633c23694724c21b5c84d943a04d6e724"
+      "sha256": "d077bd5f0e262055e0f5f66f45c35e48b9c8b173b4ae70eea785daae2f135b75"
     },
     {
-      "bytes": 244,
+      "bytes": 243,
       "path": "failure2/timing.json",
-      "sha256": "88032656fca42f4aa8bfad279467691eebda386e834610ebe1cc1739ea7a6abd"
+      "sha256": "2b280a749b8e92f99cb0509a3bb7da68b5793c033b157372bfad9017939462a4"
     },
     {
-      "bytes": 485265,
+      "bytes": 528824,
       "path": "failure2/trajectory_replay.pdf",
-      "sha256": "805cab7d980fca5d1e39a30cfb5cfc0e4f40c4c2a7438a220b05e79975c5143f"
+      "sha256": "1134d97b328c1c715a82f39c6935f0a6cfee016f77674b7928bd0ec4699ff4f4"
     },
     {
-      "bytes": 4440645,
+      "bytes": 5166313,
       "path": "imu_first_order_lag_comparison.pdf",
-      "sha256": "4970284538d5ad3bb7eec6371dedff74483dc16b0b5d948d5bc5952001959710"
+      "sha256": "1add6dd1c4dcefc9211064e2958fd8f12c5fab7f739182fa12ff95f625a268c5"
     },
     {
       "bytes": 4792,
@@ -328,29 +338,34 @@
       "sha256": "fc0baf8010f0489e072c0a5a2267b763e5d8401ab002681f6f3e675bb23af3ae"
     },
     {
-      "bytes": 13387,
+      "bytes": 15259,
       "path": "run_provenance.json",
-      "sha256": "1b4293db6abee179062f577b89dd731e46771b5acd81993968042d33c7ceed0f"
+      "sha256": "2ac09af52d80e657f7bf7896e419f6a4ac277bf21337dc241b38887ccd6e46b6"
     },
     {
-      "bytes": 421731,
+      "bytes": 412552,
       "path": "success/accel_reconstruction.png",
-      "sha256": "ef0cce84bdc22aba170ba10765578b4acc23f094084dd98a05f6cc8d90ed69fd"
+      "sha256": "1de46edf5200e29aca935421b9ebee6b789b1f924bec830eb86f86936b403ec3"
     },
     {
-      "bytes": 8195601,
+      "bytes": 394177,
+      "path": "success/applied_residual_wrench.png",
+      "sha256": "8067b6c71b7a03c05a19a88312c7c7032d3a9f19e0b22168024ede6f13a17706"
+    },
+    {
+      "bytes": 9848238,
       "path": "success/arrays.npz",
-      "sha256": "91448e2d8abc85a0fc07a60ca4d297f45e7fe9a376ede5b5439566ff6d626733"
+      "sha256": "26bb4755820811003e228a6aa9ee3cbb7a6a8ef5bbf77ef53739f83cd1bae25e"
     },
     {
-      "bytes": 256456,
+      "bytes": 303650,
       "path": "success/attitude_comparison.png",
-      "sha256": "1a71b24a4ffff74fe2019c3918baf5484e53aa468473f619bbfd14bbfa273583"
+      "sha256": "e4650c7d9810e448bcca36c2a33512ade78f7f179555f93a01cb7843a792de8e"
     },
     {
-      "bytes": 190337,
+      "bytes": 305616,
       "path": "success/attitude_error.png",
-      "sha256": "a3be0670db0d9c311d0605f560f33ae77a01c141e7eedf0df6986f3167af16a8"
+      "sha256": "76ba0f516d4f808677927a4b1f3d021e3ea26d8a50a0a1e45bb6b9654ac1e48d"
     },
     {
       "bytes": 194843,
@@ -363,9 +378,9 @@
       "sha256": "f948bff9a04081692349ae93702fdaeb4dec4e1c50703a13bc5005f1e348caec"
     },
     {
-      "bytes": 153247,
+      "bytes": 156266,
       "path": "success/attitude_uncertainty_model.png",
-      "sha256": "6d556bcfc04906a2e1eb5a3aed323fd39f42186b99b4651deab485fe2ad95a3b"
+      "sha256": "b6f6514905f4ec8382f785ed8f986b5cec6e1adeac778668a085d4d5fa6e2d6d"
     },
     {
       "bytes": 180048,
@@ -373,9 +388,9 @@
       "sha256": "ed9b554c00e88bb095810f2db6b5af8e7ba9a35778b01e214440b3ee83f27f15"
     },
     {
-      "bytes": 54626,
+      "bytes": 55947,
       "path": "success/estimate.json",
-      "sha256": "21c3bf8dbc24ad4ec05cab423d56841a649ebdfb2c7e70afa6ea6887fb421a76"
+      "sha256": "f260c5267a089d54160ff3874309f81cc868456029f52213239b8edf69d7b8c3"
     },
     {
       "bytes": 684055,
@@ -388,14 +403,14 @@
       "sha256": "8bc8571ed0afe8ec4aa5b52cba9c7a31f9a8646b4f4a3db18da386a2a8eca906"
     },
     {
-      "bytes": 410022,
+      "bytes": 409735,
       "path": "success/gyro_reconstruction.png",
-      "sha256": "0f478f1d59af8dbabbb5675001ac81358b03dad94de5de24cb3f0d3f7b65bc87"
+      "sha256": "0f14628b3d7efb92c71b6cc8e64ca5d8a4142514b9ada047fe977fb64d7766b4"
     },
     {
-      "bytes": 1792,
+      "bytes": 1791,
       "path": "success/orientation_metadata.json",
-      "sha256": "b4a6aa794b9056f3fefcfae2f786a788b79d2d21c9ebf31b772ddf7b98845376"
+      "sha256": "03b17fc2abaf2c4ceb036764379582f90a04bd7e9f940de2f8a2d9f223fe786e"
     },
     {
       "bytes": 6704,
@@ -408,34 +423,34 @@
       "sha256": "0e504c3d720351a39d9f352a274c4c21adad39c5a1556a34fb5c45beb95ddf02"
     },
     {
-      "bytes": 243492,
+      "bytes": 268014,
       "path": "success/position_reconstruction.png",
-      "sha256": "d99d8f4c82eaa8638dcc22f2eb84db5a767681c3d1cb72d675e8332685855691"
+      "sha256": "bd49bf1c7bf8ab69604c692c863600457ee862ea4e734e41048f478c379053ff"
     },
     {
-      "bytes": 277560,
+      "bytes": 300756,
       "path": "success/position_uncertainty.png",
-      "sha256": "3eed7aad8cf27fb7afa177525c7d18ccfa6df0a153296f15f94c4d7504d7cf55"
+      "sha256": "d711bf0f518176b67710c16101b532774c784b4467749b2d25643b6c223fd5f2"
     },
     {
-      "bytes": 2257,
+      "bytes": 3003,
       "path": "success/replay_metadata.json",
-      "sha256": "2b2d8dc05779a8ae93abf4371dfabb0632c73641f2dae412e79e3106da96b566"
+      "sha256": "a47ec552a8360f94de72166173cb844bd7b4140818d329f19d7f60aa95d70451"
     },
     {
-      "bytes": 1316595,
+      "bytes": 1601640,
       "path": "success/report.pdf",
-      "sha256": "379e28405e462fe8bfb70552ffeb2ceaeadbb881dae1eeaccdd816a790dc1c82"
+      "sha256": "e020e41772dbce31ea2ad4e5b52af2dbdfc8f40ea02cc049f3391c4a086c8008"
     },
     {
-      "bytes": 3243,
+      "bytes": 3723,
       "path": "success/report_metadata.json",
-      "sha256": "842b3726c6c1fb2fd71ff4901c06e0f4024d9dec42fe963b9648e7206b156306"
+      "sha256": "f1d4aa78f2ef8d06b6abc825a26537a336cb7ccabf279e332a5852dd78142f0b"
     },
     {
-      "bytes": 73937,
+      "bytes": 316865,
       "path": "success/residual_wrench.pdf",
-      "sha256": "63713d4dec3108c9a18934dbb05442959945e39a7b9b9e004cee2e86ffbe6159"
+      "sha256": "dda1f8888d08590a72a05a45c4e5b151a7ba3f779752419597c230e078ae7f90"
     },
     {
       "bytes": 283922,
@@ -448,40 +463,41 @@
       "sha256": "e6debbc4fe69d23a681eeaac23748ce0acfe1bb74d6e6a409f886460d948f9fd"
     },
     {
-      "bytes": 1732,
+      "bytes": 2075,
       "path": "success/residual_wrench_summary.json",
-      "sha256": "f97087585760f510ef7d5cb111e3135490973a3318b3d0c3d13565b044f031ef"
+      "sha256": "dbc33c80198596bf3bda55eecbc03f01bf0ac0954135d055120cd5831bbe72ae"
     },
     {
-      "bytes": 95450,
+      "bytes": 96004,
       "path": "success/sensor_measurement_response.npz",
-      "sha256": "5b2b52424df1c1f448c77f80f035805f495e932e0f1823d5a20c061f148659b7"
+      "sha256": "f2e30e2529655aac674b3297722824551115d79524dd9ccbc2d7ac95ba6aa344"
     },
     {
-      "bytes": 256544,
+      "bytes": 263796,
       "path": "success/sensor_reconstruction.pdf",
-      "sha256": "96614f2b6cc2db0f7dd42cf3c382f96b2d5d4d80a036af1128a5d7ec43277b1b"
+      "sha256": "d2f9ff8545bb473311593281f88514257f0a6d34cf4a54a091c671306cbf2f46"
     },
     {
-      "bytes": 536,
+      "bytes": 537,
       "path": "success/status.json",
-      "sha256": "414b3258b5c05c86a7a6a128459fae78b110e5c542a110dddb7f93343efe857f"
+      "sha256": "d87015ba009c846eedcf256f99a46a0b65b1f00cec37607fd229d723f7ddf733"
     },
     {
-      "bytes": 245,
+      "bytes": 246,
       "path": "success/timing.json",
-      "sha256": "47d4c70178d7c64a0ea9ddb835e9aa99337961a110562fc3c9d1f6bf1534df3e"
+      "sha256": "4e5d7bcd25fe3a3e52f622105ee1d8a89c8f0c844708dd16bd3a417b5ab28299"
     },
     {
-      "bytes": 775621,
+      "bytes": 813388,
       "path": "success/trajectory_replay.pdf",
-      "sha256": "c6bf76dad7e0c7b3b260317e6e61bf340f63ae0643ac1c421989ed5caf776eb3"
+      "sha256": "ff77817882e59d768b9579f8c3d384a92c1ad27a50f49fcd368d6a120f72f250"
     }
   ],
+  "model_trajectory": "identified model plus original-clock IMU-derived residual wrench in mean dynamics",
   "monte_carlo": false,
   "native_arrays": "inputs/<case>.npz; original extracted sensor/command/mocap clocks and indices",
   "publication_source_sha256": {
-    "publish_results.py": "c3b9fdb7f58cbddc22660e64a2095022da8f590a33b3e66090957c1dd73e562a"
+    "publish_results.py": "b378e08ccdb9245121e2248f4192d6a3ee75704fb2d480509b310513139a0633"
   },
   "raw_bags_included": false,
   "removed_only": [
@@ -490,10 +506,38 @@
     "duplicate right_rotation covariance aliases",
     "SVG versions of PNG/PDF figures",
     "optimizer Jacobians/whitening/noise intermediates (inputs/code/full parameter covariance retained)",
+    "residual-wrench linearization intermediate (applied mean and full covariance factor retained)",
     "PDF body/appendix intermediates (included in report.pdf and combined PDF)"
   ],
-  "schema": "grape-param-estim/imu-first-order-lag-publication/v1",
-  "source_manifest_sha256": "bad38c3f9ec3c2f478fbe5579e6ac266fed4e0036f9c31605eda7e87bef36be9",
+  "schema": "grape-param-estim/imu-first-order-lag-publication/v2",
+  "shared_wrench_state_factor_columns": {
+    "applied_wrench": {
+      "additional_wrench": [
+        16,
+        22
+      ],
+      "parameter": [
+        0,
+        16
+      ]
+    },
+    "joint_cross": "Insert 9 zero initial columns into applied-wrench factor after column 16; C_state,wrench = L_state @ L_wrench_aligned.T",
+    "state": {
+      "additional_wrench": [
+        25,
+        31
+      ],
+      "initial": [
+        16,
+        25
+      ],
+      "parameter": [
+        0,
+        16
+      ]
+    }
+  },
+  "source_manifest_sha256": "f8c9b8adeab3f15e57173a53f8360b38e13e020a5de1f3accbafca9d09085e16",
   "state_covariance_recovery": "C_state[k] = state_covariance_factor[k] @ state_covariance_factor[k].T; order in replay_metadata.json",
-  "total_bytes": 41755110
+  "total_bytes": 49112863
 }

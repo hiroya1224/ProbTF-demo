@@ -1,7 +1,7 @@
 {
-  "identification_wall_seconds": 7.293674640000972,
-  "orientation_wall_seconds": 10.347521751000386,
-  "reconstruction_wall_seconds": 6.969273958000485,
-  "report_wall_seconds": 10.220139135000863,
-  "total_wall_seconds": 35.53685155099993
+  "identification_wall_seconds": 7.263137943999027,
+  "orientation_wall_seconds": 10.197973062007804,
+  "reconstruction_wall_seconds": 6.979601112994715,
+  "report_wall_seconds": 11.505064990007668,
+  "total_wall_seconds": 36.764519065007335
 }

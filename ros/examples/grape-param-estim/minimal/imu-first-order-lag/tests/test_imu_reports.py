@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 
 import numpy as np
+import pytest
 from scipy.spatial.transform import Rotation
 
 HERE = Path(__file__).resolve().parents[1]
@@ -52,3 +53,19 @@ def test_covariance_wireframes_preserve_rectangular_factor_axes():
     q = np.array([[1., 0., 0., 0.]])
     std = reports.rpy_standard_deviation(q, np.array([factor @ factor.T]), factor[None])
     np.testing.assert_allclose(std, np.rad2deg([[3., 2., 1.]]))
+
+
+def test_applied_wrench_display_uses_exact_dynamics_mean_factor_and_clock():
+    time = np.array([1., 1.01, 1.025])
+    mean = np.arange(18.).reshape(3, 6)
+    factor = np.arange(3 * 6 * 8.).reshape(3, 6, 8) / 100.
+    model = {"time": time, "applied_residual_wrench_body": mean,
+             "applied_residual_wrench_covariance_factor": factor}
+    shown, kept_factor, std = reports.applied_wrench_distribution(model, time)
+    np.testing.assert_array_equal(shown, mean)
+    np.testing.assert_array_equal(kept_factor, factor)
+    covariance = factor @ factor.transpose(0, 2, 1)
+    np.testing.assert_allclose(std**2, np.diagonal(covariance, axis1=1, axis2=2))
+    assert np.any(covariance[:, 0, 1] != 0)
+    with pytest.raises(ValueError, match="original replay clock"):
+        reports.applied_wrench_distribution(model, time + .001)

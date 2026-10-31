@@ -1,7 +1,8 @@
 """Two deterministic uncertain replays from an IMU-only physical fit.
 
-The model trajectory has no measured-attitude reset and no fitted disturbance
-mean.  Its rectangular factors propagate all identified quotient/log-lag modes.
+The model trajectory includes the IMU-derived residual wrench at every stage,
+with no measured-attitude reset. Its rectangular factors propagate all shared
+identified quotient/log-lag modes, including their residual-wrench dependence.
 The IMU trajectory integrates the measured specific force using the separate
 Bingham output; temporal error correlations are bounded, not discarded.
 Only the explicitly supplied initial conditions can originate from mocap.
@@ -23,7 +24,7 @@ from grape_param_estim.dynamics import (FullSixDofPlant,
     _quaternion_right_tangent_projection)
 from grape_param_estim.geometry import quaternion_to_matrix, skew
 from grape_param_estim.system import ActuatorState, GRAVITY
-from imu_model import first_order_zoh_thrust_history
+from imu_model import first_order_zoh_thrust_history, skew_batch
 
 
 def _factor(covariance):
@@ -126,14 +127,52 @@ def _fc_output(x, sensitivity, initial, wrench, lever, dr, factors):
         x[7:10] + rotation @ np.cross(omega, lever), factor)
 
 
+def _residual_wrench_linearization(data, fit):
+    """Native body-CoG residual wrench and its full shared 16-mode Jacobian.
+
+    For the fitted generalized residual e=(delta_f, delta_alpha), w=G e,
+    G=[[m I, m [r]x], [0,I_body]]. Thus dw=G de+(dG)e. Keeping this
+    dependence avoids pretending that the wrench inferred with a parameter
+    candidate is an independent, frozen force when that candidate changes.
+    """
+    arrays, pars = fit['arrays'], fit['parameters']
+    residual = np.asarray(arrays['residual'])
+    jacobian = np.asarray(arrays['jacobian_reduced_log_tau'])
+    wrench = np.asarray(arrays['raw_residual_wrench'])
+    n = len(residual)
+    if residual.shape != (n, 6) or jacobian.shape != (n, 6, 16) or wrench.shape != (n, 6):
+        raise ValueError('residual wrench requires native six-dimensional residual and full 16-mode Jacobian')
+    _, pj = fit['chart'].decode_with_jacobian(fit['physical_coordinate'])
+    basis = np.asarray(fit['joint_basis'])[:14, :13]
+    lever = np.asarray(data['gyro_sensor_position_in_body']) - pars.cog_offset
+    mapping = np.zeros((6, 6))
+    mapping[:3, :3] = pars.mass * np.eye(3)
+    mapping[:3, 3:] = pars.mass * skew(lever)
+    mapping[3:, 3:] = pars.inertia
+    derivative = np.einsum('ab,nbp->nap', mapping, jacobian)
+    dm = pj.mass @ basis
+    dr = -pj.cog_offset @ basis
+    di = np.einsum('abp,pq->abq', pj.inertia, basis)
+    cog_force_residual = residual[:, :3] + np.cross(lever, residual[:, 3:])
+    derivative[:, :3, :13] += cog_force_residual[:, :, None] * dm[None, None, :]
+    derivative[:, :3, :13] -= pars.mass * np.einsum('nab,bp->nap', skew_batch(residual[:, 3:]), dr)
+    derivative[:, 3:, :13] += np.einsum('abp,nb->nap', di, residual[:, 3:])
+    if not np.isfinite(wrench).all() or not np.isfinite(derivative).all():
+        raise FloatingPointError('residual wrench or its parameter derivative is non-finite')
+    return wrench, derivative
+
+
 def _model_replay(data, fit, orientation, noise, options):
     times = np.asarray(data['time'], float)
     pars, geometry = fit['parameters'], fit['model'].geometry
     plant = FullSixDofPlant(pars, geometry)
     x, s, initial, initial_factor, lever, dr, pj, basis = _initial(data, fit, orientation, noise)
-    residual = np.asarray(fit['arrays']['raw_residual_wrench'])
-    # A persistent, zero-mean body-wrench error: uncentred moment preserves
-    # systematic mismatch as uncertainty; its sample mean never drives x.
+    # The entire inferred time-varying wrench drives the mean, rather than
+    # reducing it to a zero-mean uncertainty-only surrogate.
+    residual, residual_jacobian = _residual_wrench_linearization(data, fit)
+    # Retain the earlier explicit empirical error envelope *in addition* to
+    # that inferred mean. Its uncentred RMS is neither an exact sensor-noise
+    # covariance nor a proof of systematic-error coverage.
     wrench_factor = np.linalg.qr(residual / np.sqrt(len(residual)), mode='reduced')[1].T
     param_factor = np.asarray(fit['parameter_covariance_factor_reduced'])
     factors = (param_factor, initial_factor, wrench_factor)
@@ -151,6 +190,10 @@ def _model_replay(data, fit, orientation, noise, options):
         native_indices.append(len(nodes) - 1)
     nodes = np.asarray(nodes)
     stages = np.unique(np.r_[nodes, .5 * (nodes[:-1] + nodes[1:])])
+    stage_residual = np.column_stack([np.interp(stages, times, residual[:, j]) for j in range(6)])
+    stage_residual_jacobian = np.column_stack([
+        np.interp(stages, times, residual_jacobian[:, j, k])
+        for j in range(6) for k in range(16)]).reshape(len(stages), 6, 16)
     fit_options = getattr(fit.get('problem'), 'options',
         fit.get('estimate', {}).get('method', {}).get('options', {}))
     history = first_order_zoh_thrust_history(command_times=data['rotor_command_time'],
@@ -163,19 +206,21 @@ def _model_replay(data, fit, orientation, noise, options):
     if times[0] < np.asarray(data['gimbal_time'])[0] or times[-1] > np.asarray(data['gimbal_time'])[-1]:
         raise ValueError('model replay exceeds measured gimbal support')
     stage_bundles = []
-    for thrust, angles, dthrust in zip(history.thrust, gimbal, history.log_tau_jacobian):
+    for thrust, angles, dthrust, extra, extra_j in zip(history.thrust, gimbal,
+            history.log_tau_jacobian, stage_residual, stage_residual_jacobian):
         actuator = ActuatorState(thrust, angles)
         evaluation = plant.actuator_wrench_evaluation(actuator)
         jac = evaluation.jacobian
         physical_wrench = (jac.cog_offset @ pj.cog_offset
             + jac.force_effectiveness @ pj.force_effectiveness) @ basis
-        stage_bundles.append((actuator, evaluation, physical_wrench, dthrust))
+        stage_bundles.append((actuator, evaluation, physical_wrench, dthrust, extra, extra_j))
 
     def rhs(stamp, value):
         state, ps, ix, wx = value
         stage = int(np.searchsorted(stages, stamp))
-        actuator, evaluation, d_wrench, d_thrust = stage_bundles[stage]
+        actuator, evaluation, d_wrench, d_thrust, extra, extra_j = stage_bundles[stage]
         dx, a, thrust_j, _ = plant.derivative_with_jacobian(stamp, state, actuator,
+            interval_model_discrepancy_wrench=extra,
             precomputed_actuator_wrench=evaluation)
         # The shared plant returns a canonical (w >= 0) quaternion rate.
         # An RK4 *intermediate* raw stage can be in the opposite hemisphere;
@@ -188,7 +233,7 @@ def _model_replay(data, fit, orientation, noise, options):
             a[3:7] *= -1.
             thrust_j[3:7] *= -1.
         rot = quaternion_to_matrix(state[3:7]); omega = state[10:13]
-        total_force = evaluation.body_wrench[:3] - pars.linear_drag * (rot.T @ state[7:10])
+        total_force = evaluation.body_wrench[:3] + extra[:3] - pars.linear_drag * (rot.T @ state[7:10])
         b = np.zeros((13, 16))
         b[7:10, :13] = rot @ (d_wrench[:3] / pars.mass
             - total_force[:, None] * dm[None, :] / pars.mass**2)
@@ -199,6 +244,7 @@ def _model_replay(data, fit, orientation, noise, options):
         b[:, 13] = thrust_j @ d_thrust
         l = np.zeros((13, 6)); l[7:10, :3] = rot / pars.mass
         l[10:13, 3:] = np.linalg.solve(pars.inertia, np.eye(3))
+        b += l @ extra_j
         return dx, a @ ps + b, a @ ix, a @ wx + l
 
     def rk4(t0, t1, value):
@@ -250,6 +296,13 @@ def _model_replay(data, fit, orientation, noise, options):
     out['position_covariance_factor_fc'] = out['state_covariance_factor'][:, :3]
     out['rotation_covariance_factor'] = out['state_covariance_factor'][:, 3:6]
     out['persistent_wrench_second_moment'] = _gram(wrench_factor)
+    out['applied_residual_wrench_body'] = residual.copy()
+    out['applied_residual_wrench_parameter_jacobian'] = residual_jacobian
+    # Same three-source Cauchy bound as the propagated state factor; the
+    # initial-state block has zero coefficient for this body-frame wrench.
+    out['applied_residual_wrench_covariance_factor'] = np.sqrt(3.) * np.concatenate((
+        residual_jacobian @ param_factor,
+        np.broadcast_to(wrench_factor, (n,) + wrench_factor.shape)), axis=2)
     return out
 
 
@@ -373,14 +426,18 @@ def replay(data, fit_result, orientation_result, options=None):
     noise = _signal_covariances(data, fit_result)
     model = _model_replay(data, fit_result, orientation_result, noise, options or {})
     imu = _imu_replay(data, fit_result, orientation_result, noise)
-    metadata = {'schema': 'grape-param-estim/imu-first-order-lag-replay/v1',
+    metadata = {'schema': 'grape-param-estim/imu-first-order-lag-replay/v2',
         'ongoing_mocap_used': False, 'monte_carlo_used': False,
         'initial_condition_frame': 'FC nominal sensor-origin position/velocity in world; body-to-world wxyz quaternion',
         'state_covariance_order': ['position_FC_world', 'right_rotation_body', 'velocity_FC_world', 'angular_velocity_body'],
         'model_integration': 'canonical full-six-DoF ambient-13 RK4 with exact thrust-history values at all stages; intermediate quaternion-rate/Jacobian sign transported to raw stage hemisphere, full-step normalization differentiated',
         'model_parameter_uncertainty': 'all 16 quotient/log-tau modes propagated as rectangular Gram factor; first-order sensitivity approximation',
-        'model_discrepancy_mean': [0.] * 6,
-        'model_discrepancy_uncertainty': 'persistent whole-window zero-mean body wrench, uncentred second moment of IMU-fit residual wrench',
+        'model_discrepancy_mean': 'full native IMU-fit residual wrench time series, body frame about CoG, added to the mean dynamics at every RK4 stage',
+        'model_residual_wrench_interpolation': 'piecewise linear on original IMU stamps, no extrapolation; identical interpolation for all 16 parameter derivatives',
+        'model_residual_wrench_parameter_jacobian': 'w=G*e; dw/dz=G*de/dz+(dG/dz)*e; same parameters/log-taus as model, not an independent fixed force',
+        'model_additional_persistent_wrench_error_mean': [0.] * 6,
+        'model_discrepancy_uncertainty': 'additional persistent zero-mean empirical envelope from uncentred second moment of the IMU-fit residual wrench; not exact sensor-noise covariance or a systematic-error coverage guarantee',
+        'model_applied_wrench_uncertainty': 'same full parameter factor plus additional empirical persistent-wrench factor, under the same three-source covariance bound as trajectory',
         'model_unknown_cross_bound': '3*(parameter + initial-state + persistent-wrench propagated covariance)',
         'initial_state_source_cross_assumption': 'initial rotation, past-prefix velocity and fixed-tau gyro noise blocks independent; parameter/source cross then bounded by factor 3',
         'imu_mean': 'lever-corrected CoG specific force integrated piecewise-linearly; FC reconstructed with Bingham output attitude; direct sensor-origin integration also saved',

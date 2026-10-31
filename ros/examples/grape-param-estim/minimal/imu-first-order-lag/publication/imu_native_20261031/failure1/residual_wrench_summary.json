@@ -18,11 +18,11 @@
       "last_time": 24.988684926,
       "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation"
     },
-    "model replay": {
+    "model + residual wrench": {
       "count": 719,
-      "rms_deg": 62.90197292144946,
-      "maximum_deg": 128.10245618924714,
-      "final_deg": 128.10245618924714,
+      "rms_deg": 2.453779152609569,
+      "maximum_deg": 5.992473086381917,
+      "final_deg": 2.5130809822833053,
       "first_time": 19.009208665000003,
       "last_time": 24.988684926,
       "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation"
@@ -36,6 +36,15 @@
     0.31069571873322815,
     0.3120088355854658
   ],
+  "applied_residual_wrench_rms": [
+    1.2326404708528014,
+    0.9607263760520286,
+    2.3227899368609233,
+    0.22472943103465023,
+    0.31069571873322815,
+    0.3120088355854658
+  ],
+  "applied_residual_wrench_clock": "same original IMU/replay timestamps; interpolation in dynamics uses this same mean and uncertainty law",
   "residual_wrench_peak_frequency_hz": [
     0.4972990996999,
     0.6722574191397134,

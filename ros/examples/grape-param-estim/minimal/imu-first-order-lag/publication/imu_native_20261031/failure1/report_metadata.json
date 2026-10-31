@@ -1,6 +1,6 @@
 {
-  "appendix_start_page": 15,
-  "body_page_count": 14,
+  "appendix_start_page": 16,
+  "body_page_count": 15,
   "files": [
     "report.pdf",
     "report_body.pdf",
@@ -18,6 +18,8 @@
     "residual_wrench_history.svg",
     "residual_wrench_spectrum.png",
     "residual_wrench_spectrum.svg",
+    "applied_residual_wrench.png",
+    "applied_residual_wrench.svg",
     "gyro_reconstruction.png",
     "gyro_reconstruction.svg",
     "accel_reconstruction.png",
@@ -40,10 +42,20 @@
     "residual_wrench_summary.json"
   ],
   "mocap_used_for_parameter_identification": false,
+  "model_replay_includes_residual_wrench": true,
   "monte_carlo": false,
   "parameter_appendix_page_count": 5,
-  "report_page_count": 19,
+  "report_page_count": 20,
   "statistics": {
+    "applied_residual_wrench_clock": "same original IMU/replay timestamps; interpolation in dynamics uses this same mean and uncertainty law",
+    "applied_residual_wrench_rms": [
+      1.2326404708528014,
+      0.9607263760520286,
+      2.3227899368609233,
+      0.22472943103465023,
+      0.31069571873322815,
+      0.3120088355854658
+    ],
     "attitude_comparison": {
       "GA": {
         "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation",
@@ -63,14 +75,14 @@
         "maximum_deg": 10.729552258512825,
         "rms_deg": 5.752909058949653
       },
-      "model replay": {
+      "model + residual wrench": {
         "clock": "original mocap header timestamps inside IMU support; reconstruction Slerp; no extrapolation",
         "count": 719,
-        "final_deg": 128.10245618924714,
+        "final_deg": 2.5130809822833053,
         "first_time": 19.009208665000003,
         "last_time": 24.988684926,
-        "maximum_deg": 128.10245618924714,
-        "rms_deg": 62.90197292144946
+        "maximum_deg": 5.992473086381917,
+        "rms_deg": 2.453779152609569
       }
     },
     "covariance_approximation": "local Gaussian; conservative bounds for modeled shared terms, not systematic-bias coverage",

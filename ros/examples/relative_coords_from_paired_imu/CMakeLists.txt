@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(probtf_imu_demo)
+project(relative_coords_from_paired_imu)
 
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS geometry_msgs message_generation std_msgs)
 
-catkin_package()
+catkin_python_setup()
+
+add_message_files(FILES ImuKinematics.msg)
+generate_messages(DEPENDENCIES geometry_msgs std_msgs)
+
+catkin_package(CATKIN_DEPENDS geometry_msgs message_runtime std_msgs)
 
 catkin_install_python(
   PROGRAMS

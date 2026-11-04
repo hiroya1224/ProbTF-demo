@@ -5,8 +5,8 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 
-from probtf_estimators.imu_extended_leastsq import ExtendedLeastSquaresImuRelativePoseEstimator
-from probtf_estimators.imu_kinematics import ImuKinematics, _covariance, _vector
+from relative_coords_from_paired_imu.imu_extended_leastsq import ExtendedLeastSquaresImuRelativePoseEstimator
+from relative_coords_from_paired_imu.imu_kinematics import ImuKinematics, _covariance, _vector
 
 
 def imu_measurement_covariance(values, fallback_variance):

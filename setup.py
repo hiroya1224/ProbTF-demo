@@ -3,6 +3,7 @@ from setuptools import find_packages, setup
 
 PACKAGE_ROOTS = (
     "ros/core/probtf_core/src",
+    "ros/examples/relative_coords_from_paired_imu/src",
     "ros/examples/deflecomp/deflecomp_core/src",
     "ros/examples/deflecomp/deflecomp_examples/src",
     "ros/examples/deflecomp/deflecomp_sim/src",

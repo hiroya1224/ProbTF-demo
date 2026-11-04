@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from probtf_estimators.imu_pair_pipeline import (
+from relative_coords_from_paired_imu.imu_pair_pipeline import (
     ImuRelativePosePipeline,
     SynchronizedImuPairPreprocessor,
     imu_measurement_covariance,

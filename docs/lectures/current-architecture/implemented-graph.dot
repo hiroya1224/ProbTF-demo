@@ -86,10 +86,6 @@ digraph ProbTFDemoCurrentArchitecture {
         label="sensor config + mount\nsymbolic URDF\ndeterministic composition"
       ];
 
-      estimator_imu [
-        fillcolor="#dcfce7",
-        label="probtf_estimators\nIMU kinematics + relative pose\nrotation/translation coupling"
-      ];
       estimator_orientation [
         fillcolor="#fef3c7",
         label="probtf_estimators\norientation filter + evidence fusion\norientation-only domain"
@@ -121,8 +117,6 @@ digraph ProbTFDemoCurrentArchitecture {
       spherical -> distributions [label="orientation law"];
       support -> geometry;
 
-      estimator_imu -> distributions [label="full SE(3) record"];
-      estimator_imu -> geometry;
       estimator_orientation -> geometry [label="Bingham natural parameters"];
       estimator_orientation -> provenance;
       estimator_materialization -> kernels [label="point summary"];
@@ -146,7 +140,7 @@ digraph ProbTFDemoCurrentArchitecture {
       estimator_messages [
         shape=component,
         fillcolor="#fef3c7",
-        label="Estimator v2 wire\nImuKinematics\nTransformEvidenceStamped\nOrientationDistributionStamped"
+        label="Estimator v2 wire\nTransformEvidenceStamped\nOrientationDistributionStamped"
       ];
       no_v1 [
         shape=note,
@@ -165,7 +159,16 @@ digraph ProbTFDemoCurrentArchitecture {
       imu_pkg [
         shape=component,
         fillcolor="#dcfce7",
-        label="probtf_imu_demo\ntwo-IMU producer\nsymbolic URDF materializer"
+        label="relative_coords_from_paired_imu\npaired-IMU algorithms + ROS nodes\noptional legacy materializer"
+      ];
+      estimator_imu [
+        fillcolor="#dcfce7",
+        label="example-owned Python\nSG fit history + async time alignment\nGaussian/Bingham estimation"
+      ];
+      imu_kinematics_message [
+        shape=component,
+        fillcolor="#dcfce7",
+        label="relative_coords_from_paired_imu/ImuKinematics\nlegacy two-topic boundary"
       ];
       orientation_pkg [
         shape=component,
@@ -196,12 +199,15 @@ digraph ProbTFDemoCurrentArchitecture {
     ros_v2 -> se3_messages [label="primary transport"];
     cpp_runtime -> se3_messages [label="atomic batch transport"];
     estimator_orientation -> estimator_messages [label="orientation wire"];
-    estimator_imu -> estimator_messages [label="kinematics wire"];
+    estimator_imu -> distributions [label="full SE(3) record"];
+    estimator_imu -> geometry;
+    imu_pkg -> imu_kinematics_message [label="owns schema"];
     imu_pkg -> se3_messages [label="publishes"];
     symaware_pkg -> se3_messages [label="publishes / embeds"];
     no_v1 -> se3_messages [style=dashed, arrowhead=none, label="native v2 only"];
 
     integrated_setup -> distributions [style=dotted, label="non-catkin packaging"];
+    integrated_setup -> imu_pkg [style=dotted];
     integrated_setup -> symaware_pkg [style=dotted];
     integrated_setup -> deflecomp_pkg [style=dotted];
   }
@@ -260,10 +266,16 @@ digraph ProbTFDemoCurrentArchitecture {
       style="rounded,filled";
       fillcolor="#f0fdf4";
 
+      raw_imu_inputs [shape=ellipse, label="/imu\nmultiplexed acquisition timestamps"];
+      raw_pair_node [
+        fillcolor="#dcfce7",
+        label="raw_imu_relative_pose_node\nFIFO -> acquisition ordering -> SG\nGaussian/Bingham native v2 output"
+      ];
+
       imu_inputs [
         shape=ellipse,
         fillcolor="white",
-        label="/imu_parent/data\n/imu_child/data"
+        label="legacy: /imu_parent/data\n/imu_child/data"
       ];
       kinematics_nodes [
         fillcolor="#dcfce7",
@@ -276,7 +288,7 @@ digraph ProbTFDemoCurrentArchitecture {
       ];
       relative_pose [
         fillcolor="#dcfce7",
-        label="imu_relative_pose_node\nBingham + information RLS\ncoupled v2 component"
+        label="imu_relative_pose_node\nlegacy two-topic estimator\nnative v2 component"
       ];
       materializer [
         fillcolor="#dcfce7",
@@ -288,6 +300,8 @@ digraph ProbTFDemoCurrentArchitecture {
         label="/robot_description\nmaterialized URDF + RSP"
       ];
 
+      raw_imu_inputs -> raw_pair_node [penwidth=2.0];
+      raw_pair_node -> global_dynamic [penwidth=2.2, color="#16a34a", label="same estimated law"];
       imu_inputs -> kinematics_nodes [penwidth=2.0];
       kinematics_nodes -> kinematics_bus -> relative_pose [penwidth=2.0];
       relative_pose -> global_dynamic [penwidth=2.2, color="#16a34a", label="native full v2 edge"];

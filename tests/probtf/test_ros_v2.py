@@ -276,37 +276,6 @@ def test_v2_round_trip_preserves_joint_components_packing_and_metadata():
     np.testing.assert_allclose(restored.representative.translation, record.representative.translation)
 
 
-def test_raw_imu_pipeline_wire_preserves_the_estimated_law_and_acquisition_time():
-    from probtf_estimators.imu_pair_pipeline import ImuRelativePosePipeline
-
-    pipeline = ImuRelativePosePipeline("parent", "child", window_size=5, polynomial_order=2)
-    covariance = np.array([[0.004, 0.001, 0.0], [0.001, 0.006, -0.001], [0.0, -0.001, 0.008]])
-    records = []
-    for index in range(16):
-        for frame, offset in (("parent__aabbcc", 0.0), ("child__ddeeff", 0.0004)):
-            stamp = 1800000000.0 + index * 0.002 + offset
-            time = stamp - 1800000000.0
-            record = pipeline.update(
-                frame, stamp, [1 + time, 0.3 + 2 * time, 0.4 - time],
-                [0.2 * time, -0.1, 9.81], covariance, covariance * 3,
-            )
-            if record is None:
-                continue
-            message = transform_distribution_to_msg(record, MESSAGE_TYPES, Stamp)
-            restored = transform_distribution_from_msg(message)
-            _assert_record_equal(restored, record)
-            assert restored.representative is None
-            assert restored.stamp == pipeline.last_pair[0].stamp == pipeline.last_pair[1].stamp
-            assert restored.stamp < stamp
-            np.testing.assert_allclose(
-                restored.distribution.components[0].orientation.backend_parameter_matrix(),
-                pipeline.estimator.rotation_parameter, rtol=1e-12, atol=1e-9,
-            )
-            assert restored.provenance.source_ids == ("imu_extended_leastsq", "parent__aabbcc", "child__ddeeff")
-            assert restored.distribution.components[0].raw_weight == 1.0
-            assert restored.distribution.components[0].approximation.lossy
-            records.append(record)
-    assert len(records) > 10
 
 
 def test_temporal_diagnostics_round_trip_in_existing_provenance_wire_fields():

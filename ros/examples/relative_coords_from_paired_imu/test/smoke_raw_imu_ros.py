@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the real launch and native wire messages on a PRIVATE ROS master.
 
-Run after building probtf_imu_demo and sourcing the workspace. No hardware is
+Run after building relative_coords_from_paired_imu and sourcing the workspace. No hardware is
 used and the user's ROS master/topics are not touched. This verifies the
 published law against a separate ROS-free replay, not only topic existence.
 """
@@ -92,9 +92,9 @@ def run():
     from sensor_msgs.msg import Imu
     from probtf_msgs.msg import ProbabilisticTransformStamped
     from probtf_ros.v2_conversions import transform_distribution_from_msg
-    from probtf_estimators.imu_pair_pipeline import ImuRelativePosePipeline, imu_measurement_covariance
+    from relative_coords_from_paired_imu.imu_pair_pipeline import ImuRelativePosePipeline, imu_measurement_covariance
     from probtf.geometry import quat_to_rotmat, rpy_to_quat
-    from probtf_estimators.imu_relative_pose import skew
+    from relative_coords_from_paired_imu.imu_relative_pose import skew
 
     def vector(message, values):
         message.x, message.y, message.z = values
@@ -171,7 +171,7 @@ def run():
                 launch_environment["PYTHONPATH"] = "/usr/lib/python3/dist-packages:" + os.environ.get("PYTHONPATH", "")
                 for case in cases:
                     launches.append(subprocess.Popen([
-                        "roslaunch", "probtf_imu_demo", "imu_relative_pose.launch",
+                        "roslaunch", "relative_coords_from_paired_imu", "imu_relative_pose.launch",
                         "parent_frame_id:=parent", "child_frame_id:=child",
                         "imu_topic:=/smoke/{}/imu".format(case), "probtf_topic:=/smoke/{}/probtf".format(case),
                         "node_name:=smoke_imu_{}".format(case),

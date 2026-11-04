@@ -18,11 +18,11 @@ catkinにもそのPythonを指定する。生成されたrosrun/roslaunch用の�
 
 ```bash
 cd ~/catkin_ws
-catkin build probtf_imu_demo --cmake-args \
+catkin build relative_coords_from_paired_imu --cmake-args \
   -DPYTHON_EXECUTABLE="$HOME/catkin_ws/src/ProbTF-demo/.venv/bin/python"
 source devel/setup.bash
 
-roslaunch probtf_imu_demo imu_relative_pose.launch \
+roslaunch relative_coords_from_paired_imu imu_relative_pose.launch \
   parent_frame_id:=joint1_child_imu \
   child_frame_id:=joint2_parent_imu
 ```
@@ -46,19 +46,36 @@ rostopic pub -1 /imu_relative_pose/reset std_msgs/Empty '{}'
 このlaunchが立ち上げるのは受信・推定ノードだけである。
 Fireのserial受信ノードは既存のものを別途起動して `/imu` を流す。
 
-## ROS非依存コア
+## このexample内の実装構成
 
-コードは `ros/core/probtf_core/src/probtf_estimators/` にある。
+ペアIMU専用の実装・型・メッセージ・テストは、このディレクトリにまとめている。
+ROSに依存しない数値処理と、ROSの入出力はファイルを分ける。
+
+```text
+relative_coords_from_paired_imu/
+  src/relative_coords_from_paired_imu/  # ROS非依存の推定・SG・型
+  nodes/                              # rospy・ROSメッセージの入出力
+  msg/ImuKinematics.msg               # 旧2-topic例の専用メッセージ
+  config/  launch/                    # 設定と起動
+  tests/                             # 数値処理・非同期入力の回帰テスト
+  test/smoke_raw_imu_ros.py            # 独立ROS masterでの実接続テスト
+```
+
+`src/relative_coords_from_paired_imu/` の主なモジュールは次のとおり。
 
 - `imu_extended_leastsq.py`: `ExtendedLeastSquaresImuRelativePoseEstimator`。
   同一時刻で評価した2つの `ImuKinematics` を受け取り、native ProbTFオブジェクトを返す。
 - `imu_pair_pipeline.py`: `ImuRelativePosePipeline`。
   frame名、取得時刻、gyro、accel、各3×3共分散を直接受け取り、
   非同期入力の同期と上記の推定をまとめて実行する。
-- `nodes/raw_imu_relative_pose_node.py`: ROSメッセージの入出力、設定、固定bias補正だけを担当する。
+- `imu_kinematics.py`: ROSメッセージに依存しない入力データ型。
+- `ros_interface.py`: 旧2-topic例のメッセージフィールド変換。ROSのimportは不要。
+
+`nodes/raw_imu_relative_pose_node.py` がROSメッセージの入出力・受信worker・設定・固定bias補正を担当する。
+共通 `probtf_core` は汎用の分布・モーメント等の依存先であり、ペアIMUの実装を所有しない。
 
 ```python
-from probtf_estimators import ImuRelativePosePipeline
+from relative_coords_from_paired_imu import ImuRelativePosePipeline
 
 pipeline = ImuRelativePosePipeline("imu_parent", "imu_child")
 # 各IMUの取得ごとに呼ぶ。単位はrad/s, m/s^2、stampは秒。
@@ -73,7 +90,7 @@ for record in pipeline.update_all(frame_id, stamp, gyro, accel, gyro_cov, accel_
 従来の1件返却の `update` も残しており、余分な結果は破棄せずFIFOに保持する。
 このAPIで有限個の入力を処理する場合は、最後に `pipeline.drain()` も取り出す。
 
-`probtf_core` のPythonパッケージとNumPy/SciPy/PyYAMLだけで使える。
+このexampleのPythonパッケージ、汎用 `probtf`、NumPy/SciPy/PyYAMLだけで使える。
 `rospy`、生成済みROSメッセージ、元リポジトリ、numpy-quaternion、外部BinghamNLLを
 importする必要はない。Binghamモーメントには既存ProbTFの正規化定数実装を使う。
 
@@ -179,16 +196,16 @@ MACを含む元frame名と両窓の取得時刻範囲もprovenanceに入る。
 
 ```bash
 cd ~/catkin_ws/src/ProbTF-demo
-PYTHONPATH=ros/core/probtf_core/src .venv/bin/python -m pytest -q \
-  tests/probtf/test_imu_extended_leastsq.py \
-  tests/probtf/test_imu_pair_pipeline.py \
-  tests/probtf/test_imu_async_sg.py \
-  tests/probtf/test_imu_relative_pose.py \
-  tests/probtf/test_imu_preprocessing.py \
+PYTHONPATH=ros/core/probtf_core/src:ros/examples/relative_coords_from_paired_imu/src \
+  .venv/bin/python -m pytest -q \
+  ros/examples/relative_coords_from_paired_imu/tests \
   tests/probtf/test_ros_v2.py \
   tests/probtf/test_bingham.py \
   tests/probtf/test_v2_composition.py \
-  tests/probtf/test_materialization.py
+  tests/probtf/test_materialization.py \
+  tests/probtf/test_ros_conversions.py \
+  tests/probtf/test_orientation_filter.py \
+  tests/probtf/test_fusion.py
 ```
 
 元のBingham・Gaussian更新式との比較、非自明な回転と位置を持つ剛体データ、
@@ -200,13 +217,15 @@ ROS実ノードも専用の一時ROS masterで検証できる。ユーザーのR
 ```bash
 source ~/catkin_ws/devel/setup.bash
 PYTHONPATH="$HOME/catkin_ws/devel/lib/python3/dist-packages:/opt/ros/noetic/lib/python3/dist-packages" \
-  .venv/bin/python ros/examples/probtf_imu_demo/test/smoke_raw_imu_ros.py
+  .venv/bin/python ros/examples/relative_coords_from_paired_imu/test/smoke_raw_imu_ros.py
 ```
 
 交互到着、10件ずつ、片側全件先着、到着jitter、異なる取得周期、欠測、同stampの
 送信順逆転を検証する。元のSG窓選択を独立に記述した参照計算とも照合する。
 解析的なSG係数、正負の補間時間差、微分と共分散の伝播も確認する。
-2026-11-05（JST）、このPCで関連71テストと対象3パッケージのcatkin buildが成功した。
+2026-11-05（JST）、配置変更後に関連96テストと対象3パッケージのcatkin buildが成功した。
+移動前に保存した5種類の非同期入力それぞれ109更新と比較し、取得時刻・位置の平均と共分散・
+Binghamパラメータ等の数値結果がbit単位で一致することも確認した。
 
 ROS実接続では、同じ200件のraw IMUを交互・10件バッチ・parent先着・child先着・
 2つの独立した送信プロセスでそれぞれ流し、全ケースで89件の同じ更新列を確認した。

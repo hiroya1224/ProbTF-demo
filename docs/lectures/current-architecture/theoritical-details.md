@@ -25,7 +25,7 @@
 3. lookup は中央 RPC ではなく、各 consumer の `RosProbTfListener` が local
    `ProbTfGraph` を構築して行う。
 4. orientation-only posterior は translation を補わず、専用 message で運ぶ。
-5. two-IMU producer は rotation/translation coupling を保持した full v2 edge を直接 publish する。
+5. paired-IMU producer はexamples内に所有し、Gaussian位置・Bingham方位をnative v2 edgeでpublishする。元推定の因子化近似は明示する。
 6. symaware grasp は global v2 graph と用途固有 application topic の両方を使う。
 7. deflecomp は stiffness posterior を SE(3) に偽装せず、実 TF だけを scoped v2 latest snapshot に import する。
 
@@ -41,13 +41,17 @@ ProbTF-demo/
       probtf_core/
         src/
           probtf/                  # ROS-free foundation
-          probtf_estimators/       # ROS-free producer algorithms
+          probtf_estimators/       # generic orientation/evidence estimators
           probtf_ros/              # ROS adapters/listener/bridge
         include/ + src/latest_snapshot.cpp  # reusable C++ evaluator
         nodes/probtf_bridge_node.cpp         # default latest-only bridge
         nodes/probtf_bridge_node.py          # compatibility bridge
     examples/
-      probtf_imu_demo/             # two-IMU producer + materializer
+      relative_coords_from_paired_imu/
+        src/relative_coords_from_paired_imu/ # ROS-free paired-IMU algorithms
+        nodes/                       # ROS interfaces
+        msg/ImuKinematics.msg        # optional legacy boundary, example-owned
+        tests/                       # paired-IMU regression tests
       probtf_orientation_demo/     # orientation-only filter/fusion
       symaware_grasp/
         src/symaware_grasp/        # application domain/runtime helpers
@@ -74,7 +78,7 @@ Python namespaceは、それを責務として持つcatkin packageの`src/`に�
 | --- | --- | --- |
 | core | `probtf_msgs` | ProbTF v2 wire contract |
 | core | `probtf_core` | foundation、estimators、ROS adapter、C++ latest evaluator、generic bridge |
-| producer | `probtf_imu_demo` | two-IMU preprocessing、relative pose、URDF materialization |
+| producer | `relative_coords_from_paired_imu` | example-owned SG/time alignment、relative-coordinate estimation、ROS interfaces |
 | producer | `probtf_orientation_demo` | orientation-only prediction/evidence/fusion |
 | application | `symaware_grasp` | native v2 grasp composition、IK、visualization |
 | deflecomp | `deflecomp_core` | equilibrium、WEKF、control、robot model |
@@ -91,6 +95,8 @@ probtf_estimators ---> probtf ---> NumPy / SciPy / vendored Bingham numerics
 probtf_ros ---------> probtf + probtf_msgs + ROS 1
 probtf_runtime_cpp --> probtf_msgs + Eigen + roscpp
 producer nodes -----> probtf_estimators + probtf_ros + probtf_msgs
+relative_coords_from_paired_imu numerics ---> probtf
+relative_coords_from_paired_imu nodes -----> own numerics + probtf_ros + ROS messages
 symaware_grasp -----> probtf + probtf_ros + probtf_msgs
 deflecomp_core -----> probtf geometry primitives + Pinocchio
 deflecomp_ros ------> deflecomp_core + probtf_ros
@@ -294,9 +300,11 @@ core wire contractは次のmessageで構成される。
 | `ProbabilisticTransformArray` | static set 等の record 配列 |
 | `ApproximationInfo` | typed loss metadata |
 | `Provenance` | source/derived edge metadata |
-| `ImuKinematics` | two-IMU preprocessing output |
 | `TransformEvidenceStamped` | natural-parameter evidence |
 | `OrientationDistributionStamped` | translation を持たない orientation posterior |
+
+ペアIMU専用の旧2-topic境界は `relative_coords_from_paired_imu/ImuKinematics` であり、
+`probtf_msgs` には含めない。ペアIMUの型・SG・推定・専用テストも同じexample内に置く。
 
 `ProbabilisticTransformStamped.header.frame_id` が parent/target frame の唯一の wire field である。
 child、edge ID、authority、static flag、representative kind、component mixture、approximation、
@@ -341,19 +349,22 @@ generic bridge は application topic を自動発見する中央 serverではな
 two-IMU producerのdataflowは次である。
 
 ```text
-/imu_parent/data ---> parent imu_kinematics_node --+
-                                                    +--> imu_relative_pose_node --> /probtf
-/imu_child/data  ---> child imu_kinematics_node ---+       v2 full SE(3) edge
-                                                                  |
-                                                                  v
-                                                 symbolic_urdf_materializer
-                                                                  |
-                                                     /robot_description + RSP
+/imu ---> raw_imu_relative_pose_node (ROS reception FIFO)
+                    |
+                    v
+    relative_coords_from_paired_imu (ROS-independent Python)
+      acquisition-time ordering -> SG window selection/value/derivative
+                               -> Gaussian/Bingham relative coordinates
+                    |
+                    v
+               /probtf (native v2)
 ```
 
-二つのsensor observationから得る相対姿勢はfull SE(3) edgeであり、回転と並進のcouplingを
-同じjoint lawに保持する。symbolic URDFはそのlawを置き換えるgraph edgeではなく、明示的な
-判定を通ったterminal materializationである。
+ROS非依存は依存関係の分離を意味し、共通coreへの配置を意味しない。
+ペアIMUの全数値実装はこのexampleの `src/relative_coords_from_paired_imu/` に置く。
+推定に用いたGaussian位置・Bingham方位を同じnative v2 recordで運び、元アルゴリズムの
+位置・方位の因子化近似（coupling=0）をmetadataに残す。
+旧2-topic launchとsymbolic URDFの後処理は、同じexample内の任意の別経路として残す。
 
 ## 7. orientation-only architecture
 

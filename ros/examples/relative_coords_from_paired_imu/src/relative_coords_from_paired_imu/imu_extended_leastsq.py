@@ -33,8 +33,8 @@ from probtf.provenance import (
     ComponentProvenance,
     TransformProvenance,
 )
-from probtf_estimators.imu_kinematics import ImuKinematics
-from probtf_estimators.imu_relative_pose import skew
+from relative_coords_from_paired_imu.imu_kinematics import ImuKinematics
+from relative_coords_from_paired_imu.imu_relative_pose import skew
 
 
 def _positive(value, name):
@@ -213,7 +213,7 @@ class ExtendedLeastSquaresImuRelativePoseEstimator:
                 self.position_observation_weight,
                 self.prior_position_variance,
             ),
-            source="probtf_estimators.imu_extended_leastsq",
+            source="relative_coords_from_paired_imu.imu_extended_leastsq",
         )
         method = "imu_extended_leastsq_{}".format("two_gyro" if self.use_child_gyro else "averaged_gyro")
         component = TransformComponent(

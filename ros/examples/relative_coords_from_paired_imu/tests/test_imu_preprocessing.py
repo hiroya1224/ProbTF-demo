@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from probtf_estimators.imu_preprocessing import ImuKinematicsPreprocessor
-from probtf_estimators.imu_kinematics import ImuKinematics
+from relative_coords_from_paired_imu.imu_preprocessing import ImuKinematicsPreprocessor
+from relative_coords_from_paired_imu.imu_kinematics import ImuKinematics
 
 
 def test_polynomial_preprocessor_recovers_value_and_derivative_at_latest_time():

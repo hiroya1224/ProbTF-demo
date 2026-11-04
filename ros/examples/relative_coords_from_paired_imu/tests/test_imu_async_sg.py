@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from scipy.signal import savgol_coeffs
 
-from probtf_estimators.imu_pair_pipeline import ImuRelativePosePipeline, SynchronizedImuPairPreprocessor
+from relative_coords_from_paired_imu.imu_pair_pipeline import ImuRelativePosePipeline, SynchronizedImuPairPreprocessor
 
 
 EPOCH = 1800000000.0

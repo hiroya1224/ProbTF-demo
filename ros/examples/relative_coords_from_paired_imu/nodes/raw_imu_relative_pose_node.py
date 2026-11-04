@@ -20,7 +20,7 @@ import rospy
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Empty
 
-from probtf_estimators.imu_pair_pipeline import ImuRelativePosePipeline, imu_measurement_covariance
+from relative_coords_from_paired_imu.imu_pair_pipeline import ImuRelativePosePipeline, imu_measurement_covariance
 from probtf_msgs.msg import ProbabilisticTransformStamped
 from probtf_ros.v2_conversions import transform_distribution_to_msg
 

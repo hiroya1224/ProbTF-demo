@@ -5,9 +5,9 @@
   <arg name="child_frame_id" default="imu_child" />
   <arg name="probtf_topic" default="/probtf" />
   <arg name="node_name" default="imu_relative_pose" />
-  <arg name="config_file" default="$(find probtf_imu_demo)/config/relative_pose.yaml" />
+  <arg name="config_file" default="$(find relative_coords_from_paired_imu)/config/relative_pose.yaml" />
 
-  <node pkg="probtf_imu_demo" type="raw_imu_relative_pose_node.py"
+  <node pkg="relative_coords_from_paired_imu" type="raw_imu_relative_pose_node.py"
         name="$(arg node_name)" output="screen">
     <rosparam command="load" file="$(arg config_file)" />
     <param name="parent_frame_id" value="$(arg parent_frame_id)" />

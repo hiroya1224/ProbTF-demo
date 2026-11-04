@@ -11,13 +11,13 @@ import pytest
 from probtf.bingham import bingham_second_moment, canonical_bingham_parameter, rotation_first_moment
 from probtf.distributions import OrientationKind, RepresentativeKind
 from probtf.geometry import quat_to_rotmat, rpy_to_quat
-from probtf_estimators.imu_extended_leastsq import (
+from relative_coords_from_paired_imu.imu_extended_leastsq import (
     ExtendedLeastSquaresImuRelativePoseEstimator,
     expected_acceleration_operator,
     gyro_residual_covariance,
 )
-from probtf_estimators.imu_kinematics import ImuKinematics
-from probtf_estimators.imu_relative_pose import skew
+from relative_coords_from_paired_imu.imu_kinematics import ImuKinematics
+from relative_coords_from_paired_imu.imu_relative_pose import skew
 
 
 def observation(frame, stamp, omega, alpha, force, covariance=None):
@@ -178,11 +178,40 @@ def test_invalid_update_is_transactional_and_reset_clears_frozen_noise():
     assert estimator.rotation_residual_precision is None
 
 
-def test_core_import_does_not_import_ros_or_source_repository():
-    source = Path(__file__).resolve().parents[2] / "ros/core/probtf_core/src"
-    environment = dict(os.environ, PYTHONPATH=str(source))
+def test_numerical_package_import_does_not_import_ros_or_source_repository():
+    example = Path(__file__).resolve().parents[1]
+    repository = example.parents[2]
+    source_paths = (example / "src", repository / "ros/core/probtf_core/src")
+    environment = dict(os.environ, PYTHONPATH=os.pathsep.join(map(str, source_paths)))
     code = (
-        "from probtf_estimators import ImuRelativePosePipeline; import sys; "
-        "assert 'rospy' not in sys.modules; assert 'imu_relpose_estim' not in sys.modules"
+        "from relative_coords_from_paired_imu import ImuRelativePosePipeline; import sys; "
+        "assert 'rospy' not in sys.modules; assert 'imu_relpose_estim' not in sys.modules; "
+        "assert 'probtf_msgs' not in sys.modules; assert 'probtf_estimators' not in sys.modules"
+    )
+    subprocess.run([sys.executable, "-B", "-c", code], env=environment, check=True, cwd="/tmp")
+
+
+def test_framework_import_does_not_require_or_load_the_paired_imu_example():
+    repository = Path(__file__).resolve().parents[4]
+    environment = dict(os.environ, PYTHONPATH=str(repository / "ros/core/probtf_core/src"))
+    code = (
+        "import sys, importlib.util; import probtf, probtf_estimators; "
+        "import probtf_estimators.ros_conversions as conversions; "
+        "assert not any(name.startswith('relative_coords_from_paired_imu') for name in sys.modules); "
+        "assert not hasattr(probtf_estimators, 'ImuRelativePosePipeline'); "
+        "assert not hasattr(probtf_estimators, 'ImuKinematics'); "
+        "assert not hasattr(conversions, 'imu_kinematics_from_msg'); "
+        "assert importlib.util.find_spec('probtf_estimators.imu_pair_pipeline') is None"
+    )
+    subprocess.run([sys.executable, "-B", "-c", code], env=environment, check=True, cwd="/tmp")
+
+
+def test_package_namespace_does_not_require_the_numerical_stack_for_ros_messages():
+    example = Path(__file__).resolve().parents[1]
+    environment = dict(os.environ, PYTHONPATH=str(example / "src"))
+    code = (
+        "import sys; import relative_coords_from_paired_imu; "
+        "assert 'scipy' not in sys.modules; assert 'numpy' not in sys.modules; "
+        "assert 'probtf' not in sys.modules; assert 'rospy' not in sys.modules"
     )
     subprocess.run([sys.executable, "-B", "-c", code], env=environment, check=True, cwd="/tmp")

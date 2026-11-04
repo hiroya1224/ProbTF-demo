@@ -4,7 +4,6 @@ from probtf.distributions import BinghamOrientation, trace_zero_matrix
 from probtf.provenance import ApproximationInfo, ApproximationKind, Provenance
 from probtf_estimators.evidence_fusion import TransformEvidence
 from probtf_estimators.ros_conversions import (
-    imu_kinematics_from_msg,
     orientation_distribution_to_msg,
     transform_evidence_from_msg,
     transform_evidence_to_msg,
@@ -230,31 +229,3 @@ def test_orientation_distribution_conversion_has_no_translation_payload():
     assert message.approximation.kind == 8
     assert message.provenance.source_ids == ["gyro", "gravity"]
     assert not hasattr(message, "translation")
-
-
-def test_imu_kinematics_conversion_uses_row_major_covariances():
-    message = type("ImuKinematicsMessage", (), {})()
-    message.header = Header()
-    message.header.frame_id = "imu"
-    message.header.stamp = Stamp(1.5)
-    message.angular_velocity = Vector3()
-    message.angular_velocity.x = 1.0
-    message.angular_acceleration = Vector3()
-    message.angular_acceleration.y = 2.0
-    message.specific_force = Vector3()
-    message.specific_force.z = 3.0
-    gyro_covariance = np.array(
-        [[2.0, 0.1, 0.2], [0.1, 3.0, 0.3], [0.2, 0.3, 4.0]],
-        dtype=float,
-    )
-    message.angular_velocity_covariance = gyro_covariance.reshape(-1).tolist()
-    message.angular_acceleration_covariance = np.eye(3).reshape(-1).tolist()
-    message.specific_force_covariance = (np.eye(3) * 2.0).reshape(-1).tolist()
-    converted = imu_kinematics_from_msg(message)
-
-    assert converted.frame_id == "imu"
-    assert converted.stamp == 1.5
-    np.testing.assert_allclose(converted.angular_velocity, [1.0, 0.0, 0.0])
-    np.testing.assert_allclose(converted.angular_acceleration, [0.0, 2.0, 0.0])
-    np.testing.assert_allclose(converted.specific_force, [0.0, 0.0, 3.0])
-    np.testing.assert_allclose(converted.angular_velocity_covariance, gyro_covariance)

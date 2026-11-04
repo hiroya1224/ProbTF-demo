@@ -10,8 +10,8 @@ Python source is owned by the catkin package that installs it; there is no share
   reusable C++ latest-snapshot evaluator, and the ProbTF/TF bridge nodes
 - `ros/core/probtf_rviz`: RViz-native displays for a single probabilistic pose
   and a complete probabilistic transform tree
-- `ros/examples/probtf_imu_demo`: raw `/imu` to continuous Gaussian/Bingham ProbTF
-  ([usage and ported equations](ros/examples/probtf_imu_demo/README.md)), plus legacy symbolic URDF
+- `ros/examples/relative_coords_from_paired_imu`: raw `/imu` to continuous Gaussian/Bingham ProbTF
+  ([usage and ported equations](ros/examples/relative_coords_from_paired_imu/README.md)), plus legacy symbolic URDF
   materialization
 - `ros/examples/probtf_orientation_demo`: gyro, gravity, and magnetic
   orientation estimation
@@ -33,7 +33,7 @@ A separate root `pip install` is not required.
 
 ```bash
 cd /path/to/catkin_ws
-catkin build probtf_msgs probtf_core probtf_rviz probtf_imu_demo probtf_orientation_demo \
+catkin build probtf_msgs probtf_core probtf_rviz relative_coords_from_paired_imu probtf_orientation_demo \
   symaware_grasp probtf_switch_press_demo deflecomp_core deflecomp_sim deflecomp_ros grape_param_estim
 source devel/setup.bash
 ```
@@ -62,7 +62,9 @@ Runtime transport uses:
 - `ProbabilisticTransformArray` on `/probtf_static` for the complete static set
 - `TransformEvidenceStamped` for likelihood/natural-parameter evidence
 - `OrientationDistributionStamped` for orientation-only posteriors
-- `ImuKinematics` at the two-IMU producer boundary
+
+The legacy two-IMU boundary uses the example-owned
+`relative_coords_from_paired_imu/ImuKinematics` message, outside `probtf_msgs`.
 
 Quaternion arrays use `[w, x, y, z]`; ROS quaternion fields are converted at the adapter boundary.
 The removed v1 partial transform messages are not part of the runtime or generated message set.
@@ -100,7 +102,7 @@ roslaunch probtf_core probtf_bridge.launch
 rviz -d "$(rospack find probtf_rviz)/rviz/probtf_tree.rviz"
 
 # Two-IMU full transform and orientation-only estimation
-roslaunch probtf_imu_demo imu_relative_pose.launch parent_frame_id:=imu_parent child_frame_id:=imu_child
+roslaunch relative_coords_from_paired_imu imu_relative_pose.launch parent_frame_id:=imu_parent child_frame_id:=imu_child
 roslaunch probtf_orientation_demo orientation_filter.launch
 
 # Symmetry-aware grasp workflow and joint-controlled chain point cloud

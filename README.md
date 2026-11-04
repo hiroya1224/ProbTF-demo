@@ -10,7 +10,8 @@ Python source is owned by the catkin package that installs it; there is no share
   reusable C++ latest-snapshot evaluator, and the ProbTF/TF bridge nodes
 - `ros/core/probtf_rviz`: RViz-native displays for a single probabilistic pose
   and a complete probabilistic transform tree
-- `ros/examples/probtf_imu_demo`: two-IMU transform producer and symbolic URDF
+- `ros/examples/probtf_imu_demo`: raw `/imu` to continuous Gaussian/Bingham ProbTF
+  ([usage and ported equations](ros/examples/probtf_imu_demo/README.md)), plus legacy symbolic URDF
   materialization
 - `ros/examples/probtf_orientation_demo`: gyro, gravity, and magnetic
   orientation estimation
@@ -99,7 +100,7 @@ roslaunch probtf_core probtf_bridge.launch
 rviz -d "$(rospack find probtf_rviz)/rviz/probtf_tree.rviz"
 
 # Two-IMU full transform and orientation-only estimation
-roslaunch probtf_imu_demo two_imu_relative_pose.launch
+roslaunch probtf_imu_demo imu_relative_pose.launch parent_frame_id:=imu_parent child_frame_id:=imu_child
 roslaunch probtf_orientation_demo orientation_filter.launch
 
 # Symmetry-aware grasp workflow and joint-controlled chain point cloud

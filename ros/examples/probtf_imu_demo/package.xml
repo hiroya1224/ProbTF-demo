@@ -2,7 +2,7 @@
 <package format="2">
   <name>probtf_imu_demo</name>
   <version>0.1.0</version>
-  <description>Two-IMU relative-pose and symbolic-URDF ProbTF example.</description>
+  <description>Continuous Gaussian/Bingham relative transforms from two raw IMUs, with optional legacy URDF examples.</description>
 
   <maintainer email="leus@todo.todo">leus</maintainer>
   <license>MIT</license>

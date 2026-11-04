@@ -1,0 +1,24 @@
+# Local polynomial preprocessing, evaluated at a common acquisition time.
+window_size: 11
+polynomial_order: 7
+
+# Rigid-pair path of urdf_estimation_with_imus, extended_leastsq.py.
+use_child_gyro: true
+rotation_forgetting_factor: 1.0
+# Source's gamma weights NEW position information; it does not forget history.
+position_observation_weight: 1.0
+# Source used Gamma = I / gamma. This is a model variance, NOT calibrated
+# accel noise and NOT a claim of an exact joint Bayesian posterior.
+position_residual_variance: 1.0
+# Per fit, m^2. Same diffuse prior as the source implementation.
+prior_position_variance: 1.0e+30
+integration_steps: 50
+
+# Used ONLY when sensor_msgs/Imu reports unknown (all-zero) covariance.
+# These are configurable noise assumptions, not measured calibrations.
+default_gyro_variance: 1.0e-4   # (rad/s)^2
+default_force_variance: 1.0e-3  # (m/s^2)^2
+parent_gyro_bias: [0.0, 0.0, 0.0]
+child_gyro_bias: [0.0, 0.0, 0.0]
+parent_force_bias: [0.0, 0.0, 0.0]
+child_force_bias: [0.0, 0.0, 0.0]

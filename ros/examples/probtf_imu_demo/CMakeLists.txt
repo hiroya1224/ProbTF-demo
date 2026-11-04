@@ -9,10 +9,13 @@ catkin_install_python(
   PROGRAMS
     nodes/imu_kinematics_node.py
     nodes/imu_relative_pose_node.py
+    nodes/raw_imu_relative_pose_node.py
     nodes/sensor_mount_tf_node.py
     nodes/symbolic_urdf_materializer_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+install(FILES README.md requirements.txt DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 install(
   DIRECTORY config launch symbolic_models

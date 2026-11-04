@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Transport adapter: multiplexed sensor_msgs/Imu -> native ProbTF v2."""
 
-from threading import Lock
+from queue import SimpleQueue
+from threading import Thread
 import sys
 import sysconfig
 
@@ -30,12 +31,14 @@ def _vector(value):
 
 class RawImuRelativePoseNode:
     def __init__(self):
-        self.lock = Lock()
+        self.input_queue = SimpleQueue()
+        self._reset_token = object()
         self.pipeline = ImuRelativePosePipeline(
             parent_frame_id=rospy.get_param("~parent_frame_id"),
             child_frame_id=rospy.get_param("~child_frame_id"),
             window_size=rospy.get_param("~window_size", 11),
             polynomial_order=rospy.get_param("~polynomial_order", 7),
+            fit_history_size=rospy.get_param("~fit_history_size", 10),
             use_child_gyro=rospy.get_param("~use_child_gyro", True),
             rotation_forgetting_factor=rospy.get_param("~rotation_forgetting_factor", 1.0),
             position_observation_weight=rospy.get_param("~position_observation_weight", 1.0),
@@ -59,13 +62,16 @@ class RawImuRelativePoseNode:
         imu_measurement_covariance(np.zeros(9), self.default_gyro_variance)
         imu_measurement_covariance(np.zeros(9), self.default_force_variance)
         self.publisher = rospy.Publisher(
-            "~relative_pose", ProbabilisticTransformStamped, queue_size=10
+            "~relative_pose", ProbabilisticTransformStamped, queue_size=0
         )
         self.reset_subscriber = rospy.Subscriber("~reset", Empty, self._reset, queue_size=1)
         self.subscriber = rospy.Subscriber(
-            "~imu", Imu, self._update, queue_size=1000, buff_size=8 * 1024 * 1024,
+            "~imu", Imu, self.input_queue.put, queue_size=None, buff_size=8 * 1024 * 1024,
             tcp_nodelay=True,
         )
+        self.worker = Thread(target=self._run, name="imu_relative_pose_estimation", daemon=True)
+        rospy.on_shutdown(lambda: self.input_queue.put(None))
+        self.worker.start()
         rospy.loginfo(
             "IMU ProbTF: %s -> %s, raw=%s, output=%s; continuously estimating a rigid IMU pair",
             self.pipeline.estimator.child_frame_id,
@@ -75,29 +81,39 @@ class RawImuRelativePoseNode:
         )
 
     def _reset(self, _message):
-        with self.lock:
-            self.pipeline.reset()
-        rospy.loginfo("IMU relative-transform posterior and input windows reset")
+        # Reset in FIFO order with already received observations, in the same
+        # worker that owns the posterior and SG histories.
+        self.input_queue.put(self._reset_token)
+
+    def _run(self):
+        while not rospy.is_shutdown():
+            message = self.input_queue.get()
+            if message is None:
+                return
+            if message is self._reset_token:
+                self.pipeline.reset()
+                rospy.loginfo("IMU relative-transform posterior and input windows reset")
+            else:
+                self._update(message)
 
     def _update(self, message):
         try:
-            with self.lock:
-                selector = self.pipeline.preprocessor.select_frame(message.header.frame_id)
-                if selector is None:
-                    return
-                gyro_bias, force_bias = self.biases[selector]
-                record = self.pipeline.update(
-                    message.header.frame_id,
-                    message.header.stamp.to_sec(),
-                    _vector(message.angular_velocity) - gyro_bias,
-                    _vector(message.linear_acceleration) - force_bias,
-                    imu_measurement_covariance(message.angular_velocity_covariance, self.default_gyro_variance),
-                    imu_measurement_covariance(message.linear_acceleration_covariance, self.default_force_variance),
-                )
-                if record is not None:
-                    # Send the SAME distribution and source timestamp returned
-                    # by the core; do not construct display-only uncertainty.
-                    self.publisher.publish(transform_distribution_to_msg(record, time_factory=rospy.Time.from_sec))
+            selector = self.pipeline.preprocessor.select_frame(message.header.frame_id)
+            if selector is None:
+                return
+            gyro_bias, force_bias = self.biases[selector]
+            records = self.pipeline.update_all(
+                message.header.frame_id,
+                message.header.stamp.to_sec(),
+                _vector(message.angular_velocity) - gyro_bias,
+                _vector(message.linear_acceleration) - force_bias,
+                imu_measurement_covariance(message.angular_velocity_covariance, self.default_gyro_variance),
+                imu_measurement_covariance(message.linear_acceleration_covariance, self.default_force_variance),
+            )
+            for record in records:
+                # A delayed input may release several chronological updates.
+                # Publish ALL their original laws and evaluation timestamps.
+                self.publisher.publish(transform_distribution_to_msg(record, time_factory=rospy.Time.from_sec))
         except (TypeError, ValueError, FloatingPointError, np.linalg.LinAlgError) as error:
             rospy.logwarn_throttle(2.0, "IMU relative-transform input/update failed: %s", error)
 

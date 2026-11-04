@@ -43,27 +43,34 @@ def test_async_pair_uses_common_acquisition_stamp_inside_both_windows():
     assert all(a[0].stamp < b[0].stamp for a, b in zip(pairs, pairs[1:]))
 
 
-def test_no_extrapolation_no_held_sample_republication_and_reconnect():
+def test_ahead_input_is_preserved_until_the_other_sensor_catches_up():
     processor = SynchronizedImuPairPreprocessor("p", "c", window_size=5, polynomial_order=2)
-    for index in range(5):
+    for index in range(40):
         assert sample(processor, "p", 1 + index * 0.01) is None
-        assert sample(processor, "c", 3 + index * 0.01) is None
-    for index in range(5):
-        pair = sample(processor, "p", 3.05 + index * 0.01)
-    assert pair is None
+    assert len(processor.pending["p"]) == 40
+    assert not processor.samples["p"]
     emitted = []
-    for index in range(5):
-        pair = sample(processor, "c", 3.051 + index * 0.01)
+    for index in range(40):
+        pair = sample(processor, "c", 1.002 + index * 0.01)
         if pair is not None:
             emitted.append(pair)
-    assert len(emitted) == 1
-    # Both inputs have advanced again when the parent catches up.
-    assert sample(processor, "p", 3.10) is not None
-    # Then only the faster IMU changes; do not refit held child input as new information.
-    for index in range(1, 8):
-        assert sample(processor, "p", 3.10 + index * 0.01) is None
+        emitted.extend(processor.drain())
+    assert len(emitted) == 35
+    assert not processor.pending["p"]
+    for index in range(40, 50):
+        assert sample(processor, "p", 1 + index * 0.01) is None
+    assert len(processor.pending["p"]) == 10
+    for index in range(40, 50):
+        pair = sample(processor, "c", 1.002 + index * 0.01)
+        assert pair is not None
+        assert pair[0].stamp == pair[1].stamp
+        for _, lower, upper in processor.last_support.values():
+            assert lower <= pair[0].stamp <= upper
     processor.reset()
     assert all(not buffer for buffer in processor.samples.values())
+    assert all(not buffer for buffer in processor.fit_history.values())
+    assert all(not buffer for buffer in processor.pending.values())
+    assert not tuple(processor.drain())
 
 
 def test_logical_frame_matching_full_mac_selection_and_ambiguity():

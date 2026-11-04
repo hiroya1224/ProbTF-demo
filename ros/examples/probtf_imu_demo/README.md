@@ -62,13 +62,16 @@ from probtf_estimators import ImuRelativePosePipeline
 
 pipeline = ImuRelativePosePipeline("imu_parent", "imu_child")
 # 各IMUの取得ごとに呼ぶ。単位はrad/s, m/s^2、stampは秒。
-record = pipeline.update(frame_id, stamp, gyro, accel, gyro_cov, accel_cov)
-if record is not None:
+for record in pipeline.update_all(frame_id, stamp, gyro, accel, gyro_cov, accel_cov):
     component = record.distribution.components[0]
     position_mean = component.translation.mean_at_reference
     position_covariance = component.translation.residual_covariance
     bingham_A_wxyz = component.orientation.parameter_matrix()
 ```
+
+遅着した1件から複数の推定時刻が処理可能になるため、ROS側も `update_all` の全結果をpublishする。
+従来の1件返却の `update` も残しており、余分な結果は破棄せずFIFOに保持する。
+このAPIで有限個の入力を処理する場合は、最後に `pipeline.drain()` も取り出す。
 
 `probtf_core` のPythonパッケージとNumPy/SciPy/PyYAMLだけで使える。
 `rospy`、生成済みROSメッセージ、元リポジトリ、numpy-quaternion、外部BinghamNLLを
@@ -117,13 +120,34 @@ y = [Delta_f, Delta_f]
   2つのfitを合成する既定経路では、観測前の合成共分散はその1/2となる。
 - `E[R]` は既存ProbTFの `E[qqᵀ]` から直接計算する。
   元の四次モーメントを `qᵀq=1` で縮約する式と数学的に同じである。
-- 入力は元と同じ11件・7次多項式を既定とし、時間軸を局所的にscaleしてfitする。
-  両ウィンドウの重なる範囲の中央で、同一取得時刻のgyro・角加速度・比力を計算する。
-  外挿、到着時刻への置換、時刻の異なる近傍値の単純な組合せは行わない。
-  両方に新しい入力があり同期前線が進むたびに更新する。
-  片方だけ更新されたときに保持中の他方を新観測として二重に数えない。
-  固定Hzのtimerやsleepによる間引きはない。
-  fitの共分散は各測定の全3×3共分散を線形fitの重みで伝播する。
+- 入力は元と同じ11件・7次多項式、各IMUで直近10個のSGフィットを既定とする。
+  時間軸を窓の中央の取得時刻で原点移動・scaleし、数値的に安定なfitを行う。
+  元と同じくparentの各観測イベントで両raw窓の重なりの中央を評価時刻とし、
+  各IMUの履歴から、その時刻を含み中心が最も近いSG窓を選ぶ。
+  同じ多項式を `t* - window_center` の符号で評価・微分し、
+  同一取得時刻のgyro・角加速度・比力を計算する。
+  fitの共分散は各測定の全3×3共分散を同じ線形fitの重みで伝播する。
+
+## 非同期入力とSG時間合わせ
+
+各IMUの内部で取得stampが単調増加する限り、IMU間の到着順やバッチ分割は結果に影響しない。
+`/imu` topic全体のstampが昇順である必要はない。
+受信済みの両IMUの最新取得時刻の小さい方を、順序を確定できる時刻の上限とする。
+先着したraw入力はFIFOに保持し、この上限までを取得時刻順に処理する。
+同stampのときはchild、parentの順に処理する。
+これにより、片側が先に届いても、相手に必要なSG窓を履歴から押し出さない。
+先着入力に対して恣意的な上限による上書き・破棄はしない。
+
+この順序で元のparentイベント基準のSG窓選択・補間・微分を実行する。
+前の推定以降に「両方へ新しいraw入力が来たこと」という追加条件は設けない。
+外挿、到着時刻への置換、近傍の異時刻サンプルの単純な組合せ、固定Hzでの間引きは行わない。
+同じ2つの観測列からは、同じ評価時刻・SG窓・微分・共分散・Gaussian/Bingham更新列を生成する。
+
+ROSの受信callbackは入力をFIFOへ渡し、推定は別workerで処理する。
+受信queueとpublish queueの件数制限で、非同期burstの途中の観測・結果を捨てない。
+1件の遅着で複数の時刻が処理可能になった場合は、全更新を時刻順にpublishする。
+長時間の入力停止や処理能力以上の継続入力では、待機データと遅延が増える。
+これをstampの付け替えや観測の無言の破棄で隠さない。
 
 元の状態は `N(p; mean, covariance) × Bingham(q; A)` で、位置と方位の交差依存を
 推定していない。そのためnative ProbTFにはGaussian全共分散とBingham全形状を渡し、
@@ -158,6 +182,7 @@ cd ~/catkin_ws/src/ProbTF-demo
 PYTHONPATH=ros/core/probtf_core/src .venv/bin/python -m pytest -q \
   tests/probtf/test_imu_extended_leastsq.py \
   tests/probtf/test_imu_pair_pipeline.py \
+  tests/probtf/test_imu_async_sg.py \
   tests/probtf/test_imu_relative_pose.py \
   tests/probtf/test_imu_preprocessing.py \
   tests/probtf/test_ros_v2.py \
@@ -178,15 +203,15 @@ PYTHONPATH="$HOME/catkin_ws/devel/lib/python3/dist-packages:/opt/ros/noetic/lib/
   .venv/bin/python ros/examples/probtf_imu_demo/test/smoke_raw_imu_ros.py
 ```
 
-2026-11-04、このPCで46テストと対象3パッケージのcatkin buildが成功。
-ROS実接続では200件のraw IMUから90件の同期済み分布が届き、
-ROS非依存コアでの再計算と全出力のframe・取得stamp・Gaussian・Bingham・出自が一致した。
+交互到着、10件ずつ、片側全件先着、到着jitter、異なる取得周期、欠測、同stampの
+送信順逆転を検証する。元のSG窓選択を独立に記述した参照計算とも照合する。
+解析的なSG係数、正負の補間時間差、微分と共分散の伝播も確認する。
+2026-11-05（JST）、このPCで関連71テストと対象3パッケージのcatkin buildが成功した。
+
+ROS実接続では、同じ200件のraw IMUを交互・10件バッチ・parent先着・child先着・
+2つの独立した送信プロセスでそれぞれ流し、全ケースで89件の同じ更新列を確認した。
+全出力のframe・取得stamp・Gaussian・Bingham・出自がROS非依存コアの結果と一致し、
 位置平均のwire変換誤差は0だった。実機データでの精度・校正はこの検証には含まない。
 
-処理性能の参考計測では、2,000件のraw入力から990件の分布を計算するのに約3.62秒
-（約274更新/秒、ROS/serial輸送を含まない）だった。
-これは人工的なHz制限ではなく、このPython参照実装の処理能力である。
-2台各500Hzなど、それを上回る継続入力では受信待ちが増え、
-最終的にはROSの有限受信queueでデータが失われ得る。
-4台合計2,000Hzのraw `/imu` 受信確認とは区別する。
-そのレートでの連続運用には、この推定処理の高速化が必要。
+非同期入力を失わず保持することと、計算が実時間に追従することは別である。
+4台合計2,000Hzのraw `/imu` 受信確認を、この推定処理の性能とは説明しない。

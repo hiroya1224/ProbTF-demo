@@ -1,6 +1,8 @@
 # Local polynomial preprocessing, evaluated at a common acquisition time.
 window_size: 11
 polynomial_order: 7
+# Source's rolling history of SG polynomial fits, independently per sensor.
+fit_history_size: 10
 
 # Rigid-pair path of urdf_estimation_with_imus, extended_leastsq.py.
 use_child_gyro: true

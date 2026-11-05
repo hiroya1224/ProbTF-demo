@@ -6,13 +6,13 @@ import pytest
 from probtf.distributions import TransformDistributionStamped
 from probtf.geometry import quat_to_rotmat, rotation_action_matrix
 from probtf.provenance import ApproximationKind
-from probtf_estimators.imu_relative_pose import (
+from relative_coords_from_paired_imu.imu_relative_pose import (
     ImuRelativePoseEstimator,
     RecursiveGaussianLeastSquares,
     rigid_point_acceleration_operator,
     vector_alignment_bingham,
 )
-from probtf_estimators.imu_kinematics import ImuKinematics
+from relative_coords_from_paired_imu.imu_kinematics import ImuKinematics
 
 
 def make_observation(frame_id, omega, alpha, force, stamp=None, variance=1e-4):

@@ -38,7 +38,7 @@ from probtf.provenance import (
     ComponentProvenance,
     TransformProvenance,
 )
-from probtf_estimators.imu_kinematics import ImuKinematics
+from relative_coords_from_paired_imu.imu_kinematics import ImuKinematics
 
 
 def skew(vector):
@@ -378,7 +378,7 @@ class ImuRelativePoseEstimator:
                 if covariance_is_frozen
                 else "Registered-joint translation preserves p=a-Rb exactly."
             ),
-            source="probtf_estimators.imu_relative_pose",
+            source="relative_coords_from_paired_imu.imu_relative_pose",
         )
         return translation, approximation, "registered_joint_geometry"
 
@@ -395,7 +395,7 @@ class ImuRelativePoseEstimator:
                 "Translation RLS plugs in the posterior orientation mode; "
                 "rotation-translation cross-dependence is not estimated."
             ),
-            source="probtf_estimators.imu_relative_pose",
+            source="relative_coords_from_paired_imu.imu_relative_pose",
         )
         return translation, approximation, "plugin_orientation_rls"
 

@@ -1,0 +1,18 @@
+<launch>
+  <!-- A fixed transform between IMUs on the SAME rigid link/body. -->
+  <arg name="imu_topic" default="/imu" />
+  <arg name="parent_frame_id" default="imu_parent" />
+  <arg name="child_frame_id" default="imu_child" />
+  <arg name="probtf_topic" default="/probtf" />
+  <arg name="node_name" default="imu_relative_pose" />
+  <arg name="config_file" default="$(find relative_coords_from_paired_imu)/config/relative_pose.yaml" />
+
+  <node pkg="relative_coords_from_paired_imu" type="raw_imu_relative_pose_node.py"
+        name="$(arg node_name)" output="screen">
+    <rosparam command="load" file="$(arg config_file)" />
+    <param name="parent_frame_id" value="$(arg parent_frame_id)" />
+    <param name="child_frame_id" value="$(arg child_frame_id)" />
+    <remap from="~imu" to="$(arg imu_topic)" />
+    <remap from="~relative_pose" to="$(arg probtf_topic)" />
+  </node>
+</launch>

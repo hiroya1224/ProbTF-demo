@@ -22,7 +22,7 @@ catkin_python_setup()
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES probtf_runtime_cpp
+  LIBRARIES probtf_runtime_cpp probtf_bingham_sampler
   CATKIN_DEPENDS
     geometry_msgs
     probtf_msgs
@@ -40,13 +40,31 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
+add_library(probtf_bingham_sampler SHARED src/bingham_sampler.cpp)
+target_link_libraries(probtf_bingham_sampler Eigen3::Eigen)
+
+# Use the interpreter selected by catkin, including its exact extension ABI.
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+  "import sysconfig; print(sysconfig.get_path('include'))"
+  OUTPUT_VARIABLE PROBTF_PYTHON_INCLUDE OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+  "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"
+  OUTPUT_VARIABLE PROBTF_PYTHON_SUFFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+add_library(probtf_python_sampling MODULE src/python_sampling.cpp)
+target_include_directories(probtf_python_sampling PRIVATE ${PROBTF_PYTHON_INCLUDE})
+target_link_libraries(probtf_python_sampling probtf_bingham_sampler)
+set_target_properties(probtf_python_sampling PROPERTIES
+  PREFIX "" OUTPUT_NAME "_sampling" SUFFIX "${PROBTF_PYTHON_SUFFIX}"
+  LIBRARY_OUTPUT_DIRECTORY "${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}/probtf"
+  INSTALL_RPATH "$ORIGIN/../../..")
+
 add_library(probtf_runtime_cpp
   src/gaussian_latent_store.cpp
   src/latest_snapshot.cpp
   src/sampling.cpp
 )
 add_dependencies(probtf_runtime_cpp ${catkin_EXPORTED_TARGETS})
-target_link_libraries(probtf_runtime_cpp Eigen3::Eigen ${catkin_LIBRARIES})
+target_link_libraries(probtf_runtime_cpp probtf_bingham_sampler Eigen3::Eigen ${catkin_LIBRARIES})
 
 add_executable(probtf_bridge_node
   nodes/probtf_bridge_node.cpp
@@ -101,13 +119,20 @@ install(
 )
 
 install(
-  TARGETS probtf_runtime_cpp probtf_bridge_node
+  TARGETS probtf_bingham_sampler probtf_runtime_cpp probtf_bridge_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+install(TARGETS probtf_python_sampling
+  LIBRARY DESTINATION ${CATKIN_GLOBAL_PYTHON_DESTINATION}/probtf)
+
 if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(test_bingham_sampler test/test_bingham_sampler.cpp)
+  if(TARGET test_bingham_sampler)
+    target_link_libraries(test_bingham_sampler probtf_bingham_sampler)
+  endif()
   catkin_add_gtest(test_latest_snapshot
     test/test_latest_snapshot.cpp
   )

@@ -1,0 +1,4 @@
+include native_build.py
+recursive-include include *.hpp
+include src/bingham_sampler.cpp
+include src/python_sampling.cpp

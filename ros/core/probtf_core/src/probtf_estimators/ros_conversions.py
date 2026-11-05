@@ -8,7 +8,6 @@ from probtf.distributions import BinghamOrientation, OrientationKind, trace_zero
 from probtf.geometry import pack_symmetric_upper, unpack_symmetric_upper
 from probtf.provenance import ApproximationInfo, ApproximationKind, Provenance
 from probtf_estimators.evidence_fusion import TransformEvidence
-from probtf_estimators.imu_kinematics import ImuKinematics
 
 
 _ORIENTATION_TO_WIRE = {
@@ -121,28 +120,6 @@ def _assign_orientation(message, orientation):
     _assign_quaternion_xyzw(
         message.reference_quaternion,
         orientation.reference_quaternion_wxyz,
-    )
-
-
-def imu_kinematics_from_msg(message):
-    return ImuKinematics(
-        frame_id=message.header.frame_id,
-        angular_velocity=_vector3_to_array(message.angular_velocity),
-        angular_acceleration=_vector3_to_array(message.angular_acceleration),
-        specific_force=_vector3_to_array(message.specific_force),
-        angular_velocity_covariance=np.asarray(
-            message.angular_velocity_covariance,
-            dtype=float,
-        ).reshape(3, 3),
-        angular_acceleration_covariance=np.asarray(
-            message.angular_acceleration_covariance,
-            dtype=float,
-        ).reshape(3, 3),
-        specific_force_covariance=np.asarray(
-            message.specific_force_covariance,
-            dtype=float,
-        ).reshape(3, 3),
-        stamp=_stamp_to_seconds(message.header.stamp),
     )
 
 

@@ -276,6 +276,8 @@ def test_v2_round_trip_preserves_joint_components_packing_and_metadata():
     np.testing.assert_allclose(restored.representative.translation, record.representative.translation)
 
 
+
+
 def test_temporal_diagnostics_round_trip_in_existing_provenance_wire_fields():
     component = _component(
         "uncertain",

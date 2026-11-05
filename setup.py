@@ -1,8 +1,11 @@
+from runpy import run_path
+
 from setuptools import find_packages, setup
 
 
 PACKAGE_ROOTS = (
     "ros/core/probtf_core/src",
+    "ros/examples/relative_coords_from_paired_imu/src",
     "ros/examples/deflecomp/deflecomp_core/src",
     "ros/examples/deflecomp/deflecomp_examples/src",
     "ros/examples/deflecomp/deflecomp_sim/src",
@@ -24,4 +27,6 @@ for source_root in PACKAGE_ROOTS:
 setup(
     packages=packages,
     package_dir=package_dir,
+    ext_modules=[run_path("ros/core/probtf_core/native_build.py")["sampling_extension"](
+        "ros/core/probtf_core")],
 )

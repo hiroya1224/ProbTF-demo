@@ -1,3 +1,5 @@
+from runpy import run_path
+
 from setuptools import find_packages, setup
 
 
@@ -25,4 +27,6 @@ for source_root in PACKAGE_ROOTS:
 setup(
     packages=packages,
     package_dir=package_dir,
+    ext_modules=[run_path("ros/core/probtf_core/native_build.py")["sampling_extension"](
+        "ros/core/probtf_core")],
 )

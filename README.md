@@ -31,6 +31,10 @@ The root `setup.py` only aggregates these first-party package roots for non-catk
 For ROS use, place the repository in a catkin workspace and build the packages directly.
 A separate root `pip install` is not required.
 
+Bingham orientation samples use one ROS-independent C++ BACG implementation;
+Python exposes a compiled wrapper and RViz links the same library. See
+[sampling and the paper reference](ros/core/probtf_core/docs/sampling.md).
+
 ```bash
 cd /path/to/catkin_ws
 catkin build probtf_msgs probtf_core probtf_rviz relative_coords_from_paired_imu probtf_orientation_demo \

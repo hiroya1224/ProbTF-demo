@@ -1,5 +1,10 @@
 """ROS-independent numerical and domain primitives for ProbTF."""
 
+from pkgutil import extend_path
+
+# Catkin places the compiled extension beside its generated package relay.
+__path__ = extend_path(__path__, __name__)
+
 from probtf.bingham import (
     RotationMoment,
     bingham_fourth_moment,

@@ -1,4 +1,5 @@
 #include <probtf_core/sampling.hpp>
+#include <probtf_core/bingham_sampler.hpp>
 
 #include <Eigen/Eigenvalues>
 
@@ -8,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <utility>
 
 namespace probtf_core {
@@ -21,7 +23,6 @@ using Vector9d = Eigen::Matrix<double, 9, 1>;
 constexpr double kPsdTolerance = 1.0e-10;
 constexpr double kQuaternionTolerance = 1.0e-8;
 constexpr double kShapeTolerance = 1.0e-8;
-constexpr std::size_t kMaxOrientationProposalAttempts = 4096U;
 
 void setError(std::string* output, const std::string& value) {
   if (output != nullptr) {
@@ -217,54 +218,12 @@ bool validatedTranslation(
   return true;
 }
 
-double binghamScaleEquation(const Vector4d& precision_eigenvalues,
-                            double scale) {
-  double value = -1.0;
-  for (int index = 0; index < 4; ++index) {
-    value += 1.0 / (scale + 2.0 * precision_eigenvalues(index));
-  }
-  return value;
-}
-
-bool binghamProposalScale(const Vector4d& precision_eigenvalues,
-                          double* output,
-                          std::string* error) {
-  double lower = 1.0e-12;
-  double upper = 4.0 + 1.0e-12;
-  double lower_value = binghamScaleEquation(precision_eigenvalues, lower);
-  double upper_value = binghamScaleEquation(precision_eigenvalues, upper);
-  if (!std::isfinite(lower_value) || !std::isfinite(upper_value) ||
-      lower_value <= 0.0 || upper_value >= 0.0) {
-    setError(error, "Finite Bingham proposal scale could not be bracketed.");
-    return false;
-  }
-  for (int iteration = 0; iteration < 100; ++iteration) {
-    const double middle = 0.5 * (lower + upper);
-    const double value =
-        binghamScaleEquation(precision_eigenvalues, middle);
-    if (!std::isfinite(value)) {
-      setError(error, "Finite Bingham proposal scale became non-finite.");
-      return false;
-    }
-    if (value > 0.0) {
-      lower = middle;
-    } else {
-      upper = middle;
-    }
-  }
-  *output = 0.5 * (lower + upper);
-  return true;
-}
-
 struct PreparedComponent {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   OrientationData orientation;
   TranslationData translation;
-  Vector4d precision_eigenvalues = Vector4d::Zero();
-  Vector4d proposal_standard_deviations = Vector4d::Ones();
-  double proposal_scale = 4.0;
-  double log_envelope = 0.0;
+  std::unique_ptr<BinghamSampler> orientation_sampler;
   Vector9d reference_rotation_vector = Vector9d::Zero();
 };
 
@@ -284,49 +243,23 @@ bool prepareComponent(
       rotationVector(value.orientation.reference.toRotationMatrix());
 
   if (prepare_sampler &&
-      value.orientation.kind ==
-          probtf_msgs::BinghamOrientation::FINITE_BINGHAM) {
-    const double inverse = component.orientation.inverse_concentration;
-    for (int index = 0; index < 4; ++index) {
-      value.precision_eigenvalues(index) =
-          (value.orientation.shape_eigenvalues(3) -
-           value.orientation.shape_eigenvalues(index)) /
-          inverse;
-    }
-    if (!value.precision_eigenvalues.allFinite() ||
-        value.precision_eigenvalues.minCoeff() < -kPsdTolerance) {
-      setError(error, "Finite Bingham precision is not finite positive "
-                      "semidefinite.");
-      return false;
-    }
-    value.precision_eigenvalues =
-        value.precision_eigenvalues.cwiseMax(0.0);
-    if (!binghamProposalScale(value.precision_eigenvalues,
-                              &value.proposal_scale, error)) {
-      return false;
-    }
-    for (int index = 0; index < 4; ++index) {
-      const double denominator =
-          1.0 + 2.0 * value.precision_eigenvalues(index) /
-                    value.proposal_scale;
-      if (!std::isfinite(denominator) || denominator <= 0.0) {
-        setError(error, "Finite Bingham proposal covariance is invalid.");
-        return false;
+      value.orientation.kind != probtf_msgs::BinghamOrientation::DIRAC) {
+    try {
+      Vector4d precision = Vector4d::Zero();
+      if (value.orientation.kind == probtf_msgs::BinghamOrientation::FINITE_BINGHAM) {
+        precision = (Vector4d::Constant(value.orientation.shape_eigenvalues(3)) -
+                     value.orientation.shape_eigenvalues) /
+                    component.orientation.inverse_concentration;
       }
-      value.proposal_standard_deviations(index) =
-          1.0 / std::sqrt(denominator);
-    }
-    value.log_envelope =
-        -(4.0 - value.proposal_scale) / 2.0 +
-        2.0 * std::log(4.0 / value.proposal_scale);
-    if (!value.proposal_standard_deviations.allFinite() ||
-        !std::isfinite(value.log_envelope)) {
-      setError(error, "Finite Bingham proposal is non-finite.");
+      value.orientation_sampler.reset(new BinghamSampler(
+          precision, value.orientation.shape_eigenvectors));
+    } catch (const std::exception& exception) {
+      setError(error, exception.what());
       return false;
     }
   }
 
-  *output = value;
+  *output = std::move(value);
   return true;
 }
 
@@ -359,82 +292,22 @@ bool positiveMixtureWeights(
   return true;
 }
 
-bool sampleUnitGaussianQuaternion(std::mt19937* generator,
-                                  std::normal_distribution<double>* normal,
-                                  Eigen::Quaterniond* output,
-                                  std::string* error) {
-  for (std::size_t attempt = 0; attempt < kMaxOrientationProposalAttempts;
-       ++attempt) {
-    Vector4d vector;
-    for (int index = 0; index < 4; ++index) {
-      vector(index) = (*normal)(*generator);
-    }
-    const double norm = vector.norm();
-    if (std::isfinite(norm) && norm > 0.0) {
-      vector /= norm;
-      *output =
-          Eigen::Quaterniond(vector(0), vector(1), vector(2), vector(3));
-      return true;
-    }
-  }
-  setError(error, "Uniform quaternion sampler exhausted its proposal budget.");
-  return false;
-}
-
 bool sampleOrientation(const PreparedComponent& component,
-                       std::mt19937* generator,
-                       std::normal_distribution<double>* normal,
-                       std::uniform_real_distribution<double>* uniform,
+                       SamplingRandomSource& random,
                        Eigen::Quaterniond* output,
                        std::string* error) {
   if (component.orientation.kind == probtf_msgs::BinghamOrientation::DIRAC) {
     *output = component.orientation.reference;
     return true;
   }
-  if (component.orientation.kind == probtf_msgs::BinghamOrientation::UNIFORM) {
-    return sampleUnitGaussianQuaternion(generator, normal, output, error);
+  try {
+    const Eigen::VectorXd candidate = component.orientation_sampler->draw(random);
+    *output = Eigen::Quaterniond(candidate(0), candidate(1), candidate(2), candidate(3));
+    return true;
+  } catch (const std::exception& exception) {
+    setError(error, exception.what());
+    return false;
   }
-
-  for (std::size_t attempt = 0; attempt < kMaxOrientationProposalAttempts;
-       ++attempt) {
-    Vector4d gaussian;
-    for (int index = 0; index < 4; ++index) {
-      gaussian(index) = (*normal)(*generator);
-    }
-    Vector4d coordinates =
-        component.proposal_standard_deviations.array() * gaussian.array();
-    const double norm = coordinates.norm();
-    if (!std::isfinite(norm) || norm <= 0.0) {
-      continue;
-    }
-    coordinates /= norm;
-    const double quadratic =
-        (component.precision_eigenvalues.array() *
-         coordinates.array().square())
-            .sum();
-    const double proposal_form =
-        1.0 + 2.0 * quadratic / component.proposal_scale;
-    const double log_probability =
-        -quadratic + 2.0 * std::log(proposal_form) -
-        component.log_envelope;
-    if (!std::isfinite(log_probability)) {
-      setError(error, "Finite Bingham acceptance probability is non-finite.");
-      return false;
-    }
-    const double draw = (*uniform)(*generator);
-    if (log_probability >= 0.0 || draw == 0.0 ||
-        std::log(draw) < log_probability) {
-      const Vector4d candidate =
-          component.orientation.shape_eigenvectors * coordinates;
-      *output = Eigen::Quaterniond(candidate(0), candidate(1),
-                                   candidate(2), candidate(3));
-      output->normalize();
-      return true;
-    }
-  }
-  setError(error,
-           "Finite Bingham sampler exhausted its proposal budget.");
-  return false;
 }
 
 bool componentMode(const PreparedComponent& component,
@@ -532,14 +405,13 @@ bool sampleTransformDistribution(
 
   std::discrete_distribution<std::size_t> mixture(weights.begin(),
                                                   weights.end());
-  std::normal_distribution<double> normal(0.0, 1.0);
-  std::uniform_real_distribution<double> uniform(0.0, 1.0);
+  StandardSamplingRandomSource<std::mt19937> random(*generator);
   TransformSampleVector samples;
   samples.reserve(count);
   for (std::size_t sample_index = 0; sample_index < count; ++sample_index) {
     const PreparedComponent& component = prepared[mixture(*generator)];
     TransformSample sample;
-    if (!sampleOrientation(component, generator, &normal, &uniform,
+    if (!sampleOrientation(component, random,
                            &sample.rotation, error)) {
       return false;
     }
@@ -547,7 +419,7 @@ bool sampleTransformDistribution(
     if (component.translation.has_residual) {
       Eigen::Vector3d gaussian;
       for (int index = 0; index < 3; ++index) {
-        gaussian(index) = normal(*generator);
+        gaussian(index) = random.normal();
       }
       sample.translation += component.translation.residual_sqrt * gaussian;
     }

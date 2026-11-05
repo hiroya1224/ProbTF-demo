@@ -1,0 +1,4 @@
+include ros/core/probtf_core/native_build.py
+recursive-include ros/core/probtf_core/include *.hpp
+include ros/core/probtf_core/src/bingham_sampler.cpp
+include ros/core/probtf_core/src/python_sampling.cpp

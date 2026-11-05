@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.optimize import brentq
 
 from probtf.distributions import (
     BinghamOrientation,
@@ -69,46 +68,24 @@ def _readonly(values):
     return output
 
 
-def _bingham_proposal_scale(eigenvalues):
-    # Rotating a semidefinite precision can leave a tiny negative
-    # eigenvalue after the minimum-eigenvalue shift.  The proposal root
-    # assumes nonnegative precision, including its zero mode.
-    values = np.maximum(np.asarray(eigenvalues, dtype=float), 0.0)
-
-    def equation(scale):
-        return float(np.sum(1.0 / (scale + 2.0 * values)) - 1.0)
-
-    return float(brentq(equation, 1e-12, 4.0 + 1e-12))
-
-
-def _sample_finite_bingham(parameter, count, rng):
-    precision = -np.asarray(parameter, dtype=float)
-    minimum = float(np.linalg.eigvalsh(precision)[0])
-    precision -= minimum * np.eye(4)
-    eigenvalues = np.linalg.eigvalsh(precision)
-    scale = _bingham_proposal_scale(eigenvalues)
-    omega = np.eye(4) + 2.0 * precision / scale
-    inverse_sqrt = np.linalg.cholesky(np.linalg.inv(omega))
-    envelope = np.exp(-(4.0 - scale) / 2.0) * (4.0 / scale) ** 2.0
-
-    accepted = []
-    remaining = count
-    while remaining:
-        # A count-independent batch keeps fixed-seed sample prefixes stable:
-        # requesting N and M>N samples yields the same first N accepted
-        # orientations.  Temporal common-random-number comparisons rely on
-        # that sample_id contract.
-        batch_size = 256
-        gaussian = inverse_sqrt @ rng.normal(size=(4, batch_size))
-        candidates = (gaussian / np.linalg.norm(gaussian, axis=0)).T
-        proposal = np.einsum("ni,ij,nj->n", candidates, omega, candidates) ** -2.0
-        target = np.exp(-np.einsum("ni,ij,nj->n", candidates, precision, candidates))
-        probability = np.clip(target / (envelope * proposal), 0.0, 1.0)
-        selected = candidates[rng.random(batch_size) < probability]
-        if len(selected):
-            accepted.append(selected[:remaining])
-            remaining -= min(len(selected), remaining)
-    return np.concatenate(accepted, axis=0)
+def _sample_bingham(parameter, count, rng):
+    # Only a binding here: preparation, proposal and rejection live in C++.
+    # One full-width seed makes the native stream independent of batch size;
+    # requesting N and M>N with the same seed preserves accepted prefixes.
+    try:
+        from probtf import _sampling
+    except ImportError as error:
+        raise ImportError(
+            "The C++ sampler is not built. Build probtf_core with catkin, "
+            "or install ProbTF-demo (or ros/core/probtf_core) with pip."
+        ) from error
+    output = np.empty((count, 4), dtype=np.float64)
+    _sampling.sample_bingham(
+        np.ascontiguousarray(parameter, dtype=np.float64),
+        output,
+        int(rng.integers(0, 1 << 64, dtype=np.uint64)),
+    )
+    return output
 
 
 def sample_bingham_orientation(orientation, count, rng=None):
@@ -124,10 +101,9 @@ def sample_bingham_orientation(orientation, count, rng=None):
         samples = np.repeat(orientation.reference_quaternion_wxyz[None, :], count, axis=0)
         return _readonly(samples)
     if orientation.kind is OrientationKind.UNIFORM:
-        samples = generator.normal(size=(count, 4))
-        return _readonly(samples / np.linalg.norm(samples, axis=1, keepdims=True))
+        return _readonly(_sample_bingham(np.zeros((4, 4)), count, generator))
     return _readonly(
-        _sample_finite_bingham(
+        _sample_bingham(
             orientation.backend_parameter_matrix(),
             count,
             generator,

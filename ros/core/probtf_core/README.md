@@ -5,6 +5,9 @@
 ROS に依存しない Python core、ROS bridge、C++ runtime helper を同じ package に
 収録している。
 
+姿勢サンプリングは [共通C++ BACGサンプラ](docs/sampling.md) を使う。
+Pythonはその拡張ラッパー、RVizは同じC++ライブラリを呼ぶ。
+
 ## 時間モデルの選定状態
 
 2026-07-24 の凍結評価では、すべての hard correctness gate を通過した

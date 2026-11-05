@@ -73,6 +73,6 @@ python3 -m pytest -q ros/examples/grape-param-estim/minimal/imu-first-order-lag/
 
 ## 姿勢更新を動力学へ戻す限定比較（2026年11月6日）
 
-[要求された五種類の図・15ページPDF](publication/attitude_feedback_requested_20261106/README.md)を別保存する。重力だけの観測と並進加速度を含む観測を、それぞれモデル＋実使用余剰レンチの伝播へ接続する。gyro/accel、xyz、rpy、余剰トルクだけを掲載する。最新指定によりモデル位置の共分散帯は表示せず、平均とIMU姿勢の±2σを示す。位置の保守的な共分散上界も計算・保存を継続し、姿勢の帯は出力lawの局所座標近似である。旧publicationは変更していない。
+[要求された五種類の図・15ページPDF](publication/attitude_feedback_requested_20261106/README.md)を別保存した。重力だけの観測と並進加速度を含む観測を、それぞれモデル＋実使用余剰レンチの伝播へ接続する。gyro/accel、xyz、rpy、余剰トルクだけを掲載する。最新指定によりモデル位置の共分散帯は表示せず、平均とIMU姿勢の±2σを示す。位置の保守的な共分散上界も計算・保存を継続し、姿勢の帯は出力lawの局所座標近似である。一部の地磁気出力融合は数値積分の精度目標未達であり、保存先に残差を明記した。旧publicationは変更していない。
 
 この新経路の定義・近似・再実行コマンドは [ATTITUDE_FEEDBACK_COMPARISON.md](ATTITUDE_FEEDBACK_COMPARISON.md) を参照。

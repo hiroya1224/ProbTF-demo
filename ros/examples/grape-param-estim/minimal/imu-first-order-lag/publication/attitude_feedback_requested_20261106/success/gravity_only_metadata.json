@@ -1,0 +1,30 @@
+{
+  "schema": "imu-first-order-lag/coupled-attitude-feedback-replay/v1",
+  "mean_dynamics": "actual (F_act+F_res)/mass rotated by E[R_recursive] E[D_model(s)], plus world gravity; no posterior IMU acceleration substitution",
+  "attitude_prediction": "right model increment acts on current carried attitude law; absolute free model attitude never resets the observer",
+  "stage_clock": "RK4 stages on original IMU intervals; endpoint observation does not act backward on the interval",
+  "magnetic_policy": "only current output quaternion and FC lever query use magnetic output; CoG p/v and next carried law exclude it",
+  "known_source_columns": {
+    "parameter": [
+      0,
+      16
+    ],
+    "initial": [
+      16,
+      25
+    ],
+    "persistent_wrench": [
+      25,
+      31
+    ]
+  },
+  "source_factors": "unscaled aligned known columns; force/mass, actuator/residual and lever cancellation performed before propagation",
+  "position_covariance": "4*(parameter-block Gram + initial-block Gram + persistent-block Gram + pose-history spectral/Minkowski majorant)",
+  "orientation_covariance": "actual output attitude-law proxy supplied by orientation adapter, not inflated by position Cauchy bound",
+  "joint_state_gaussian_claimed": false,
+  "monte_carlo": false,
+  "ongoing_mocap_used": false,
+  "full_rotation_moments_used": true,
+  "zero_drag_required": true,
+  "independent_increment_approximation": "explicit per-interval approximation of the shared-parameter angular carrier; source factor differences remain saved"
+}

@@ -1,0 +1,53 @@
+{
+  "failure1": {
+    "gravity_only": {
+      "moment_fit_residual_max_abs": 1.837942592739665e-14
+    },
+    "translation_aware": {
+      "projection_moment_residual_max_abs": 1.2645699808333236e-06,
+      "projection_initial_moment_residual_max_abs": 0.00404080648429913,
+      "integration_feature_error_recursive_max_abs": 0.00021648516957992748,
+      "integration_log_normalizer_error_recursive_max_abs": 0.0004824110383676583,
+      "integration_dense_rule_recursive_count": 587,
+      "integration_feature_error_output_max_abs": 0.00021648516957992748,
+      "integration_log_normalizer_error_output_max_abs": 0.0004824110383676583,
+      "integration_dense_rule_output_count": 577,
+      "projection_integration_feature_error_max_abs": 0.0001949870237376462,
+      "projection_integration_log_normalizer_error_max_abs": 0.0004163618275319081
+    }
+  },
+  "failure2": {
+    "gravity_only": {
+      "moment_fit_residual_max_abs": 4.724387784043812e-14
+    },
+    "translation_aware": {
+      "projection_moment_residual_max_abs": 6.083754578476451e-09,
+      "projection_initial_moment_residual_max_abs": 0.0007388127126345615,
+      "integration_feature_error_recursive_max_abs": 1.3137629052782398e-06,
+      "integration_log_normalizer_error_recursive_max_abs": 1.4359465838609253e-06,
+      "integration_dense_rule_recursive_count": 0,
+      "integration_feature_error_output_max_abs": 1.3137629052782398e-06,
+      "integration_log_normalizer_error_output_max_abs": 1.4359465838609253e-06,
+      "integration_dense_rule_output_count": 0,
+      "projection_integration_feature_error_max_abs": 1.2621314369719507e-06,
+      "projection_integration_log_normalizer_error_max_abs": 1.2229496011428864e-06
+    }
+  },
+  "success": {
+    "gravity_only": {
+      "moment_fit_residual_max_abs": 1.0452029483488169e-13
+    },
+    "translation_aware": {
+      "projection_moment_residual_max_abs": 6.131148893040076e-07,
+      "projection_initial_moment_residual_max_abs": 0.00048047169326780346,
+      "integration_feature_error_recursive_max_abs": 0.0004614722232857053,
+      "integration_log_normalizer_error_recursive_max_abs": 0.001601892686125872,
+      "integration_dense_rule_recursive_count": 439,
+      "integration_feature_error_output_max_abs": 0.005386416452912712,
+      "integration_log_normalizer_error_output_max_abs": 0.6255026007299804,
+      "integration_dense_rule_output_count": 390,
+      "projection_integration_feature_error_max_abs": 0.00041015339549868904,
+      "projection_integration_log_normalizer_error_max_abs": 0.0013631353594885098
+    }
+  }
+}

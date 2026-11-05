@@ -1,0 +1,484 @@
+{
+  "schema": "grape/attitude-feedback-requested-comparison/v1",
+  "completed_utc": "2026-11-05T21:47:21.890408+00:00",
+  "cases": [
+    {
+      "schema": "grape/attitude-feedback-requested-comparison/v1",
+      "case": "failure1",
+      "figures": {
+        "schema": "grape-param-estim/imu-first-order-lag-focused-figures/v2",
+        "case": "failure1",
+        "figure_count": 5,
+        "figure_types": [
+          "gyro_reconstruction",
+          "accel_reconstruction",
+          "position_reconstruction",
+          "attitude_reconstruction",
+          "applied_residual_torque"
+        ],
+        "files": [
+          "gyro_reconstruction.png",
+          "gyro_reconstruction.pdf",
+          "accel_reconstruction.png",
+          "accel_reconstruction.pdf",
+          "position_reconstruction.png",
+          "position_reconstruction.pdf",
+          "attitude_reconstruction.png",
+          "attitude_reconstruction.pdf",
+          "applied_residual_torque.png",
+          "applied_residual_torque.pdf",
+          "requested_results.pdf"
+        ],
+        "native_count": 1200,
+        "first_native_time": 19.00218106,
+        "last_native_time": 24.997109006000002,
+        "clock": "original native IMU timestamps; elapsed display subtracts only the first timestamp",
+        "gyro_time_constant_seconds": 0.037190127887773476,
+        "accel_time_constant_seconds": 0.06620588406533635,
+        "sensor_response": "actual model + applied residual physical inputs, forward first-order lag; exact native-interval ZOH",
+        "sensor_response_initial_condition": "conditioned on first raw reading; no sensor uncertainty band requested",
+        "sensor_units": {
+          "gyro": "rad/s",
+          "accel": "m/s^2"
+        },
+        "applied_torque": "actual replay applied_residual_wrench_body columns 3:6; body coordinates about CoG; N m",
+        "torque_uncertainty": "no band requested; no replacement uncertainty computed",
+        "trajectories": [
+          {
+            "label": "Gravity-only observation + dynamics feedback",
+            "array_prefix": "trajectory_0__"
+          },
+          {
+            "label": "Translation-aware observation + dynamics feedback",
+            "array_prefix": "trajectory_1__"
+          }
+        ],
+        "trajectory_interpretation": "caller-supplied reconstructions; writer performs no model replay, orientation update or substitution",
+        "trajectory_uncertainty": "unaltered supplied marginal covariance/factor; ±2 standard deviations; complete bands retained; not a 95 percent guarantee",
+        "position_is_upper_bound": true,
+        "position_uncertainty": "propagated covariance upper bound, retaining supplied parameter cross and declared unknown pose/history bounds",
+        "attitude_uncertainty": "native posterior-law local right-rotation covariance proxy; Euler first-order transformation",
+        "attitude_display": "unwrapped xyz Euler degrees, initially aligned only by integer full turns to the first displayed reference; native quaternions unchanged",
+        "reference": {
+          "available": true,
+          "original_count": 720,
+          "displayed_count": 719,
+          "clock": "original mocap timestamps cropped to native IMU support; no interpolation or extrapolation",
+          "role": "read-only black reference; never used to update supplied reconstruction",
+          "uncertainty": "no reference covariance supplied or fabricated"
+        },
+        "estimator_changed": false,
+        "monte_carlo": false
+      },
+      "frozen_fit": {
+        "estimate_sha256": "6c1f3ea7fcf53e3a85c440cb4572dbb43d6d6148e7086f1e30ce7bbe20133b0c",
+        "fit_arrays_sha256": "17d4b46ffed70433bb7fbbac897a4dc301a53eab9f7a3f84d31c2c114974fb34",
+        "fit_arrays_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/failure1/fit_results.npz",
+        "refitted": false,
+        "parameter_covariance_reestimated": false,
+        "residual_reevaluation_max_abs_difference": 0.0,
+        "raw_residual_wrench_reevaluation_max_abs_difference": 0.0,
+        "corrected_gyro_reevaluation_max_abs_difference": 0.0,
+        "corrected_specific_force_reevaluation_max_abs_difference": 0.0
+      },
+      "angular_carrier": {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/failure1/arrays.npz",
+        "sha256": "47c843581eb82f58c5899d87d97730b20446621be1de198ccc0334fe9b421054",
+        "use": "body angular dynamics and its shared source factors; absolute free-model pose/position is not substituted for the observer state"
+      },
+      "observer_comparison": {
+        "schema": "imu-first-order-lag/orientation-comparison/v1",
+        "native_clock_preserved": true,
+        "static_sensor_covariance": "same isotropic trace(S)/3 I for both real-data branches",
+        "original_method_unchanged": true,
+        "old_publication_unchanged": true,
+        "both_skip_initial_observations": true,
+        "magnetic_output_only_in_both_branches": true,
+        "full_rotation_second_moment_order": "column-major vec_F(R)",
+        "translation_aware_covariance": "full-law quaternion-half-angle proxy",
+        "gravity_only_covariance": "existing native Bingham modal-curvature proxy unchanged"
+      },
+      "shared_model": {
+        "schema": "imu-first-order-lag/coupled-body-profiles/v1",
+        "zero_drag_required": true,
+        "body_profile_shared_between_branches": true,
+        "interpolation": "same native piecewise-linear residual mean/Jacobian; exact ZOH thrust response and actual-gimbal interpolation at all RK4 stages",
+        "increment_factor": "L_delta[k]=L_rotation[k]-D[k].T L_rotation[k-1]; original aligned31 source columns retained",
+        "increment_covariance": "L_delta L_delta.T / dt^2; first row is original initial model angular-velocity marginal",
+        "independent_bingham_increment": "explicit per-interval approximation of the shared-parameter angular carrier; source factor differences remain saved",
+        "integration_max_step_seconds": 0.005
+      },
+      "input_sha256": "c64ee849d372e81ae1257efc53d7ef5fbb91bc65c0f58d0594c8c6ced19c8f5f",
+      "input_metadata_sha256": "2b319d4fabb37085b5bbfc3d3e7a8e216cc19f1f4cb72637c90610b84a0c6905",
+      "native_rows": 1200,
+      "native_time_range": [
+        19.00218106,
+        24.997109006000002
+      ],
+      "mocap_use": "initial conditions only in estimation; original supported rows for plot reference",
+      "plot_files": [
+        "gyro_reconstruction.png",
+        "gyro_reconstruction.pdf",
+        "accel_reconstruction.png",
+        "accel_reconstruction.pdf",
+        "position_reconstruction.png",
+        "position_reconstruction.pdf",
+        "attitude_reconstruction.png",
+        "attitude_reconstruction.pdf",
+        "applied_residual_torque.png",
+        "applied_residual_torque.pdf",
+        "requested_results.pdf"
+      ],
+      "options": {
+        "quadrature_order": 7,
+        "projection_iterations": 3,
+        "window_seconds": 0.08,
+        "degree": 3,
+        "initial_concentration": 100.0,
+        "quadrature_options": {
+          "global_radial": 32,
+          "global_angles": 32,
+          "local_mixture_weight": 1e-05,
+          "adaptive_refinement": true,
+          "refinement_tolerance": 1e-05
+        }
+      },
+      "physical_parameters_and_three_taus_frozen": true,
+      "monte_carlo": false,
+      "body_sensor_response_shared_between_attitude_methods": true,
+      "total_wall_seconds": 1773.1013063529972
+    },
+    {
+      "schema": "grape/attitude-feedback-requested-comparison/v1",
+      "case": "failure2",
+      "figures": {
+        "schema": "grape-param-estim/imu-first-order-lag-focused-figures/v2",
+        "case": "failure2",
+        "figure_count": 5,
+        "figure_types": [
+          "gyro_reconstruction",
+          "accel_reconstruction",
+          "position_reconstruction",
+          "attitude_reconstruction",
+          "applied_residual_torque"
+        ],
+        "files": [
+          "gyro_reconstruction.png",
+          "gyro_reconstruction.pdf",
+          "accel_reconstruction.png",
+          "accel_reconstruction.pdf",
+          "position_reconstruction.png",
+          "position_reconstruction.pdf",
+          "attitude_reconstruction.png",
+          "attitude_reconstruction.pdf",
+          "applied_residual_torque.png",
+          "applied_residual_torque.pdf",
+          "requested_results.pdf"
+        ],
+        "native_count": 1100,
+        "first_native_time": 25.504054411000002,
+        "last_native_time": 30.998215947000002,
+        "clock": "original native IMU timestamps; elapsed display subtracts only the first timestamp",
+        "gyro_time_constant_seconds": 0.0615987050460502,
+        "accel_time_constant_seconds": 0.06209106762692092,
+        "sensor_response": "actual model + applied residual physical inputs, forward first-order lag; exact native-interval ZOH",
+        "sensor_response_initial_condition": "conditioned on first raw reading; no sensor uncertainty band requested",
+        "sensor_units": {
+          "gyro": "rad/s",
+          "accel": "m/s^2"
+        },
+        "applied_torque": "actual replay applied_residual_wrench_body columns 3:6; body coordinates about CoG; N m",
+        "torque_uncertainty": "no band requested; no replacement uncertainty computed",
+        "trajectories": [
+          {
+            "label": "Gravity-only observation + dynamics feedback",
+            "array_prefix": "trajectory_0__"
+          },
+          {
+            "label": "Translation-aware observation + dynamics feedback",
+            "array_prefix": "trajectory_1__"
+          }
+        ],
+        "trajectory_interpretation": "caller-supplied reconstructions; writer performs no model replay, orientation update or substitution",
+        "trajectory_uncertainty": "unaltered supplied marginal covariance/factor; ±2 standard deviations; complete bands retained; not a 95 percent guarantee",
+        "position_is_upper_bound": true,
+        "position_uncertainty": "propagated covariance upper bound, retaining supplied parameter cross and declared unknown pose/history bounds",
+        "attitude_uncertainty": "native posterior-law local right-rotation covariance proxy; Euler first-order transformation",
+        "attitude_display": "unwrapped xyz Euler degrees, initially aligned only by integer full turns to the first displayed reference; native quaternions unchanged",
+        "reference": {
+          "available": true,
+          "original_count": 660,
+          "displayed_count": 659,
+          "clock": "original mocap timestamps cropped to native IMU support; no interpolation or extrapolation",
+          "role": "read-only black reference; never used to update supplied reconstruction",
+          "uncertainty": "no reference covariance supplied or fabricated"
+        },
+        "estimator_changed": false,
+        "monte_carlo": false
+      },
+      "frozen_fit": {
+        "estimate_sha256": "4a471b787c9f864d857c0c9b9d4ec42da425c08e4ad681e2107474e95e544fc8",
+        "fit_arrays_sha256": "cf04d006a8e1e621e4c48139fee5d12069d31dc539203138e01f3eac5cfdaf56",
+        "fit_arrays_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/failure2/fit_results.npz",
+        "refitted": false,
+        "parameter_covariance_reestimated": false,
+        "residual_reevaluation_max_abs_difference": 0.0,
+        "raw_residual_wrench_reevaluation_max_abs_difference": 0.0,
+        "corrected_gyro_reevaluation_max_abs_difference": 0.0,
+        "corrected_specific_force_reevaluation_max_abs_difference": 0.0
+      },
+      "angular_carrier": {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/failure2/arrays.npz",
+        "sha256": "757e2b41b3b363ae91d3b535c55499e88ce8bd2a544ac4899886d82eb752b163",
+        "use": "body angular dynamics and its shared source factors; absolute free-model pose/position is not substituted for the observer state"
+      },
+      "observer_comparison": {
+        "schema": "imu-first-order-lag/orientation-comparison/v1",
+        "native_clock_preserved": true,
+        "static_sensor_covariance": "same isotropic trace(S)/3 I for both real-data branches",
+        "original_method_unchanged": true,
+        "old_publication_unchanged": true,
+        "both_skip_initial_observations": true,
+        "magnetic_output_only_in_both_branches": true,
+        "full_rotation_second_moment_order": "column-major vec_F(R)",
+        "translation_aware_covariance": "full-law quaternion-half-angle proxy",
+        "gravity_only_covariance": "existing native Bingham modal-curvature proxy unchanged"
+      },
+      "shared_model": {
+        "schema": "imu-first-order-lag/coupled-body-profiles/v1",
+        "zero_drag_required": true,
+        "body_profile_shared_between_branches": true,
+        "interpolation": "same native piecewise-linear residual mean/Jacobian; exact ZOH thrust response and actual-gimbal interpolation at all RK4 stages",
+        "increment_factor": "L_delta[k]=L_rotation[k]-D[k].T L_rotation[k-1]; original aligned31 source columns retained",
+        "increment_covariance": "L_delta L_delta.T / dt^2; first row is original initial model angular-velocity marginal",
+        "independent_bingham_increment": "explicit per-interval approximation of the shared-parameter angular carrier; source factor differences remain saved",
+        "integration_max_step_seconds": 0.005
+      },
+      "input_sha256": "a7aa280c2ac48998ff14407c75f48eadfa171053573f9eecae7b7d033d8078d8",
+      "input_metadata_sha256": "d4a54f5301c9eb5b2c8feb2f8191389cb780d404170ea82163e0cbc19c2c65f6",
+      "native_rows": 1100,
+      "native_time_range": [
+        25.504054411000002,
+        30.998215947000002
+      ],
+      "mocap_use": "initial conditions only in estimation; original supported rows for plot reference",
+      "plot_files": [
+        "gyro_reconstruction.png",
+        "gyro_reconstruction.pdf",
+        "accel_reconstruction.png",
+        "accel_reconstruction.pdf",
+        "position_reconstruction.png",
+        "position_reconstruction.pdf",
+        "attitude_reconstruction.png",
+        "attitude_reconstruction.pdf",
+        "applied_residual_torque.png",
+        "applied_residual_torque.pdf",
+        "requested_results.pdf"
+      ],
+      "options": {
+        "quadrature_order": 7,
+        "projection_iterations": 3,
+        "window_seconds": 0.08,
+        "degree": 3,
+        "initial_concentration": 100.0,
+        "quadrature_options": {
+          "global_radial": 32,
+          "global_angles": 32,
+          "local_mixture_weight": 1e-05,
+          "adaptive_refinement": true,
+          "refinement_tolerance": 1e-05
+        }
+      },
+      "physical_parameters_and_three_taus_frozen": true,
+      "monte_carlo": false,
+      "body_sensor_response_shared_between_attitude_methods": true,
+      "total_wall_seconds": 220.50649710802827
+    },
+    {
+      "schema": "grape/attitude-feedback-requested-comparison/v1",
+      "case": "success",
+      "figures": {
+        "schema": "grape-param-estim/imu-first-order-lag-focused-figures/v2",
+        "case": "success",
+        "figure_count": 5,
+        "figure_types": [
+          "gyro_reconstruction",
+          "accel_reconstruction",
+          "position_reconstruction",
+          "attitude_reconstruction",
+          "applied_residual_torque"
+        ],
+        "files": [
+          "gyro_reconstruction.png",
+          "gyro_reconstruction.pdf",
+          "accel_reconstruction.png",
+          "accel_reconstruction.pdf",
+          "position_reconstruction.png",
+          "position_reconstruction.pdf",
+          "attitude_reconstruction.png",
+          "attitude_reconstruction.pdf",
+          "applied_residual_torque.png",
+          "applied_residual_torque.pdf",
+          "requested_results.pdf"
+        ],
+        "native_count": 2000,
+        "first_native_time": 65.00192244200001,
+        "last_native_time": 74.99815727500001,
+        "clock": "original native IMU timestamps; elapsed display subtracts only the first timestamp",
+        "gyro_time_constant_seconds": 0.03093824561979907,
+        "accel_time_constant_seconds": 0.06318998861115412,
+        "sensor_response": "actual model + applied residual physical inputs, forward first-order lag; exact native-interval ZOH",
+        "sensor_response_initial_condition": "conditioned on first raw reading; no sensor uncertainty band requested",
+        "sensor_units": {
+          "gyro": "rad/s",
+          "accel": "m/s^2"
+        },
+        "applied_torque": "actual replay applied_residual_wrench_body columns 3:6; body coordinates about CoG; N m",
+        "torque_uncertainty": "no band requested; no replacement uncertainty computed",
+        "trajectories": [
+          {
+            "label": "Gravity-only observation + dynamics feedback",
+            "array_prefix": "trajectory_0__"
+          },
+          {
+            "label": "Translation-aware observation + dynamics feedback",
+            "array_prefix": "trajectory_1__"
+          }
+        ],
+        "trajectory_interpretation": "caller-supplied reconstructions; writer performs no model replay, orientation update or substitution",
+        "trajectory_uncertainty": "unaltered supplied marginal covariance/factor; ±2 standard deviations; complete bands retained; not a 95 percent guarantee",
+        "position_is_upper_bound": true,
+        "position_uncertainty": "propagated covariance upper bound, retaining supplied parameter cross and declared unknown pose/history bounds",
+        "attitude_uncertainty": "native posterior-law local right-rotation covariance proxy; Euler first-order transformation",
+        "attitude_display": "unwrapped xyz Euler degrees, initially aligned only by integer full turns to the first displayed reference; native quaternions unchanged",
+        "reference": {
+          "available": true,
+          "original_count": 1200,
+          "displayed_count": 1200,
+          "clock": "original mocap timestamps cropped to native IMU support; no interpolation or extrapolation",
+          "role": "read-only black reference; never used to update supplied reconstruction",
+          "uncertainty": "no reference covariance supplied or fabricated"
+        },
+        "estimator_changed": false,
+        "monte_carlo": false
+      },
+      "frozen_fit": {
+        "estimate_sha256": "f260c5267a089d54160ff3874309f81cc868456029f52213239b8edf69d7b8c3",
+        "fit_arrays_sha256": "9eabff5cad35b2101ce3d5eb2eeba44ab77970c2a809c134e73649177b5e262a",
+        "fit_arrays_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/success/fit_results.npz",
+        "refitted": false,
+        "parameter_covariance_reestimated": false,
+        "residual_reevaluation_max_abs_difference": 0.0,
+        "raw_residual_wrench_reevaluation_max_abs_difference": 0.0,
+        "corrected_gyro_reevaluation_max_abs_difference": 0.0,
+        "corrected_specific_force_reevaluation_max_abs_difference": 0.0
+      },
+      "angular_carrier": {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/success/arrays.npz",
+        "sha256": "26bb4755820811003e228a6aa9ee3cbb7a6a8ef5bbf77ef53739f83cd1bae25e",
+        "use": "body angular dynamics and its shared source factors; absolute free-model pose/position is not substituted for the observer state"
+      },
+      "observer_comparison": {
+        "schema": "imu-first-order-lag/orientation-comparison/v1",
+        "native_clock_preserved": true,
+        "static_sensor_covariance": "same isotropic trace(S)/3 I for both real-data branches",
+        "original_method_unchanged": true,
+        "old_publication_unchanged": true,
+        "both_skip_initial_observations": true,
+        "magnetic_output_only_in_both_branches": true,
+        "full_rotation_second_moment_order": "column-major vec_F(R)",
+        "translation_aware_covariance": "full-law quaternion-half-angle proxy",
+        "gravity_only_covariance": "existing native Bingham modal-curvature proxy unchanged"
+      },
+      "shared_model": {
+        "schema": "imu-first-order-lag/coupled-body-profiles/v1",
+        "zero_drag_required": true,
+        "body_profile_shared_between_branches": true,
+        "interpolation": "same native piecewise-linear residual mean/Jacobian; exact ZOH thrust response and actual-gimbal interpolation at all RK4 stages",
+        "increment_factor": "L_delta[k]=L_rotation[k]-D[k].T L_rotation[k-1]; original aligned31 source columns retained",
+        "increment_covariance": "L_delta L_delta.T / dt^2; first row is original initial model angular-velocity marginal",
+        "independent_bingham_increment": "explicit per-interval approximation of the shared-parameter angular carrier; source factor differences remain saved",
+        "integration_max_step_seconds": 0.005
+      },
+      "input_sha256": "fc0baf8010f0489e072c0a5a2267b763e5d8401ab002681f6f3e675bb23af3ae",
+      "input_metadata_sha256": "a2fc774b5cb7a8087f56aabf4efc5f8526b7c9164e4294036d83f4ae076bdba2",
+      "native_rows": 2000,
+      "native_time_range": [
+        65.00192244200001,
+        74.99815727500001
+      ],
+      "mocap_use": "initial conditions only in estimation; original supported rows for plot reference",
+      "plot_files": [
+        "gyro_reconstruction.png",
+        "gyro_reconstruction.pdf",
+        "accel_reconstruction.png",
+        "accel_reconstruction.pdf",
+        "position_reconstruction.png",
+        "position_reconstruction.pdf",
+        "attitude_reconstruction.png",
+        "attitude_reconstruction.pdf",
+        "applied_residual_torque.png",
+        "applied_residual_torque.pdf",
+        "requested_results.pdf"
+      ],
+      "options": {
+        "quadrature_order": 7,
+        "projection_iterations": 3,
+        "window_seconds": 0.08,
+        "degree": 3,
+        "initial_concentration": 100.0,
+        "quadrature_options": {
+          "global_radial": 32,
+          "global_angles": 32,
+          "local_mixture_weight": 1e-05,
+          "adaptive_refinement": true,
+          "refinement_tolerance": 1e-05
+        }
+      },
+      "physical_parameters_and_three_taus_frozen": true,
+      "monte_carlo": false,
+      "body_sensor_response_shared_between_attitude_methods": true,
+      "total_wall_seconds": 3668.3196624779375
+    }
+  ],
+  "source_hashes_at_start": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/run_requested_comparison.py": "b24cee79f51f4d35807e9b7e0c0fb40ba774be76ccede14c12cafc904062db92",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_orientation.py": "ec01c07009e83ee0420d69d926a9eef283c89a26b9cd5c2dec3ce3c960e857c6",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_orientation_comparison.py": "2d3c68b58e318769abc9229eafc39a909f5529c086802c4f7a5344f53a7dea68",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_coupled_replay.py": "8cff57617e2fceca37b1e14fce52750abb4e181aa99363823f9d09a9153672b0",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/focused_reports.py": "3dd38cfcee22d4a7ea93080db6ef2a4f94ab80f1e0d6a8aec1ff82f35faa2341",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_model.py": "3b5900f43448247ffb1026008efe5fa342424435344ea09a6b3ec0b6106858ad",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_replay.py": "cefcf81c0e048823c923f2e97ec7406947dcbf075c1082ff6af9972c37cdd682",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_signal.py": "62e2f364df7041a215dc2c538ef9a5ed088b6df92f769c306695b540810ec00a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_attitude_law.py": "e909f75bd18ddddba5b8c12ec851cd4cc41d6b9ff51e2e61c42b424e57613195",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_joint_filter.py": "9d65a46e41115958dae6ce6424432111a97c8a95ab0b78d36d5a8ab1f1c4dd4e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_madgwick.py": "683b544ec0db8ac60f677244b53e7d4ce3d94128938010bb9a3c928955c15a56",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_observation_factors.py": "a33a4cae830ef0585630ea6865d12369c4d59c9dfe0be826bd39ce306f06d007",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_prediction.py": "909afdff5700cf495bba2cd1fe2ea810b0043bdf64332bf8182633f77e0eab5f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_synthetic_data.py": "ecdcf83b86fb1e9bddc752e709ed0bc9605138009a3f5c5c65c9a7940a7e9312"
+  },
+  "source_hashes_at_completion": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/run_requested_comparison.py": "b24cee79f51f4d35807e9b7e0c0fb40ba774be76ccede14c12cafc904062db92",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_orientation.py": "ec01c07009e83ee0420d69d926a9eef283c89a26b9cd5c2dec3ce3c960e857c6",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_orientation_comparison.py": "2d3c68b58e318769abc9229eafc39a909f5529c086802c4f7a5344f53a7dea68",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_coupled_replay.py": "8cff57617e2fceca37b1e14fce52750abb4e181aa99363823f9d09a9153672b0",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/focused_reports.py": "aa6a3869a27322d5ac5d6d6a3c398c7f3b7689f6800fe6c63f8bb1f7463001e3",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_model.py": "3b5900f43448247ffb1026008efe5fa342424435344ea09a6b3ec0b6106858ad",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_replay.py": "cefcf81c0e048823c923f2e97ec7406947dcbf075c1082ff6af9972c37cdd682",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_signal.py": "62e2f364df7041a215dc2c538ef9a5ed088b6df92f769c306695b540810ec00a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_attitude_law.py": "e909f75bd18ddddba5b8c12ec851cd4cc41d6b9ff51e2e61c42b424e57613195",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_joint_filter.py": "9d65a46e41115958dae6ce6424432111a97c8a95ab0b78d36d5a8ab1f1c4dd4e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_madgwick.py": "683b544ec0db8ac60f677244b53e7d4ce3d94128938010bb9a3c928955c15a56",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_observation_factors.py": "a33a4cae830ef0585630ea6865d12369c4d59c9dfe0be826bd39ce306f06d007",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_prediction.py": "909afdff5700cf495bba2cd1fe2ea810b0043bdf64332bf8182633f77e0eab5f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_synthetic_data.py": "ecdcf83b86fb1e9bddc752e709ed0bc9605138009a3f5c5c65c9a7940a7e9312"
+  },
+  "combined_report": "requested_sensor_trajectory_torque_comparison.pdf",
+  "requested_figure_types": [
+    "gyro",
+    "accel",
+    "xyz",
+    "rpy",
+    "residual_torque"
+  ]
+}

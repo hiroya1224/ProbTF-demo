@@ -1,0 +1,46 @@
+{
+  "schema": "attitude-feedback-regression-suite-summary/v1",
+  "standalone": {
+    "test_count": 58,
+    "passed": 58,
+    "failed": 0,
+    "command": "OPENBLAS_NUM_THREADS=1 PYTHONPATH=ros/core/probtf_core/src /usr/bin/python3 -m unittest discover -s tests/probtf -p 'test_translational_*.py' -v",
+    "elapsed_seconds": 3.772,
+    "includes": "original55; O4 Haar grid/default-native compatibility2; fixed broad-law Haar-reference numerical regression1"
+  },
+  "drone": {
+    "test_count": 27,
+    "passed": 27,
+    "failed": 0,
+    "elapsed_seconds": 27.360763054923154,
+    "modules": {
+      "test_imu_orientation.py": 4,
+      "test_imu_orientation_comparison.py": 7,
+      "test_imu_coupled_replay.py": 8,
+      "test_focused_reports.py": 3,
+      "test_imu_reports.py": 5
+    },
+    "driver_scope": "direct invocation of unmodified regression functions; stdlib mocks provide report fixtures because pytest is not installed",
+    "detailed_summary_source": "/tmp/grape-attitude-feedback-requested-20261106/test_regression_summary.json",
+    "detailed_summary_sha256": "855c5281690589954b7fcdd1f7bed819e45a00c752236cf127c55bbb16028fb5"
+  },
+  "combined_test_count": 85,
+  "combined_failed": 0,
+  "default_compatibility_evidence": [
+    "historical no-option prediction versus explicitly supplying its same corrected gyro/covariance: exact A/q/covariance/moment-residual equality",
+    "omitted global alignment versus explicit native: exact nodes/weights/moments/logZ equality"
+  ],
+  "adaptive_policy_evidence": "all outer init/forwardKL candidate/posterior/new-magnetic queries receive identical optional refinement settings; internal coarse/fine integration node rules intentionally differ",
+  "fixed_broad_law_regression": {
+    "fixture": "tests/probtf/fixtures/imu_broad_failure1_law1189.json",
+    "Haar_reference_radial": 96,
+    "Haar_reference_angles": 384,
+    "mean_rotation_maximum_error": 1.6501312432026793e-06,
+    "logZ_absolute_error": 2.199430596760976e-06,
+    "quaternion_second_moment_frobenius_error": 1.182906629837093e-06,
+    "law_coefficients_modified": false,
+    "finite_result_rejected": false
+  },
+  "production_modified_by_test_driver": false,
+  "render_phase_note": "Updated27 drone tests were rerun after the display-only omission of model position bands, including3 focused-render tests. The standalone58 tests passed before that rendering-only change; all13 mathematical source SHA256 values remain identical."
+}

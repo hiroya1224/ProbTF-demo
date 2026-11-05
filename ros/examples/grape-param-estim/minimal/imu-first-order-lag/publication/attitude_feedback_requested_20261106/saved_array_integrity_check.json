@@ -1,0 +1,831 @@
+{
+  "schema": "attitude-feedback-saved-array-integrity/v2",
+  "run_root": "/tmp/grape-attitude-feedback-refined-20261106",
+  "scope": "read-only all-row invariant and diagnostic aggregation; no estimate/state/observation or result is altered",
+  "audit_acceptance_threshold": null,
+  "audit_rejected_update_count": 0,
+  "counterfactual_magnetic_nonfeedback_evidence": "separate regression tests perturb magnetic samples and verify exact recursive-law/m/F/S/moment independence; actual arrays check strict new-sample/held-law/conditional-copy behavior",
+  "cases": {
+    "failure1": {
+      "native_rows": 1200,
+      "status": "completed",
+      "source_archives_sha256": {
+        "gravity_only": "579902d5ac05cb1746e0f5dfee321e3d5899995733e1b47954537cc1d5bb1cec",
+        "translation_aware": "ed031baf97ba24c4d1e17e008faea2da3490027f39198c47c0c648802cdf2b13"
+      },
+      "both_branches_model_prediction_identical": true,
+      "both_branches_applied_residual_identical": true,
+      "both_branches_corrected_raw_streams_identical": true,
+      "branches": {
+        "gravity_only": {
+          "native_time_exact": true,
+          "native_ns_exact": true,
+          "original_imu_source_indices_exact": true,
+          "original_magmask_exact": true,
+          "magnetic_updated_rows": 410,
+          "original_new_magnetic_rows": 410,
+          "magnetic_update_requires_actual_new_sample": true,
+          "held_rows_output_equals_recursive": {
+            "A": true,
+            "Wg": true,
+            "Wb": true,
+            "q": true,
+            "mean_rotation": true,
+            "rotation_vector_second_moment": true,
+            "covariance": true
+          },
+          "initial_acceleration_update_skipped": true,
+          "initial_magnetic_update_skipped": true,
+          "all_saved_numeric_arrays_finite": true,
+          "prediction_factor_columns": 31,
+          "prediction_covariance_from_full_factor_maximum_error": 0.0,
+          "projection_residual": {
+            "total_count": 1200,
+            "finite_count": 1200,
+            "maximum": 1.837942592739665e-14,
+            "median": 2.1842570148975635e-15,
+            "percentile95": 7.394396876806205e-15,
+            "maximum_original_row": 1118,
+            "maximum_native_time": 24.592109006,
+            "definition": "Frobenius norm of native Bingham quaternion second-moment fit difference"
+          },
+          "full_rotation_geometry": {
+            "recursive": {
+              "vecF_second_trace_maximum_error": 1.3322676295501878e-15,
+              "E_RtR_identity_maximum_error": 6.661338147750939e-16,
+              "E_RRt_identity_maximum_error": 6.661338147750939e-16
+            },
+            "output": {
+              "vecF_second_trace_maximum_error": 1.3322676295501878e-15,
+              "E_RtR_identity_maximum_error": 6.661338147750939e-16,
+              "E_RRt_identity_maximum_error": 6.661338147750939e-16
+            }
+          }
+        },
+        "translation_aware": {
+          "native_time_exact": true,
+          "native_ns_exact": true,
+          "original_imu_source_indices_exact": true,
+          "original_magmask_exact": true,
+          "magnetic_updated_rows": 410,
+          "original_new_magnetic_rows": 410,
+          "magnetic_update_requires_actual_new_sample": true,
+          "held_rows_output_equals_recursive": {
+            "A": true,
+            "Wg": true,
+            "Wb": true,
+            "q": true,
+            "mean_rotation": true,
+            "rotation_vector_second_moment": true,
+            "covariance": true
+          },
+          "initial_acceleration_update_skipped": true,
+          "initial_magnetic_update_skipped": true,
+          "all_saved_numeric_arrays_finite": true,
+          "prediction_factor_columns": 31,
+          "prediction_covariance_from_full_factor_maximum_error": 0.0,
+          "projection_residual": {
+            "total_count": 1200,
+            "finite_count": 1200,
+            "maximum": 1.2645699808333236e-06,
+            "median": 2.4408703858670235e-11,
+            "percentile95": 1.8302809787907162e-07,
+            "maximum_original_row": 1185,
+            "maximum_native_time": 24.927109006000002,
+            "definition": "Euclidean norm of normalized19 sufficient-feature moment difference"
+          },
+          "full_rotation_geometry": {
+            "recursive": {
+              "vecF_second_trace_maximum_error": 7.993605777301127e-15,
+              "E_RtR_identity_maximum_error": 2.886579864025407e-15,
+              "E_RRt_identity_maximum_error": 2.886579864025407e-15
+            },
+            "output": {
+              "vecF_second_trace_maximum_error": 7.105427357601002e-15,
+              "E_RtR_identity_maximum_error": 3.219646771412954e-15,
+              "E_RRt_identity_maximum_error": 3.552713678800501e-15
+            }
+          },
+          "conditional_mFS_unmodified_by_output_magnetic": true,
+          "projection_initial_residual": {
+            "total_count": 1200,
+            "finite_count": 1200,
+            "maximum": 0.00404080648429913,
+            "median": 0.0009707474641593267,
+            "percentile95": 0.0032776309364457444,
+            "maximum_original_row": 1199,
+            "maximum_native_time": 24.997109006000002
+          },
+          "integration_refinement": {
+            "definition": "difference between last two finite deterministic integration rules, not a guaranteed global integration error bound",
+            "coarse_discrepancy_saved": false,
+            "coarse_discrepancy_statistics": null,
+            "coarse_discrepancy_reason": "not separately saved; on non-dense rows final=coarse by the integrator branch definition, so those rows are recovered exactly; dense-row coarse values remain unavailable",
+            "projection_dense_flag_saved": false,
+            "phases": {
+              "recursive": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 1200,
+                  "finite_count": 1200,
+                  "maximum": 0.00021648516957992748,
+                  "median": 3.691069236346945e-07,
+                  "percentile95": 6.996986353817938e-05,
+                  "maximum_original_row": 613,
+                  "maximum_native_time": 22.068181288
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 1200,
+                  "finite_count": 1200,
+                  "maximum": 0.0004824110383676583,
+                  "median": 7.557711740879824e-07,
+                  "percentile95": 0.00010879497659495026,
+                  "maximum_original_row": 613,
+                  "maximum_native_time": 22.068181288
+                },
+                "saved_dense_row_flag_count": 587,
+                "saved_dense_row_flags_are_unique_invocations": false,
+                "coarse_discrepancy_recoverable_non_dense_rows": 613,
+                "coarse_discrepancy_unavailable_dense_rows": 587,
+                "coarse_feature_moment_discrepancy_non_dense": {
+                  "total_count": 613,
+                  "finite_count": 613,
+                  "maximum": 5.658591018142106e-06,
+                  "median": 4.056281289733501e-07,
+                  "percentile95": 3.2042541226372066e-06,
+                  "maximum_original_row": 612,
+                  "maximum_native_time": 22.063181288000003
+                },
+                "coarse_log_normalizer_discrepancy_non_dense": {
+                  "total_count": 613,
+                  "finite_count": 613,
+                  "maximum": 9.480481588219902e-06,
+                  "median": 9.746915798913847e-07,
+                  "percentile95": 5.8941249179156304e-06,
+                  "maximum_original_row": 612,
+                  "maximum_native_time": 22.063181288000003
+                }
+              },
+              "output": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 1200,
+                  "finite_count": 1200,
+                  "maximum": 0.00021648516957992748,
+                  "median": 3.6831414518685414e-07,
+                  "percentile95": 5.749652925246834e-05,
+                  "maximum_original_row": 613,
+                  "maximum_native_time": 22.068181288
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 1200,
+                  "finite_count": 1200,
+                  "maximum": 0.0004824110383676583,
+                  "median": 7.416769736146023e-07,
+                  "percentile95": 9.164299639903274e-05,
+                  "maximum_original_row": 613,
+                  "maximum_native_time": 22.068181288
+                },
+                "saved_dense_row_flag_count": 577,
+                "saved_dense_row_flags_are_unique_invocations": false,
+                "coarse_discrepancy_recoverable_non_dense_rows": 623,
+                "coarse_discrepancy_unavailable_dense_rows": 577,
+                "coarse_feature_moment_discrepancy_non_dense": {
+                  "total_count": 623,
+                  "finite_count": 623,
+                  "maximum": 5.658591018142106e-06,
+                  "median": 3.7352609170190893e-07,
+                  "percentile95": 3.2745508285945145e-06,
+                  "maximum_original_row": 612,
+                  "maximum_native_time": 22.063181288000003
+                },
+                "coarse_log_normalizer_discrepancy_non_dense": {
+                  "total_count": 623,
+                  "finite_count": 623,
+                  "maximum": 9.480481588219902e-06,
+                  "median": 8.938459288287959e-07,
+                  "percentile95": 5.778238233755672e-06,
+                  "maximum_original_row": 612,
+                  "maximum_native_time": 22.063181288000003
+                },
+                "fresh_magnetic_output_dense_count": 200
+              },
+              "projection": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 1200,
+                  "finite_count": 1200,
+                  "maximum": 0.0001949870237376462,
+                  "median": 3.360930784052108e-07,
+                  "percentile95": 6.65286145320691e-05,
+                  "maximum_original_row": 617,
+                  "maximum_native_time": 22.088181288
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 1200,
+                  "finite_count": 1200,
+                  "maximum": 0.0004163618275319081,
+                  "median": 6.363098821182689e-07,
+                  "percentile95": 0.0001053411903734424,
+                  "maximum_original_row": 617,
+                  "maximum_native_time": 22.088181288
+                }
+              }
+            }
+          }
+        }
+      },
+      "frozen_physical_fit": {
+        "physical_parameters_and_three_taus_frozen_declared": true,
+        "refitted": false,
+        "covariance_reestimated": false,
+        "estimate_source_hash_matches": true,
+        "fit_array_source_hash_matches": true,
+        "angular_carrier_source_hash_matches": true,
+        "source_input_hash_matches": true,
+        "point_reevaluation_diagnostics": {
+          "residual_reevaluation_max_abs_difference": 0.0,
+          "raw_residual_wrench_reevaluation_max_abs_difference": 0.0,
+          "corrected_gyro_reevaluation_max_abs_difference": 0.0,
+          "corrected_specific_force_reevaluation_max_abs_difference": 0.0
+        }
+      },
+      "applied_residual_equals_frozen_original_model": true,
+      "independent_frozen_carrier_increment_check": {
+        "mean_rate_maximum_absolute_difference": 0.0,
+        "aligned31_increment_factor_maximum_absolute_difference": 0.0
+      }
+    },
+    "failure2": {
+      "native_rows": 1100,
+      "status": "completed",
+      "source_archives_sha256": {
+        "gravity_only": "6e31177ab4efff60f7446dd6084a4d6234efa7bd205630f51d93963e64e4edbf",
+        "translation_aware": "7fa61523f2a08a2465d2349d091432ae8fc90e7b29061eb2a91fdf3abbeaa850"
+      },
+      "both_branches_model_prediction_identical": true,
+      "both_branches_applied_residual_identical": true,
+      "both_branches_corrected_raw_streams_identical": true,
+      "branches": {
+        "gravity_only": {
+          "native_time_exact": true,
+          "native_ns_exact": true,
+          "original_imu_source_indices_exact": true,
+          "original_magmask_exact": true,
+          "magnetic_updated_rows": 398,
+          "original_new_magnetic_rows": 399,
+          "magnetic_update_requires_actual_new_sample": true,
+          "held_rows_output_equals_recursive": {
+            "A": true,
+            "Wg": true,
+            "Wb": true,
+            "q": true,
+            "mean_rotation": true,
+            "rotation_vector_second_moment": true,
+            "covariance": true
+          },
+          "initial_acceleration_update_skipped": true,
+          "initial_magnetic_update_skipped": true,
+          "all_saved_numeric_arrays_finite": true,
+          "prediction_factor_columns": 31,
+          "prediction_covariance_from_full_factor_maximum_error": 0.0,
+          "projection_residual": {
+            "total_count": 1100,
+            "finite_count": 1100,
+            "maximum": 4.724387784043812e-14,
+            "median": 1.3088110021464859e-15,
+            "percentile95": 1.0791953578224463e-14,
+            "maximum_original_row": 50,
+            "maximum_native_time": 25.754054411000002,
+            "definition": "Frobenius norm of native Bingham quaternion second-moment fit difference"
+          },
+          "full_rotation_geometry": {
+            "recursive": {
+              "vecF_second_trace_maximum_error": 8.881784197001252e-16,
+              "E_RtR_identity_maximum_error": 6.661338147750939e-16,
+              "E_RRt_identity_maximum_error": 6.661338147750939e-16
+            },
+            "output": {
+              "vecF_second_trace_maximum_error": 8.881784197001252e-16,
+              "E_RtR_identity_maximum_error": 6.661338147750939e-16,
+              "E_RRt_identity_maximum_error": 6.661338147750939e-16
+            }
+          }
+        },
+        "translation_aware": {
+          "native_time_exact": true,
+          "native_ns_exact": true,
+          "original_imu_source_indices_exact": true,
+          "original_magmask_exact": true,
+          "magnetic_updated_rows": 398,
+          "original_new_magnetic_rows": 399,
+          "magnetic_update_requires_actual_new_sample": true,
+          "held_rows_output_equals_recursive": {
+            "A": true,
+            "Wg": true,
+            "Wb": true,
+            "q": true,
+            "mean_rotation": true,
+            "rotation_vector_second_moment": true,
+            "covariance": true
+          },
+          "initial_acceleration_update_skipped": true,
+          "initial_magnetic_update_skipped": true,
+          "all_saved_numeric_arrays_finite": true,
+          "prediction_factor_columns": 31,
+          "prediction_covariance_from_full_factor_maximum_error": 0.0,
+          "projection_residual": {
+            "total_count": 1100,
+            "finite_count": 1100,
+            "maximum": 6.083754578476451e-09,
+            "median": 1.8321202713837257e-12,
+            "percentile95": 8.750254931563801e-11,
+            "maximum_original_row": 1,
+            "maximum_native_time": 25.509054411,
+            "definition": "Euclidean norm of normalized19 sufficient-feature moment difference"
+          },
+          "full_rotation_geometry": {
+            "recursive": {
+              "vecF_second_trace_maximum_error": 6.217248937900877e-15,
+              "E_RtR_identity_maximum_error": 4.6629367034256575e-15,
+              "E_RRt_identity_maximum_error": 4.440892098500626e-15
+            },
+            "output": {
+              "vecF_second_trace_maximum_error": 6.217248937900877e-15,
+              "E_RtR_identity_maximum_error": 3.3306690738754696e-15,
+              "E_RRt_identity_maximum_error": 3.3306690738754696e-15
+            }
+          },
+          "conditional_mFS_unmodified_by_output_magnetic": true,
+          "projection_initial_residual": {
+            "total_count": 1100,
+            "finite_count": 1100,
+            "maximum": 0.0007388127126345615,
+            "median": 0.00022509861475500387,
+            "percentile95": 0.0006951035113229553,
+            "maximum_original_row": 1099,
+            "maximum_native_time": 30.998215947000002
+          },
+          "integration_refinement": {
+            "definition": "difference between last two finite deterministic integration rules, not a guaranteed global integration error bound",
+            "coarse_discrepancy_saved": false,
+            "coarse_discrepancy_statistics": null,
+            "coarse_discrepancy_reason": "not separately saved; on non-dense rows final=coarse by the integrator branch definition, so those rows are recovered exactly; dense-row coarse values remain unavailable",
+            "projection_dense_flag_saved": false,
+            "phases": {
+              "recursive": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.3137629052782398e-06,
+                  "median": 2.5078680011334484e-07,
+                  "percentile95": 1.0436949943860193e-06,
+                  "maximum_original_row": 1068,
+                  "maximum_native_time": 30.843215947
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.4359465838609253e-06,
+                  "median": 3.2189481657951546e-07,
+                  "percentile95": 1.138784050525032e-06,
+                  "maximum_original_row": 1068,
+                  "maximum_native_time": 30.843215947
+                },
+                "saved_dense_row_flag_count": 0,
+                "saved_dense_row_flags_are_unique_invocations": false,
+                "coarse_discrepancy_recoverable_non_dense_rows": 1100,
+                "coarse_discrepancy_unavailable_dense_rows": 0,
+                "coarse_feature_moment_discrepancy_non_dense": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.3137629052782398e-06,
+                  "median": 2.5078680011334484e-07,
+                  "percentile95": 1.0436949943860193e-06,
+                  "maximum_original_row": 1068,
+                  "maximum_native_time": 30.843215947
+                },
+                "coarse_log_normalizer_discrepancy_non_dense": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.4359465838609253e-06,
+                  "median": 3.2189481657951546e-07,
+                  "percentile95": 1.138784050525032e-06,
+                  "maximum_original_row": 1068,
+                  "maximum_native_time": 30.843215947
+                }
+              },
+              "output": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.3137629052782398e-06,
+                  "median": 1.687701096003395e-07,
+                  "percentile95": 9.294300140087895e-07,
+                  "maximum_original_row": 1068,
+                  "maximum_native_time": 30.843215947
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.4359465838609253e-06,
+                  "median": 1.7643905714237462e-07,
+                  "percentile95": 9.899333910379224e-07,
+                  "maximum_original_row": 1068,
+                  "maximum_native_time": 30.843215947
+                },
+                "saved_dense_row_flag_count": 0,
+                "saved_dense_row_flags_are_unique_invocations": false,
+                "coarse_discrepancy_recoverable_non_dense_rows": 1100,
+                "coarse_discrepancy_unavailable_dense_rows": 0,
+                "coarse_feature_moment_discrepancy_non_dense": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.3137629052782398e-06,
+                  "median": 1.687701096003395e-07,
+                  "percentile95": 9.294300140087895e-07,
+                  "maximum_original_row": 1068,
+                  "maximum_native_time": 30.843215947
+                },
+                "coarse_log_normalizer_discrepancy_non_dense": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.4359465838609253e-06,
+                  "median": 1.7643905714237462e-07,
+                  "percentile95": 9.899333910379224e-07,
+                  "maximum_original_row": 1068,
+                  "maximum_native_time": 30.843215947
+                },
+                "fresh_magnetic_output_dense_count": 0
+              },
+              "projection": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.2621314369719507e-06,
+                  "median": 2.3217436556722742e-07,
+                  "percentile95": 1.0109875743755509e-06,
+                  "maximum_original_row": 1069,
+                  "maximum_native_time": 30.848215947000003
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 1100,
+                  "finite_count": 1100,
+                  "maximum": 1.2229496011428864e-06,
+                  "median": 2.7601883889616374e-07,
+                  "percentile95": 9.554188309834896e-07,
+                  "maximum_original_row": 1069,
+                  "maximum_native_time": 30.848215947000003
+                }
+              }
+            }
+          }
+        }
+      },
+      "frozen_physical_fit": {
+        "physical_parameters_and_three_taus_frozen_declared": true,
+        "refitted": false,
+        "covariance_reestimated": false,
+        "estimate_source_hash_matches": true,
+        "fit_array_source_hash_matches": true,
+        "angular_carrier_source_hash_matches": true,
+        "source_input_hash_matches": true,
+        "point_reevaluation_diagnostics": {
+          "residual_reevaluation_max_abs_difference": 0.0,
+          "raw_residual_wrench_reevaluation_max_abs_difference": 0.0,
+          "corrected_gyro_reevaluation_max_abs_difference": 0.0,
+          "corrected_specific_force_reevaluation_max_abs_difference": 0.0
+        }
+      },
+      "applied_residual_equals_frozen_original_model": true,
+      "independent_frozen_carrier_increment_check": {
+        "mean_rate_maximum_absolute_difference": 0.0,
+        "aligned31_increment_factor_maximum_absolute_difference": 0.0
+      }
+    },
+    "success": {
+      "native_rows": 2000,
+      "status": "completed",
+      "source_archives_sha256": {
+        "gravity_only": "05d3e21fd7847042138c3e51a7f18ba1b32e8cfe8cc5d85a7c8eed7b40145a9d",
+        "translation_aware": "b66e43b5f8ad6535d2b592b339ee86139611f499ba7275eb3e3b634cd16c36a4"
+      },
+      "both_branches_model_prediction_identical": true,
+      "both_branches_applied_residual_identical": true,
+      "both_branches_corrected_raw_streams_identical": true,
+      "branches": {
+        "gravity_only": {
+          "native_time_exact": true,
+          "native_ns_exact": true,
+          "original_imu_source_indices_exact": true,
+          "original_magmask_exact": true,
+          "magnetic_updated_rows": 723,
+          "original_new_magnetic_rows": 723,
+          "magnetic_update_requires_actual_new_sample": true,
+          "held_rows_output_equals_recursive": {
+            "A": true,
+            "Wg": true,
+            "Wb": true,
+            "q": true,
+            "mean_rotation": true,
+            "rotation_vector_second_moment": true,
+            "covariance": true
+          },
+          "initial_acceleration_update_skipped": true,
+          "initial_magnetic_update_skipped": true,
+          "all_saved_numeric_arrays_finite": true,
+          "prediction_factor_columns": 31,
+          "prediction_covariance_from_full_factor_maximum_error": 0.0,
+          "projection_residual": {
+            "total_count": 2000,
+            "finite_count": 2000,
+            "maximum": 1.0452029483488169e-13,
+            "median": 1.853459653793647e-15,
+            "percentile95": 1.1628351469264493e-14,
+            "maximum_original_row": 34,
+            "maximum_native_time": 65.17192244200001,
+            "definition": "Frobenius norm of native Bingham quaternion second-moment fit difference"
+          },
+          "full_rotation_geometry": {
+            "recursive": {
+              "vecF_second_trace_maximum_error": 1.3322676295501878e-15,
+              "E_RtR_identity_maximum_error": 6.661338147750939e-16,
+              "E_RRt_identity_maximum_error": 6.661338147750939e-16
+            },
+            "output": {
+              "vecF_second_trace_maximum_error": 1.3322676295501878e-15,
+              "E_RtR_identity_maximum_error": 6.661338147750939e-16,
+              "E_RRt_identity_maximum_error": 6.661338147750939e-16
+            }
+          }
+        },
+        "translation_aware": {
+          "native_time_exact": true,
+          "native_ns_exact": true,
+          "original_imu_source_indices_exact": true,
+          "original_magmask_exact": true,
+          "magnetic_updated_rows": 723,
+          "original_new_magnetic_rows": 723,
+          "magnetic_update_requires_actual_new_sample": true,
+          "held_rows_output_equals_recursive": {
+            "A": true,
+            "Wg": true,
+            "Wb": true,
+            "q": true,
+            "mean_rotation": true,
+            "rotation_vector_second_moment": true,
+            "covariance": true
+          },
+          "initial_acceleration_update_skipped": true,
+          "initial_magnetic_update_skipped": true,
+          "all_saved_numeric_arrays_finite": true,
+          "prediction_factor_columns": 31,
+          "prediction_covariance_from_full_factor_maximum_error": 0.0,
+          "projection_residual": {
+            "total_count": 2000,
+            "finite_count": 2000,
+            "maximum": 6.131148893040076e-07,
+            "median": 6.622248411807539e-13,
+            "percentile95": 6.182350110598895e-09,
+            "maximum_original_row": 1580,
+            "maximum_native_time": 72.90313536400001,
+            "definition": "Euclidean norm of normalized19 sufficient-feature moment difference"
+          },
+          "full_rotation_geometry": {
+            "recursive": {
+              "vecF_second_trace_maximum_error": 7.993605777301127e-15,
+              "E_RtR_identity_maximum_error": 3.9968028886505635e-15,
+              "E_RRt_identity_maximum_error": 3.885780586188048e-15
+            },
+            "output": {
+              "vecF_second_trace_maximum_error": 7.993605777301127e-15,
+              "E_RtR_identity_maximum_error": 3.9968028886505635e-15,
+              "E_RRt_identity_maximum_error": 3.885780586188048e-15
+            }
+          },
+          "conditional_mFS_unmodified_by_output_magnetic": true,
+          "projection_initial_residual": {
+            "total_count": 2000,
+            "finite_count": 2000,
+            "maximum": 0.00048047169326780346,
+            "median": 0.0001189506460684566,
+            "percentile95": 0.0004380538713298245,
+            "maximum_original_row": 1999,
+            "maximum_native_time": 74.99815727500001
+          },
+          "integration_refinement": {
+            "definition": "difference between last two finite deterministic integration rules, not a guaranteed global integration error bound",
+            "coarse_discrepancy_saved": false,
+            "coarse_discrepancy_statistics": null,
+            "coarse_discrepancy_reason": "not separately saved; on non-dense rows final=coarse by the integrator branch definition, so those rows are recovered exactly; dense-row coarse values remain unavailable",
+            "projection_dense_flag_saved": false,
+            "phases": {
+              "recursive": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 2000,
+                  "finite_count": 2000,
+                  "maximum": 0.0004614722232857053,
+                  "median": 3.964942166211256e-07,
+                  "percentile95": 0.0002531593824946125,
+                  "maximum_original_row": 1561,
+                  "maximum_native_time": 72.80813536400001
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 2000,
+                  "finite_count": 2000,
+                  "maximum": 0.001601892686125872,
+                  "median": 6.192141364103065e-07,
+                  "percentile95": 0.0006980385299277799,
+                  "maximum_original_row": 1561,
+                  "maximum_native_time": 72.80813536400001
+                },
+                "saved_dense_row_flag_count": 439,
+                "saved_dense_row_flags_are_unique_invocations": false,
+                "coarse_discrepancy_recoverable_non_dense_rows": 1561,
+                "coarse_discrepancy_unavailable_dense_rows": 439,
+                "coarse_feature_moment_discrepancy_non_dense": {
+                  "total_count": 1561,
+                  "finite_count": 1561,
+                  "maximum": 5.189497182470141e-06,
+                  "median": 2.4893538513057774e-07,
+                  "percentile95": 3.87021262767907e-06,
+                  "maximum_original_row": 1560,
+                  "maximum_native_time": 72.803135364
+                },
+                "coarse_log_normalizer_discrepancy_non_dense": {
+                  "total_count": 1561,
+                  "finite_count": 1561,
+                  "maximum": 7.469207456978211e-06,
+                  "median": 4.4928362452623105e-07,
+                  "percentile95": 6.5307617047594135e-06,
+                  "maximum_original_row": 1547,
+                  "maximum_native_time": 72.738135364
+                }
+              },
+              "output": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 2000,
+                  "finite_count": 2000,
+                  "maximum": 0.005386416452912712,
+                  "median": 3.3984880897104697e-07,
+                  "percentile95": 0.0038856327771922185,
+                  "maximum_original_row": 1988,
+                  "maximum_native_time": 74.943157275
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 2000,
+                  "finite_count": 2000,
+                  "maximum": 0.6255026007299804,
+                  "median": 5.624863708142414e-07,
+                  "percentile95": 0.5051172681109906,
+                  "maximum_original_row": 1963,
+                  "maximum_native_time": 74.818157275
+                },
+                "saved_dense_row_flag_count": 390,
+                "saved_dense_row_flags_are_unique_invocations": false,
+                "coarse_discrepancy_recoverable_non_dense_rows": 1610,
+                "coarse_discrepancy_unavailable_dense_rows": 390,
+                "coarse_feature_moment_discrepancy_non_dense": {
+                  "total_count": 1610,
+                  "finite_count": 1610,
+                  "maximum": 5.189497182470141e-06,
+                  "median": 2.117488417320782e-07,
+                  "percentile95": 3.6255363368634353e-06,
+                  "maximum_original_row": 1560,
+                  "maximum_native_time": 72.803135364
+                },
+                "coarse_log_normalizer_discrepancy_non_dense": {
+                  "total_count": 1610,
+                  "finite_count": 1610,
+                  "maximum": 8.280471051058669e-06,
+                  "median": 3.9026582498991047e-07,
+                  "percentile95": 6.15709081563942e-06,
+                  "maximum_original_row": 1690,
+                  "maximum_native_time": 73.453135364
+                },
+                "fresh_magnetic_output_dense_count": 109
+              },
+              "projection": {
+                "final_feature_moment_discrepancy": {
+                  "total_count": 2000,
+                  "finite_count": 2000,
+                  "maximum": 0.00041015339549868904,
+                  "median": 3.769134728436792e-07,
+                  "percentile95": 0.00022334096972303577,
+                  "maximum_original_row": 1581,
+                  "maximum_native_time": 72.908135364
+                },
+                "final_log_normalizer_discrepancy": {
+                  "total_count": 2000,
+                  "finite_count": 2000,
+                  "maximum": 0.0013631353594885098,
+                  "median": 4.389947680927264e-07,
+                  "percentile95": 0.0005936845934509713,
+                  "maximum_original_row": 1581,
+                  "maximum_native_time": 72.908135364
+                }
+              }
+            }
+          }
+        }
+      },
+      "frozen_physical_fit": {
+        "physical_parameters_and_three_taus_frozen_declared": true,
+        "refitted": false,
+        "covariance_reestimated": false,
+        "estimate_source_hash_matches": true,
+        "fit_array_source_hash_matches": true,
+        "angular_carrier_source_hash_matches": true,
+        "source_input_hash_matches": true,
+        "point_reevaluation_diagnostics": {
+          "residual_reevaluation_max_abs_difference": 0.0,
+          "raw_residual_wrench_reevaluation_max_abs_difference": 0.0,
+          "corrected_gyro_reevaluation_max_abs_difference": 0.0,
+          "corrected_specific_force_reevaluation_max_abs_difference": 0.0
+        }
+      },
+      "applied_residual_equals_frozen_original_model": true,
+      "independent_frozen_carrier_increment_check": {
+        "mean_rate_maximum_absolute_difference": 0.0,
+        "aligned31_increment_factor_maximum_absolute_difference": 0.0
+      }
+    }
+  },
+  "source_hash_audit": {
+    "mathematical_files_checked": 13,
+    "mathematical_mismatch_count": 0,
+    "mathematical_files": {
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/run_requested_comparison.py": {
+        "start_sha256": "b24cee79f51f4d35807e9b7e0c0fb40ba774be76ccede14c12cafc904062db92",
+        "current_sha256": "b24cee79f51f4d35807e9b7e0c0fb40ba774be76ccede14c12cafc904062db92",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_orientation.py": {
+        "start_sha256": "ec01c07009e83ee0420d69d926a9eef283c89a26b9cd5c2dec3ce3c960e857c6",
+        "current_sha256": "ec01c07009e83ee0420d69d926a9eef283c89a26b9cd5c2dec3ce3c960e857c6",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_orientation_comparison.py": {
+        "start_sha256": "2d3c68b58e318769abc9229eafc39a909f5529c086802c4f7a5344f53a7dea68",
+        "current_sha256": "2d3c68b58e318769abc9229eafc39a909f5529c086802c4f7a5344f53a7dea68",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_coupled_replay.py": {
+        "start_sha256": "8cff57617e2fceca37b1e14fce52750abb4e181aa99363823f9d09a9153672b0",
+        "current_sha256": "8cff57617e2fceca37b1e14fce52750abb4e181aa99363823f9d09a9153672b0",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_model.py": {
+        "start_sha256": "3b5900f43448247ffb1026008efe5fa342424435344ea09a6b3ec0b6106858ad",
+        "current_sha256": "3b5900f43448247ffb1026008efe5fa342424435344ea09a6b3ec0b6106858ad",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_replay.py": {
+        "start_sha256": "cefcf81c0e048823c923f2e97ec7406947dcbf075c1082ff6af9972c37cdd682",
+        "current_sha256": "cefcf81c0e048823c923f2e97ec7406947dcbf075c1082ff6af9972c37cdd682",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/imu_signal.py": {
+        "start_sha256": "62e2f364df7041a215dc2c538ef9a5ed088b6df92f769c306695b540810ec00a",
+        "current_sha256": "62e2f364df7041a215dc2c538ef9a5ed088b6df92f769c306695b540810ec00a",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_attitude_law.py": {
+        "start_sha256": "e909f75bd18ddddba5b8c12ec851cd4cc41d6b9ff51e2e61c42b424e57613195",
+        "current_sha256": "e909f75bd18ddddba5b8c12ec851cd4cc41d6b9ff51e2e61c42b424e57613195",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_joint_filter.py": {
+        "start_sha256": "9d65a46e41115958dae6ce6424432111a97c8a95ab0b78d36d5a8ab1f1c4dd4e",
+        "current_sha256": "9d65a46e41115958dae6ce6424432111a97c8a95ab0b78d36d5a8ab1f1c4dd4e",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_madgwick.py": {
+        "start_sha256": "683b544ec0db8ac60f677244b53e7d4ce3d94128938010bb9a3c928955c15a56",
+        "current_sha256": "683b544ec0db8ac60f677244b53e7d4ce3d94128938010bb9a3c928955c15a56",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_observation_factors.py": {
+        "start_sha256": "a33a4cae830ef0585630ea6865d12369c4d59c9dfe0be826bd39ce306f06d007",
+        "current_sha256": "a33a4cae830ef0585630ea6865d12369c4d59c9dfe0be826bd39ce306f06d007",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_prediction.py": {
+        "start_sha256": "909afdff5700cf495bba2cd1fe2ea810b0043bdf64332bf8182633f77e0eab5f",
+        "current_sha256": "909afdff5700cf495bba2cd1fe2ea810b0043bdf64332bf8182633f77e0eab5f",
+        "identical": true
+      },
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/translational_synthetic_data.py": {
+        "start_sha256": "ecdcf83b86fb1e9bddc752e709ed0bc9605138009a3f5c5c65c9a7940a7e9312",
+        "current_sha256": "ecdcf83b86fb1e9bddc752e709ed0bc9605138009a3f5c5c65c9a7940a7e9312",
+        "identical": true
+      }
+    },
+    "separate_render_phase": {
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/focused_reports.py": {
+        "start_sha256": "3dd38cfcee22d4a7ea93080db6ef2a4f94ab80f1e0d6a8aec1ff82f35faa2341",
+        "current_sha256": "aa6a3869a27322d5ac5d6d6a3c398c7f3b7689f6800fe6c63f8bb1f7463001e3",
+        "changed_since_estimation_start": true,
+        "scope": "deliberate display-only model-position-band omission; separate render manifest, excluded from mathematical source freeze"
+      }
+    },
+    "claim_all14_unchanged": false
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "translation_aware": {
+    "method": "joint attitude/body-acceleration law; gyro+acceleration recurrence, output-only magnetic factor",
+    "initial_concentration": 100.0,
+    "initial_observation_updates_skipped": true,
+    "initial_A_source": "exact copy of historical gravity-only branch initial A",
+    "initial_quaternion_wxyz": [
+      -0.9976660557105212,
+      0.02168539575679965,
+      0.028008799542362822,
+      -0.05837544040157434
+    ],
+    "only_initial_mocap_used": true,
+    "physical_gravity_world": [
+      0.0,
+      0.0,
+      -9.80665
+    ],
+    "observation_model": "y_accel=a_body-R(q).T*g_physical+noise",
+    "magnetic_reference_available": true,
+    "magnetic_reference_world": [
+      30.101473504069094,
+      -0.9975085417969005,
+      -5.5227842427611264
+    ],
+    "magnetic_observation_policy": "actual-new-observation mask only; independent output law; no law/m/F/S/moments/reference/proposal feedback",
+    "magnetic_noise": "2*trace(S_static)/3 I, current and initial-reference individual-reading noise",
+    "carried_law": "p_theta(q)*N(a_body;m+F*R(q).T*g_physical,S); quadratic plus all quartic coefficients",
+    "attitude_prediction": "shared independent Bingham gyro increment; joint required moments; finite 19-coefficient forward-KL projection",
+    "gyro_prediction_source": "body model plus applied residual wrench; right increments of free angular carrier, with aligned full source-factor differences",
+    "explicit_model_increment_used": true,
+    "prediction_action": "right model increment acts on the current gyro+acceleration posterior; no reset to the absolute free-model quaternion",
+    "prediction_cross_time_dependence": "aligned full source factor retained when supplied; conversion of each marginal increment covariance to an independent Bingham transition is an explicit filter approximation, not an exact shared-parameter trajectory posterior",
+    "acceleration_time_constant_seconds": 0.7,
+    "initial_acceleration_std": 0.3,
+    "acceleration_stationary_std": [
+      1.5,
+      1.5,
+      1.5
+    ],
+    "acceleration_prior": "declared AR(1) body-frame motion prior; not model-wrench acceleration feedback",
+    "quadrature_order": 7,
+    "projection_iterations": 3,
+    "quadrature_options": {
+      "global_radial": 32,
+      "global_angles": 32,
+      "local_mixture_weight": 1e-05,
+      "adaptive_refinement": true,
+      "refinement_tolerance": 1e-05
+    },
+    "integration": "deterministic spatial-multimode GH plus Haar MIS; no Monte Carlo",
+    "rotation_vectorization": "column-major, vec_F(R)=[R00,R10,R20,R01,...,R22]",
+    "rotation_covariance": "4*E(q_ref).T*Mqq*E(q_ref), right-body quaternion half-angle high-concentration second-moment proxy from full law; not modal-curvature covariance",
+    "selected_quaternion": "principal axis of full Mqq with continuous hemisphere",
+    "full_rotation_moments": "E[R] and E[vec_F(R)vec_F(R).T] queried from identical full law once and cached",
+    "static_sensor_noise": "trace(S)/3 I, same declared real-data calibration as historical branch",
+    "corrected_noise": "existing lag inversion, full physical tau covariance, smooth/derivative covariance and sparse overlap operators retained",
+    "corrected_noise_dependence": "per-row gyro/accel laws used in recursion; shared fitted-tau and overlapping-window dependence remains an explicit approximation; cross and full operators retained for external conservative uncertainty propagation",
+    "wall_seconds": 199.11225900007412
+  },
+  "gravity_only": {
+    "method": "native ProbTF Bingham gyro+acceleration recurrence; magnetic fusion only in output",
+    "sensor_lag_model": "x = local_polynomial(y) + tau * local_polynomial_derivative(y)",
+    "sensor_lag_window_seconds": 0.08,
+    "sensor_lag_polynomial_degree": 3,
+    "sensor_lag_offline_centered_windows": true,
+    "integration_steps": 120,
+    "initial_concentration": 100.0,
+    "initial_quaternion_wxyz": [
+      -0.9976660557105212,
+      0.02168539575679965,
+      0.028008799542362822,
+      -0.05837544040157434
+    ],
+    "initial_observation_updates_skipped": true,
+    "only_initial_mocap_used": true,
+    "magnetic_reference_available": true,
+    "magnetic_reference_world": [
+      30.101473504069094,
+      -0.9975085417969005,
+      -5.5227842427611264
+    ],
+    "magnetic_observation_policy": "new-observation mask only; output factors never carried forward",
+    "magnetic_noise": "current individual-reading sensor variance plus initial-reference individual-reading variance",
+    "gyro_prediction_convention": "body-frame right increment, right-end native angular velocity",
+    "gyro_prediction_source": "body model plus applied residual wrench; right increments of free angular carrier, with aligned full source-factor differences",
+    "explicit_model_increment_used": true,
+    "prediction_cross_time_dependence": "source factors retained when supplied; per-step attitude transition independence is an explicit filter approximation",
+    "acceleration_covariance": "2*(corrected_sensor_covariance + predicted_gravity_covariance + innovation_outer_product)",
+    "acceleration_covariance_isotropization": "lambda_max(C_eff)*I Loewner upper envelope; static sensor noise remains trace(S)/3*I",
+    "shared_acceleration_attitude_information": "conservative data-dependent envelope; not exact Bayes with shared observations",
+    "orientation_covariance": "native Bingham-derived high-concentration right rotation coordinates, same A law",
+    "propagation": "existing deterministic cubature and native quaternion-product moments; no Monte Carlo",
+    "estimated_sensor_lag_covariance_units": "physical tau seconds squared, order gyro/acceleration",
+    "wall_seconds": 7.1754181099822745,
+    "comparison_role": "historical gravity-only acceleration evidence; implementation unchanged",
+    "full_rotation_moments": "same native A law; E[R] and E[vec_F(R) vec_F(R).T]",
+    "rotation_vectorization": "column-major, vec_F(R)=[R00,R10,R20,R01,...,R22]",
+    "full_rotation_moment_integration_steps": 200
+  }
+}

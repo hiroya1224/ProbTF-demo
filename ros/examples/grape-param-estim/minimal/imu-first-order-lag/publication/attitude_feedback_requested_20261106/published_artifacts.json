@@ -1,0 +1,229 @@
+{
+  "schema": "grape/attitude-feedback-requested-artifacts/v1",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 5389,
+      "sha256": "33a2d2ef701c4b80395ecba0ac89a738be022e77dde3702444d6f42a728b2ebc"
+    },
+    {
+      "path": "failure1/accel_reconstruction.png",
+      "bytes": 335212,
+      "sha256": "01742b5549360340d2582a0d9d1de65a3740576b2b676bda609964318761666b"
+    },
+    {
+      "path": "failure1/applied_residual_torque.png",
+      "bytes": 231218,
+      "sha256": "a47edfb147c86458a35a0979558d0e8ab9f0ab36d80e3e9508294d0627a757ba"
+    },
+    {
+      "path": "failure1/attitude_reconstruction.png",
+      "bytes": 806199,
+      "sha256": "f7e2a422694a09533c91c09227c749eee64d7849dbc2e8148ed3176c82fdf336"
+    },
+    {
+      "path": "failure1/comparison_metadata.json",
+      "bytes": 7756,
+      "sha256": "2df3a43ead9bb547799ba953adaee8361769689f60b9089db39210a3f51d66a9"
+    },
+    {
+      "path": "failure1/figure_data.npz",
+      "bytes": 522469,
+      "sha256": "4043e4baa685e6c52be14b5e6017136f9ba28362c69767fd7e8bdcd292a48285"
+    },
+    {
+      "path": "failure1/gravity_only_metadata.json",
+      "bytes": 1530,
+      "sha256": "7e84b2d4bfa83261cf82a6bc8a132e2afdf45ffa6d87babc216173d4b25de57e"
+    },
+    {
+      "path": "failure1/gyro_reconstruction.png",
+      "bytes": 348015,
+      "sha256": "9bd75b472a3904036633826209d93bed9fbd2724e443d1cd8a27ee593a5e75d8"
+    },
+    {
+      "path": "failure1/observer_numerical_diagnostics.npz",
+      "bytes": 83730,
+      "sha256": "7d181494d0b5b4c4ce182fb386ae78aeb338374afaa068b88c7b79c32e903125"
+    },
+    {
+      "path": "failure1/orientation_metadata.json",
+      "bytes": 6065,
+      "sha256": "9260a0b01b4afdf5acb24ad64eaafb04a8610656c5e2ad6b4788b3d3f2185c71"
+    },
+    {
+      "path": "failure1/position_reconstruction.png",
+      "bytes": 289340,
+      "sha256": "b89e29b1772b6fe4436006f024c01b1d148125a47116c17709088be3658aecb2"
+    },
+    {
+      "path": "failure1/trajectory_marginal_covariance.npz",
+      "bytes": 245075,
+      "sha256": "4d4378f794ca46d0fbf4de0dc778188b2bfe1280388fca4a2facebd5617955a1"
+    },
+    {
+      "path": "failure1/translation_aware_metadata.json",
+      "bytes": 1530,
+      "sha256": "7e84b2d4bfa83261cf82a6bc8a132e2afdf45ffa6d87babc216173d4b25de57e"
+    },
+    {
+      "path": "failure2/accel_reconstruction.png",
+      "bytes": 333029,
+      "sha256": "e862f4a4d8d0490f42ed2997a8e69ab87b5fa0cc2cfdcab131ab1cfd46bc931e"
+    },
+    {
+      "path": "failure2/applied_residual_torque.png",
+      "bytes": 272288,
+      "sha256": "6d6d36c980d6bb1d970e23db7d4402d35dfc617583a2bd9a99f2e0c79853da9e"
+    },
+    {
+      "path": "failure2/attitude_reconstruction.png",
+      "bytes": 743887,
+      "sha256": "685335b79ac3908947340a06c8770959d942ad6816bd60185b0aeb0e53afa0aa"
+    },
+    {
+      "path": "failure2/comparison_metadata.json",
+      "bytes": 7768,
+      "sha256": "307d76e8df77f222482716bd9db510cda6e3df0705b0b3adb6d6d2b592c30ca4"
+    },
+    {
+      "path": "failure2/figure_data.npz",
+      "bytes": 477029,
+      "sha256": "ab35502f77721bc042b3445214ae50a0cedb504f8012289b962e93b03a391239"
+    },
+    {
+      "path": "failure2/gravity_only_metadata.json",
+      "bytes": 1530,
+      "sha256": "7e84b2d4bfa83261cf82a6bc8a132e2afdf45ffa6d87babc216173d4b25de57e"
+    },
+    {
+      "path": "failure2/gyro_reconstruction.png",
+      "bytes": 361156,
+      "sha256": "587ef7652368bd8a29bac5d9a9ceaac93923270173a079cd68d8ced2f3e15f43"
+    },
+    {
+      "path": "failure2/observer_numerical_diagnostics.npz",
+      "bytes": 74923,
+      "sha256": "e994335075032c27aaa64cdfea809a8e0f7c7776cc28bf4f9d039bc12f272201"
+    },
+    {
+      "path": "failure2/orientation_metadata.json",
+      "bytes": 6072,
+      "sha256": "d17a4688c99a55077d5ca249921fdf02c15942e5ec6fd4d47c67c5efd296e5d1"
+    },
+    {
+      "path": "failure2/position_reconstruction.png",
+      "bytes": 303789,
+      "sha256": "a13a1f33d2f9a08423e8032229999d6b8c5a2473768ef9d2be6d624a127412ec"
+    },
+    {
+      "path": "failure2/trajectory_marginal_covariance.npz",
+      "bytes": 224835,
+      "sha256": "6269dea267f9dbfc34cd9b15216a6f49e86a7525f60b1a397ad8e6ec85d0d62e"
+    },
+    {
+      "path": "failure2/translation_aware_metadata.json",
+      "bytes": 1530,
+      "sha256": "7e84b2d4bfa83261cf82a6bc8a132e2afdf45ffa6d87babc216173d4b25de57e"
+    },
+    {
+      "path": "numerical_projection_summary.json",
+      "bytes": 2580,
+      "sha256": "1cf218ba90439bc01ee8fd1b2976478cc4050281f7cd9a6087e8f5e5e80fc34c"
+    },
+    {
+      "path": "plotted_array_validation.json",
+      "bytes": 6664,
+      "sha256": "be4cb4a83f3a185e3508ce8827f028ee6e63a59e17c730df6c70431a0903b173"
+    },
+    {
+      "path": "render_manifest.json",
+      "bytes": 2170,
+      "sha256": "ca7875813fdc58e3fd812c963a433e1a74b3cef6b478abfb91fc91937a062476"
+    },
+    {
+      "path": "requested_sensor_trajectory_torque_comparison.pdf",
+      "bytes": 1584267,
+      "sha256": "eb83fd5b266bc9862f0a86b64c83204bef1ddd31a03bc69d7c142eebf416dc46"
+    },
+    {
+      "path": "run_manifest.json",
+      "bytes": 28260,
+      "sha256": "518199d981c8d544044de350dbce9e5ccc0421f5cf4ce02570cad5b1d2e83932"
+    },
+    {
+      "path": "saved_array_integrity_check.json",
+      "bytes": 39303,
+      "sha256": "6f93953f2308efe89decc008bbac10e37adff09c0462b75fc5cefef21df47e29"
+    },
+    {
+      "path": "success/accel_reconstruction.png",
+      "bytes": 348859,
+      "sha256": "13a294379e5c6b5306bc77aa693a3071212423a7788596726d4cc5547309e0d2"
+    },
+    {
+      "path": "success/applied_residual_torque.png",
+      "bytes": 319033,
+      "sha256": "00bb2a747f6a04cb077c37249a055dec3a1ee72707541162cc0187b0a2650ec7"
+    },
+    {
+      "path": "success/attitude_reconstruction.png",
+      "bytes": 844152,
+      "sha256": "1ac76e7ec5a5cd51241e3ae1fb79a5c2bb85fe999f40b4cb3a56d6254803df31"
+    },
+    {
+      "path": "success/comparison_metadata.json",
+      "bytes": 7763,
+      "sha256": "3e473babdc840df048f3f5bfa34db9cfad27cf2d3e0773443ced3bca9b2d602f"
+    },
+    {
+      "path": "success/figure_data.npz",
+      "bytes": 850837,
+      "sha256": "67598d0f24a52c3d41345342ea3a3f332c4797bfd6e8e367338cf41ddff47246"
+    },
+    {
+      "path": "success/gravity_only_metadata.json",
+      "bytes": 1530,
+      "sha256": "7e84b2d4bfa83261cf82a6bc8a132e2afdf45ffa6d87babc216173d4b25de57e"
+    },
+    {
+      "path": "success/gyro_reconstruction.png",
+      "bytes": 390743,
+      "sha256": "11b581bf5892390bbdae5aee4ac6b4a69d738cec466bc4775a7a2fcb146efd33"
+    },
+    {
+      "path": "success/observer_numerical_diagnostics.npz",
+      "bytes": 134540,
+      "sha256": "ca3934942d27b9c21e7b3e302bb934d87251d85f627f452173106266cac05403"
+    },
+    {
+      "path": "success/orientation_metadata.json",
+      "bytes": 6069,
+      "sha256": "7e2fccfe1799912ddf1a6a26cc39cb9773e0dd52368cb7499092b1e7f15c0013"
+    },
+    {
+      "path": "success/position_reconstruction.png",
+      "bytes": 293154,
+      "sha256": "788c4dff3df3dfc953a37d0e9f2666a1f6e315cc9d63bbd17d415e0c07bb6a26"
+    },
+    {
+      "path": "success/trajectory_marginal_covariance.npz",
+      "bytes": 403872,
+      "sha256": "c8a02f161060e38ad69dbd7ddb302d4280fdea26d34746aefeae69fa8ce9570b"
+    },
+    {
+      "path": "success/translation_aware_metadata.json",
+      "bytes": 1530,
+      "sha256": "7e84b2d4bfa83261cf82a6bc8a132e2afdf45ffa6d87babc216173d4b25de57e"
+    },
+    {
+      "path": "test_regression_summary.json",
+      "bytes": 2457,
+      "sha256": "4920d1a9515e0ef54578be6da9c10e58a1a249865ea2bdbfbf3f99198dea1416"
+    }
+  ],
+  "total_bytes": 10959147,
+  "large_inputs_and_intermediates_included": false,
+  "requested_pdf_pages": 15,
+  "png_count": 15
+}

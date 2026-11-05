@@ -1,0 +1,10 @@
+{
+  "historical_beta": 0.1,
+  "additional_gain_rule": "beta_rms = 0.5 * sqrt(trace(assumed_gyro_sample_covariance))",
+  "gain_source": "https://x-io.co.uk/downloads/madgwick_internal_report.pdf#page=14",
+  "interpretation": "RMS quaternion-derivative scale; no guarantee of an optimal Madgwick gain",
+  "use_generating_covariance": false,
+  "truth_based_gain_search": false,
+  "apply_to": ["IMU", "MARG"],
+  "recorded_before_full_benchmark_results": true
+}

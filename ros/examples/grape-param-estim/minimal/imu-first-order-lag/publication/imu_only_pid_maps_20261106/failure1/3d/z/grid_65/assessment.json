@@ -1,0 +1,47 @@
+{
+  "schema": "grape/imu-only-full-state-pid-maps/v1",
+  "group": "z",
+  "mode": "3d",
+  "requested_grid_size": 65,
+  "actual_shape": [
+    66,
+    66,
+    66
+  ],
+  "full_fixed_controller_gains": [
+    [
+      3.0,
+      0.1,
+      1.0
+    ],
+    [
+      5.0,
+      1.0,
+      2.5
+    ],
+    [
+      20.0,
+      1.0,
+      8.0
+    ],
+    [
+      4.0,
+      1.0,
+      2.0
+    ]
+  ],
+  "assessment_method": "analytic_translation_observability",
+  "criterion_label": "Strict full-state stability fraction (analytic certificate)",
+  "numerical_eigenvalues_computed": false,
+  "hover_validity_evaluated": false,
+  "strict_stability_upper_bound": 0.0,
+  "conditional_spectral_radius_lower_bound": 1.0,
+  "known_unit_pole_multiplicity_lower_bound": 3,
+  "no_hover_case": "no asymptotically stable hover exists either",
+  "no_flight_failure_probability_claim": true,
+  "input_node_count": 128,
+  "all_input_nodes_retained": true,
+  "source_model_decodable_count": 64,
+  "exact_fixed_i": null,
+  "interpretation": "This decides strict full-state stability; it does not compute the other poles or prove all motion control impossible."
+}

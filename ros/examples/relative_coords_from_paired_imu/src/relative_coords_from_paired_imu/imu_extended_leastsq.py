@@ -112,6 +112,8 @@ class ExtendedLeastSquaresImuRelativePoseEstimator:
     weights NEW position information; it does not forget old information.
     """
 
+    orientation_type = BinghamOrientation
+
     def __init__(
         self,
         parent_frame_id,
@@ -219,7 +221,7 @@ class ExtendedLeastSquaresImuRelativePoseEstimator:
         component = TransformComponent(
             component_id=self.edge_id + ":imu_extended_leastsq",
             raw_weight=1.0,
-            orientation=BinghamOrientation.from_parameter_matrix(parameter),
+            orientation=self.orientation_type.from_parameter_matrix(parameter),
             translation=ConditionalGaussianTranslation(
                 mean_at_reference=position,
                 residual_covariance=covariance,

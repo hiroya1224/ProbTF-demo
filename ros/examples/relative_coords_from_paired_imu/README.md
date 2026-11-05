@@ -65,7 +65,8 @@ relative_coords_from_paired_imu/
 
 - `imu_extended_leastsq.py`: `ExtendedLeastSquaresImuRelativePoseEstimator`。
   同一時刻で評価した2つの `ImuKinematics` を受け取り、native ProbTFオブジェクトを返す。
-- `imu_pair_pipeline.py`: `ImuRelativePosePipeline`。
+- `latest_imu_pair.py`: `LatestImuRelativePosePipeline`。生データ保持と推定更新を分離し、workerが最新の有効なSGペアだけを更新する。
+- `imu_pair_pipeline.py`: オフライン互換APIの `ImuRelativePosePipeline`。
   frame名、取得時刻、gyro、accel、各3×3共分散を直接受け取り、
   非同期入力の同期と上記の推定をまとめて実行する。
 - `imu_kinematics.py`: ROSメッセージに依存しない入力データ型。
@@ -86,7 +87,7 @@ for record in pipeline.update_all(frame_id, stamp, gyro, accel, gyro_cov, accel_
     bingham_A_wxyz = component.orientation.parameter_matrix()
 ```
 
-遅着した1件から複数の推定時刻が処理可能になるため、ROS側も `update_all` の全結果をpublishする。
+上の `update_all` は全取得時刻を再現するオフライン互換APIで、live ROSノードでは使用しない。
 従来の1件返却の `update` も残しており、余分な結果は破棄せずFIFOに保持する。
 このAPIで有限個の入力を処理する場合は、最後に `pipeline.drain()` も取り出す。
 
@@ -147,24 +148,25 @@ y = [Delta_f, Delta_f]
 
 ## 非同期入力とSG時間合わせ
 
-各IMUの内部で取得stampが単調増加する限り、IMU間の到着順やバッチ分割は結果に影響しない。
-`/imu` topic全体のstampが昇順である必要はない。
-受信済みの両IMUの最新取得時刻の小さい方を、順序を確定できる時刻の上限とする。
-先着したraw入力はFIFOに保持し、この上限までを取得時刻順に処理する。
-同stampのときはchild、parentの順に処理する。
-これにより、片側が先に届いても、相手に必要なSG窓を履歴から押し出さない。
-先着入力に対して恣意的な上限による上書き・破棄はしない。
+liveの受信callbackは各IMUの実測データを保存し、推定workerは前の計算が終わったら
+最新の有効なペアを一つだけ選ぶ。生データの周期と推定更新・描画の周期を分け、
+過去のすべての観測に対する事後更新をFIFOで追いかけない。出力queueも1件である。
 
-この順序で元のparentイベント基準のSG窓選択・補間・微分を実行する。
-前の推定以降に「両方へ新しいraw入力が来たこと」という追加条件は設けない。
-外挿、到着時刻への置換、近傍の異時刻サンプルの単純な組合せ、固定Hzでの間引きは行わない。
-同じ2つの観測列からは、同じ評価時刻・SG窓・微分・共分散・Gaussian/Bingham更新列を生成する。
+IMU間の到着順、バッチ分割、片側の先行を許容する。各IMU内部の取得stampは単調増加が必要。
+両IMUの最新取得時刻の小さい方を共通frontierとし、そこまでの最新の実測窓の重なりの中点を選ぶ。
+各IMUの直近10窓相当から、その時刻を含み中心が最も近いSG窓を使う。これは元の窓選択方針を保持する。
+全窓を全入力でfitせず、選ばれた窓だけをfitする。補間と微分には同じ多項式を使い、
+整数ナノ秒で差を取ってから秒へ変換し、正しい `t_eval - t_center` を評価する。
 
-ROSの受信callbackは入力をFIFOへ渡し、推定は別workerで処理する。
-受信queueとpublish queueの件数制限で、非同期burstの途中の観測・結果を捨てない。
-1件の遅着で複数の時刻が処理可能になった場合は、全更新を時刻順にpublishする。
-長時間の入力停止や処理能力以上の継続入力では、待機データと遅延が増える。
-これをstampの付け替えや観測の無言の破棄で隠さない。
+窓が重ならない、先行入力の保持容量 `raw_history_capacity=16384` を越えて必要なデータが消えた、
+または設定 `max_sample_gap_s=0.05` を越える取得空白が窓内にある場合は待機する。
+窓外の外挿、端点・過去の微分値による代用、到着時刻への付け替えは行わない。
+`provenance.detail` の `Latest SG selection` に選んだ全取得stampをナノ秒で残す。
+処理速度によりliveで選ぶ時刻と更新件数は変わるが、同じ選択窓の値・微分・共分散は変わらない。
+
+ROS非依存APIは `LatestImuRelativePosePipeline.ingest(frame, stamp_ns, payload)` と
+`update_latest()`。payloadはgyro・force・両共分散の組で、必要ならdecode関数で校正する。
+全履歴の再現が必要なオフライン処理は従来の `ImuRelativePosePipeline.update_all` を使う。
 
 元の状態は `N(p; mean, covariance) × Bingham(q; A)` で、位置と方位の交差依存を
 推定していない。そのためnative ProbTFにはGaussian全共分散とBingham全形状を渡し、
@@ -227,10 +229,12 @@ PYTHONPATH="$HOME/catkin_ws/devel/lib/python3/dist-packages:/opt/ros/noetic/lib/
 移動前に保存した5種類の非同期入力それぞれ109更新と比較し、取得時刻・位置の平均と共分散・
 Binghamパラメータ等の数値結果がbit単位で一致することも確認した。
 
-ROS実接続では、同じ200件のraw IMUを交互・10件バッチ・parent先着・child先着・
-2つの独立した送信プロセスでそれぞれ流し、全ケースで89件の同じ更新列を確認した。
-全出力のframe・取得stamp・Gaussian・Bingham・出自がROS非依存コアの結果と一致し、
-位置平均のwire変換誤差は0だった。実機データでの精度・校正はこの検証には含まない。
+ROS実接続では、200件のraw IMUを交互・10件バッチ・parent先着・child先着・
+2つの独立した送信プロセスで流す。最新frontierへの追従と、実際に選ばれたSG窓を使った
+独立な参照更新との全出力比較を行い、位置平均のwire変換誤差0を確認した。
+各条件の更新件数は処理タイミングにより異なる。全入力と同数の事後更新を要求しない。
 
-非同期入力を失わず保持することと、計算が実時間に追従することは別である。
-4台合計2,000Hzのraw `/imu` 受信確認を、この推定処理の性能とは説明しない。
+実200mm bagの独立校正・精度・10倍速ROS入力はdthesis-final-demoの
+`estimation/validate_200mm_bag.py` と `estimation/smoke_latest_ros.py` で検証する。
+通常蓄積で、実ROSの最終距離197.22mm、距離誤差2.78mm、位置ベクトル誤差6.95mm、
+外挿・処理エラー0、最新frontierへの追従を確認した。真値は事後評価にだけ使う。

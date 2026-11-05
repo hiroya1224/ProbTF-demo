@@ -7,6 +7,7 @@ published law against a separate ROS-free replay, not only topic existence.
 """
 
 import io
+from dataclasses import replace
 import json
 import os
 from pathlib import Path
@@ -14,10 +15,13 @@ import signal
 import socket
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import time
 from xmlrpc.client import ServerProxy
 
+if sys.prefix != sys.base_prefix:
+    sys.path.insert(0, sysconfig.get_path("purelib"))
 import numpy as np
 
 
@@ -66,7 +70,8 @@ def compare_record(actual, reference, case):
     assert actual.edge_id == reference.edge_id
     assert actual.authority == "/smoke_imu_" + case
     assert actual.representative is None
-    assert actual.provenance == reference.provenance
+    assert actual.provenance.source_ids == reference.provenance.source_ids
+    assert actual.provenance.detail.startswith(reference.provenance.detail)
     assert actual.approximation == reference.approximation
     left, right = actual.distribution.components[0], reference.distribution.components[0]
     assert left.raw_weight == right.raw_weight == 1
@@ -75,7 +80,8 @@ def compare_record(actual, reference, case):
     assert left.orientation.kind == right.orientation.kind
     np.testing.assert_allclose(left.orientation.shape_matrix, right.orientation.shape_matrix, atol=1e-11)
     np.testing.assert_allclose(left.orientation.inverse_concentration, right.orientation.inverse_concentration)
-    np.testing.assert_allclose(left.orientation.reference_quaternion_wxyz, right.orientation.reference_quaternion_wxyz)
+    np.testing.assert_allclose(left.orientation.reference_quaternion_wxyz,
+                               right.orientation.reference_quaternion_wxyz, atol=1e-12)
     np.testing.assert_allclose(left.translation.mean_at_reference, right.translation.mean_at_reference)
     np.testing.assert_allclose(left.translation.residual_covariance, right.translation.residual_covariance)
     np.testing.assert_array_equal(left.translation.rotation_coupling, right.translation.rotation_coupling)
@@ -92,7 +98,8 @@ def run():
     from sensor_msgs.msg import Imu
     from probtf_msgs.msg import ProbabilisticTransformStamped
     from probtf_ros.v2_conversions import transform_distribution_from_msg
-    from relative_coords_from_paired_imu.imu_pair_pipeline import ImuRelativePosePipeline, imu_measurement_covariance
+    from relative_coords_from_paired_imu.imu_pair_pipeline import ImuRelativePosePipeline, imu_measurement_covariance, _SgWindow
+    from relative_coords_from_paired_imu.latest_imu_pair import seconds
     from probtf.geometry import quat_to_rotmat, rpy_to_quat
     from relative_coords_from_paired_imu.imu_relative_pose import skew
 
@@ -201,19 +208,45 @@ def run():
                         sys.executable, str(Path(__file__).resolve()), "--publish-stream",
                         "/smoke/independent_publishers/imu", str(path),
                     ], stdout=launch_log, stderr=subprocess.STDOUT, start_new_session=True))
-                wait_for(lambda: all(len(values) >= len(expected) for values in received.values()),
-                         "missing posterior outputs after asynchronous input drain", timeout=30)
+                def selection(record):
+                    return json.JSONDecoder().raw_decode(record.provenance.detail.split("Latest SG selection: ", 1)[1])[0]
+                final_frontier = min(parents[-1].header.stamp.to_nsec(), children[-1].header.stamp.to_nsec())
+                wait_for(lambda: all(values and selection(list(values.values())[-1])["frontier_ns"] == final_frontier
+                                     for values in received.values()),
+                         "latest supported frontier was not reached", timeout=30)
+                by_frame_ns = {(m.header.frame_id.split("__", 1)[0], m.header.stamp.to_nsec()): m for m in messages}
                 max_mean_error = 0.0
                 for case, values in received.items():
-                    assert set(values) == set(expected), (case, len(values), len(expected))
-                    assert received_order[case] == list(expected), "Dropped, repeated, or reordered updates: " + case
-                    for stamp, reference in expected.items():
-                        actual = values[stamp]
+                    assert received_order[case] == sorted(set(received_order[case])), case
+                    # The busy node may skip obsolete posterior updates. Replay
+                    # its ACTUAL supported windows with the independent ordinary
+                    # estimator, rather than requiring every raw sample to fuse.
+                    reference_pipeline = ImuRelativePosePipeline("parent", "child")
+                    for actual in values.values():
+                        selected = selection(actual)
+                        ns = selected["stamp_ns"]
+                        pair, support = [], {}
+                        for frame in ("parent", "child"):
+                            stamps = selected["window_ns"][frame]
+                            assert len(stamps) == 11 and stamps[0] <= ns <= stamps[-1]
+                            samples = []
+                            for stamp in stamps:
+                                m = by_frame_ns[frame, stamp]
+                                w, a = m.angular_velocity, m.linear_acceleration
+                                samples.append(((stamp-ns)*1e-9, np.array([w.x,w.y,w.z]),
+                                    np.array([a.x,a.y,a.z]),
+                                    imu_measurement_covariance(m.angular_velocity_covariance, 1e-4),
+                                    imu_measurement_covariance(m.linear_acceleration_covariance, 1e-3)))
+                            fit = _SgWindow.fit(samples, 7)
+                            pair.append(replace(fit.evaluate(frame, 0.), stamp=seconds(ns)))
+                            support[frame] = (by_frame_ns[frame, stamps[-1]].header.frame_id,
+                                              seconds(stamps[0]), seconds(stamps[-1]))
+                        reference_pipeline.preprocessor.last_support = support
+                        reference = reference_pipeline._estimate_pair(pair)
                         compare_record(actual, reference, case)
                         max_mean_error = max(max_mean_error, float(np.max(np.abs(
                             actual.distribution.components[0].translation.mean_at_reference
-                            - reference.distribution.components[0].translation.mean_at_reference
-                        ))))
+                            - reference.distribution.components[0].translation.mean_at_reference))))
                 assert not rospy.has_param("/robot_description")
                 assert not rospy.has_param("/symbolic_robot_description")
                 assert "A NumPy version" not in (logs / "launch.log").read_text()

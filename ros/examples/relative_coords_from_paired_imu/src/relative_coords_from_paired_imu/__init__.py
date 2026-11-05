@@ -13,6 +13,8 @@ _EXPORT_MODULES = {
     "ImuKinematicsPreprocessor": "imu_preprocessing",
     "ImuRelativePoseEstimator": "imu_relative_pose",
     "ImuRelativePosePipeline": "imu_pair_pipeline",
+    "LatestImuRelativePosePipeline": "latest_imu_pair",
+    "LatestImuPairBuffer": "latest_imu_pair",
     "RecursiveGaussianLeastSquares": "imu_relative_pose",
     "SynchronizedImuPairPreprocessor": "imu_pair_pipeline",
     "imu_measurement_covariance": "imu_pair_pipeline",

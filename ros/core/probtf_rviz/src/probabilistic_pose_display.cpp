@@ -101,6 +101,7 @@ void ProbabilisticPoseDisplay::onInitialize() {
 void ProbabilisticPoseDisplay::reset() {
   MFDClass::reset();
   latest_message_.reset();
+  geometry_dirty_ = false;
   freshness_.reset();
   message_renderable_ = false;
   if (visual_) {
@@ -113,6 +114,10 @@ void ProbabilisticPoseDisplay::reset() {
 
 void ProbabilisticPoseDisplay::update(float wall_dt, float ros_dt) {
   MFDClass::update(wall_dt, ros_dt);
+  if (geometry_dirty_ && latest_message_) {
+    geometry_dirty_ = false;
+    renderMessage(latest_message_);
+  }
   refreshFreshness();
 }
 
@@ -134,9 +139,7 @@ void ProbabilisticPoseDisplay::updateAppearance() {
 
 void ProbabilisticPoseDisplay::updateGeometry() {
   updateAppearance();
-  if (latest_message_) {
-    renderMessage(latest_message_);
-  }
+  geometry_dirty_ = true;
 }
 
 void ProbabilisticPoseDisplay::processMessage(
@@ -147,7 +150,8 @@ void ProbabilisticPoseDisplay::processMessage(
   } else {
     freshness_.markProgress(ros::Time::now());
   }
-  renderMessage(message);
+  // Sampling runs once at the rendering cadence, using the newest message.
+  geometry_dirty_ = true;
 }
 
 void ProbabilisticPoseDisplay::renderMessage(

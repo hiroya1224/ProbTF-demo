@@ -18,7 +18,7 @@ def _vector(values, name):
     if array.size != 3:
         raise ValueError("{} must contain 3 values.".format(name))
     array = array.reshape(3)
-    if not np.all(np.isfinite(array)):
+    if not np.isfinite(array).all():
         raise ValueError("{} must contain only finite values.".format(name))
     return array
 
@@ -28,9 +28,12 @@ def _covariance(values, name):
     if matrix.size != 9:
         raise ValueError("{} must contain 9 values.".format(name))
     matrix = matrix.reshape(3, 3)
-    if not np.all(np.isfinite(matrix)):
+    if not np.isfinite(matrix).all():
         raise ValueError("{} must contain only finite values.".format(name))
-    if not np.allclose(matrix, matrix.T, atol=1e-10):
+    # Same allclose inequality (default rtol=1e-5), specialized to the already
+    # finite 3x3 inputs. Avoid repeated generic broadcasting/NaN machinery in
+    # every raw sample and every SG value/derivative covariance.
+    if not (np.abs(matrix-matrix.T) <= 1e-10 + 1e-5*np.abs(matrix.T)).all():
         raise ValueError("{} must be symmetric.".format(name))
     matrix = 0.5 * (matrix + matrix.T)
     if np.min(np.linalg.eigvalsh(matrix)) < -1e-10:

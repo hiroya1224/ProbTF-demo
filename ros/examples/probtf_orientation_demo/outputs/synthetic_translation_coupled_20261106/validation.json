@@ -1,0 +1,66 @@
+{
+  "numerical_repairs_used_identical_sensor_and_truth_arrays": {
+    "gravity_only": true,
+    "smooth_translation": true,
+    "sustained_translation": true
+  },
+  "new_numerical_and_input_boundary_tests": {
+    "count": 55,
+    "passed": true,
+    "command": "PYTHONPATH=ros/core/probtf_core/src:ros/examples/probtf_orientation_demo/scripts OPENBLAS_NUM_THREADS=1 /usr/bin/python3 -m unittest discover -s tests/probtf -p 'test_translational_*.py' -q"
+  },
+  "execution_returncodes": {
+    "gravity_only": 0,
+    "smooth_translation": 0,
+    "sustained_translation": 0
+  },
+  "source_hashes_match": true,
+  "truth_in_estimator": "initial quaternion plus known fixed g/b only",
+  "core_modified": false,
+  "monte_carlo_estimation": false,
+  "health": {
+    "gravity_only": {
+      "all_saved_arrays_finite": true,
+      "native_samples": 1501,
+      "minimum_conditional_S_eigenvalue_joint_marg": 0.00039823008849557525,
+      "minimum_conditional_S_eigenvalue_joint_imu": 0.00039823008849557525,
+      "gravity_control_S_exactly_zero": true,
+      "minimum_pitch_variance_rad2": 1.7505761737283204e-08,
+      "maximum_projection_moment_residual_by_method": [
+        7.720872016902656e-07,
+        1.179753507254584e-13,
+        2.811052394625513e-05
+      ]
+    },
+    "smooth_translation": {
+      "all_saved_arrays_finite": true,
+      "native_samples": 1501,
+      "minimum_conditional_S_eigenvalue_joint_marg": 0.00039823008849557525,
+      "minimum_conditional_S_eigenvalue_joint_imu": 0.00039823008849557525,
+      "gravity_control_S_exactly_zero": true,
+      "minimum_pitch_variance_rad2": 1.7338472850177932e-08,
+      "maximum_projection_moment_residual_by_method": [
+        7.086747557215041e-07,
+        1.1780471838335897e-13,
+        5.005171392350958e-06
+      ]
+    },
+    "sustained_translation": {
+      "all_saved_arrays_finite": true,
+      "native_samples": 1501,
+      "minimum_conditional_S_eigenvalue_joint_marg": 0.00039823008849557525,
+      "minimum_conditional_S_eigenvalue_joint_imu": 0.00039823008849557525,
+      "gravity_control_S_exactly_zero": true,
+      "minimum_pitch_variance_rad2": 1.9854093627120437e-08,
+      "maximum_projection_moment_residual_by_method": [
+        8.210277233889481e-07,
+        1.152275085288971e-13,
+        9.140634901034943e-06
+      ]
+    }
+  },
+  "raw_run_root": "/tmp/probtf-translation-comparison-20261106-diverse",
+  "development_runs_used_as_performance_evidence": false,
+  "display_clock_manual_check": "50Hz and200Hz to20Hz targets:601unique original stamps per30s, max nearest-time deviation.01s and0s respectively",
+  "additional_madgwick_restricted_input_check": "all three full native outputs bit-identical after removing access to generating-side metadata"
+}

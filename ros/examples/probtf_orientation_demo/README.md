@@ -121,3 +121,22 @@ export MPLBACKEND=Agg OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONDONTWRITEBY
 ```
 
 生成した測定・真値・ノイズは `input_data.npz`、両側の設定は `simulation_settings.json` に保存する。同じノイズ実現値で再計算するには `--dataset /path/to/saved/analysis` を付ける。推定中に乱数を引かない。左6条件の黒破線は「人工真値」と明記する。右列も同じ方位lawのセンサ→世界回転でセンサ軸を描き、全8画面を世界座標へ揃える。右列の太い矢印は観測尤度の既知の世界参照方向に固定する。動画下段の3軸の合成誤差の縦軸は0〜5 degとする。全有効出力の生曲線をalpha=0.18で残し、実取得時刻に基づく0.5秒幅の中央移動平均を太線で重ねる。端点は観測のある範囲で平均する。平滑化は表示だけに用い、元の誤差値と統計を保持する。右列に真値の姿勢軸は描かない。出力のみに地磁気を使う2条件は新規地磁気取得時だけを評価し、動画の全画面も共通の地磁気取得時刻に揃える。実測版の保存データ・動画は保持する。
+
+
+## 並進加速度を含む共同姿勢推定（2026年11月6日）
+
+[数式・仮定・近似・再現方法](TRANSLATIONAL_ACCELERATION.md)に、姿勢とbody並進加速度の条件付きGaussianを持つ独立比較を整理した。新実験では非等方ノイズと四次の観測因子を保持し、共通の不定回転の二次・四次モーメントでcouplingを伝播する。較正パラメータは既知固定。粒子・モンテカルロ推定やドローンの同定結果は使わない。
+
+数値積分の計算量を考慮した比較設定で、人工の3条件を各30秒・50Hz（地磁気は約16.7Hz）で比較し、6軸・9軸の共同推定、重力だけの観測モデル、Madgwick、gyro積分のピッチを並べる。Madgwickは従来のβ=0.1に加え、仮定したジャイロ共分散だけから決めるgainも併記する。旧動画・旧等方実験・実測版の結果は保持する。
+
+```bash
+run_src=ros/examples/probtf_orientation_demo/scripts
+run_out=/tmp/probtf-translation-comparison
+publish_out=ros/examples/probtf_orientation_demo/outputs/synthetic_translation_coupled_20261106
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/python3 "$run_src/compare_translational_acceleration.py" --config ros/examples/probtf_orientation_demo/config/translational_comparison_reference.json --output "$run_out"
+OPENBLAS_NUM_THREADS=1 /usr/bin/python3 "$run_src/validate_translational_quadrature.py" --run-root "$run_out" --output "$run_out/fixed_state_quadrature_check.json" --stride 50 --include-indices 641 642
+OPENBLAS_NUM_THREADS=1 /usr/bin/python3 "$run_src/validate_translational_global_modes.py" --run-root "$run_out" --output "$run_out/global_modes_check.json" --stride 50 --extra-indices 641 642 --maxseeds 6 --jobs 3
+OPENBLAS_NUM_THREADS=1 /usr/bin/python3 "$run_src/summarize_translational_comparison.py" --run-root "$run_out" --publication "$publish_out"
+```
+
+[比較図と数値結果](outputs/synthetic_translation_coupled_20261106/README.md)。全native出力で統計を計算し、公開する図用数値列は必要な項目だけを選び、全native出力を保存する。大容量の元人工データと全推定lawは指定した/tmp側へ保存する。元の60秒・200Hz設定も保持する。共分散は観測1回当たりの値なので、レート変更後を同じ雑音過程と扱わない。これはオフラインの精度比較であり、リアルタイム動作を達成したとの主張ではない。

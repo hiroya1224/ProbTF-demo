@@ -1,0 +1,14 @@
+{
+  "duration_seconds": 60.0,
+  "sample_interval_seconds": 0.005,
+  "seed": 20261106,
+  "quadrature_order": 7,
+  "projection_iterations": 3,
+  "initial_attitude_std_deg": 3.0,
+  "initial_acceleration_std": 0.3,
+  "acceleration_time_constant": 0.7,
+  "acceleration_stationary_std": [1.5, 1.5, 1.5],
+  "madgwick_beta": 0.1,
+  "scenarios": ["gravity_only", "smooth_translation", "sustained_translation"],
+  "output_series_rate_hz": 20.0
+}

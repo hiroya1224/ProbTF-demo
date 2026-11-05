@@ -56,6 +56,17 @@ def test_girdle_is_not_replaced_by_single_mode():
     assert proposals < 3 * len(samples)
 
 
+def test_concentrated_arc_matches_the_von_mises_limit_without_dead_zones():
+    from scipy.stats import vonmises
+    # q=(cos(theta),0,0,sin(theta)) and phi=2*theta in the concentrated
+    # plane. exp(-4*sin(theta)^2) gives a von Mises law with kappa=2.
+    samples, _, _ = native_samples(np.diag([0.,-1e6,-1e6,-4.]), 50000, 20261106)
+    angles = np.sort((2*np.arctan2(samples[:,3],samples[:,0])+np.pi) % (2*np.pi)-np.pi)
+    cdf = vonmises.cdf(angles, 2.)
+    empirical = np.arange(1,len(angles)+1)/len(angles)
+    assert np.max(np.abs(empirical-cdf)) < .012
+
+
 def test_buffers_and_matrix_validation():
     with pytest.raises(ValueError):
         native_samples(np.array([[0., 1.], [0., 0.]]), 2)

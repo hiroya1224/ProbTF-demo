@@ -101,6 +101,9 @@ class SynchronizedImuPairPreprocessor:
     Raw input awaiting the other sensor is not silently evicted or rate capped.
     """
 
+    window_type = _SgWindow
+    covariance_validator = staticmethod(_covariance)
+
     def __init__(self, parent_frame_id, child_frame_id, window_size=11, polynomial_order=7,
                  fit_history_size=10):
         self.frames = tuple(str(frame).strip().lstrip("/") for frame in (parent_frame_id, child_frame_id))
@@ -174,8 +177,8 @@ class SynchronizedImuPairPreprocessor:
             stamp,
             _vector(angular_velocity, "angular_velocity").copy(),
             _vector(specific_force, "specific_force").copy(),
-            _covariance(angular_velocity_covariance, "angular_velocity_covariance").copy(),
-            _covariance(specific_force_covariance, "specific_force_covariance").copy(),
+            self.covariance_validator(angular_velocity_covariance, "angular_velocity_covariance").copy(),
+            self.covariance_validator(specific_force_covariance, "specific_force_covariance").copy(),
         )
         self.pending[selector].append(sample)
         self.input_stamps[selector] = stamp
@@ -201,7 +204,7 @@ class SynchronizedImuPairPreprocessor:
         buffer = self.samples[frame]
         buffer.append(sample)
         if len(buffer) == self.window_size:
-            self.fit_history[frame].append(_SgWindow.fit(tuple(buffer), self.polynomial_order))
+            self.fit_history[frame].append(self.window_type.fit(tuple(buffer), self.polynomial_order))
         if frame != self.frames[0] or any(not self.fit_history[key] for key in self.frames):
             return
         lower = max(self.samples[frame][0][0] for frame in self.frames)

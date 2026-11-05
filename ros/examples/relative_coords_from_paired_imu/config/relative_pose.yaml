@@ -3,6 +3,9 @@ window_size: 11
 polynomial_order: 7
 # Source's rolling history of SG polynomial fits, independently per sensor.
 fit_history_size: 10
+# Raw support is distinct from posterior updates; no historical update queue.
+raw_history_capacity: 16384
+max_sample_gap_s: 0.05
 
 # Rigid-pair path of urdf_estimation_with_imus, extended_leastsq.py.
 use_child_gyro: true

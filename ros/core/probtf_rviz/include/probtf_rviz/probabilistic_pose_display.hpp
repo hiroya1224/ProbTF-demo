@@ -49,6 +49,7 @@ class ProbabilisticPoseDisplay
   Message::ConstPtr latest_message_;
   StampFreshness freshness_;
   bool message_renderable_ = false;
+  bool geometry_dirty_ = false;
 
   rviz::FloatProperty* frame_timeout_property_;
   rviz::IntProperty* sample_count_property_;

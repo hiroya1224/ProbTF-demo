@@ -51,7 +51,6 @@ def test_matches_source_bingham_and_gaussian_recurrence(use_child):
     dimension = 6 if use_child else 3
     mean = np.zeros(dimension)
     covariance = np.eye(dimension) * 1e6
-    precision = None
     rotation = quat_to_rotmat(rpy_to_quat(0.3, -0.5, 0.7))
     position = np.array([0.19, -0.08, 0.035])
     for index in range(12):
@@ -63,12 +62,13 @@ def test_matches_source_bingham_and_gaussian_recurrence(use_child):
         parent = observation("p", index * 0.01, omega, alpha, force, gyro_cov * (index + 1))
         child = observation("c", index * 0.01, rotation.T @ omega, rotation.T @ alpha,
                             rotation.T @ (force + true_operator @ position), gyro_cov * 0.7)
-        if precision is None:
-            joint_cov = np.zeros((6, 6))
-            joint_cov[:3, :3] = parent.angular_velocity_covariance
-            joint_cov[3:, 3:] = child.angular_velocity_covariance
-            noise = source_noise_matrix()
-            precision = np.linalg.inv(noise @ np.kron(joint_cov, np.eye(4) * 0.25) @ noise.T)
+        # Source BinghamHolder.update_Amat clears CovInv, so the misleadingly
+        # named set_Qinv_once refreshes it for EACH aligned observation.
+        joint_cov = np.zeros((6, 6))
+        joint_cov[:3, :3] = parent.angular_velocity_covariance
+        joint_cov[3:, 3:] = child.angular_velocity_covariance
+        noise = source_noise_matrix()
+        precision = np.linalg.inv(noise @ np.kron(joint_cov, np.eye(4) * 0.25) @ noise.T)
         difference = parent.angular_velocity - child.angular_velocity
         total = parent.angular_velocity + child.angular_velocity
         h_matrix = np.zeros((4, 4))
@@ -154,7 +154,7 @@ def test_nonidentity_rigid_transform_and_distribution_keep_updating():
     assert np.trace(component.translation.residual_covariance) < np.trace(saved.distribution.components[0].translation.residual_covariance)
 
 
-def test_invalid_update_is_transactional_and_reset_clears_frozen_noise():
+def test_invalid_update_is_transactional_and_reset_clears_last_noise():
     estimator = ExtendedLeastSquaresImuRelativePoseEstimator("p", "c")
     parent = observation("p", 1.0, [1, 0, 0], [0, 1, 0], [0, 0, 9.81])
     child = observation("c", 1.0, [1, 0, 0], [0, 1, 0], [0, 0, 9.81])

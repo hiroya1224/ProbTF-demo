@@ -109,7 +109,9 @@ importする必要はない。Binghamモーメントには既存ProbTFの正規�
 方位はgyroの対応 `omega_parent = R(q) omega_child` を使い、
 元の `H` と `Q = N (diag(C_parent, C_child) ⊗ I/4) Nᵀ` から
 `A_next = gamma_rot A - Hᵀ Q⁻¹ H / 2` を更新する。
-`Q` は元実装と同じく最初の対で固定する。
+`Q` は各対のSG補間後の共分散から毎回計算する。
+元実装の `set_Qinv_once` は、直後の `update_Amat` が `CovInv` を消すため、
+実際には観測のたびに再計算する。最初の対で固定してはならない。
 ここで使う一様四元数二次モーメント `I/4` によって、Qはgyro共分散のtraceに依存する。
 未観測の方位を一点へ固定せず、初期は一様分布であり、有限なBingham分布を保つ。
 

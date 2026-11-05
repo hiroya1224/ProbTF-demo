@@ -102,7 +102,8 @@ class ExtendedLeastSquaresImuRelativePoseEstimator:
 
     ``use_child_gyro=True`` preserves the source's two 3-D position fits and
     its precision-weighted combination.  ``False`` uses its averaged 3-D
-    operator.  The source freezes Q at the first pair; this port does too.
+    operator. Q is recomputed from each aligned pair's gyro covariance,
+    including the covariance changes caused by asynchronous SG interpolation.
 
     The finite position prior keeps the source's 1e30 m^2 per fit.  Position
     updates accumulate information and use ordinary solves rather than the
@@ -208,8 +209,8 @@ class ExtendedLeastSquaresImuRelativePoseEstimator:
                 "residual variance={:g}, observation weight={:g}, prior variance={:g}. "
                 "The source factors Gaussian position and Bingham orientation (B=0); "
                 "rotation-position, repeated-force/two-fit, and temporal observation "
-                "correlations are not estimated. Gyro residual covariance is frozen "
-                "at the first pair. No convergence latch or pose projection."
+                "correlations are not estimated. Gyro residual covariance is computed "
+                "from each aligned pair. No convergence latch or pose projection."
             ).format(
                 self.position_residual_variance,
                 self.position_observation_weight,
@@ -250,15 +251,16 @@ class ExtendedLeastSquaresImuRelativePoseEstimator:
 
     def update(self, parent, child):
         self._check_pair(parent, child)
-        precision = self.rotation_residual_precision
-        if precision is None:
-            covariance = gyro_residual_covariance(
-                parent.angular_velocity_covariance, child.angular_velocity_covariance
-            )
-            # An actually singular noise model cannot define this likelihood.
-            # No variance floor, jitter, or pseudoinverse changes its meaning.
-            np.linalg.cholesky(covariance)
-            precision = np.linalg.solve(covariance, np.eye(4))
+        # The source's set_Qinv_once is called on every observation, and
+        # BinghamHolder.update_Amat clears CovInv after each update. SG
+        # interpolation changes these covariances even for constant raw noise.
+        covariance = gyro_residual_covariance(
+            parent.angular_velocity_covariance, child.angular_velocity_covariance
+        )
+        # An actually singular noise model cannot define this likelihood.
+        # No variance floor, jitter, or pseudoinverse changes its meaning.
+        np.linalg.cholesky(covariance)
+        precision = np.linalg.solve(covariance, np.eye(4))
         parameter = canonical_bingham_parameter(
             self.rotation_forgetting_factor * self.rotation_parameter
             + gyro_bingham_likelihood(parent, child, precision)

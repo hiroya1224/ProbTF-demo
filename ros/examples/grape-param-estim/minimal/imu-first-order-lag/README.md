@@ -70,3 +70,9 @@ python3 -m pytest -q ros/examples/grape-param-estim/minimal/imu-first-order-lag/
 33件のテストが成功した。解析微分、全SG時間重なり、全時定数cross、地磁気の再帰非混入、mocap非混入、元時計での比較、四元数符号境界の積分、表示と保存共分散の一致、mocap出力保護を検査する。さらに、非零の余剰レンチが平均軌道を実際に動かすことと、余剰レンチを同じパラメータ候補から再計算した全16変数の微分を検査した。
 
 余剰レンチ付き再生の積分刻みを5 msから2.5 msへ半減した最大位置差は、failure1で1.673 mm、failure2で0.0406 mm、successで1.472 mmだった。これは数値積分の確認であり、mocapとの再現誤差ではない。
+
+## 姿勢更新を動力学へ戻す限定比較（2026年11月6日）
+
+[要求された五種類の図・15ページPDF](publication/attitude_feedback_requested_20261106/README.md)を別保存する。重力だけの観測と並進加速度を含む観測を、それぞれモデル＋実使用余剰レンチの伝播へ接続する。gyro/accel、xyz、rpy、余剰トルクだけを掲載する。最新指定によりモデル位置の共分散帯は表示せず、平均とIMU姿勢の±2σを示す。位置の保守的な共分散上界も計算・保存を継続し、姿勢の帯は出力lawの局所座標近似である。旧publicationは変更していない。
+
+この新経路の定義・近似・再実行コマンドは [ATTITUDE_FEEDBACK_COMPARISON.md](ATTITUDE_FEEDBACK_COMPARISON.md) を参照。

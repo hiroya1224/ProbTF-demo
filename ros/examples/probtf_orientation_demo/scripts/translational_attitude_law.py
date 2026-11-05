@@ -408,13 +408,53 @@ class ExponentialAttitudeLaw:
 
     def integrate(self, reference, proposal_covariance, order=7, *,
                   global_radial=None,global_angles=None,local_mixture_weight=.999999,
-                  mode_seeds=3,mode_iterations=20):
+                  mode_seeds=3,mode_iterations=20,global_alignment='native',
+                  adaptive_refinement=False,refinement_tolerance=1e-5,
+                  global_frame=None):
         """Adaptive deterministic multiple-chart/Haar importance quadrature.
 
         All found local charts contribute through one balance-mixture
         denominator. Mode searches only place integration nodes; their
         quaternion values do not replace or approximate the probability law.
         """
+        if adaptive_refinement:
+            # Numerical error control, not a probability/observation gate.
+            # If the finite refinement budget is exhausted the last finite
+            # integral is returned and the unresolved discrepancy is saved.
+            common = dict(mode_seeds=mode_seeds, mode_iterations=mode_iterations)
+            low = self.integrate(reference, proposal_covariance, order, **common)
+            high = self.integrate(reference, proposal_covariance, order+2, **common)
+            def discrepancy(left, right):
+                return dict(log_normalizer=abs(left['relative_logZ']-right['relative_logZ']),
+                    feature_moments=float(np.linalg.norm(left['feature_mean']-right['feature_mean'])),
+                    mean_rotation=float(np.linalg.norm(left['mean_R']-right['mean_R'])))
+            coarse_error = discrepancy(low, high)
+            refined = (coarse_error['log_normalizer'] > refinement_tolerance
+                       or coarse_error['feature_moments'] > refinement_tolerance
+                       or coarse_error['mean_rotation'] > refinement_tolerance)
+            final_error = coarse_error
+            if refined:
+                # Same density, different deterministic coordinates. The
+                # coarse full moment supplies an orthonormal O(4) frame;
+                # its two largest mass directions form the first Haar pair.
+                _, vectors = np.linalg.eigh(high['Mqq'])
+                frame = vectors[:, ::-1]
+                radial = 32 if global_radial is None else int(global_radial)
+                angles = 32 if global_angles is None else int(global_angles)
+                fine_options = dict(common, local_mixture_weight=local_mixture_weight,
+                    global_alignment='explicit_frame', global_frame=frame)
+                low = self.integrate(reference, proposal_covariance, order+2,
+                    global_radial=radial,global_angles=angles, **fine_options)
+                high = self.integrate(reference, proposal_covariance, order+2,
+                    global_radial=radial+8,global_angles=angles+16, **fine_options)
+                final_error = discrepancy(low, high)
+            high['numerical_refinement'] = dict(
+                method='finite deterministic GH/Haar refinement; all19 features and logZ',
+                tolerance=float(refinement_tolerance), dense_rule_used=refined,
+                coarse_discrepancy=coarse_error, final_discrepancy=final_error,
+                finite_result_retained=True, state_or_observation_rejected=False,
+                error_estimate_is_global_bound=False)
+            return high
         reference=_quaternion(reference)
         covariance=_symmetric(proposal_covariance,(3,3))
         np.linalg.cholesky(covariance)
@@ -451,6 +491,22 @@ class ExponentialAttitudeLaw:
         base,log_hermite=_hermite_grid(order)
         radial,angles=_global_orders(order,global_radial,global_angles)
         global_q,log_haar=_haar_grid(radial,angles)
+        if global_alignment == 'explicit_frame':
+            frame = np.asarray(global_frame, float)
+            if frame.shape != (4,4) or not np.isfinite(frame).all():
+                raise ValueError('A numerical Haar frame needs a finite 4x4 matrix')
+            global_q = global_q @ frame.T
+        elif global_alignment == 'reference_covariance':
+            # Haar measure on S3 is invariant under O(4). Align the first
+            # coordinate pair with the reference and its widest numerical
+            # chart direction, resolving a broad rotation ridge with fewer
+            # nodes. This only rotates a deterministic integration grid.
+            _, vectors = np.linalg.eigh(covariance)
+            frame = np.column_stack((reference,
+                projective_basis(reference) @ vectors[:, ::-1]))
+            global_q = global_q @ frame.T
+        elif global_alignment != 'native':
+            raise ValueError('Unknown numerical Haar alignment: ' + str(global_alignment))
         alpha=float(local_mixture_weight)
         if not 0.<alpha<1.:
             raise ValueError('The integration mixture weight must be strictly between zero and one')
@@ -516,6 +572,7 @@ class ExponentialAttitudeLaw:
             'quadrature_nodes':len(q),'local_quadrature_nodes':len(centers)*len(base),
             'global_quadrature_nodes':len(global_q),'global_radial_order':radial,
             'global_angle_order':angles,'local_mixture_weight':alpha,
+            'global_alignment':global_alignment,
             'integration_centers':centers,'integration_center_diagnostics':center_diagnostics,
             'spatial_projective_mode_seeds':len(spatial_seeds),'top_Haar_mode_seeds':len(selected),
             'proposal_merge_quaternion_distance':merge_quaternion_distance,
@@ -531,7 +588,9 @@ def feature_target(Mq, Ng, Nb, g, b):
 
 def forward_kl_projection(targetMq,targetNg,targetNb,initial_law,reference,
                           proposal_covariance,order=7,max_iterations=3,*,
-                          global_radial=None,global_angles=None,local_mixture_weight=.999999):
+                          global_radial=None,global_angles=None,local_mixture_weight=.999999,
+                          global_alignment='native',adaptive_refinement=False,
+                          refinement_tolerance=1e-5):
     """Finite adaptive-normalizer forward-KL solve in all19 coefficients.
 
     Every candidate law gets its own deterministic multi-chart integration.
@@ -556,7 +615,8 @@ def forward_kl_projection(targetMq,targetNg,targetNb,initial_law,reference,
         law=initial_law.from_parameters(parameters)
         integral=law.integrate(reference,target_proposal,order=order,
             global_radial=global_radial,global_angles=global_angles,
-            local_mixture_weight=local_mixture_weight)
+            local_mixture_weight=local_mixture_weight,global_alignment=global_alignment,
+            adaptive_refinement=adaptive_refinement,refinement_tolerance=refinement_tolerance)
         features=integral['features'];weights=integral['weights'];mean=weights@features
         gradient=mean-target;difference=features-mean
         hessian=(difference.T*weights)@difference
@@ -617,5 +677,6 @@ def forward_kl_projection(targetMq,targetNg,targetNb,initial_law,reference,
         optimizer_step_norm=float(np.linalg.norm(point-starting_point)),
         optimizer_damping_history=damping_history,input_moment_trace=float(np.trace(targetMq)),
         adaptive_normalizer_evaluations=evaluations,
+        normalizer_numerical_refinement=integral.get('numerical_refinement'),
         local_chart_count=len(integral['integration_centers']))
     return law,diagnostics

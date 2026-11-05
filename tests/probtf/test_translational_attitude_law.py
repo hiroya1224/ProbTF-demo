@@ -1,5 +1,6 @@
 """Deterministic checks of the exact quartic density and explicit projection."""
 import importlib.util
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -325,6 +326,59 @@ class TranslationalAttitudeLawTests(unittest.TestCase):
         np.testing.assert_allclose(after['Ngg'],rotation.T@before['Ngg']@rotation,atol=1e-8)
         np.testing.assert_allclose(after['Nbb'],rotation.T@before['Nbb']@rotation,atol=1e-7)
         self.assertAlmostEqual(after['logZ'],before['logZ'],places=6)
+
+    def test_optional_global_grid_alignment_is_an_orthogonal_haar_change_only(self):
+        holder=law()
+        reference=np.array([.8,.1,.2,-.3]);reference/=np.linalg.norm(reference)
+        covariance=np.array([[.03,.004,.001],[.004,.01,.002],[.001,.002,.05]])
+        base,log_weights=module._haar_grid(3,8)
+        saved_base=base.copy();saved_weights=log_weights.copy()
+        integral=holder.integrate(reference,covariance,3,global_radial=3,global_angles=8,
+            local_mixture_weight=.5,global_alignment='reference_covariance')
+        vectors=np.linalg.eigh(covariance)[1]
+        frame=np.column_stack((reference,module.projective_basis(reference)@vectors[:,::-1]))
+        np.testing.assert_allclose(frame.T@frame,np.eye(4),atol=1e-15)
+        self.assertAlmostEqual(abs(np.linalg.det(frame)),1.,places=14)
+        np.testing.assert_allclose(integral['qnodes'][-len(base):],base@frame.T,atol=1e-15)
+        np.testing.assert_array_equal(base,saved_base)
+        np.testing.assert_array_equal(log_weights,saved_weights)
+        self.assertAlmostEqual(float(np.exp(log_weights).sum()),1.,places=14)
+        np.testing.assert_array_equal(holder.A,law().A)
+        np.testing.assert_array_equal(holder.Wg,law().Wg)
+        np.testing.assert_array_equal(holder.Wb,law().Wb)
+
+    def test_omitted_alignment_preserves_the_original_native_default_exactly(self):
+        holder=law();reference=holder.mode(IDENTITY);proposal=holder.proposal_covariance(reference)
+        original=holder.integrate(reference,proposal,5)
+        explicit=holder.integrate(reference,proposal,5,global_alignment='native')
+        for key in ('qnodes','weights','R','Mqq','Ngg','Nbb','mean_R','features'):
+            np.testing.assert_array_equal(original[key],explicit[key])
+        self.assertEqual(original['logZ'],explicit['logZ'])
+        self.assertEqual(original['relative_logZ'],explicit['relative_logZ'])
+
+    def test_adaptive_quadrature_recovers_recorded_broad_law_haar_reference(self):
+        fixture=json.loads((ROOT/'tests/probtf/fixtures/imu_broad_failure1_law1189.json').read_text())
+        holder=module.ExponentialAttitudeLaw(fixture['A'],fixture['Wg'],fixture['Wb'],
+            fixture['gravity_world'],fixture['magnetic_world'])
+        parameters=holder.parameters().copy()
+        reference=np.asarray(fixture['reference_wxyz'])
+        covariance=np.asarray(fixture['proposal_covariance'])
+        coarse=holder.integrate(reference,covariance,7)
+        expected=fixture['reference_Haar']
+        self.assertGreater(np.max(np.abs(coarse['mean_R']-expected['E_R'])),.3)
+        improved=holder.integrate(reference,covariance,7,adaptive_refinement=True,
+            refinement_tolerance=1e-5,global_radial=32,global_angles=32,
+            local_mixture_weight=1e-5)
+        np.testing.assert_allclose(improved['mean_R'],expected['E_R'],atol=1e-5,rtol=0.)
+        np.testing.assert_allclose(improved['Mqq'],expected['Mqq'],atol=1e-5,rtol=0.)
+        self.assertLess(abs(improved['logZ']-expected['logZ']),1e-5)
+        np.testing.assert_array_equal(holder.parameters(),parameters)
+        diagnostic=improved['numerical_refinement']
+        self.assertTrue(diagnostic['dense_rule_used'])
+        self.assertTrue(diagnostic['finite_result_retained'])
+        self.assertFalse(diagnostic['state_or_observation_rejected'])
+        self.assertFalse(diagnostic['error_estimate_is_global_bound'])
+        self.assertGreater(max(diagnostic['final_discrepancy'].values()),0.)
 
 
 if __name__=='__main__': unittest.main()

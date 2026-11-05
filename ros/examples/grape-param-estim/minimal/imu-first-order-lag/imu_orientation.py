@@ -86,6 +86,35 @@ def _continuous_mode(parameter, previous):
     return quaternion, covariance
 
 
+def _prediction_inputs(options, corrected_gyro):
+    """Select an explicitly supplied model increment without replacing data.
+
+    Defaults are the historical lag-corrected gyro inputs. An optional model
+    rate/covariance pair changes only time prediction; the corrected raw
+    sensor stream and its joint lag information remain separate outputs.
+    """
+    supplied = 'prediction_gyro' in options
+    if supplied != ('prediction_gyro_covariance' in options):
+        raise ValueError('Explicit prediction gyro and covariance must be supplied together')
+    rate = np.asarray(options['prediction_gyro'] if supplied else corrected_gyro['mean'], float)
+    covariance = np.asarray(options['prediction_gyro_covariance'] if supplied
+                            else corrected_gyro['covariance'], float)
+    count = len(corrected_gyro['mean'])
+    if (rate.shape != (count, 3) or covariance.shape != (count, 3, 3)
+            or not np.isfinite(rate).all() or not np.isfinite(covariance).all()):
+        raise ValueError('Prediction inputs must be finite (N,3) rates and (N,3,3) covariances on the native clock')
+    result = dict(prediction_gyro=rate.copy(), prediction_gyro_covariance=covariance.copy())
+    if 'prediction_increment_factor_source' in options:
+        factor = np.asarray(options['prediction_increment_factor_source'], float)
+        if factor.ndim != 3 or factor.shape[:2] != (count, 3) or not np.isfinite(factor).all():
+            raise ValueError('Prediction increment source factor must be finite shape (N,3,P)')
+        result['prediction_increment_factor_source'] = factor.copy()
+    source = options.get('prediction_gyro_source',
+        'explicit reconstructed model plus applied residual wrench increment' if supplied
+        else 'original lag-corrected gyro individual-reading law')
+    return result, str(source), supplied
+
+
 def estimate_orientation(data, gyro_tau, accel_tau, lag_covariance_2x2=None, options=None):
     """Estimate both laws without using any later mocap orientation.
 
@@ -118,6 +147,7 @@ def estimate_orientation(data, gyro_tau, accel_tau, lag_covariance_2x2=None, opt
                for name in ('gyro', 'accel')}
     gyro = corrected_lag_signal(signals['gyro'], gyro_tau, lag_covariance[0, 0])
     accel = corrected_lag_signal(signals['accel'], accel_tau, lag_covariance[1, 1])
+    prediction, prediction_source, model_prediction = _prediction_inputs(options, gyro)
     n = len(stamps)
     magnetic = np.asarray(data.get('mag', np.zeros((n, 3))), dtype=float)
     observed = np.asarray(data.get('mag_observed', np.zeros(n, dtype=bool)), dtype=bool)
@@ -146,8 +176,8 @@ def estimate_orientation(data, gyro_tau, accel_tau, lag_covariance_2x2=None, opt
     for k in range(n):
         if k:
             state, moment_residual[k] = moment_inverse.propagate(
-                state, gyro['mean'][k], float(stamps[k] - stamps[k - 1]),
-                gyro['covariance'][k], integration_steps=integration_steps)
+                state, prediction['prediction_gyro'][k], float(stamps[k] - stamps[k - 1]),
+                prediction['prediction_gyro_covariance'][k], integration_steps=integration_steps)
             gravity_mean[k], gravity_covariance[k] = gravity_body_moments(
                 state, gravity_world, integration_steps)
             effective_accel[k], isotropic_accel[k], dynamic_accel[k] = conservative_acceleration_covariance(
@@ -182,7 +212,7 @@ def estimate_orientation(data, gyro_tau, accel_tau, lag_covariance_2x2=None, opt
         if progress is not None and (k + 1 == n or (k + 1) % 200 == 0):
             progress(k + 1, n, wall_time.monotonic() - started)
     cross = lag_covariance[0, 1] * np.einsum('ni,nj->nij', signals['gyro']['derivative'], signals['accel']['derivative'])
-    return dict(time=stamps.copy(), A_recursive=recursive, A_output=output,
+    result = dict(time=stamps.copy(), A_recursive=recursive, A_output=output,
                 q_recursive_wxyz=q_recursive, q_output_wxyz=q_output,
                 covariance_recursive=covariance_recursive, covariance_output=covariance_output,
                 right_rotation_covariance_recursive=covariance_recursive,
@@ -209,6 +239,9 @@ def estimate_orientation(data, gyro_tau, accel_tau, lag_covariance_2x2=None, opt
                     magnetic_observation_policy='new-observation mask only; output factors never carried forward',
                     magnetic_noise='current individual-reading sensor variance plus initial-reference individual-reading variance',
                     gyro_prediction_convention='body-frame right increment, right-end native angular velocity',
+                    gyro_prediction_source=prediction_source,
+                    explicit_model_increment_used=model_prediction,
+                    prediction_cross_time_dependence='source factors retained when supplied; per-step attitude transition independence is an explicit filter approximation',
                     acceleration_covariance='2*(corrected_sensor_covariance + predicted_gravity_covariance + innovation_outer_product)',
                     acceleration_covariance_isotropization='lambda_max(C_eff)*I Loewner upper envelope; static sensor noise remains trace(S)/3*I',
                     shared_acceleration_attitude_information='conservative data-dependent envelope; not exact Bayes with shared observations',
@@ -216,3 +249,5 @@ def estimate_orientation(data, gyro_tau, accel_tau, lag_covariance_2x2=None, opt
                     propagation='existing deterministic cubature and native quaternion-product moments; no Monte Carlo',
                     estimated_sensor_lag_covariance_units='physical tau seconds squared, order gyro/acceleration',
                     wall_seconds=wall_time.monotonic() - started))
+    result.update(prediction)
+    return result

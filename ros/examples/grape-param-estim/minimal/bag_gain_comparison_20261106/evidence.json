@@ -34,7 +34,7 @@
       "until_bag_end": true
     }
   ],
-  "outcome_caution": "Only day1 #4/#6 and day2 #1/#3 have explicit failure/success labels in consulted repository documents. Day1 #8/#9 are not classified as failures here.",
+  "outcome_caution": "Day1 #4/#6 and day2 #1/#3 have explicit failure/success labels in consulted repository documents. Day1 #8 pre-XY-change lift and sustained Z position are confirmed from raw mocap; this is not a full-state stability test. Day1 #9 is not automatically labelled a failure.",
   "bags": [
     {
       "day": "2026-06-12",
@@ -1106,5 +1106,50 @@
       "startup_snapshot": true
     }
   ],
-  "csv_sha256": "278406d02e2344318f00236b882839c59e9cb4328c4269ce104bf9857c04111b"
+  "csv_sha256": "278406d02e2344318f00236b882839c59e9cb4328c4269ce104bf9857c04111b",
+  "bag8_mocap_z_check": {
+    "bag": "20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+    "topic": "/gimbalrotor/mocap/pose",
+    "message_type": "geometry_msgs/PoseStamped",
+    "frame_id": "world",
+    "quantity": "raw tracked-frame pose.position.z, not floor-relative height or CoG position",
+    "clock": "bag record time relative to bag start",
+    "xy_pid": [
+      3.0,
+      0.1,
+      1.0
+    ],
+    "z_pid": [
+      5.0,
+      1.0,
+      2.5
+    ],
+    "windows": [
+      {
+        "start_bag_seconds": 0.0,
+        "end_bag_seconds_exclusive": 8.5,
+        "count": 1007,
+        "mean_z_m": 0.245367554250398,
+        "median_z_m": 0.24532128870487213,
+        "min_z_m": 0.24519921839237213,
+        "max_z_m": 0.2457922101020813,
+        "std_z_m": 0.00010327210239584226
+      },
+      {
+        "start_bag_seconds": 40.0,
+        "end_bag_seconds_exclusive": 225.2992706298828,
+        "count": 22235,
+        "mean_z_m": 0.8477094419516685,
+        "median_z_m": 0.8488264679908752,
+        "min_z_m": 0.7657425403594971,
+        "max_z_m": 0.911217987537384,
+        "std_z_m": 0.02090998677165172
+      }
+    ],
+    "mean_z_rise_from_initial_m": 0.6023418877012705,
+    "conclusion": "Mocap Z confirms lift and sustained raised position before XY D changes; does not label the first-day bag as failure. Other PID groups were adjusted.",
+    "smoothing_applied": false,
+    "missing_values_filled": false,
+    "all_state_stability_assessed": false
+  }
 }

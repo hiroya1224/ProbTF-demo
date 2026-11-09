@@ -1,0 +1,45 @@
+{
+  "schema": "grape/immutable-reconstruction-display-refresh/v1",
+  "cases": {
+    "failure1": {
+      "renderer_sha256": "aa6a3869a27322d5ac5d6d6a3c398c7f3b7689f6800fe6c63f8bb1f7463001e3",
+      "refresh_script_sha256": "3196ba1f3f966e42e812a345146a0a2d1db6852f38a418adc9833a3315c0f027",
+      "saved_reconstruction_sha256": {
+        "gravity_only_full.npz": "579902d5ac05cb1746e0f5dfee321e3d5899995733e1b47954537cc1d5bb1cec",
+        "translation_aware_full.npz": "ed031baf97ba24c4d1e17e008faea2da3490027f39198c47c0c648802cdf2b13"
+      },
+      "all_figure_data_arrays_bit_identical": true,
+      "model_position_bands_shown": false,
+      "imu_attitude_bands_shown": true,
+      "computed_covariance_retained": true,
+      "estimation_repeated": false
+    },
+    "failure2": {
+      "renderer_sha256": "aa6a3869a27322d5ac5d6d6a3c398c7f3b7689f6800fe6c63f8bb1f7463001e3",
+      "refresh_script_sha256": "3196ba1f3f966e42e812a345146a0a2d1db6852f38a418adc9833a3315c0f027",
+      "saved_reconstruction_sha256": {
+        "gravity_only_full.npz": "6e31177ab4efff60f7446dd6084a4d6234efa7bd205630f51d93963e64e4edbf",
+        "translation_aware_full.npz": "7fa61523f2a08a2465d2349d091432ae8fc90e7b29061eb2a91fdf3abbeaa850"
+      },
+      "all_figure_data_arrays_bit_identical": true,
+      "model_position_bands_shown": false,
+      "imu_attitude_bands_shown": true,
+      "computed_covariance_retained": true,
+      "estimation_repeated": false
+    },
+    "success": {
+      "renderer_sha256": "aa6a3869a27322d5ac5d6d6a3c398c7f3b7689f6800fe6c63f8bb1f7463001e3",
+      "refresh_script_sha256": "3196ba1f3f966e42e812a345146a0a2d1db6852f38a418adc9833a3315c0f027",
+      "saved_reconstruction_sha256": {
+        "gravity_only_full.npz": "05d3e21fd7847042138c3e51a7f18ba1b32e8cfe8cc5d85a7c8eed7b40145a9d",
+        "translation_aware_full.npz": "b66e43b5f8ad6535d2b592b339ee86139611f499ba7275eb3e3b634cd16c36a4"
+      },
+      "all_figure_data_arrays_bit_identical": true,
+      "model_position_bands_shown": false,
+      "imu_attitude_bands_shown": true,
+      "computed_covariance_retained": true,
+      "estimation_repeated": false
+    }
+  },
+  "combined_report_pages": 15
+}

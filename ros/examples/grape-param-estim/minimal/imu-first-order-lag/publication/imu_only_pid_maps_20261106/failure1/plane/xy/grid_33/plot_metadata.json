@@ -1,0 +1,307 @@
+{
+  "schema": "grape/imu-pid-node-rate-figures/v2",
+  "case": "failure1",
+  "group": "xy",
+  "mode": "plane",
+  "settings_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/publication/pid_gain_voxels/figure_settings.json",
+  "settings_sha256": "1b787e82e0946fc7d8dc4bb089d6b11e22151006714da61edfaf8f4cc4d49a6b",
+  "color_quantity": "Strict full-state stability fraction (analytic certificate)",
+  "color_range": [
+    0.0,
+    1.0
+  ],
+  "criterion_label": "Strict full-state stability fraction (analytic certificate)",
+  "assessment_method": "analytic_translation_observability",
+  "analytic_certificate": true,
+  "numerical_poles_computed": false,
+  "colormap": "RdYlGn",
+  "white_mix": 0.75,
+  "voxel_opacity": 0.3,
+  "threshold_colors": false,
+  "full_axis_order": [
+    "P",
+    "I",
+    "D"
+  ],
+  "full_axes": [
+    [
+      0.75,
+      0.9140625,
+      1.078125,
+      1.2421875,
+      1.40625,
+      1.5703125,
+      1.734375,
+      1.8984375,
+      2.0625,
+      2.2265625,
+      2.390625,
+      2.5546875,
+      2.71875,
+      2.8828125,
+      3.0,
+      3.046875,
+      3.2109375,
+      3.375,
+      3.5390625,
+      3.703125,
+      3.8671875,
+      4.03125,
+      4.1953125,
+      4.359375,
+      4.5234375,
+      4.6875,
+      4.8515625,
+      5.015625,
+      5.1796875,
+      5.34375,
+      5.5078125,
+      5.671875,
+      5.8359375,
+      6.0
+    ],
+    [
+      1.0
+    ],
+    [
+      0.25,
+      0.3046875,
+      0.359375,
+      0.4140625,
+      0.46875,
+      0.5234375,
+      0.578125,
+      0.6328125,
+      0.6875,
+      0.7421875,
+      0.796875,
+      0.8515625,
+      0.90625,
+      0.9609375,
+      1.0,
+      1.015625,
+      1.0703125,
+      1.125,
+      1.1796875,
+      1.234375,
+      1.2890625,
+      1.34375,
+      1.3984375,
+      1.453125,
+      1.5078125,
+      1.5625,
+      1.6171875,
+      1.671875,
+      1.7265625,
+      1.78125,
+      1.8359375,
+      1.890625,
+      1.9453125,
+      2.0
+    ]
+  ],
+  "displayed_axes": [
+    [
+      0.75,
+      0.9140625,
+      1.078125,
+      1.2421875,
+      1.40625,
+      1.5703125,
+      1.734375,
+      1.8984375,
+      2.0625,
+      2.2265625,
+      2.390625,
+      2.5546875,
+      2.71875,
+      2.8828125,
+      3.0,
+      3.046875,
+      3.2109375,
+      3.375,
+      3.5390625,
+      3.703125,
+      3.8671875,
+      4.03125,
+      4.1953125,
+      4.359375,
+      4.5234375,
+      4.6875,
+      4.8515625,
+      5.015625,
+      5.1796875,
+      5.34375,
+      5.5078125,
+      5.671875,
+      5.8359375,
+      6.0
+    ],
+    [
+      1.0
+    ],
+    [
+      0.25,
+      0.3046875,
+      0.359375,
+      0.4140625,
+      0.46875,
+      0.5234375,
+      0.578125,
+      0.6328125,
+      0.6875,
+      0.7421875,
+      0.796875,
+      0.8515625,
+      0.90625,
+      0.9609375,
+      1.0,
+      1.015625,
+      1.0703125,
+      1.125,
+      1.1796875,
+      1.234375,
+      1.2890625,
+      1.34375,
+      1.3984375,
+      1.453125,
+      1.5078125,
+      1.5625,
+      1.6171875,
+      1.671875,
+      1.7265625,
+      1.78125,
+      1.8359375,
+      1.890625,
+      1.9453125,
+      2.0
+    ]
+  ],
+  "exact_fixed_i": 1.0,
+  "full_evaluated_count": 1156,
+  "full_grid_node_count": 1156,
+  "displayed_evaluated_count": 1156,
+  "displayed_grid_node_count": 1156,
+  "full_certified_count": 1156,
+  "displayed_certified_count": 1156,
+  "evaluated_count_definition": "analytically certified grid nodes, not numerical eigensystems",
+  "pending_nodes_shown_as_zero": false,
+  "cut_at_recorded_i": false,
+  "recorded_reference": [
+    3.0,
+    0.1,
+    1.0
+  ],
+  "recorded_reference_shown": false,
+  "reference_points": [
+    {
+      "kind": "failure",
+      "label": "Failure",
+      "gain": [
+        3.0,
+        0.1,
+        1.0
+      ],
+      "shown": false,
+      "projected": false,
+      "omitted_reason": "actual I is not 1"
+    }
+  ],
+  "view_limits": {
+    "P": [
+      0.22499999999999998,
+      6.525
+    ],
+    "D": [
+      0.07499999999999998,
+      2.175
+    ],
+    "I": [
+      1.0,
+      1.0
+    ]
+  },
+  "reference_projected": false,
+  "full_fixed_controller_gains": [
+    [
+      3.0,
+      0.1,
+      1.0
+    ],
+    [
+      5.0,
+      1.0,
+      2.5
+    ],
+    [
+      20.0,
+      1.0,
+      8.0
+    ],
+    [
+      4.0,
+      1.0,
+      2.0
+    ]
+  ],
+  "source_array_sha256": {
+    "rate": "8b06cbc1767cee805e9745185c3516747995f76bebe8f64a2949c536e46eac80",
+    "evaluated": "0b97287f089c478688da41a3e402af1c6c8cdc1342c037acd30eaec82a05f05e",
+    "p": "6413159bd9e94c78d02d4419818b667ff0dbcbd2df0a93f7dca401fe669cd55f",
+    "i": "6c3c396ed6b5c36dcae172271f462051b1266b851e92df3deea8ac65478fd712",
+    "d": "8166f588fd7c3c5ae339e1080b7fb28b67315a73a7307adac74efdf38956e63f"
+  },
+  "supplied_metadata": {
+    "schema": "grape/imu-only-full-state-pid-maps/v1",
+    "group": "xy",
+    "mode": "plane",
+    "requested_grid_size": 33,
+    "actual_shape": [
+      34,
+      1,
+      34
+    ],
+    "full_fixed_controller_gains": [
+      [
+        3.0,
+        0.1,
+        1.0
+      ],
+      [
+        5.0,
+        1.0,
+        2.5
+      ],
+      [
+        20.0,
+        1.0,
+        8.0
+      ],
+      [
+        4.0,
+        1.0,
+        2.0
+      ]
+    ],
+    "assessment_method": "analytic_translation_observability",
+    "criterion_label": "Strict full-state stability fraction (analytic certificate)",
+    "numerical_eigenvalues_computed": false,
+    "hover_validity_evaluated": false,
+    "strict_stability_upper_bound": 0.0,
+    "conditional_spectral_radius_lower_bound": 1.0,
+    "known_unit_pole_multiplicity_lower_bound": 3,
+    "no_hover_case": "no asymptotically stable hover exists either",
+    "no_flight_failure_probability_claim": true,
+    "input_node_count": 128,
+    "all_input_nodes_retained": true,
+    "source_model_decodable_count": 64,
+    "exact_fixed_i": 1.0,
+    "interpretation": "This decides strict full-state stability; it does not compute the other poles or prove all motion control impossible."
+  },
+  "law_or_statistics_changed": false,
+  "interpretation": "analytic full-state strict-stability probability, not flight-failure probability",
+  "files": [
+    "pid_i1.png",
+    "pid_i1.pdf"
+  ]
+}

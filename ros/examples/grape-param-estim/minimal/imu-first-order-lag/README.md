@@ -70,3 +70,23 @@ python3 -m pytest -q ros/examples/grape-param-estim/minimal/imu-first-order-lag/
 33件のテストが成功した。解析微分、全SG時間重なり、全時定数cross、地磁気の再帰非混入、mocap非混入、元時計での比較、四元数符号境界の積分、表示と保存共分散の一致、mocap出力保護を検査する。さらに、非零の余剰レンチが平均軌道を実際に動かすことと、余剰レンチを同じパラメータ候補から再計算した全16変数の微分を検査した。
 
 余剰レンチ付き再生の積分刻みを5 msから2.5 msへ半減した最大位置差は、failure1で1.673 mm、failure2で0.0406 mm、successで1.472 mmだった。これは数値積分の確認であり、mocapとの再現誤差ではない。
+
+## 姿勢更新を動力学へ戻す限定比較（2026年11月6日）
+
+[要求された五種類の図・15ページPDF](publication/attitude_feedback_requested_20261106/README.md)を別保存した。重力だけの観測と並進加速度を含む観測を、それぞれモデル＋実使用余剰レンチの伝播へ接続する。gyro/accel、xyz、rpy、余剰トルクだけを掲載する。最新指定によりモデル位置の共分散帯は表示せず、平均とIMU姿勢の±2σを示す。位置の保守的な共分散上界も計算・保存を継続し、姿勢の帯は出力lawの局所座標近似である。一部の地磁気出力融合は数値積分の精度目標未達であり、保存先に残差を明記した。旧publicationは変更していない。
+
+この新経路の定義・近似・再実行コマンドは [ATTITUDE_FEEDBACK_COMPARISON.md](ATTITUDE_FEEDBACK_COMPARISON.md) を参照。
+
+## mocapを使わないPID図（2026年11月6日）
+
+[新しい3D図・正確なI=1断面](publication/imu_only_pid_maps_20261106/)を旧mocap図とは分離した。今回のIMU由来推定値と推力・gyro・accelの三遅れ、全16次元共同共分散を保持し、位置・速度もIMUだけから推定する前提である。
+
+この構成では真の位置のずれを観測できず、全拡大閉ループに少なくとも三つの単位極が残る。従来の厳密な全状態スペクトル半径<1という規準は全PIDで成立しないため、図の安定割合は全域0である。これは解析的な証明による値であり、固有値の数値計算や新たな観測器の軌道シミュレーションを行った結果ではない。初期整合した条件での有限時間運動や姿勢安定まで不可能と主張しない。証明、入力・格子の定義、数値診断は [IMU_ONLY_PID_MAPS.md](IMU_ONLY_PID_MAPS.md) を参照。
+
+```bash
+/usr/bin/python3 ros/examples/grape-param-estim/minimal/imu-first-order-lag/launch_imu_pid_tmux.py \
+  --session grape-imu-only-pid-rerun --output /tmp/grape-imu-only-pid-rerun
+tmux attach -t grape-imu-only-pid-rerun
+```
+
+実行済みセッションは `grape-imu-only-pid-20261106`。failure1／failure2 × 3D／I=1の四ペインに完了ログを残している。

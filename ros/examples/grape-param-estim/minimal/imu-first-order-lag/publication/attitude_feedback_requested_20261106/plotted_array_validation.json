@@ -1,0 +1,179 @@
+{
+  "schema": "grape-requested-figure-source-audit/v1",
+  "run_root": "/tmp/grape-attitude-feedback-refined-20261106",
+  "cases": {
+    "failure1": {
+      "case": "failure1",
+      "status": "passed",
+      "native_rows": 1200,
+      "original_reference_rows": 719,
+      "figure_count": 5,
+      "pdf_pages": 5,
+      "response_max_abs_differences": {
+        "gyro": 0.0,
+        "accel": 0.0
+      },
+      "tracks": {
+        "gravity_only": {
+          "position_mean_matches_saved_replay": true,
+          "native_quaternion_matches_saved_output_law": true,
+          "position_standard_deviation_matches_factor": true,
+          "position_factor_shape": [
+            1200,
+            3,
+            34
+          ],
+          "four_source_bound_matches_exact_saved_columns": true,
+          "maximum_position_std_m": 18.78131436866774,
+          "maximum_rpy_std_deg": 29.795900610076266,
+          "rpy_standard_deviation_max_abs_independent_formula_difference_deg": 2.842170943040401e-14,
+          "applied_wrench_max_abs_frozen_carrier_difference": 0.0
+        },
+        "translation_aware": {
+          "position_mean_matches_saved_replay": true,
+          "native_quaternion_matches_saved_output_law": true,
+          "position_standard_deviation_matches_factor": true,
+          "position_factor_shape": [
+            1200,
+            3,
+            34
+          ],
+          "four_source_bound_matches_exact_saved_columns": true,
+          "maximum_position_std_m": 39.273083698003205,
+          "maximum_rpy_std_deg": 36.836573735103464,
+          "rpy_standard_deviation_max_abs_independent_formula_difference_deg": 2.1316282072803006e-14,
+          "applied_wrench_max_abs_frozen_carrier_difference": 0.0
+        }
+      },
+      "display_only_refresh_validation": {
+        "status": "passed",
+        "reconstruction_archive_sha256_unchanged": true,
+        "all_returned_array_dtypes_shapes_bytes_identical": true,
+        "array_count": 27,
+        "position_axes": 3,
+        "position_bands": 0,
+        "attitude_axes": 6,
+        "attitude_full_two_sigma_bands_retained": true,
+        "display_refresh_pdf_footer_verified": true
+      }
+    },
+    "failure2": {
+      "case": "failure2",
+      "status": "passed",
+      "native_rows": 1100,
+      "original_reference_rows": 659,
+      "figure_count": 5,
+      "pdf_pages": 5,
+      "response_max_abs_differences": {
+        "gyro": 0.0,
+        "accel": 0.0
+      },
+      "tracks": {
+        "gravity_only": {
+          "position_mean_matches_saved_replay": true,
+          "native_quaternion_matches_saved_output_law": true,
+          "position_standard_deviation_matches_factor": true,
+          "position_factor_shape": [
+            1100,
+            3,
+            34
+          ],
+          "four_source_bound_matches_exact_saved_columns": true,
+          "maximum_position_std_m": 9.554478254145817,
+          "maximum_rpy_std_deg": 11.28195148297232,
+          "rpy_standard_deviation_max_abs_independent_formula_difference_deg": 8.881784197001252e-15,
+          "applied_wrench_max_abs_frozen_carrier_difference": 0.0
+        },
+        "translation_aware": {
+          "position_mean_matches_saved_replay": true,
+          "native_quaternion_matches_saved_output_law": true,
+          "position_standard_deviation_matches_factor": true,
+          "position_factor_shape": [
+            1100,
+            3,
+            34
+          ],
+          "four_source_bound_matches_exact_saved_columns": true,
+          "maximum_position_std_m": 25.51964787809395,
+          "maximum_rpy_std_deg": 12.50627792778809,
+          "rpy_standard_deviation_max_abs_independent_formula_difference_deg": 8.881784197001252e-15,
+          "applied_wrench_max_abs_frozen_carrier_difference": 0.0
+        }
+      },
+      "display_only_refresh_validation": {
+        "status": "passed",
+        "reconstruction_archive_sha256_unchanged": true,
+        "all_returned_array_dtypes_shapes_bytes_identical": true,
+        "array_count": 27,
+        "position_axes": 3,
+        "position_bands": 0,
+        "attitude_axes": 6,
+        "attitude_full_two_sigma_bands_retained": true,
+        "display_refresh_pdf_footer_verified": true
+      }
+    },
+    "success": {
+      "case": "success",
+      "status": "passed",
+      "native_rows": 2000,
+      "original_reference_rows": 1200,
+      "figure_count": 5,
+      "pdf_pages": 5,
+      "response_max_abs_differences": {
+        "gyro": 0.0,
+        "accel": 0.0
+      },
+      "tracks": {
+        "gravity_only": {
+          "position_mean_matches_saved_replay": true,
+          "native_quaternion_matches_saved_output_law": true,
+          "position_standard_deviation_matches_factor": true,
+          "position_factor_shape": [
+            2000,
+            3,
+            34
+          ],
+          "four_source_bound_matches_exact_saved_columns": true,
+          "maximum_position_std_m": 14.469918039501872,
+          "maximum_rpy_std_deg": 16.916039709254136,
+          "rpy_standard_deviation_max_abs_independent_formula_difference_deg": 1.4210854715202004e-14,
+          "applied_wrench_max_abs_frozen_carrier_difference": 0.0
+        },
+        "translation_aware": {
+          "position_mean_matches_saved_replay": true,
+          "native_quaternion_matches_saved_output_law": true,
+          "position_standard_deviation_matches_factor": true,
+          "position_factor_shape": [
+            2000,
+            3,
+            34
+          ],
+          "four_source_bound_matches_exact_saved_columns": true,
+          "maximum_position_std_m": 75.83400435313078,
+          "maximum_rpy_std_deg": 17.60144645908882,
+          "rpy_standard_deviation_max_abs_independent_formula_difference_deg": 1.4210854715202004e-14,
+          "applied_wrench_max_abs_frozen_carrier_difference": 0.0
+        }
+      },
+      "display_only_refresh_validation": {
+        "status": "passed",
+        "reconstruction_archive_sha256_unchanged": true,
+        "all_returned_array_dtypes_shapes_bytes_identical": true,
+        "array_count": 27,
+        "position_axes": 3,
+        "position_bands": 0,
+        "attitude_axes": 6,
+        "attitude_full_two_sigma_bands_retained": true,
+        "display_refresh_pdf_footer_verified": true
+      }
+    }
+  },
+  "combined_pdf_pages": 15,
+  "frozen_mathematical_source_count": 13,
+  "mathematical_source_hashes_match_start": true,
+  "changed_mathematical_sources": [],
+  "intended_display_only_renderer_change": true,
+  "audit_read_only_except_this_json": true,
+  "numeric_integration_and_projection_review": "separate review; this checks plotted values, bands, original clocks and sources",
+  "status": "passed"
+}

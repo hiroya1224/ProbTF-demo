@@ -19,7 +19,8 @@ class JointTranslationAttitudeFilter:
                  use_magnetic=True, estimate_translation=True, quadrature_order=7,
                  projection_iterations=3, initial_attitude_std_deg=3.,
                  initial_acceleration_std=.3, acceleration_time_constant=.7,
-                 acceleration_stationary_std=(1.5, 1.5, 1.5)):
+                 acceleration_stationary_std=(1.5, 1.5, 1.5),
+                 quadrature_options=None):
         self.g = np.asarray(gravity_world, float)
         self.b = np.asarray(magnetic_world, float)
         self.gyro_covariance = np.asarray(gyro_covariance, float)
@@ -29,6 +30,9 @@ class JointTranslationAttitudeFilter:
         self.estimate_translation = bool(estimate_translation)
         self.order = int(quadrature_order)
         self.projection_iterations = int(projection_iterations)
+        # Numerical integration controls only. An empty mapping preserves
+        # the standalone experiment's historical defaults and density law.
+        self.quadrature_options = dict(quadrature_options or {})
         self.acceleration_time_constant = float(acceleration_time_constant)
         self.stationary_acceleration_covariance = np.diag(np.asarray(acceleration_stationary_std, float)**2)
         self.reference = np.asarray(initial_wxyz, float).copy()
@@ -41,7 +45,8 @@ class JointTranslationAttitudeFilter:
         self.F = np.zeros((3,3))
         self.S = (float(initial_acceleration_std)**2 * np.eye(3)
                   if self.estimate_translation else np.zeros((3,3)))
-        self.moments = self.law.integrate(self.reference, self.proposal, self.order)
+        self.moments = self.law.integrate(self.reference, self.proposal, self.order,
+                                        **self.quadrature_options)
         self.last_diagnostics = {}
 
     def _predict(self, gyro, dt):
@@ -67,7 +72,7 @@ class JointTranslationAttitudeFilter:
         self.law, diagnostics = forward_kl_projection(
             predicted['Mq'], predicted['Ngg'], predicted['Nbb'], transported,
             reference, proposal, order=self.order,
-            max_iterations=self.projection_iterations)
+            max_iterations=self.projection_iterations, **self.quadrature_options)
         self.reference, self.proposal = reference, proposal
         if self.estimate_translation:
             conditional = conditional_parameters(predicted['mean_a'], predicted['cov_a'],
@@ -91,7 +96,8 @@ class JointTranslationAttitudeFilter:
             acceleration['updated_F'], acceleration['updated_S'])
         self.reference, mode_diagnostics = self.law.find_mode(self.reference)
         self.proposal = self.law.proposal_covariance(self.reference, fallback=self.proposal)
-        self.moments = self.law.integrate(self.reference, self.proposal, self.order)
+        self.moments = self.law.integrate(self.reference, self.proposal, self.order,
+                                        **self.quadrature_options)
         moments = self.moments
         local_mode = self.reference.copy()
         mass_reference = np.linalg.eigh(moments['Mqq'])[1][:,-1]

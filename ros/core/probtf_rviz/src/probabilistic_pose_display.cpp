@@ -72,7 +72,7 @@ ProbabilisticPoseDisplay::ProbabilisticPoseDisplay()
           SLOT(updateAppearance()))),
       seed_property_(new rviz::IntProperty(
           "Random Seed", 7,
-          "Stable seed used to resample this distribution.", this,
+          "Initial seed; the stream advances on new geometry updates.", this,
           SLOT(updateGeometry()))) {
   frame_timeout_property_->setMin(1.0);
   sample_count_property_->setMin(1);
@@ -102,6 +102,7 @@ void ProbabilisticPoseDisplay::reset() {
   MFDClass::reset();
   latest_message_.reset();
   geometry_dirty_ = false;
+  sampling_streams_.reset();
   freshness_.reset();
   message_renderable_ = false;
   if (visual_) {
@@ -179,8 +180,9 @@ void ProbabilisticPoseDisplay::renderMessage(
     return;
   }
 
-  std::mt19937 generator(
-      static_cast<std::mt19937::result_type>(seed_property_->getInt()));
+  auto& generator = sampling_streams_.generator(
+      static_cast<uint32_t>(seed_property_->getInt()), message->edge_id.empty()
+          ? message->header.frame_id+"->"+message->child_frame_id : message->edge_id);
   std::string error;
   const double axis_length = axis_length_property_->getFloat();
   const std::size_t count = static_cast<std::size_t>(sample_count_property_->getInt());

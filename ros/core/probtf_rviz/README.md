@@ -186,7 +186,7 @@ complete snapshotを使う。
 | `Alpha` | 0.75 | 点群とrepresentativeの基礎透明度 |
 | `Show Representatives` | true | childごとの単一代表軸を表示 |
 | `Representative Radius` | 0.004 m | 代表軸の太さ |
-| `Random Seed` | 29 | edge samplingの安定seed |
+| `Random Seed` | 29 | edgeごとの乱数streamの初期seed（更新ごとに先へ進む） |
 
 Property上の主な範囲は次の通り。
 
@@ -197,7 +197,9 @@ Property上の主な範囲は次の通り。
 - `Alpha`: 0–1
 - `Random Seed`: 0以上
 
-`Random Seed` は見た目を再現するための値であり、入力分布を変更しない。
+`Random Seed` は更新列を再現するための初期値であり、入力分布を変更しない。
+更新ごとに最新の分布から新しい標本を引く。同じedgeを共有する子フレームは、
+同じ描画内だけそのedgeの同じ標本を使い、次回の描画では新しく引く。
 
 ## 7. Root Frame と RViz Fixed Frame
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <probtf_rviz/frame_freshness.hpp>
+#include <probtf_rviz/display_sampling.hpp>
 
 #ifndef Q_MOC_RUN
 #include <probtf_msgs/ProbabilisticTransformStamped.h>
@@ -50,6 +51,7 @@ class ProbabilisticPoseDisplay
   StampFreshness freshness_;
   bool message_renderable_ = false;
   bool geometry_dirty_ = false;
+  DisplaySamplingStreams sampling_streams_;
 
   rviz::FloatProperty* frame_timeout_property_;
   rviz::IntProperty* sample_count_property_;

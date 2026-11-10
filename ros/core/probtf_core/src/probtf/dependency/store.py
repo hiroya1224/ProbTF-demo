@@ -25,10 +25,22 @@ def _cross_key(left, right):
 
 
 def _unique(values):
+    # Provenance normalizes identifiers to plain strings. Avoid scanning the
+    # entire accumulated history for every identifier in that common case.
+    # Keep the original equality-only behavior for general values (including
+    # unhashable objects and objects that compare equal to a preceding string).
     output = []
+    strings = set()
+    strings_only = True
     for value in values:
-        if value not in output:
-            output.append(value)
+        if strings_only and type(value) is str:
+            if value not in strings:
+                strings.add(value)
+                output.append(value)
+        else:
+            strings_only = False
+            if value not in output:
+                output.append(value)
     return tuple(output)
 
 

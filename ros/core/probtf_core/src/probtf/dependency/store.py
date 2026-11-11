@@ -10,7 +10,6 @@ from probtf.dependency.binding import (
     EdgeLatentBinding,
     POSE_PERTURBATION_CONVENTION,
 )
-from probtf.dependency.conditioning import condition_gaussian_linear
 from probtf.dependency.gaussian import (
     GaussianLatentFactor,
     GaussianObservationFactor,
@@ -365,9 +364,21 @@ class GaussianLatentStore:
             ):
                 jacobian[:, slices[factor_id]] = block
 
-            posterior_mean, posterior_covariance, innovation, gain = condition_gaussian_linear(
-                mean, covariance, jacobian, observation.residual,
-                observation.noise_covariance,
+            innovation = (
+                jacobian @ covariance @ jacobian.T
+                + observation.noise_covariance
+            )
+            innovation = 0.5 * (innovation + innovation.T)
+            gain = np.linalg.solve(
+                innovation,
+                jacobian @ covariance,
+            ).T
+            posterior_mean = mean - gain @ observation.residual
+            identity = np.eye(mean.size, dtype=float)
+            joseph = identity - gain @ jacobian
+            posterior_covariance = (
+                joseph @ covariance @ joseph.T
+                + gain @ observation.noise_covariance @ gain.T
             )
             posterior_covariance = immutable_psd_matrix(
                 posterior_covariance,

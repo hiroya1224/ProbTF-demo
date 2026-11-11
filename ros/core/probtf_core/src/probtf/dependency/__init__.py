@@ -4,7 +4,6 @@ from probtf.dependency.binding import (
     EdgeLatentBinding,
     POSE_PERTURBATION_CONVENTION,
 )
-from probtf.dependency.conditioning import condition_gaussian_linear
 from probtf.dependency.gaussian import (
     GaussianLatentFactor,
     GaussianObservationFactor,
@@ -31,6 +30,5 @@ __all__ = [
     "POSE_PERTURBATION_CONVENTION",
     "TransformMomentSummary",
     "apply_mixed_pose_perturbation",
-    "condition_gaussian_linear",
     "inverse_mixed_pose_jacobian",
 ]

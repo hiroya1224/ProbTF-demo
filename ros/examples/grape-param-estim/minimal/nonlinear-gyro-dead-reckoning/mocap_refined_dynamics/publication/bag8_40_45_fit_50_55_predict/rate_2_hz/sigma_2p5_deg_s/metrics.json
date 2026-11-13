@@ -1,0 +1,72 @@
+{
+  "rate_hz": 2.0,
+  "sigma_deg_s": 2.5,
+  "original_gyro_count": 10,
+  "actual_observation_times": [
+    50.000988619000005,
+    50.500988619000005,
+    51.000988619000005,
+    51.500988619000005,
+    52.000961632000006,
+    52.500961632000006,
+    53.000961632000006,
+    53.500961632000006,
+    54.000961632000006,
+    54.50089973
+  ],
+  "methods": {
+    "refined": {
+      "geodesic_rmse_deg": 14.8142865921527,
+      "geodesic_max_deg": 26.970569946220383,
+      "geodesic_final_deg": 26.970569946220383,
+      "rpy_proxy_rmse_deg": [
+        7.74843210074237,
+        5.184199819133251,
+        11.338814109107837
+      ],
+      "final_rpy_two_sigma_delta_deg": [
+        8.025689957825529,
+        7.888650736795816,
+        8.056714865650802
+      ],
+      "common_score_count": 501,
+      "exact_rotation_moment_internal_difference": 1.9984014443252818e-15
+    },
+    "nominal": {
+      "geodesic_rmse_deg": 51.46719834169407,
+      "geodesic_max_deg": 92.15292860556048,
+      "geodesic_final_deg": 92.15292860556048,
+      "rpy_proxy_rmse_deg": [
+        50.588841443067146,
+        9.614500287614785,
+        11.077929891988783
+      ],
+      "final_rpy_two_sigma_delta_deg": [
+        7.997966030984154,
+        7.790769695432693,
+        8.120821826261587
+      ],
+      "common_score_count": 501,
+      "exact_rotation_moment_internal_difference": 3.219646771412954e-15
+    }
+  },
+  "covariance_rad2_s2": [
+    [
+      0.0019038588736669285,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0019038588736669285,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0019038588736669285
+    ]
+  ],
+  "synthetic_sensor_noise_added": false,
+  "same_measurements_all_sigmas": true
+}

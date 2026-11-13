@@ -1,0 +1,60 @@
+{
+  "schema": "grape/mocap-refined-prediction-torque/v1",
+  "role": "nominal-start baseline",
+  "physical_parameters": {
+    "inertia_body_kg_m2": [
+      [
+        0.06500006148331501,
+        -7.278992529997521e-07,
+        1.9015080032991166e-05
+      ],
+      [
+        -7.278992529997521e-07,
+        0.06495265634016498,
+        5.916730498822248e-08
+      ],
+      [
+        1.9015080032991166e-05,
+        5.916730498822248e-08,
+        0.128992110664428
+      ]
+    ],
+    "cog_offset_body_m": [
+      -0.002024708562282,
+      -3.0526578941e-05,
+      0.009509749599446
+    ],
+    "force_effectiveness": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "reaction_torque_effectiveness_fixed": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "thrust_tau_seconds": 0.004983183000000226
+  },
+  "residual_mean_body_nm": [
+    -0.07472952835456345,
+    -0.12564988566136093,
+    -0.012022244208293896
+  ],
+  "training_time_seconds": [
+    40.005916608,
+    44.998162786
+  ],
+  "profile_support_seconds": [
+    40.005916608,
+    55.000988619000005
+  ],
+  "torque_interpolation": "piecewise linear on bounded-spacing deterministic actuator grid",
+  "maximum_profile_step_seconds": 0.0009999381175731514,
+  "command_model": "same exact existing first-order ZOH thrust response and fixed physical saturation",
+  "gimbal_model": "actual measured gimbal, linearly interpolated at original header times",
+  "heldout_mocap_or_gyro_used_to_construct_torque": false,
+  "prediction_band": "conditional on fitted physical point, fixed control profile and frozen past residual mean; only requested omega law is propagated"
+}

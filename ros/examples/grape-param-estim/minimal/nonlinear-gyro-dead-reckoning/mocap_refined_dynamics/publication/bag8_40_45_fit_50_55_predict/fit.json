@@ -1,0 +1,210 @@
+{
+  "schema": "grape/mocap-refined-rotational-dynamics/v1",
+  "model_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json",
+  "model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+  "training_time_seconds": [
+    40.005916608,
+    44.998162786
+  ],
+  "training_count": 600,
+  "objective": "sum_n time_weight[n] ||J alpha + omega cross(J omega) - actuator_torque||^2",
+  "gyro_or_evaluation_mocap_used_in_fit": false,
+  "nominal_start": true,
+  "random_multistart": false,
+  "regularization": false,
+  "inertia_scale_gauge": "trace(J) fixed at nominal; rotational equation alone cannot identify common J/torque scale",
+  "fixed_trace_inertia_kg_m2": 0.258944828487908,
+  "inertia_chart": "C=s*C0^(1/2) exp(sum_5 z_i B_i) C0^(1/2), tr(C)=tr(J_nom)/2; J=tr(C)I-C; tracefree symmetric B_i",
+  "mass": "nominal, irrelevant to rotational-only equation; not identified",
+  "fixed_geometry": "nominal rotor locations, arm yaws, gimbal thrust-origin offset and reaction moment/force ratio",
+  "coordinate_labels": [
+    "inertia_shape_0",
+    "inertia_shape_1",
+    "inertia_shape_2",
+    "inertia_shape_3",
+    "inertia_shape_4",
+    "cog_delta_x_m",
+    "cog_delta_y_m",
+    "cog_delta_z_m",
+    "log_force_effectiveness_0",
+    "log_force_effectiveness_1",
+    "log_force_effectiveness_2",
+    "log_force_effectiveness_3",
+    "log_thrust_tau_seconds"
+  ],
+  "physical_labels": [
+    "J_xx",
+    "J_yy",
+    "J_zz",
+    "J_xy",
+    "J_xz",
+    "J_yz",
+    "cog_x",
+    "cog_y",
+    "cog_z",
+    "force_effectiveness_0",
+    "force_effectiveness_1",
+    "force_effectiveness_2",
+    "force_effectiveness_3",
+    "thrust_tau_seconds"
+  ],
+  "initial": {
+    "inertia_body_kg_m2": [
+      [
+        0.06500006148331501,
+        -7.278992529997521e-07,
+        1.9015080032991166e-05
+      ],
+      [
+        -7.278992529997521e-07,
+        0.06495265634016498,
+        5.916730498822248e-08
+      ],
+      [
+        1.9015080032991166e-05,
+        5.916730498822248e-08,
+        0.128992110664428
+      ]
+    ],
+    "cog_offset_body_m": [
+      -0.002024708562282,
+      -3.0526578941e-05,
+      0.009509749599446
+    ],
+    "force_effectiveness": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "reaction_torque_effectiveness_fixed": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "thrust_tau_seconds": 0.004983183000000226
+  },
+  "refined": {
+    "inertia_body_kg_m2": [
+      [
+        0.10255160272242744,
+        -0.012757295205688543,
+        0.00010843231890875164
+      ],
+      [
+        -0.012757295205688543,
+        0.029269707293920436,
+        -0.014818869564709177
+      ],
+      [
+        0.00010843231890875164,
+        -0.014818869564709177,
+        0.12712351847156012
+      ]
+    ],
+    "cog_offset_body_m": [
+      0.049392549201294336,
+      0.012020075198026288,
+      0.03041672501777657
+    ],
+    "force_effectiveness": [
+      0.34621249635264545,
+      0.5300467179268535,
+      0.6102280592678686,
+      0.3475665039406119
+    ],
+    "reaction_torque_effectiveness_fixed": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "thrust_tau_seconds": 0.24427826420427512
+  },
+  "initial_tau_source": "median retained command period; numerical seed, not a physical nominal value",
+  "initial_jacobian_column_norm": [
+    0.031838057004526334,
+    0.0002274046688761978,
+    0.031867584466072636,
+    0.0013576089984032498,
+    0.0025702874104603125,
+    28.485629384440294,
+    28.52999470658658,
+    1.9171622907527124,
+    2.2971826762016767,
+    2.1737831652372086,
+    2.220198303007387,
+    2.3487451914825335,
+    0.0038916348915942053
+  ],
+  "initial_training_residual_rms_nm": [
+    0.0808064249743236,
+    0.1563001757857107,
+    0.03139587887952224
+  ],
+  "refined_training_residual_rms_nm": [
+    0.02655782204891687,
+    0.017021584796767717,
+    0.014752623063699512
+  ],
+  "initial_training_residual_after_mean_rms_nm": [
+    0.0307437133254181,
+    0.09296155755973,
+    0.029002876664458214
+  ],
+  "refined_training_residual_after_mean_rms_nm": [
+    0.02655781181817656,
+    0.017021491573165983,
+    0.014737207010293437
+  ],
+  "initial_residual_mean_body_nm": [
+    -0.07472952835456345,
+    -0.12564988566136093,
+    -0.012022244208293896
+  ],
+  "refined_residual_mean_body_nm": [
+    2.3311204524360048e-05,
+    -5.633487546296481e-05,
+    0.0006742527681490941
+  ],
+  "residual_mean": "computed only after physical LS from completed training prefix; frozen additive torque in subsequent prediction; not a free fit nuisance",
+  "optimizer": {
+    "method": "scipy.optimize.least_squares trf",
+    "loss": "ordinary quadratic",
+    "success": true,
+    "status": 2,
+    "message": "`ftol` termination condition is satisfied.",
+    "nfev": 74,
+    "njev": 66,
+    "unique_evaluations": 74,
+    "max_nfev": 300,
+    "cost": 0.0006063460741175439,
+    "optimality": 5.598858071663524e-09,
+    "ftol": 1e-10,
+    "xtol": 1e-10,
+    "gtol": 1e-10
+  },
+  "jacobian_rank": 12,
+  "coordinate_dimension": 13,
+  "jacobian_singular_values": [
+    13.089010209931008,
+    13.063357093683429,
+    0.717276333222055,
+    0.120869180187066,
+    0.07704336826220388,
+    0.03142621795512526,
+    0.02294906411646082,
+    0.019294307925321,
+    0.01468481177603686,
+    0.00578725176160469,
+    0.0005645489909467445,
+    6.427552772650355e-05,
+    9.131238817615495e-13
+  ],
+  "numerical_rank_tolerance": 5.2314193816628974e-12,
+  "condition_number": 14334320316626.035,
+  "covariance_role": "Gauss-Newton chart-support curvature diagnostic conditional on SG and fixed controls; overlapping SG errors are correlated and a near-boundary inertia chart can collapse, so not a calibrated physical posterior; discarded numerical chart directions do not mean physical certainty; see separate identifiability audit",
+  "finite_nonconvergence_policy": "save optimizer residuals and continue prediction; no quality rejection",
+  "future_residual_or_dense_gyro_used": false
+}

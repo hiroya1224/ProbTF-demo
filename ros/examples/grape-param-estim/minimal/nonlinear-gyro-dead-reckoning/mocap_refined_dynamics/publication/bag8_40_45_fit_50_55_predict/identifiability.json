@@ -1,0 +1,96 @@
+{
+  "schema": "grape/mocap-refined-rotational-identifiability-audit/v1",
+  "role": "read-only training diagnostics; no fit or prediction acceptance gate",
+  "inertia_eigenvalues_kg_m2": [
+    0.025024777237622323,
+    0.10444763700913189,
+    0.1294724142411538
+  ],
+  "physical_second_moment_eigenvalues_kg_m2": [
+    2.800226193618841e-12,
+    0.025024777234822094,
+    0.1044476370063317
+  ],
+  "physical_second_moment_min_over_trace": 2.1627975426044113e-11,
+  "inertia_triangle_margin_kg_m2": 5.60040902541914e-12,
+  "boundary_interpretation": "C=tr(J)/2 I-J is the physical second moment. A small positive C eigenvalue means the unconstrained log chart approaches the planar-body boundary; it is not set to zero. Vanishing sensitivity of that chart is distinct from an additional structurally unobservable physical parameter.",
+  "inertia_chart_physical_jacobian_singular_values": [
+    0.04548959748275121,
+    0.04147381647392467,
+    0.0012730753480890385,
+    0.00020174339033168906,
+    4.02622467773102e-12
+  ],
+  "full_physical_decode_jacobian_singular_values": [
+    1.0,
+    1.0,
+    1.0,
+    0.6102280592678686,
+    0.5300467179268535,
+    0.3475665039406119,
+    0.34621249635264545,
+    0.24427826420427512,
+    0.045489597482751214,
+    0.041473816473924674,
+    0.0012730753480890377,
+    0.00020174339033168906,
+    4.02622467773102e-12
+  ],
+  "weakest_chart_residual_vs_decode_direction_abs_cosine": 0.9999999999999998,
+  "residual_chart_jacobian_rank": 12,
+  "residual_chart_jacobian_singular_values": [
+    13.089010209931008,
+    13.063357093683429,
+    0.717276333222055,
+    0.120869180187066,
+    0.07704336826220388,
+    0.03142621795512526,
+    0.02294906411646082,
+    0.019294307925321,
+    0.01468481177603686,
+    0.00578725176160469,
+    0.0005645489909467445,
+    6.427552772650355e-05,
+    9.131238817615495e-13
+  ],
+  "residual_chart_numerical_rank_tolerance": 5.2314193816628974e-12,
+  "direct_physical_residual_jacobian_rank": 13,
+  "direct_physical_residual_jacobian_singular_values": [
+    13.089044172663638,
+    13.063399405949426,
+    0.7488935739596432,
+    0.5053664642391247,
+    0.4890987276677032,
+    0.4646314731949539,
+    0.22840954388020213,
+    0.22524363853959634,
+    0.11932443796550356,
+    0.0750032128632955,
+    0.016486983456602176,
+    0.013121711943426179,
+    0.005536139333457493
+  ],
+  "direct_physical_numerical_rank_tolerance": 5.231432955897685e-12,
+  "direct_physical_coordinates": "five Frobenius-orthonormal trace-free symmetric inertia perturbations in kg m^2; CoG xyz in m; four log force effectiveness coordinates; log thrust tau",
+  "direct_physical_spectrum_caution": "Mixed coordinate units; not a unit-independent condition-number. Full local rank does not establish global identifiability or calibrated uncertainty.",
+  "covariance_caution": "Log-chart Gauss-Newton support covariance is only local curvature. Near a physical inertia boundary it is not a reliable Gaussian physical posterior; a discarded numerical chart direction must not be interpreted as certain. No parameter covariance is used for the angular-rate comparison bands.",
+  "training_mean_actuator_force_body_n": [
+    0.4529762032175405,
+    -0.2260940432912432,
+    12.976421841305182
+  ],
+  "nominal_mass_weight_n": 23.061294513940194,
+  "force_scope": "Rotational equation only: translational force balance and mass are not fitted. Effectiveness is an effective rotational calibration in the fixed nominal trace(J) scale gauge, not independently recovered thrust calibration.",
+  "training_gyroscopic_torque_rms_nm": [
+    0.0008759338827389876,
+    0.00012693275196939808,
+    0.00043076426947365957
+  ],
+  "training_inertial_torque_rms_nm": [
+    0.029559037232948015,
+    0.01683749155568759,
+    0.019837679154520976
+  ],
+  "heldout_or_future_inputs_used": false,
+  "state_or_covariance_modified": false
+}

@@ -1,0 +1,31 @@
+{
+  "method": "replace unused reference/dense/past-sensor arrays with NaN; rerun predictor with unchanged sparse rows, q0, frozen model and torque",
+  "poisoned_keys": [
+    "gyro",
+    "dense_imu_time",
+    "dense_gyro",
+    "dense_imu_source_index",
+    "past_calibration_gyro_time",
+    "past_calibration_gyro",
+    "past_calibration_source_index",
+    "gyro_noise_covariance",
+    "mocap_time",
+    "mocap_quaternion_xyzw",
+    "mocap_position",
+    "mocap_source_index",
+    "mocap_stamp_ns",
+    "mocap_record_ns"
+  ],
+  "fields_bitwise_equal": {
+    "time": true,
+    "quaternion_second_moment": true,
+    "rotation_mean": true,
+    "rotation_covariance_colmajor": true,
+    "omega_mean_rad_s": true,
+    "omega_covariance_rad2_s2": true
+  },
+  "all_bitwise_equal": true,
+  "sparse_readings_retained": 25,
+  "sigma_deg_s": 2.5,
+  "failure_policy": "record result; not a scientific state-acceptance or covariance gate"
+}

@@ -2,6 +2,8 @@
 
 2026-11-13。第4章の一定角速度による増分写像を、制御入力を含む非線形運動方程式の流れに置き換えた独立比較。既存の同定値・図・coreは変更していない。
 
+追加の[mocap微分・公称値からの最小二乗refine](mocap_refined_dynamics/README.md)では、40〜45秒で回転モデルを調整し、50〜55秒の0.5／2／5 Hz・6ノイズ条件を別保存している。以下の公称モデルの元結果は保持した。
+
 結果は [4条件の一覧図](publication/bag8_50_55s/noise_overview.pdf) と [数値表CSV](publication/bag8_50_55s/comparison_table.csv)、以下の別ファイルに保存する。各PDFはRPY比較・角速度・伝播幅と姿勢誤差の3ページである。
 
 | 各軸の角速度標準偏差 | 個別PDF | RPY図 |

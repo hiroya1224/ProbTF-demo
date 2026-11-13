@@ -1,0 +1,28 @@
+{
+  "role": "numerical sensitivity diagnostic only; does not change model, law, or accepted observations",
+  "original_max_step_seconds": 0.002,
+  "finer_max_step_seconds": 0.001,
+  "sigma_deg_s": 2.5,
+  "gyro_count": 25,
+  "max_quaternion_second_moment_difference": 1.3370903029046033e-07,
+  "max_rotation_mean_difference": 2.683996485827733e-07,
+  "max_mean_omega_difference_rad_s": 1.6405495058754993e-06,
+  "max_rpy_proxy_difference_deg": [
+    1.736558454863564e-06,
+    1.5289178788059084e-05,
+    1.1919620153538347e-05
+  ],
+  "actuator_interpolation_queries": 5001,
+  "actuator_interpolation_torque_rms_nm": [
+    8.848836936106366e-07,
+    2.94230235392146e-06,
+    7.067940330085391e-06
+  ],
+  "actuator_interpolation_alpha_rms_rad_s2": [
+    1.9915229988147215e-05,
+    0.00011861954423972781,
+    6.0570766619237835e-05
+  ],
+  "direct_actuator": "same exact existing ZOH first-order response, same point and measured-gimbal interpolation at profile-cell midpoints",
+  "heldout_gyro_or_mocap_used": false
+}

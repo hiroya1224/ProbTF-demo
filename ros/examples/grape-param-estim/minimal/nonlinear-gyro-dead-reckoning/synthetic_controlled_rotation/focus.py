@@ -24,18 +24,11 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def run(output, angular_rate_scale=1./75.):
+def run(output):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     rate, sigma = .5, 5.
-    angular_rate_scale = float(angular_rate_scale)
-    if not np.isfinite(angular_rate_scale) or angular_rate_scale <= 0.:
-        raise ValueError('Positive finite angular-rate scale required')
-    if angular_rate_scale == 1.:
-        data, metadata = generate_dataset(motion_profile='three_frequency')
-    else:
-        from scaled_motion import generate_scaled_dataset
-        data, metadata = generate_scaled_dataset(angular_rate_scale=angular_rate_scale)
+    data, metadata = generate_dataset(motion_profile='three_frequency')
     np.savez_compressed(output/'input.npz', **data)
     _shared.write_json(output/'input.json', metadata)
     selected, acquisitions = _shared.select_gyro(data, rate)
@@ -62,13 +55,11 @@ def run(output, angular_rate_scale=1./75.):
         np.savez_compressed(output/(method+'_rpy_plot.npz'), **rpy_curves[method])
         np.savez_compressed(output/(method+'_gyro_plot.npz'), **curve)
     _shared.write_json(output/'gyro_events.json', events)
-    render_focused(output, rpy_curves, gyro_curves, acquisitions, rate=rate, sigma=sigma,
-                   angular_rate_scale=angular_rate_scale)
+    render_focused(output, rpy_curves, gyro_curves, acquisitions, rate=rate, sigma=sigma)
     source_paths = [HERE/name for name in ('focus.py', 'focused_plotting.py', 'trajectory.py',
-                    'audit.py', 'run.py', 'gyro_progress_data.py', 'scaled_motion.py')]
+                    'audit.py', 'run.py', 'gyro_progress_data.py')]
     summary = dict(schema='grape/synthetic-three-frequency-focused/v1',
         rate_hz=rate, assumed_sigma_deg_s=sigma, duration_seconds=5., generation=metadata,
-        angular_rate_scale=angular_rate_scale,
         layout=dict(top=['roll', 'pitch', 'yaw'], bottom=['omega_x', 'omega_y', 'omega_z']),
         methods=metrics, gyro_moment_verification={m: e['metadata'] for m, e in events.items()},
         known_input='same fixed J and 1kHz generated inverse-Euler torque for both methods',
@@ -87,13 +78,9 @@ def run(output, angular_rate_scale=1./75.):
              '角速度は観測前後を同じ時刻に両方保持し、幅を見せるための分散操作を行っていない。', '',
              '5 deg/sは従来と同じ入力Gaussianの仮定標準偏差。生成gyroのノイズは0.2 deg/s、'
              '固定biasは[0.03,-0.02,0.04] deg/s。既知の同じ慣性・入力トルクを両方式へ渡す。', '',
-             f'body角速度を元の3周波数版の{angular_rate_scale:.15g}倍とし、角加速度も同率にした。'
-             '姿勢を同じ初期姿勢から再積分し、トルクを運動方程式から作り直した。'
-             'RPYや表示値だけを割った処理ではない。以下は元の運動の係数。', '',
-             '| 元の軸 | 元の振幅 [deg] | 周波数 [Hz] | 位相 [rad] |', '|---|---|---|---|']
-    source_motion = metadata.get('source_motion', metadata)
+             '| 軸 | 振幅 [deg] | 周波数 [Hz] | 位相 [rad] |', '|---|---|---|---|']
     for i, axis in enumerate(('roll', 'pitch', 'yaw')):
-        lines.append('| '+axis+' | '+ ' | '.join(', '.join(f'{v:g}' for v in source_motion[key][i])
+        lines.append('| '+axis+' | '+ ' | '.join(', '.join(f'{v:g}' for v in metadata[key][i])
                      for key in ('rpy_amplitude_deg', 'rpy_frequency_hz', 'rpy_phase_rad'))+' |')
     lines.extend(['', '元の2周波数の図・結果は保持。新しい入力・測定列・取得時刻・分布モーメント・描画数値を別保存した。',
                   '[検証](audit.json) / [数値要約](summary.json) / [方法と再現](../../README.md)', ''])
@@ -108,7 +95,5 @@ def run(output, angular_rate_scale=1./75.):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=Path('/tmp/synthetic-three-frequency-rate75-20261113'))
-    parser.add_argument('--angular-rate-scale', type=float, default=1./75.)
-    args = parser.parse_args()
-    run(args.output, args.angular_rate_scale)
+    parser.add_argument('--output', type=Path, default=Path('/tmp/synthetic-three-frequency-20261113'))
+    run(parser.parse_args().output)

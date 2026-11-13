@@ -18,7 +18,7 @@ METHODS = ('linear_forced', 'nonlinear')
 
 
 def render_focused(destination, rpy_curves, gyro_curves, acquisitions,
-                   rate=.5, sigma=5., angular_rate_scale=1.):
+                   rate=.5, sigma=5.):
     """Save the requested RPY-over-body-omega 2-by-3 PDF and PNG.
 
     RPY curves contain time, reference_rpy_rad, rpy_proxy_rad and
@@ -80,9 +80,7 @@ def render_focused(destination, rpy_curves, gyro_curves, acquisitions,
     handles, labels = axes[1, 0].get_legend_handles_labels()
     figure.legend(handles, labels, loc='upper center', bbox_to_anchor=(.5, .945),
                   ncol=4, fontsize=11, frameon=False)
-    motion_label = ('smooth three-frequency motion' if angular_rate_scale == 1. else
-                    f'three-frequency source; body rate x {angular_rate_scale:.6g}')
-    figure.suptitle(f'{rate:g} Hz gyro / assumed sigma = {sigma:g} deg/s / {motion_label}',
+    figure.suptitle(f'{rate:g} Hz gyro / assumed sigma = {sigma:g} deg/s / smooth three-frequency motion',
                    fontsize=15, y=.995)
     figure.text(.045, .012,
                 'Shading: +/-2sigma; RPY uses local Euler moment proxies. Gray lines: gyro acquisitions. '

@@ -20,9 +20,8 @@ from trajectory import trajectory, INERTIA
 from engine import predict_factorized
 
 
-def _scores(prediction, motion_profile='two_frequency', *, evaluate=None):
-    reference = (trajectory(prediction['time'], motion_profile=motion_profile)
-                 if evaluate is None else evaluate(prediction['time']))
+def _scores(prediction, motion_profile='two_frequency'):
+    reference = trajectory(prediction['time'], motion_profile=motion_profile)
     original = Rotation.from_quat(reference['quaternion_xyzw'])
     estimated = Rotation.from_euler('xyz', prediction['rpy_mean_rad'])
     error = (original.inv()*estimated).magnitude()
@@ -40,18 +39,11 @@ def audit_dataset(data, profile, *, rates=(.5, 2., 5.)):
     explicitly separate zero-noise/no-bias unit experiment below. The
     recorded ``motion_profile`` selects the prescribed analytic reference;
     old saved datasets without that key retain the two-frequency profile.
-    When ``angular_rate_scale`` is present, the scaled body-rate law and its
-    numerically integrated attitude are used consistently instead.
     ``rates`` limits only this separate diagnostic, never a primary update.
     """
     start, end = np.asarray(data['time'], float)
     motion_profile = str(np.asarray(data.get('motion_profile', 'two_frequency')).item())
-    angular_rate_scale = float(np.asarray(data.get('angular_rate_scale', 1.)).item())
-    if 'angular_rate_scale' in data:
-        from scaled_motion import scaled_trajectory
-        evaluate = lambda stamps: scaled_trajectory(stamps, angular_rate_scale=angular_rate_scale)
-    else:
-        evaluate = lambda stamps: trajectory(stamps, motion_profile=motion_profile)
+    evaluate = lambda stamps: trajectory(stamps, motion_profile=motion_profile)
     step = 1e-5
     times = np.linspace(start+2*step, end-2*step, 101)
     middle = evaluate(times)
@@ -78,7 +70,6 @@ def audit_dataset(data, profile, *, rates=(.5, 2., 5.)):
     result = dict(schema='grape/synthetic-controlled-rotation-audit/v1',
         role='read-only construction and integration checks; no state acceptance gate',
         motion_profile=motion_profile,
-        angular_rate_scale=angular_rate_scale,
         analytic_body_omega_vs_rotation_derivative_max_abs_rad_s=float(np.max(np.abs(
             omega_numerical-middle['omega_body_rad_s']))),
         analytic_body_alpha_vs_omega_derivative_max_abs_rad_s2=float(np.max(np.abs(
@@ -95,19 +86,6 @@ def audit_dataset(data, profile, *, rates=(.5, 2., 5.)):
         physical_second_moment_eigenvalues_kg_m2=np.linalg.eigvalsh(second).tolist(),
         trajectory_changed_using_comparison_results=False,
         estimation_monte_carlo=False)
-    if 'angular_rate_scale' in data:
-        unscaled = trajectory(times, motion_profile=motion_profile)
-        source_dense = trajectory(np.linspace(start, end, 1001), motion_profile=motion_profile)
-        result['scaled_motion_consistency'] = dict(
-            operation='body omega(t) and alpha(t) scaled at unchanged physical times; attitude is reintegrated',
-            omega_vs_scaled_source_max_abs_rad_s=float(np.max(np.abs(
-                middle['omega_body_rad_s']-angular_rate_scale*unscaled['omega_body_rad_s']))),
-            alpha_vs_scaled_source_max_abs_rad_s2=float(np.max(np.abs(
-                middle['alpha_body_rad_s2']-angular_rate_scale*unscaled['alpha_body_rad_s2']))),
-            gyroscopic_vs_squared_scale_max_abs_nm=float(np.max(np.abs(
-                middle['gyroscopic_torque_nm']-angular_rate_scale**2*unscaled['gyroscopic_torque_nm']))),
-            source_peak_axis_body_omega_deg_s=np.rad2deg(np.max(np.abs(source_dense['omega_body_rad_s']), axis=0)).tolist(),
-            scaled_peak_axis_body_omega_deg_s=np.rad2deg(np.max(np.abs(dense['omega_body_rad_s']), axis=0)).tolist())
     rate_results = {}
     native = np.asarray(data['imu_time'], float)
     native_ns = np.asarray(data.get('imu_stamp_ns', np.rint(native*1e9)), np.int64)
@@ -122,7 +100,7 @@ def audit_dataset(data, profile, *, rates=(.5, 2., 5.)):
         methods = {}
         for mode in ('nonlinear', 'linear_forced'):
             prediction = predict_factorized(ideal, profile, 0., mode, output_dt=.02, max_step=.002)
-            methods[mode] = _scores(prediction, motion_profile=motion_profile, evaluate=evaluate)
+            methods[mode] = _scores(prediction, motion_profile=motion_profile)
         rate_results[str(rate)] = dict(observation_count=len(selected),
             acquisition_source_index=np.asarray(data.get('imu_source_index', np.arange(len(native))))[selected_index].tolist(),
             acquisition_times_seconds=selected.tolist(), methods=methods)

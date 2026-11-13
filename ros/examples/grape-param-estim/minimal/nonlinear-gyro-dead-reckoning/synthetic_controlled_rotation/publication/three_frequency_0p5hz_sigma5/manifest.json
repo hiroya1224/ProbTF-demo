@@ -1,0 +1,83 @@
+{
+  "schema": "grape/synthetic-focused-publication/v1",
+  "files": [
+    {
+      "path": "INDEX.md",
+      "bytes": 1283,
+      "sha256": "6d63a5595bff6b1e19ce5466274c881f8caf218e3b89bd4a7062317422b6eca6"
+    },
+    {
+      "path": "acquisitions.npz",
+      "bytes": 1092,
+      "sha256": "5710180a117717e6b32117d21ced06dfce2748d651c60cbc566ca60ef9b1e8f7"
+    },
+    {
+      "path": "attitude_and_gyro.pdf",
+      "bytes": 158127,
+      "sha256": "1841d265a44c4a93862dfd20c8fbf98992fd67c60c1c476fd42ada4f32f01464"
+    },
+    {
+      "path": "attitude_and_gyro.png",
+      "bytes": 570946,
+      "sha256": "5316868863a577d6710c5290da2385aa4cea9798d03dce8aa523cef827282b58"
+    },
+    {
+      "path": "audit.json",
+      "bytes": 2438,
+      "sha256": "de0b5a1b7306329d352051d24e2b3debc702261073d42de23421705da20d6cf2"
+    },
+    {
+      "path": "gyro_events.json",
+      "bytes": 13059,
+      "sha256": "639fcbd2bc6687e3dbe3dc51e76597d94144e2ab408acb00fdb9ff7cd64fff8f"
+    },
+    {
+      "path": "input.json",
+      "bytes": 2983,
+      "sha256": "84a37e93bcd978b7a3ec1059cbad5a6c8192244ba36408473bb2b26bd1ed6b84"
+    },
+    {
+      "path": "input.npz",
+      "bytes": 384670,
+      "sha256": "9eb18a291da6437b700969f6a855405ceb59833459f590f8475ff70e9fd39d41"
+    },
+    {
+      "path": "linear_forced.npz",
+      "bytes": 490209,
+      "sha256": "fc928670dfb4769bb7f8b1ef2637f1b2e7c93d2670d33cf371fb615b4865b4c2"
+    },
+    {
+      "path": "linear_forced_gyro_plot.npz",
+      "bytes": 32898,
+      "sha256": "ebf5df4b6d539aafa686dfd3d9283747dbc1390d8f71303f969026129ac20d0e"
+    },
+    {
+      "path": "linear_forced_rpy_plot.npz",
+      "bytes": 65337,
+      "sha256": "c9030f4ce75513e5c41baefffd24c9676eac625c8853cdad27ba022a7e69cd14"
+    },
+    {
+      "path": "nonlinear.npz",
+      "bytes": 540196,
+      "sha256": "9a9258dcd91fdb98372511ea38888baf1c2d17ed4b3273a9ca612196afe9cfb7"
+    },
+    {
+      "path": "nonlinear_gyro_plot.npz",
+      "bytes": 51415,
+      "sha256": "ab38fcac7c6031826a0dff2cdb10f8f87555fb6eb3f5a0a187718c7e72e76fd7"
+    },
+    {
+      "path": "nonlinear_rpy_plot.npz",
+      "bytes": 63995,
+      "sha256": "b87708834b88443aaaa4f615e97777379e05449566a341ccd454aec4b9b6d11c"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 8830,
+      "sha256": "5d9577bad3911e7e4947e3d53183f4c9c756edcc9b6058ec07096ad09c57e682"
+    }
+  ],
+  "bytes_excluding_manifest": 2387478,
+  "old_results_overwritten": false,
+  "raw_bags_videos_or_intermediates_included": false
+}

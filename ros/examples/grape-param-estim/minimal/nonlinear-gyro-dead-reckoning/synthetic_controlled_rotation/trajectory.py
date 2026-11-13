@@ -21,22 +21,41 @@ FREQUENCY_HZ = np.array([[.42, .13], [.31, .19], [.37, .11]])
 PHASE_RAD = np.array([[.2, 0.], [-.4, .6], [.5, -.2]])
 TORQUE_RATE_HZ = 1000.
 
+MOTION_PROFILES = {
+    'two_frequency': dict(amplitude_deg=AMPLITUDE_DEG,
+                          frequency_hz=FREQUENCY_HZ, phase_rad=PHASE_RAD),
+    # Three substantial, distinct frequencies per axis, fixed before replay.
+    'three_frequency': dict(
+        amplitude_deg=np.array([[23., 15., 9.], [17., 10., 7.], [32., 21., 12.]]),
+        frequency_hz=np.array([[.29, .73, 1.17], [.37, .83, 1.31], [.23, .61, 1.03]]),
+        phase_rad=np.array([[.2, 1.1, -.7], [-.4, .8, 1.7], [.5, -1.2, .4]])),
+}
 
-def trajectory(time):
+
+def _motion_parameters(motion_profile):
+    try:
+        return MOTION_PROFILES[motion_profile]
+    except (KeyError, TypeError):
+        raise ValueError('Unknown motion profile: '+str(motion_profile)) from None
+
+
+def trajectory(time, motion_profile='two_frequency'):
     """Evaluate analytic R=Rz(yaw) Ry(pitch) Rx(roll) and body derivatives.
 
     Input may be a scalar or an array.  Every vector-valued result has shape
     ``np.shape(time)+(dimension,)``.  Quaternion order is xyzw, Hamilton;
     its rotation maps body vectors to world vectors.  Omega is expressed in
-    the body frame and is not the coordinate derivative of RPY.
+    the body frame and is not the coordinate derivative of RPY. The original
+    two-frequency motion remains the default for earlier-result replay.
     """
     stamps = np.asarray(time, dtype=float)
     if not np.isfinite(stamps).all():
         raise ValueError('Synthetic trajectory times must be finite')
     flat = stamps.reshape(-1)
-    amplitude = np.deg2rad(AMPLITUDE_DEG)
-    frequency = 2.*np.pi*FREQUENCY_HZ
-    phase = flat[:, None, None]*frequency[None, :, :] + PHASE_RAD[None, :, :]
+    parameters = _motion_parameters(motion_profile)
+    amplitude = np.deg2rad(parameters['amplitude_deg'])
+    frequency = 2.*np.pi*parameters['frequency_hz']
+    phase = flat[:, None, None]*frequency[None, :, :] + parameters['phase_rad'][None, :, :]
     rpy = np.sum(amplitude[None, :, :]*np.sin(phase), axis=-1)
     velocity = np.sum((amplitude*frequency)[None, :, :]*np.cos(phase), axis=-1)
     acceleration = np.sum(-(amplitude*frequency**2)[None, :, :]*np.sin(phase), axis=-1)
@@ -72,7 +91,8 @@ def _native_grid(duration, rate):
     return np.arange(count+1, dtype=float)/rate
 
 
-def generate_dataset(duration=5., sensor_rate=200., seed=20261113):
+def generate_dataset(duration=5., sensor_rate=200., seed=20261113,
+                     motion_profile='two_frequency'):
     """Generate one saved realization shared by all acquisition/noise cases.
 
     The fixed 0.2 deg/s isotropic generation noise differs from the assumed
@@ -85,6 +105,7 @@ def generate_dataset(duration=5., sensor_rate=200., seed=20261113):
     if (not np.isfinite(duration) or duration <= 0.
             or not np.isfinite(sensor_rate) or sensor_rate <= 0.):
         raise ValueError('Positive finite duration and sensor rate required')
+    parameters = _motion_parameters(motion_profile)
     nominal_imu_time = _native_grid(duration, sensor_rate)
     stamps_ns = np.rint(nominal_imu_time*1e9).astype(np.int64)
     imu_time = stamps_ns.astype(float)*1e-9
@@ -92,9 +113,9 @@ def generate_dataset(duration=5., sensor_rate=200., seed=20261113):
         raise ValueError('Generate at least two gyro readings')
     reference_time = np.unique(np.r_[imu_time, duration])
     torque_time = np.unique(np.r_[_native_grid(duration, TORQUE_RATE_HZ), duration])
-    native = trajectory(imu_time)
-    reference = trajectory(reference_time)
-    control = trajectory(torque_time)
+    native = trajectory(imu_time, motion_profile)
+    reference = trajectory(reference_time, motion_profile)
+    control = trajectory(torque_time, motion_profile)
     covariance = np.eye(3)*np.deg2rad(GYRO_NOISE_SIGMA_DEG_S)**2
     bias = np.deg2rad(GYRO_BIAS_DEG_S)
     generator = np.random.default_rng(int(seed))
@@ -102,8 +123,12 @@ def generate_dataset(duration=5., sensor_rate=200., seed=20261113):
                              size=native['omega_body_rad_s'].shape)
     gyro = native['omega_body_rad_s']+bias+noise
     indices = np.arange(len(imu_time), dtype=np.int64)
-    q0 = trajectory(0.)['quaternion_xyzw'][[3, 0, 1, 2]]
+    q0 = trajectory(0., motion_profile)['quaternion_xyzw'][[3, 0, 1, 2]]
     data = dict(time=np.array([0., duration]), imu_time=imu_time,
+        motion_profile=np.asarray(motion_profile),
+        motion_amplitude_deg=parameters['amplitude_deg'].copy(),
+        motion_frequency_hz=parameters['frequency_hz'].copy(),
+        motion_phase_rad=parameters['phase_rad'].copy(),
         imu_source_index=indices, imu_stamp_ns=stamps_ns, imu_record_ns=stamps_ns.copy(),
         gyro=gyro, gyro_true_body_rad_s=native['omega_body_rad_s'],
         gyro_realized_noise_rad_s=noise, gyro_bias_rad_s=bias,
@@ -124,8 +149,10 @@ def generate_dataset(duration=5., sensor_rate=200., seed=20261113):
         requested_window_seconds=[0., duration], actual_window_seconds=[0., duration],
         motion='prescribed smooth multi-frequency RPY motion; kinematic orientation experiment, not a full six-DoF flight/aircraft simulation',
         rotation='Rz(yaw) Ry(pitch) Rx(roll), body-to-world, Hamilton quaternion xyzw',
-        rpy_amplitude_deg=AMPLITUDE_DEG.tolist(), rpy_frequency_hz=FREQUENCY_HZ.tolist(),
-        rpy_phase_rad=PHASE_RAD.tolist(),
+        motion_profile=motion_profile, frequency_components_per_axis=int(parameters['frequency_hz'].shape[1]),
+        rpy_amplitude_deg=parameters['amplitude_deg'].tolist(),
+        rpy_frequency_hz=parameters['frequency_hz'].tolist(),
+        rpy_phase_rad=parameters['phase_rad'].tolist(),
         kinematics='analytic first/second derivatives of the prescribed RPY curve; exact body omega and alpha via RzRyRx rate mapping',
         inertia_body_kg_m2=INERTIA.tolist(),
         inertia_scope='known fixed physical tensor shared by generator and both comparison methods; no parameter fit',

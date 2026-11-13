@@ -1,0 +1,266 @@
+{
+  "schema": "grape/synthetic-three-frequency-focused/v1",
+  "rate_hz": 0.5,
+  "assumed_sigma_deg_s": 5.0,
+  "duration_seconds": 5.0,
+  "generation": {
+    "schema": "grape/synthetic-controlled-rotation-input/v1",
+    "duration_seconds": 5.0,
+    "source_clock": "synthetic seconds from t=0; ns clocks saved without physical transport delay",
+    "sensor_rate_hz": 200.0,
+    "sensor_count": 1001,
+    "requested_window_seconds": [
+      0.0,
+      5.0
+    ],
+    "actual_window_seconds": [
+      0.0,
+      5.0
+    ],
+    "motion": "prescribed smooth multi-frequency RPY motion; kinematic orientation experiment, not a full six-DoF flight/aircraft simulation",
+    "rotation": "Rz(yaw) Ry(pitch) Rx(roll), body-to-world, Hamilton quaternion xyzw",
+    "motion_profile": "three_frequency",
+    "frequency_components_per_axis": 3,
+    "rpy_amplitude_deg": [
+      [
+        23.0,
+        15.0,
+        9.0
+      ],
+      [
+        17.0,
+        10.0,
+        7.0
+      ],
+      [
+        32.0,
+        21.0,
+        12.0
+      ]
+    ],
+    "rpy_frequency_hz": [
+      [
+        0.29,
+        0.73,
+        1.17
+      ],
+      [
+        0.37,
+        0.83,
+        1.31
+      ],
+      [
+        0.23,
+        0.61,
+        1.03
+      ]
+    ],
+    "rpy_phase_rad": [
+      [
+        0.2,
+        1.1,
+        -0.7
+      ],
+      [
+        -0.4,
+        0.8,
+        1.7
+      ],
+      [
+        0.5,
+        -1.2,
+        0.4
+      ]
+    ],
+    "kinematics": "analytic first/second derivatives of the prescribed RPY curve; exact body omega and alpha via RzRyRx rate mapping",
+    "inertia_body_kg_m2": [
+      [
+        0.045,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.07,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.1
+      ]
+    ],
+    "inertia_scope": "known fixed physical tensor shared by generator and both comparison methods; no parameter fit",
+    "control": "body-CoG torque tau=J alpha+omega cross(J omega), generated once from prescribed motion; saved on 1kHz grid and supplied as known input to both methods",
+    "control_rate_hz": 1000.0,
+    "torque_interpolation": "reconstruction uses saved known torque with piecewise-linear interpolation; finite input interpolation error",
+    "gyro_observation": "body omega + fixed bias + independent isotropic Gaussian sensor noise",
+    "gyro_noise_generation_sigma_deg_s": 0.2,
+    "gyro_noise_generation_covariance_rad2_s2": [
+      [
+        1.2184696791468344e-05,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.2184696791468344e-05,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.2184696791468344e-05
+      ]
+    ],
+    "gyro_bias_generation_deg_s": [
+      0.03,
+      -0.02,
+      0.04
+    ],
+    "gyro_bias_is_white_noise": false,
+    "seed": 20261113,
+    "random_generator": "numpy default_rng PCG64, generation only",
+    "random_sensor_noise_generation": true,
+    "monte_carlo_state_inference": false,
+    "generator_noise_covariance_or_bias_supplied_to_estimator": false,
+    "shared_known_physical_parameters": [
+      "inertia_body_kg_m2"
+    ],
+    "initial_pose": "known prescribed pose once at t=0, shared by all cases",
+    "later_reference_attitudes_supplied_to_estimator": false,
+    "gyro_source_index": "original 200Hz sequence index, never renumbered after sparse selection",
+    "realized_measurements_and_noise_saved": true
+  },
+  "layout": {
+    "top": [
+      "roll",
+      "pitch",
+      "yaw"
+    ],
+    "bottom": [
+      "omega_x",
+      "omega_y",
+      "omega_z"
+    ]
+  },
+  "methods": {
+    "nonlinear": {
+      "so3_proxy_rmse_deg": 1.1435650989228576,
+      "so3_proxy_max_deg": 1.7252890083573662,
+      "so3_proxy_final_deg": 1.6144057131001015,
+      "rpy_proxy_rmse_deg": [
+        0.5991258960646014,
+        0.7853194278564121,
+        0.591423710655737
+      ],
+      "final_rpy_two_sigma_deg": [
+        24.751932635659664,
+        27.411049634861765,
+        33.49517306154005
+      ],
+      "score_count": 501,
+      "exact_moment_internal_difference": 1.3322676295501878e-15
+    },
+    "linear_forced": {
+      "so3_proxy_rmse_deg": 58.5244822510059,
+      "so3_proxy_max_deg": 82.81165266618191,
+      "so3_proxy_final_deg": 76.84873431133317,
+      "rpy_proxy_rmse_deg": [
+        58.195436663406326,
+        19.509715142451494,
+        24.638950536756163
+      ],
+      "final_rpy_two_sigma_deg": [
+        27.869969281675196,
+        24.996860454961677,
+        27.68215841164836
+      ],
+      "score_count": 501,
+      "exact_moment_internal_difference": 2.6645352591003757e-15
+    }
+  },
+  "gyro_moment_verification": {
+    "nonlinear": {
+      "source": "original saved six-point angular-rate trajectories and unchanged weights",
+      "operation": "weighted mean and centered full covariance, with both sides of every acquisition retained",
+      "moment_units": {
+        "time": "s",
+        "mean": "rad/s",
+        "covariance": "(rad/s)^2"
+      },
+      "stage_codes": {
+        "0": "interior or final prediction",
+        "1": "before acquisition",
+        "2": "after acquisition"
+      },
+      "observation_count": 3,
+      "prediction_blocks": 3,
+      "retained_pre_observation_endpoints": 2,
+      "equal_timestamp_boundary_pairs": 2,
+      "angular_rate_update": "fresh independent Gaussian centered at the acquired gyro with covariance sigma^2 I; not Bayesian conditioning of prior rate",
+      "covariance_reset_sigma_deg_s": 5.0,
+      "linear_forced_covariance": "constant sigma^2 I between acquisitions because its angular-rate sensitivity is identity",
+      "nonlinear_covariance": "nonlinear dynamics can increase or decrease different marginal widths; a new observation need not narrow every axis",
+      "moments_changed": false,
+      "interpolation_across_observations": false,
+      "monte_carlo": false,
+      "covariance_floor_or_clip": false,
+      "canonical_time_bitwise_equal": true,
+      "canonical_mean_max_abs_difference_rad_s": 0.0,
+      "canonical_covariance_max_abs_difference_rad2_s2": 0.0
+    },
+    "linear_forced": {
+      "source": "original saved six-point angular-rate trajectories and unchanged weights",
+      "operation": "weighted mean and centered full covariance, with both sides of every acquisition retained",
+      "moment_units": {
+        "time": "s",
+        "mean": "rad/s",
+        "covariance": "(rad/s)^2"
+      },
+      "stage_codes": {
+        "0": "interior or final prediction",
+        "1": "before acquisition",
+        "2": "after acquisition"
+      },
+      "observation_count": 3,
+      "prediction_blocks": 3,
+      "retained_pre_observation_endpoints": 2,
+      "equal_timestamp_boundary_pairs": 2,
+      "angular_rate_update": "fresh independent Gaussian centered at the acquired gyro with covariance sigma^2 I; not Bayesian conditioning of prior rate",
+      "covariance_reset_sigma_deg_s": 5.0,
+      "linear_forced_covariance": "constant sigma^2 I between acquisitions because its angular-rate sensitivity is identity",
+      "nonlinear_covariance": "nonlinear dynamics can increase or decrease different marginal widths; a new observation need not narrow every axis",
+      "moments_changed": false,
+      "interpolation_across_observations": false,
+      "monte_carlo": false,
+      "covariance_floor_or_clip": false,
+      "canonical_time_bitwise_equal": true,
+      "canonical_mean_max_abs_difference_rad_s": 0.0,
+      "canonical_covariance_max_abs_difference_rad2_s2": 0.0
+    }
+  },
+  "known_input": "same fixed J and 1kHz generated inverse-Euler torque for both methods",
+  "predictor_keys": [
+    "time",
+    "initial_quaternion_wxyz",
+    "sparse_gyro_time",
+    "sparse_gyro"
+  ],
+  "ongoing_truth_used_in_prediction": false,
+  "gyro_update": "fresh independent Gaussian at original acquisition; both before/after limits retained",
+  "bands": "same law: Euler moment proxy and delta-method RPY covariance; direct angular-rate mean/full covariance; +/-2sigma without clipping",
+  "source_sha256": {
+    "focus.py": "d8820391b8015cf1ff4c2acfad081cb43a921012167a74067deca8817efcbbcb",
+    "focused_plotting.py": "d989d3824b5972f2fb702a54ab95e864c7e8c1c5820ce94c8cb77ac7e65bce5e",
+    "trajectory.py": "88fb9be9058198f6268846fe7a95cdb7240206478af7a00f90fce8d2bb2e08e2",
+    "audit.py": "6b4d02d247bcdda072b0e4b56fb386221abc83ce824e62564c62298430794b17",
+    "run.py": "99482cab6f55c8f5d960734817a24b71323ef5fc99c4462aa911564c02adb618",
+    "gyro_progress_data.py": "f2455aa74e50ab36a3d66162ab378ed4bd5b6b8e092996219636ec76318ca6e5"
+  },
+  "shared_source_sha256": {
+    "propagation.py": "92887c1cd732a5467bd5ea8f39a52c71b93661c1a1399c1a69f4c567168e8060",
+    "torque.py": "12db46a446f3e52599d45fe649863260363e4b346ec78d5a97e91aae0fd2b304",
+    "rate_comparison_5hz/engine.py": "613b3012faa59bfdb7e8f617d13f179981ada90b208998c0db92af27f06f045c"
+  }
+}

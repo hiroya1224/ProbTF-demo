@@ -2,6 +2,14 @@
 
 2026-11-13。実測や機体同定の結果と分け、既知の慣性・既知の入力トルクの下で、Euler式のジャイロ項の違いを比較した。
 
+最新指定の[0.5 Hz・sigma=5 deg/s・2×3図PDF](publication/three_frequency_0p5hz_sigma5/attitude_and_gyro.pdf)／[PNG](publication/three_frequency_0p5hz_sigma5/attitude_and_gyro.png)は、各軸に振幅のある3周波数成分を使って再計算した。上段はroll・pitch・yaw、下段はomega_x・omega_y・omega_z。[係数と保存値](publication/three_frequency_0p5hz_sigma5/INDEX.md)を別保存し、以下の旧2周波数の比較も保持している。
+
+3周波数版の再現は次のコマンド。生成noise・bias・既知Jと推定法は従来と同じで、3周波数に対応するgyroと入力トルクを生成し直す。
+
+```bash
+MPLCONFIGDIR=/tmp/synthetic-rotation-mpl OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/focus.py --output /tmp/synthetic-three-frequency-rerun
+```
+
 [周波数ごとの一覧PDF](publication/smooth_rotation_5s/rate_overview_sigma_2p5.pdf)、[生成した運動・gyro・トルク](publication/smooth_rotation_5s/generated_motion.pdf)、[全18条件の個別PDF](publication/smooth_rotation_5s/INDEX.md)、[数値CSV](publication/smooth_rotation_5s/comparison_table.csv)を保存した。
 
 追加した[角速度の平均・±2σと幅の一覧PDF](publication/smooth_rotation_5s/gyro_progress_sigma_2p5.pdf)では、観測の直前・直後を同じ時刻に両方表示する。[幅の一覧PNG](publication/smooth_rotation_5s/gyro_width_sigma_2p5.png)も保存した。各条件の`gyro_progress.pdf`は、角速度、±2σ半幅、角速度誤差の3ページ。保存済みの同じ6点軌道から得る平均・全共分散は、元の保存値とbitwiseで一致し、推定は再実行していない。

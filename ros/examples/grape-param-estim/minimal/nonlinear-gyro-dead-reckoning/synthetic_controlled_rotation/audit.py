@@ -20,8 +20,8 @@ from trajectory import trajectory, INERTIA
 from engine import predict_factorized
 
 
-def _scores(prediction):
-    reference = trajectory(prediction['time'])
+def _scores(prediction, motion_profile='two_frequency'):
+    reference = trajectory(prediction['time'], motion_profile=motion_profile)
     original = Rotation.from_quat(reference['quaternion_xyzw'])
     estimated = Rotation.from_euler('xyz', prediction['rpy_mean_rad'])
     error = (original.inv()*estimated).magnitude()
@@ -30,20 +30,25 @@ def _scores(prediction):
                 geodesic_final_deg=float(np.rad2deg(error[-1])))
 
 
-def audit_dataset(data, profile):
+def audit_dataset(data, profile, *, rates=(.5, 2., 5.)):
     """Return read-only numerical/kinematic diagnostics as JSON-safe values.
 
     ``profile`` has the same fixed recorded input callable and fixed inertia
     supplied to the main estimator.  Analytic reference values are used only
     to check this construction and to generate ideal observations for the
-    explicitly separate zero-noise/no-bias unit experiment below.
+    explicitly separate zero-noise/no-bias unit experiment below. The
+    recorded ``motion_profile`` selects the prescribed analytic reference;
+    old saved datasets without that key retain the two-frequency profile.
+    ``rates`` limits only this separate diagnostic, never a primary update.
     """
     start, end = np.asarray(data['time'], float)
+    motion_profile = str(np.asarray(data.get('motion_profile', 'two_frequency')).item())
+    evaluate = lambda stamps: trajectory(stamps, motion_profile=motion_profile)
     step = 1e-5
     times = np.linspace(start+2*step, end-2*step, 101)
-    middle = trajectory(times)
-    before = trajectory(times-step)
-    after = trajectory(times+step)
+    middle = evaluate(times)
+    before = evaluate(times-step)
+    after = evaluate(times+step)
     rotation = Rotation.from_quat(middle['quaternion_xyzw']).as_matrix()
     matrix_dot = (Rotation.from_quat(after['quaternion_xyzw']).as_matrix()
                   - Rotation.from_quat(before['quaternion_xyzw']).as_matrix())/(2*step)
@@ -54,16 +59,17 @@ def audit_dataset(data, profile):
     alpha_numerical = (after['omega_body_rad_s']-before['omega_body_rad_s'])/(2*step)
     required = (middle['alpha_body_rad_s2']@INERTIA.T
                 + np.cross(middle['omega_body_rad_s'], middle['omega_body_rad_s']@INERTIA.T))
-    dense = trajectory(np.linspace(start, end, 1001))
+    dense = evaluate(np.linspace(start, end, 1001))
     gyroscopic_rms = np.sqrt(np.mean(dense['gyroscopic_torque_nm']**2, axis=0))
     inertial_rms = np.sqrt(np.mean((dense['alpha_body_rad_s2']@INERTIA.T)**2, axis=0))
     control_times = np.asarray(data['torque_time'], float)
     control_midpoints = .5*(control_times[:-1]+control_times[1:])
     profile_error = (profile['torque'](control_midpoints)
-                     -trajectory(control_midpoints)['torque_body_nm'])
+                     -evaluate(control_midpoints)['torque_body_nm'])
     second = np.trace(INERTIA)/2*np.eye(3)-INERTIA
     result = dict(schema='grape/synthetic-controlled-rotation-audit/v1',
         role='read-only construction and integration checks; no state acceptance gate',
+        motion_profile=motion_profile,
         analytic_body_omega_vs_rotation_derivative_max_abs_rad_s=float(np.max(np.abs(
             omega_numerical-middle['omega_body_rad_s']))),
         analytic_body_alpha_vs_omega_derivative_max_abs_rad_s2=float(np.max(np.abs(
@@ -80,21 +86,27 @@ def audit_dataset(data, profile):
         physical_second_moment_eigenvalues_kg_m2=np.linalg.eigvalsh(second).tolist(),
         trajectory_changed_using_comparison_results=False,
         estimation_monte_carlo=False)
-    rates = {}
+    rate_results = {}
     native = np.asarray(data['imu_time'], float)
-    for rate in (.5, 2., 5.):
+    native_ns = np.asarray(data.get('imu_stamp_ns', np.rint(native*1e9)), np.int64)
+    requested_rates = tuple(float(rate) for rate in rates)
+    for rate in requested_rates:
         desired = start+np.arange(int(np.ceil((end-start)*rate)))/rate
-        selected = native[np.searchsorted(native, desired, side='left')]
+        selected_index = np.searchsorted(native_ns, np.rint(desired*1e9).astype(np.int64), side='left')
+        selected = native[selected_index]
         ideal = dict(time=np.asarray([start, end]), sparse_gyro_time=selected,
-                     sparse_gyro=trajectory(selected)['omega_body_rad_s'],
+                     sparse_gyro=evaluate(selected)['omega_body_rad_s'],
                      initial_quaternion_wxyz=np.asarray(data['initial_quaternion_wxyz']))
         methods = {}
         for mode in ('nonlinear', 'linear_forced'):
             prediction = predict_factorized(ideal, profile, 0., mode, output_dt=.02, max_step=.002)
-            methods[mode] = _scores(prediction)
-        rates[str(rate)] = dict(observation_count=len(selected), methods=methods)
+            methods[mode] = _scores(prediction, motion_profile=motion_profile)
+        rate_results[str(rate)] = dict(observation_count=len(selected),
+            acquisition_source_index=np.asarray(data.get('imu_source_index', np.arange(len(native))))[selected_index].tolist(),
+            acquisition_times_seconds=selected.tolist(), methods=methods)
     result['separate_zero_noise_no_bias_unit_experiment'] = dict(
         generated_measurements='analytic omega at original synthetic acquisition times, covariance exactly zero',
         purpose='verify consistency of matched input and nonlinear integration; not the primary noisy reconstruction',
-        primary_noisy_dataset_or_law_replaced=False, rates=rates)
+        primary_noisy_dataset_or_law_replaced=False,
+        requested_rates_hz=list(requested_rates), rates=rate_results)
     return result

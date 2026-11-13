@@ -13,6 +13,40 @@ SPEC.loader.exec_module(TRAJECTORY)
 
 
 class SyntheticTrajectoryTests(unittest.TestCase):
+    def test_three_frequency_motion_has_three_substantial_components_per_axis(self):
+        data, metadata = TRAJECTORY.generate_dataset(motion_profile='three_frequency')
+        self.assertEqual(str(data['motion_profile']), 'three_frequency')
+        self.assertEqual(metadata['frequency_components_per_axis'], 3)
+        self.assertEqual(data['motion_amplitude_deg'].shape, (3, 3))
+        self.assertEqual(data['motion_frequency_hz'].shape, (3, 3))
+        for frequencies in data['motion_frequency_hz']:
+            self.assertEqual(len(np.unique(frequencies)), 3)
+        self.assertTrue(np.all(data['motion_amplitude_deg'] >= 7.))
+        old_data, old_metadata = TRAJECTORY.generate_dataset()
+        self.assertEqual(old_metadata['motion_profile'], 'two_frequency')
+        self.assertEqual(old_metadata['frequency_components_per_axis'], 2)
+        # Only the prescribed trajectory changes; generation noise is shared.
+        np.testing.assert_array_equal(data['gyro_realized_noise_rad_s'],
+                                      old_data['gyro_realized_noise_rad_s'])
+        np.testing.assert_array_equal(data['gyro_bias_rad_s'], old_data['gyro_bias_rad_s'])
+
+    def test_three_frequency_body_derivatives_match_rotation_and_rate(self):
+        times = np.linspace(.07, 4.93, 73)
+        step = 1e-6
+        value = TRAJECTORY.trajectory(times, 'three_frequency')
+        before = TRAJECTORY.trajectory(times-step, 'three_frequency')
+        after = TRAJECTORY.trajectory(times+step, 'three_frequency')
+        rotation = Rotation.from_quat(value['quaternion_xyzw']).as_matrix()
+        derivative = (Rotation.from_quat(after['quaternion_xyzw']).as_matrix()
+                      -Rotation.from_quat(before['quaternion_xyzw']).as_matrix())/(2*step)
+        skew = np.einsum('tji,tjk->tik', rotation, derivative)
+        omega = .5*np.column_stack((skew[:, 2, 1]-skew[:, 1, 2],
+                                    skew[:, 0, 2]-skew[:, 2, 0],
+                                    skew[:, 1, 0]-skew[:, 0, 1]))
+        alpha = (after['omega_body_rad_s']-before['omega_body_rad_s'])/(2*step)
+        np.testing.assert_allclose(value['omega_body_rad_s'], omega, atol=2e-9, rtol=2e-8)
+        np.testing.assert_allclose(value['alpha_body_rad_s2'], alpha, atol=5e-9, rtol=2e-8)
+
     def test_body_rate_matches_rotation_matrix_derivative(self):
         times = np.linspace(.1, 4.9, 47)
         step = 1e-6

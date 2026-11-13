@@ -39,6 +39,34 @@ class SyntheticAuditTests(unittest.TestCase):
         for key, value in self.original.items():
             np.testing.assert_array_equal(value, self.data[key], err_msg=key)
 
+    def test_three_frequency_profile_uses_its_own_reference_and_exact_sparse_clock(self):
+        data, _ = generate_dataset(motion_profile='three_frequency')
+        original = {key: np.asarray(value).copy() for key, value in data.items()}
+        profile = dict(torque=TorqueProfile(data['torque_time'], data['torque_body_nm']),
+                       inertia=INERTIA)
+        result = audit_dataset(data, profile, rates=(.5,))
+        self.assertEqual(result['motion_profile'], 'three_frequency')
+        self.assertLess(result['analytic_body_omega_vs_rotation_derivative_max_abs_rad_s'], 1e-6)
+        self.assertLess(result['analytic_body_alpha_vs_omega_derivative_max_abs_rad_s2'], 1e-6)
+        self.assertLess(result['torque_equation_max_abs_residual_nm'], 1e-12)
+        experiment = result['separate_zero_noise_no_bias_unit_experiment']
+        self.assertEqual(experiment['requested_rates_hz'], [.5])
+        self.assertEqual(set(experiment['rates']), {'0.5'})
+        item = experiment['rates']['0.5']
+        self.assertEqual(item['acquisition_source_index'], [0, 400, 800])
+        self.assertLess(item['methods']['nonlinear']['geodesic_max_deg'], .01)
+        for key, value in original.items():
+            np.testing.assert_array_equal(value, data[key], err_msg=key)
+
+    def test_old_saved_dataset_without_profile_keeps_two_frequency_reference(self):
+        data = dict(self.data)
+        data.pop('motion_profile', None)
+        profile = dict(torque=TorqueProfile(data['torque_time'], data['torque_body_nm']),
+                       inertia=INERTIA)
+        result = audit_dataset(data, profile, rates=(.5,))
+        self.assertEqual(result['motion_profile'], 'two_frequency')
+        self.assertLess(result['torque_equation_max_abs_residual_nm'], 1e-12)
+
 
 if __name__ == '__main__':
     unittest.main()

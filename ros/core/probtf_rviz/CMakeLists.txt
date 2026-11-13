@@ -78,6 +78,11 @@ install(
 )
 
 if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(test_display_sampling test/test_display_sampling.cpp)
+  if(TARGET test_display_sampling)
+    add_dependencies(test_display_sampling ${catkin_EXPORTED_TARGETS})
+    target_link_libraries(test_display_sampling ${catkin_LIBRARIES})
+  endif()
   catkin_add_gtest(test_frame_freshness
     test/test_frame_freshness.cpp
   )

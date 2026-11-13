@@ -1,4 +1,5 @@
 #include <probtf_rviz/probabilistic_tf_display.hpp>
+#include <probtf_rviz/display_sampling.hpp>
 
 #include <probtf_rviz/frame_freshness.hpp>
 #include <probtf_rviz/point_moment_query.hpp>
@@ -69,15 +70,6 @@ QString frameStatusKey(const std::string& child) {
   return "Frame/" + QString::fromStdString(child);
 }
 
-uint64_t stableHash(const std::string& value) {
-  uint64_t hash = 1469598103934665603ULL;
-  for (const unsigned char character : value) {
-    hash ^= character;
-    hash *= 1099511628211ULL;
-  }
-  return hash;
-}
-
 rviz::PointCloud::RenderMode renderMode(rviz::EnumProperty* property) {
   switch (property->getOptionInt()) {
     case 0:
@@ -136,6 +128,7 @@ class ProbabilisticTfDisplay::Impl {
     callback_sequence_ = 0;
     batch_sequence_ = 0;
     static_sequence_ = 0;
+    sampling_streams_.reset();
     dirty_ = true;
   }
 
@@ -543,10 +536,7 @@ class ProbabilisticTfDisplay::Impl {
         }
       }
       if (gaussian_endpoints || native_local_path) {
-        const uint64_t hash = stableHash(recordKey(*path.front()));
-        std::seed_seq seeds{base_seed, static_cast<uint32_t>(hash),
-                            static_cast<uint32_t>(hash >> 32U)};
-        std::mt19937 generator(seeds);
+        auto& generator = sampling_streams_.generator(base_seed, recordKey(*path.front()));
         int integration_steps;
         AxisPointMoments moments;
         const bool sampled = pointMomentIntegrationSteps(path.front()->provenance.detail,
@@ -564,10 +554,7 @@ class ProbabilisticTfDisplay::Impl {
         for (const Record* edge : path) {
           auto cached = sampled_edges.find(edge);
           if (cached == sampled_edges.end()) {
-            const uint64_t hash = stableHash(recordKey(*edge));
-            std::seed_seq seeds{base_seed, static_cast<uint32_t>(hash),
-                                static_cast<uint32_t>(hash >> 32U)};
-            std::mt19937 generator(seeds);
+            auto& generator = sampling_streams_.generator(base_seed, recordKey(*edge));
             probtf_core::TransformSampleVector samples;
             if (!probtf_core::sampleTransformDistribution(
                     *edge, sample_count, &generator, &samples, &error)) {
@@ -684,6 +671,7 @@ class ProbabilisticTfDisplay::Impl {
   std::unique_ptr<PendingArray> pending_dynamic_batch_;
   std::unique_ptr<PendingArray> pending_static_;
   bool dirty_ = true;
+  DisplaySamplingStreams sampling_streams_;
 
   std::map<std::string, Record> dynamic_records_;
   std::map<std::string, Record> static_records_;
@@ -750,7 +738,7 @@ ProbabilisticTfDisplay::ProbabilisticTfDisplay()
           "Radius of the representative coordinate axes.", this,
           SLOT(updateAppearance()))),
       seed_property_(new rviz::IntProperty(
-          "Random Seed", 29, "Stable seed for native transform sampling.", this,
+          "Random Seed", 29, "Initial seed; edge streams advance on new geometry updates.", this,
           SLOT(updateGeometry()))) {
   queue_size_property_->setMin(1);
   queue_size_property_->setMax(10000);

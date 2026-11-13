@@ -572,16 +572,16 @@ $$
 
 1. `header.frame_id` の非空検証
 2. message headerのframe/stampからRViz `Fixed Frame` への通常TF解決
-3. `Random Seed` だけで `std::mt19937` を毎回新規構築
+3. `Random Seed` とrecord keyで初期化した保持中の乱数streamを取得
 4. native lawから `Sample Count` 個をsample
 5. `Axis Length` を使って3 endpoint/sampleを作成
 6. representativeを取得
 7. `TransformVisual` へframe pose、points、representativeを反映
 8. freshnessに応じてfadeとvisibilityを反映
 
-generatorをrenderごとに同じseedから作り直すため、messageとpropertyが同じなら
-sample列は安定する。`Axis Length` だけを変更したときにランダムなちらつきが
-加わらない。
+streamをrenderごとに初期化し直しません。更新ごとに、その時点の分布から新しい
+sample列を生成します。同じ分布でも新しいdrawになります。入力分布の集中度や
+共分散、mixtureの重みを表示用に変更する処理はありません。
 
 ### 10.3 frameの二段階配置
 
@@ -882,9 +882,9 @@ fail-closed動作である。
 
 ## 14. tree edge sampling
 
-### 14.1 edgeごとの決定的seed
+### 14.1 edgeごとに進む乱数stream
 
-tree redrawごとに、各edgeを高々1回sampleする。seedは
+tree redrawごとに、各edgeを高々1回sampleする。各edgeのstreamの初期seedは
 
 - user property `Random Seed`
 - record keyの64-bit FNV-1a-style stable hash下位32 bit
@@ -902,10 +902,11 @@ $$
 
 である。
 
-mapのiteration順や、別edgeの追加・削除で既存edgeの乱数列がずれにくい。
-同じ実装環境、record key、分布、sample count、user seedなら、redraw間で
-同じsample列を得る。C++標準libraryやEigen実装をまたぐbitwise再現性までを
-wire contractとして保証するものではない。
+streamはDisplay内に保持し、次のredrawは前回の続きから乱数を消費します。
+mapのiteration順や、別edgeの追加・削除で既存edgeのstreamを初期化しません。
+Displayのresetまたはuser seed変更時だけ初期化します。同じ実装環境と入力列では
+更新列全体を再現できますが、同じ点群を更新間で固定する仕様ではありません。
+C++標準libraryやEigen実装をまたぐbitwise再現性はwire contractではありません。
 
 ### 14.2 edge cache
 

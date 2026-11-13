@@ -23,3 +23,18 @@ sigma=2.5 deg/s、501共通時刻での姿勢中心のSO(3) RMSE [deg]：
 | 5 | 25 | 0.2459 | 12.5940 |
 
 ノイズなし・biasなしの理想再生と数値整合は[audit.json](audit.json)に別保存。主結果の測定列は変更しない。
+
+## 角速度の途中経過
+
+[平均・±2σと幅の一覧PDF](gyro_progress_sigma_2p5.pdf) / [幅の一覧PNG](gyro_width_sigma_2p5.png)
+
+観測の直前・直後を同じ時刻に両方表示。現在は新しい独立Gaussianへの置換であり、Bayes条件付けではない。非線形では狭まる場合と広がる場合があり、線形側の角速度分散は一定。
+
+| 仮定sigma [deg/s] | 0.5 Hz | 2 Hz | 5 Hz |
+|---:|---|---|---|
+| 0.1 | [gyro PDF](rate_0p5_hz/sigma_0p1_deg_s/gyro_progress.pdf) | [gyro PDF](rate_2_hz/sigma_0p1_deg_s/gyro_progress.pdf) | [gyro PDF](rate_5_hz/sigma_0p1_deg_s/gyro_progress.pdf) |
+| 0.5 | [gyro PDF](rate_0p5_hz/sigma_0p5_deg_s/gyro_progress.pdf) | [gyro PDF](rate_2_hz/sigma_0p5_deg_s/gyro_progress.pdf) | [gyro PDF](rate_5_hz/sigma_0p5_deg_s/gyro_progress.pdf) |
+| 1 | [gyro PDF](rate_0p5_hz/sigma_1_deg_s/gyro_progress.pdf) | [gyro PDF](rate_2_hz/sigma_1_deg_s/gyro_progress.pdf) | [gyro PDF](rate_5_hz/sigma_1_deg_s/gyro_progress.pdf) |
+| 2 | [gyro PDF](rate_0p5_hz/sigma_2_deg_s/gyro_progress.pdf) | [gyro PDF](rate_2_hz/sigma_2_deg_s/gyro_progress.pdf) | [gyro PDF](rate_5_hz/sigma_2_deg_s/gyro_progress.pdf) |
+| 2.5 | [gyro PDF](rate_0p5_hz/sigma_2p5_deg_s/gyro_progress.pdf) | [gyro PDF](rate_2_hz/sigma_2p5_deg_s/gyro_progress.pdf) | [gyro PDF](rate_5_hz/sigma_2p5_deg_s/gyro_progress.pdf) |
+| 5 | [gyro PDF](rate_0p5_hz/sigma_5_deg_s/gyro_progress.pdf) | [gyro PDF](rate_2_hz/sigma_5_deg_s/gyro_progress.pdf) | [gyro PDF](rate_5_hz/sigma_5_deg_s/gyro_progress.pdf) |

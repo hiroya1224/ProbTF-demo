@@ -4,6 +4,10 @@
 
 [周波数ごとの一覧PDF](publication/smooth_rotation_5s/rate_overview_sigma_2p5.pdf)、[生成した運動・gyro・トルク](publication/smooth_rotation_5s/generated_motion.pdf)、[全18条件の個別PDF](publication/smooth_rotation_5s/INDEX.md)、[数値CSV](publication/smooth_rotation_5s/comparison_table.csv)を保存した。
 
+追加した[角速度の平均・±2σと幅の一覧PDF](publication/smooth_rotation_5s/gyro_progress_sigma_2p5.pdf)では、観測の直前・直後を同じ時刻に両方表示する。[幅の一覧PNG](publication/smooth_rotation_5s/gyro_width_sigma_2p5.png)も保存した。各条件の`gyro_progress.pdf`は、角速度、±2σ半幅、角速度誤差の3ページ。保存済みの同じ6点軌道から得る平均・全共分散は、元の保存値とbitwiseで一致し、推定は再実行していない。
+
+現在の再取得は、新しい独立Gaussian角速度入力への置換であり、事前分布とのBayes条件付けではない。非線形側は伝播で幅が変化するため、観測時に狭まる軸も広がる軸もある。0.5 Hz・sigma=2.5の4秒時点では、±2σ半幅が約(6.710,5.701,5.993)から(5,5,5) deg/sへ狭まる。線形側は`delta omega`が区間内で一定なので角速度分散も一定で、くびれはない。見栄えに合わせた分散操作はしていない。
+
 ## 生成条件
 
 5秒間の滑らかなroll・pitch・yawを、それぞれ2本の正弦波の和で与えた。結果を見て軌道・慣性・ノイズを選び直していない。
@@ -88,6 +92,12 @@ RPYの中心と帯は、同じ回転モーメントからの (f(E[R])) とdelta-
 ```bash
 MPLCONFIGDIR=/tmp/synthetic-rotation-mpl OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/run.py --output /tmp/synthetic-controlled-rotation-rerun
 python3 -m unittest discover -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/tests -v
+```
+
+角速度の途中経過は、上の再現コマンドの出力先を指定して追加できる。元の推定ファイル・測定列を更新せず、観測前後の全共分散と表示用数値を保存する。
+
+```bash
+MPLCONFIGDIR=/tmp/synthetic-rotation-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/gyro_progress.py --publication /tmp/synthetic-controlled-rotation-rerun
 ```
 
 各条件のPDFと分布モーメントを別フォルダへ出力する。小容量の生成入力・図・描画数値・再現コードだけを保存し、以前の実測結果は上書きしていない。

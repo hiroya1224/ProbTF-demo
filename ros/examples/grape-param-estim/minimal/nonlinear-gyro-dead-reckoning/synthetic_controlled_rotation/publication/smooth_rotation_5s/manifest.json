@@ -3,8 +3,8 @@
   "files": [
     {
       "path": "INDEX.md",
-      "bytes": 1917,
-      "sha256": "e32b6d6fd81f05ee33c198f677c5d163f35e1235607858b60125eea6c40e5cc7"
+      "bytes": 3450,
+      "sha256": "dd02852b8998c063cb4893ad39c224b4644540564e4cc27bdc323421b737eed7"
     },
     {
       "path": "audit.json",
@@ -27,6 +27,26 @@
       "sha256": "74b9172a75c4feca36b4e33a47ae4fe9b73676173659f2db40b721dc1ef2e264"
     },
     {
+      "path": "gyro_progress_manifest.json",
+      "bytes": 1110728,
+      "sha256": "53c593fd846c8c2d3cd30425a0c3d169fb3ba976621a62c0244523f9804d3ae8"
+    },
+    {
+      "path": "gyro_progress_sigma_2p5.pdf",
+      "bytes": 167837,
+      "sha256": "d30e4a117487968b6ea505a7b6e0901c00bd659f1a10447e1801e582e1ced97a"
+    },
+    {
+      "path": "gyro_progress_sigma_2p5.png",
+      "bytes": 644865,
+      "sha256": "728b6ada73ae2ff0c43479221b87b0932bfa7a042102ebb1a0076d93953710a9"
+    },
+    {
+      "path": "gyro_width_sigma_2p5.png",
+      "bytes": 421624,
+      "sha256": "19696d484708cca9f963befcd211a57dcda465d1d2df2beda7e8a4aa252824bb"
+    },
+    {
       "path": "input.json",
       "bytes": 2800,
       "sha256": "585267832edd5e038a3ac21798e30f8a173ab41bc0c77522cf665da4fd394886"
@@ -47,9 +67,34 @@
       "sha256": "6368f631f6133deaf15853926b8c759295b8d585d705a4471622a3ede32cc560"
     },
     {
+      "path": "rate_0p5_hz/sigma_0p1_deg_s/gyro_progress.pdf",
+      "bytes": 95198,
+      "sha256": "ffed6eecffde49e182a83aaa8478ec1b0b9b9fe80f040bc5eb25bf873c347e81"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_0p1_deg_s/gyro_progress.png",
+      "bytes": 264469,
+      "sha256": "e6ca49028206e12eaf869f42f56f6b7bec9b6f55c51454669107e18e5251e914"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_0p1_deg_s/gyro_progress_events.json",
+      "bytes": 13219,
+      "sha256": "cd04776e2edd3557eaa54548b60cb6af7a3a6465bfc6598f2644aff438e3494f"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_0p1_deg_s/gyro_width.png",
+      "bytes": 190624,
+      "sha256": "f6dcce303c5c365134f04a20972dda2889e072f346ac95da86259bcc1bce2435"
+    },
+    {
       "path": "rate_0p5_hz/sigma_0p1_deg_s/linear_forced.npz",
       "bytes": 247378,
       "sha256": "4f1318411c747aff7a2216ec891f79a56b645ce3c63cb1277ea7bb36707731a9"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_0p1_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16320,
+      "sha256": "260dc15abdfd4a4a4aa309654a52d4500a6097b1cb6e417905f0118f68c20c38"
     },
     {
       "path": "rate_0p5_hz/sigma_0p1_deg_s/linear_forced_plot.npz",
@@ -67,6 +112,11 @@
       "sha256": "6f4db0ab2f2d8d792a3c95850548794a8da9297418b5e21d936037f8ad515f71"
     },
     {
+      "path": "rate_0p5_hz/sigma_0p1_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26703,
+      "sha256": "77102e193bd8e799bd2e04ea427b40628338a59c60db8fc7a027d99fc30bf546"
+    },
+    {
       "path": "rate_0p5_hz/sigma_0p1_deg_s/nonlinear_plot.npz",
       "bytes": 63930,
       "sha256": "e7ee641b5289ec92e27f0fd293e49248b65d9d5ea5b9df23073ad489ca9a66bb"
@@ -82,9 +132,34 @@
       "sha256": "48baf57ed871a3882d36d6308b5e0d561d453085d990c4075dfc082cde2f8b86"
     },
     {
+      "path": "rate_0p5_hz/sigma_0p5_deg_s/gyro_progress.pdf",
+      "bytes": 96497,
+      "sha256": "5e7cb02753c16a86b90a2e515f43ebbf0d153fa6096d0115b5c28f74ffc78dc3"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_0p5_deg_s/gyro_progress.png",
+      "bytes": 270513,
+      "sha256": "36a874654998a279e93b9d3150470bb39d3e290b445c0a6532c94dc365a0f535"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_0p5_deg_s/gyro_progress_events.json",
+      "bytes": 13305,
+      "sha256": "d2c9a670b02f3b467cd66cb8c7da734342c823d5c0fafd2bb8ba34a27e99cf15"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_0p5_deg_s/gyro_width.png",
+      "bytes": 181222,
+      "sha256": "ad7bf542be03a63494614db3032f75f50994fe294c81f408be12e3d2a5bf30a6"
+    },
+    {
       "path": "rate_0p5_hz/sigma_0p5_deg_s/linear_forced.npz",
       "bytes": 249412,
       "sha256": "6d53d3a2043d3e2f59a333f5851e075c59b19eaa080864a2fc816a0b51da4d45"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_0p5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16596,
+      "sha256": "7691e47bd1c0d79da213e381c1dc46a06e3b7480e51b689b166e1ab566f33a33"
     },
     {
       "path": "rate_0p5_hz/sigma_0p5_deg_s/linear_forced_plot.npz",
@@ -102,6 +177,11 @@
       "sha256": "3a5bb2c96f3b46b1da0862f66d29b3ffae9c3cd215fd8e867240907cbbce8572"
     },
     {
+      "path": "rate_0p5_hz/sigma_0p5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26799,
+      "sha256": "f4c3b9abff4b9e05f7ca3919dbae383f887974730ebf9f2bbfb6304b75987022"
+    },
+    {
       "path": "rate_0p5_hz/sigma_0p5_deg_s/nonlinear_plot.npz",
       "bytes": 64323,
       "sha256": "5af7b4aa9e1edeb739d7fb68e618ec13e2aae9eadddea378595910995e73acaf"
@@ -117,9 +197,34 @@
       "sha256": "5b2e0d0de3f665baff7b9eb86a18f6764eca51c674ea870536344358d49ed90c"
     },
     {
+      "path": "rate_0p5_hz/sigma_1_deg_s/gyro_progress.pdf",
+      "bytes": 97516,
+      "sha256": "3692be5c70548b733bc170a7a00a46da68a7ab6fc5036e92a4d4f1f29175b2c7"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_1_deg_s/gyro_progress.png",
+      "bytes": 293014,
+      "sha256": "5bedbea4596f6290a71449f0e3b5761e4b6419903517a2e929dd34a47cd70ba2"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_1_deg_s/gyro_progress_events.json",
+      "bytes": 13333,
+      "sha256": "47398b2f923e5266619403c2ec063609a5904f827c643b6c96ca8ac387d7ae70"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_1_deg_s/gyro_width.png",
+      "bytes": 183470,
+      "sha256": "2ae83c85034127c7a86fd49982fa927e48698ae8d95243bb4157226b81aac7d6"
+    },
+    {
       "path": "rate_0p5_hz/sigma_1_deg_s/linear_forced.npz",
       "bytes": 249224,
       "sha256": "18f7c03704dfa217c04b3268499ef0d8a0309368d410606ce59db40166c61868"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_1_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16391,
+      "sha256": "c66bd5749cda3e8f04cb39d38a771e3f271bc711900dbdce00ca7fd246827cb1"
     },
     {
       "path": "rate_0p5_hz/sigma_1_deg_s/linear_forced_plot.npz",
@@ -137,6 +242,11 @@
       "sha256": "2e619c305750eb92c1d50058e80a606293384fa484770f4968e9023a73f64a59"
     },
     {
+      "path": "rate_0p5_hz/sigma_1_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26761,
+      "sha256": "07ed32f353571292e3d16a5d5f49f03c66df64d5d43c924ca7013f54fd0d88fb"
+    },
+    {
       "path": "rate_0p5_hz/sigma_1_deg_s/nonlinear_plot.npz",
       "bytes": 64098,
       "sha256": "fa05dc681368ff6af60571a659a311d94937a43c590fccbdb011fc5ea2dab20a"
@@ -152,9 +262,34 @@
       "sha256": "a1d2cd6a2fe1a72ad9358d0f0a25b57dff86c1bf0b25eacf184642c72de51271"
     },
     {
+      "path": "rate_0p5_hz/sigma_2_deg_s/gyro_progress.pdf",
+      "bytes": 97191,
+      "sha256": "dfb9dbc7f004cd4a14ebbc88aca4b99959bff781d8529e67a500a7ce26bba643"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_2_deg_s/gyro_progress.png",
+      "bytes": 338294,
+      "sha256": "c2ee084b80edeaf68de5b0fb405fd09f2a8662ce50ccb5a4b75c684ddb092ea4"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_2_deg_s/gyro_progress_events.json",
+      "bytes": 13287,
+      "sha256": "2beefd58908b04a3cd1d968ef488be9f6fdd227d390e4cc3912194414e2cbf2f"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_2_deg_s/gyro_width.png",
+      "bytes": 190958,
+      "sha256": "07c79b4c4f6ecf6112919cd87a3a9e5550bb76d1ee95e2b2a8a5146ecf01a8c3"
+    },
+    {
       "path": "rate_0p5_hz/sigma_2_deg_s/linear_forced.npz",
       "bytes": 249837,
       "sha256": "9c7ca69ffa7e5d02d0df4bdfc7ac9c731a584157ac49f39c34ee811a94a1dda7"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_2_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 17061,
+      "sha256": "602755885d75718c1839636a76f8b6cffe7e165e22eef0358cef941368e8d99e"
     },
     {
       "path": "rate_0p5_hz/sigma_2_deg_s/linear_forced_plot.npz",
@@ -172,6 +307,11 @@
       "sha256": "e0a6f114cc6dd99edeb058376ef60aa3c81b783299c5e0858afb10c9a69f8d04"
     },
     {
+      "path": "rate_0p5_hz/sigma_2_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26699,
+      "sha256": "62a38be75bc373e9dce3b3c7b4c762cdb6ab00c4c7ac3531e150a0d23af0c666"
+    },
+    {
       "path": "rate_0p5_hz/sigma_2_deg_s/nonlinear_plot.npz",
       "bytes": 63994,
       "sha256": "fca95de5a844c927535fca8672d94e1fd66898bf1fbaff9ac357e3cb9225c9c6"
@@ -187,9 +327,34 @@
       "sha256": "35d2a60acc5419cc920100cd44f12b0d784e13149228b9990f8e800f9d187055"
     },
     {
+      "path": "rate_0p5_hz/sigma_2p5_deg_s/gyro_progress.pdf",
+      "bytes": 97298,
+      "sha256": "cefeb57c990b0acdc18aaff527ec13d2ae85e6ed8377d30f69e2368dedb29eb2"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_2p5_deg_s/gyro_progress.png",
+      "bytes": 344674,
+      "sha256": "3fcfeeab6231e37ccc02defa17299481274e59f983a6b8452fe89d40e3a001e2"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_2p5_deg_s/gyro_progress_events.json",
+      "bytes": 13145,
+      "sha256": "94b6ef3825f3537c5c48ba2b2349d97efc2fb5ee87147d17b2f0eaa4c551ffee"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_2p5_deg_s/gyro_width.png",
+      "bytes": 185490,
+      "sha256": "6c6e79bd6475e1e918995e65abc3999369f2e986421e68457189dfb3ca6b2460"
+    },
+    {
       "path": "rate_0p5_hz/sigma_2p5_deg_s/linear_forced.npz",
       "bytes": 249839,
       "sha256": "2f6ad6cb30ab9db8a6ac7f707abafd1b7d787bb45620c5be910679447e88f936"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_2p5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16964,
+      "sha256": "8488b51d98691803f3a8917d6a447037815daa3a2538cf230bbbcb5caca3ecc3"
     },
     {
       "path": "rate_0p5_hz/sigma_2p5_deg_s/linear_forced_plot.npz",
@@ -207,6 +372,11 @@
       "sha256": "65441587d9d5f082533f790dabb97f5dc8472a349d9a281f585fa42a2c4b3707"
     },
     {
+      "path": "rate_0p5_hz/sigma_2p5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26643,
+      "sha256": "cb75d102f6256f9d79ae07b9569d893e0be1e6519236e668ceb401587148a1d2"
+    },
+    {
       "path": "rate_0p5_hz/sigma_2p5_deg_s/nonlinear_plot.npz",
       "bytes": 63934,
       "sha256": "44fdbd3f70b86f083ace94602433569365c55595b9a463fb2af07fb65b2b2aef"
@@ -222,9 +392,34 @@
       "sha256": "6b96c019891411d10ec5920038ed334bf36a8f4eb6f3c7d75e2872e1b8d1d3fc"
     },
     {
+      "path": "rate_0p5_hz/sigma_5_deg_s/gyro_progress.pdf",
+      "bytes": 97382,
+      "sha256": "4a83d854135df38bc7ef5816941af7ff9b2daef7d44c5c8068dd74fb6a05c837"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_5_deg_s/gyro_progress.png",
+      "bytes": 350478,
+      "sha256": "2a9678a7a298a4a7125574a810460660bef40ee8323ce9c5f48ff450eaf15c39"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_5_deg_s/gyro_progress_events.json",
+      "bytes": 13333,
+      "sha256": "5085eaea9496d4619513d06219d712a38e83841879e51b6c1f0357837bb3c566"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_5_deg_s/gyro_width.png",
+      "bytes": 179410,
+      "sha256": "4687005d8352580a80e5b022848f155a69da192fa03ae6cab7856828813ae1a3"
+    },
+    {
       "path": "rate_0p5_hz/sigma_5_deg_s/linear_forced.npz",
       "bytes": 249962,
       "sha256": "78127a10cdf2c59918c02f98d84437853a962d88db20eec718fb88f11808bd3c"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 17141,
+      "sha256": "64504da40f04d006dd6292066b64709a600aee4e662d8c5873d846526b303250"
     },
     {
       "path": "rate_0p5_hz/sigma_5_deg_s/linear_forced_plot.npz",
@@ -240,6 +435,11 @@
       "path": "rate_0p5_hz/sigma_5_deg_s/nonlinear.npz",
       "bytes": 275152,
       "sha256": "9f784072e2f391dfb93f1ab2543f7045f22cffe03709ab5427c9c6717b7bc21c"
+    },
+    {
+      "path": "rate_0p5_hz/sigma_5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26695,
+      "sha256": "e37d1c160fddb25b02d2e475272e40b8c7faf57ae204b2fdde41923921d674b6"
     },
     {
       "path": "rate_0p5_hz/sigma_5_deg_s/nonlinear_plot.npz",
@@ -262,9 +462,34 @@
       "sha256": "fbdd3c8426a4ac7ef6a0825efb199ce25c623f9cfee1e00cd294a021e13983e6"
     },
     {
+      "path": "rate_2_hz/sigma_0p1_deg_s/gyro_progress.pdf",
+      "bytes": 99923,
+      "sha256": "77a1460fe97faaef23ed291d01c582125e5f36ad43ff94e13c5ac5c61c0a636e"
+    },
+    {
+      "path": "rate_2_hz/sigma_0p1_deg_s/gyro_progress.png",
+      "bytes": 264385,
+      "sha256": "e3989ad941203320f0ba76afe35eaeb9f65acf9eb3d579cffa5ef73db310aaff"
+    },
+    {
+      "path": "rate_2_hz/sigma_0p1_deg_s/gyro_progress_events.json",
+      "bytes": 40104,
+      "sha256": "c938fdf63df187051bcd29b51a153d6ab68038db48222c7054dcddd5d81cb733"
+    },
+    {
+      "path": "rate_2_hz/sigma_0p1_deg_s/gyro_width.png",
+      "bytes": 201162,
+      "sha256": "f8c837d971e8eeb6af64db6ef9d183d1fc79ade69309e144a763db51d39f65e2"
+    },
+    {
       "path": "rate_2_hz/sigma_0p1_deg_s/linear_forced.npz",
       "bytes": 262163,
       "sha256": "dca3dbf42e901e7529140810f5d4bff69db4b9b275eef72c088f6911e3f6ba92"
+    },
+    {
+      "path": "rate_2_hz/sigma_0p1_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16348,
+      "sha256": "7d2e3df89e01ff3bdca929310ebe31ebc789e78984f201b746a60b6093af15e6"
     },
     {
       "path": "rate_2_hz/sigma_0p1_deg_s/linear_forced_plot.npz",
@@ -282,6 +507,11 @@
       "sha256": "eba8b0e98112059ea1f6696123b9d32331adb69fc6362f6628c51f203b3aa352"
     },
     {
+      "path": "rate_2_hz/sigma_0p1_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26945,
+      "sha256": "4c219840c3914f289bbbbc8f79a6b841d00308bb8f17be28e600a0fc031adae2"
+    },
+    {
       "path": "rate_2_hz/sigma_0p1_deg_s/nonlinear_plot.npz",
       "bytes": 63918,
       "sha256": "ac8c787184af383a6f2f5dd519bd4604226e26be28ec8fea25441a907c73ed30"
@@ -297,9 +527,34 @@
       "sha256": "d6a1740ad4abaf2132fe42d0c47da574acbf345da22a05e044ccab20577b4d6a"
     },
     {
+      "path": "rate_2_hz/sigma_0p5_deg_s/gyro_progress.pdf",
+      "bytes": 102363,
+      "sha256": "a96c2ed2e4cd314d686238a011ec2b8d8599244ef343944916517912bb70bba6"
+    },
+    {
+      "path": "rate_2_hz/sigma_0p5_deg_s/gyro_progress.png",
+      "bytes": 269888,
+      "sha256": "f7c2aa8e19ba0ca05e83f827e13080ee069c135db71e4eabfc4ba8fef4d18aa3"
+    },
+    {
+      "path": "rate_2_hz/sigma_0p5_deg_s/gyro_progress_events.json",
+      "bytes": 39981,
+      "sha256": "68164195edb4b224c5cbcc789dc14243d93a93e9cd2d2aad39db88a3b63ff8ed"
+    },
+    {
+      "path": "rate_2_hz/sigma_0p5_deg_s/gyro_width.png",
+      "bytes": 200114,
+      "sha256": "6124c7d525497150378b52388ae8118ec58e419df98ab5671e5a664b4c29a14a"
+    },
+    {
       "path": "rate_2_hz/sigma_0p5_deg_s/linear_forced.npz",
       "bytes": 264868,
       "sha256": "29210e0ad9c8825698994bdf9763dc41f2cb43226f56da6696bfebb2e337364c"
+    },
+    {
+      "path": "rate_2_hz/sigma_0p5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16305,
+      "sha256": "bbbecaafb279f55d414d7ccb43c3ae3729ff63e49916eb4cf4e31b37644532e6"
     },
     {
       "path": "rate_2_hz/sigma_0p5_deg_s/linear_forced_plot.npz",
@@ -317,6 +572,11 @@
       "sha256": "32956254406e44ce3b3c64c2041fd1c954a7b732a623038a22ae6d1f69aabde0"
     },
     {
+      "path": "rate_2_hz/sigma_0p5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27078,
+      "sha256": "3ba7bdfc7042751075fdef11abba11af4b8915ff931447cf4de4bbd0f0a8f56b"
+    },
+    {
       "path": "rate_2_hz/sigma_0p5_deg_s/nonlinear_plot.npz",
       "bytes": 64188,
       "sha256": "199f7d0ae261f80471fde0644f0aafd3d57dd5628abb07c3546eb2341b7a691d"
@@ -332,9 +592,34 @@
       "sha256": "0d02248248f15468f1e4f4256015e77f04ba39712484795843b4a5754d205420"
     },
     {
+      "path": "rate_2_hz/sigma_1_deg_s/gyro_progress.pdf",
+      "bytes": 102064,
+      "sha256": "f0f157ba3efc07b44e8614c5dd48eea668f2452ac30c6d92df1de69e2b9c3459"
+    },
+    {
+      "path": "rate_2_hz/sigma_1_deg_s/gyro_progress.png",
+      "bytes": 291652,
+      "sha256": "49b295b322b917c003b038f3b665284f60223fafde830697d4a54c24e3ee5092"
+    },
+    {
+      "path": "rate_2_hz/sigma_1_deg_s/gyro_progress_events.json",
+      "bytes": 40481,
+      "sha256": "9340d14bacef63afc54b443933a0f5ce7bc89a1abfd31e49dda550c0a75260fc"
+    },
+    {
+      "path": "rate_2_hz/sigma_1_deg_s/gyro_width.png",
+      "bytes": 194228,
+      "sha256": "fd573e384283ae2080a6bfd74219a244172a0321615368ace06b2b6053fe91e9"
+    },
+    {
       "path": "rate_2_hz/sigma_1_deg_s/linear_forced.npz",
       "bytes": 265608,
       "sha256": "1b38d6d6d12af5526560d7d7a4f3233fb77efb347f9bebe2130637e3f1d4036c"
+    },
+    {
+      "path": "rate_2_hz/sigma_1_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16488,
+      "sha256": "6ec0a41c57ec3f7af3c682eba72f61d8256b3bedf81bf454d305c2e0188bf53d"
     },
     {
       "path": "rate_2_hz/sigma_1_deg_s/linear_forced_plot.npz",
@@ -352,6 +637,11 @@
       "sha256": "4369967b252940e2bc06b42e09e8deda4abaab3e10fecda0c145f3b0db2380fe"
     },
     {
+      "path": "rate_2_hz/sigma_1_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27082,
+      "sha256": "19edd8594c54bd16d5d96537ca1046fb411e43a966b1a86a3b562b69a29caaff"
+    },
+    {
       "path": "rate_2_hz/sigma_1_deg_s/nonlinear_plot.npz",
       "bytes": 64119,
       "sha256": "8ffef1a205708ce803944f01bd84a7972184b1f3a7cd75c3b8075ccf444e9d05"
@@ -367,9 +657,34 @@
       "sha256": "fafb7fc2473f33f83952f3110ed6314fa5c2242d5623f14c088722f937222f2e"
     },
     {
+      "path": "rate_2_hz/sigma_2_deg_s/gyro_progress.pdf",
+      "bytes": 102442,
+      "sha256": "27f7cddee8372dbb52a2bc60a546b1da0a42d1d3851eb15313accc875d00e02b"
+    },
+    {
+      "path": "rate_2_hz/sigma_2_deg_s/gyro_progress.png",
+      "bytes": 334674,
+      "sha256": "8b04f4ae6c7586f4702bad49d96fe3dd1e15755e5667386d856d42863ab4f707"
+    },
+    {
+      "path": "rate_2_hz/sigma_2_deg_s/gyro_progress_events.json",
+      "bytes": 40415,
+      "sha256": "f98f40542b5b1f89be97c59a84375cc09604f2271718c3abfc05e6a19edbe054"
+    },
+    {
+      "path": "rate_2_hz/sigma_2_deg_s/gyro_width.png",
+      "bytes": 193218,
+      "sha256": "98e9f04d24437d3827bfc2cb70bdec1b4ea0da4687a1941bd238c702cc117ad9"
+    },
+    {
       "path": "rate_2_hz/sigma_2_deg_s/linear_forced.npz",
       "bytes": 265873,
       "sha256": "44137743a6e92ecc6bb7cc3eae167d88756b7088c96403575ea284ba1963443e"
+    },
+    {
+      "path": "rate_2_hz/sigma_2_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16879,
+      "sha256": "9effcaf00ee24478fcc1436a2d5e118d2178ddf1f4cb4d73a6fc85eb2cdd3007"
     },
     {
       "path": "rate_2_hz/sigma_2_deg_s/linear_forced_plot.npz",
@@ -387,6 +702,11 @@
       "sha256": "ef0a6695b26f4799e753f6c2e97f1d7dad642ac0ef4ff239f7fad2ddd9f1dc0d"
     },
     {
+      "path": "rate_2_hz/sigma_2_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27019,
+      "sha256": "ec958f904589a8c7a0f11894f7e84bd44c2b062ab14cf79aff139085d9fa925b"
+    },
+    {
       "path": "rate_2_hz/sigma_2_deg_s/nonlinear_plot.npz",
       "bytes": 64148,
       "sha256": "0ab5f8c6abb7ec29d127c7b49d6932847cec900efb55ea91a469d0f56002f26b"
@@ -402,9 +722,34 @@
       "sha256": "348a7ac78c505efefa303d59c89055f3ee19a1dafe7f8bf379e323e65049cb03"
     },
     {
+      "path": "rate_2_hz/sigma_2p5_deg_s/gyro_progress.pdf",
+      "bytes": 103172,
+      "sha256": "541343d44af28942050303e58119bdecd3c5587ed3835aa7934ee90d75ccd248"
+    },
+    {
+      "path": "rate_2_hz/sigma_2p5_deg_s/gyro_progress.png",
+      "bytes": 342626,
+      "sha256": "c644b03562eb75f3ca9f523e7aebf026cd1557a8fbf3a835e41da2a2214b875a"
+    },
+    {
+      "path": "rate_2_hz/sigma_2p5_deg_s/gyro_progress_events.json",
+      "bytes": 39958,
+      "sha256": "30a3a3344f14aafbefd7b5514af4e5c01875bcd056e9716ed19d6779bed74bd0"
+    },
+    {
+      "path": "rate_2_hz/sigma_2p5_deg_s/gyro_width.png",
+      "bytes": 199664,
+      "sha256": "5a99f702e5325315a0676eb98595cbc9a316e8e6cee442144511585f94d02299"
+    },
+    {
       "path": "rate_2_hz/sigma_2p5_deg_s/linear_forced.npz",
       "bytes": 266136,
       "sha256": "b8183902ee4af399b1a7e4d9cab5593e99fd773a1290fbe32bbf462fd7324ff7"
+    },
+    {
+      "path": "rate_2_hz/sigma_2p5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 17105,
+      "sha256": "c48195aa088aa68dcde65d6512f63b2538e3713fdb2456b8b7a5f156508f7ca2"
     },
     {
       "path": "rate_2_hz/sigma_2p5_deg_s/linear_forced_plot.npz",
@@ -422,6 +767,11 @@
       "sha256": "a18b87f07314113c7fd665d9e1f5caf42d403c52b1b6fb76ce0a90cc325bd1ed"
     },
     {
+      "path": "rate_2_hz/sigma_2p5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26994,
+      "sha256": "244a6d0bfc5a9c64ce84f6dee2f136c71e0d22f76e0141a2cf82a59531f6990d"
+    },
+    {
       "path": "rate_2_hz/sigma_2p5_deg_s/nonlinear_plot.npz",
       "bytes": 64027,
       "sha256": "68ff17f0760e83b95049d290ba8e7a32079bea1e656cd139825586e98b131247"
@@ -437,9 +787,34 @@
       "sha256": "d467587716dc4beec770e8b36a8f15235860c31afc20df69a85019f272b879b2"
     },
     {
+      "path": "rate_2_hz/sigma_5_deg_s/gyro_progress.pdf",
+      "bytes": 102996,
+      "sha256": "5787c64ea4b56581a7794cbff8bd067b79b94fc622755bfef5826c477fb126a6"
+    },
+    {
+      "path": "rate_2_hz/sigma_5_deg_s/gyro_progress.png",
+      "bytes": 356640,
+      "sha256": "09160a0f3e1743bde4941f6354c33bef31271fdb80ab57e8c009d3df5eb792aa"
+    },
+    {
+      "path": "rate_2_hz/sigma_5_deg_s/gyro_progress_events.json",
+      "bytes": 40236,
+      "sha256": "8cab062a12533b81f15ba7f6819e412f7f5de9a82ce8f4ff4f67fc8cc653a742"
+    },
+    {
+      "path": "rate_2_hz/sigma_5_deg_s/gyro_width.png",
+      "bytes": 197635,
+      "sha256": "ba9144150a8209abdd79c232156f9c57bcd6402f6d45ecf7c180fb7685ee0ce9"
+    },
+    {
       "path": "rate_2_hz/sigma_5_deg_s/linear_forced.npz",
       "bytes": 266377,
       "sha256": "826595f4fdc7986ed05ad1679fc739b353263cd539feff0da2554f00db81b35a"
+    },
+    {
+      "path": "rate_2_hz/sigma_5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 17345,
+      "sha256": "4ab72cf7e73a3f1554c9332434a31a754886752cd1896535eea12fc90f43687c"
     },
     {
       "path": "rate_2_hz/sigma_5_deg_s/linear_forced_plot.npz",
@@ -455,6 +830,11 @@
       "path": "rate_2_hz/sigma_5_deg_s/nonlinear.npz",
       "bytes": 291339,
       "sha256": "c82d803ce7ac34e5c911d3b73b2e4a255d3429860da1484821287b8f1686588e"
+    },
+    {
+      "path": "rate_2_hz/sigma_5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 26974,
+      "sha256": "3b440d0a87c6423bf8dfdb3a5c8457aa497cfd5c424b50d35f4958ded970ce28"
     },
     {
       "path": "rate_2_hz/sigma_5_deg_s/nonlinear_plot.npz",
@@ -477,9 +857,34 @@
       "sha256": "74f4fb7beaa971eaac7bed8ca23469a1e5c6e78ccaa4b0cb03182a0be780723b"
     },
     {
+      "path": "rate_5_hz/sigma_0p1_deg_s/gyro_progress.pdf",
+      "bytes": 109020,
+      "sha256": "b829702dabd5f506d916401d1a674f3697ecf024e00ca855f30af851e60afe0d"
+    },
+    {
+      "path": "rate_5_hz/sigma_0p1_deg_s/gyro_progress.png",
+      "bytes": 253552,
+      "sha256": "f5d485c197e529af7907281b81d1b67de64ddedda27bf1edfe02562dd411fafb"
+    },
+    {
+      "path": "rate_5_hz/sigma_0p1_deg_s/gyro_progress_events.json",
+      "bytes": 97406,
+      "sha256": "50d967aff6bda41e634d17e1f8e266aa13378d2930c5c0c2335a241b2746830a"
+    },
+    {
+      "path": "rate_5_hz/sigma_0p1_deg_s/gyro_width.png",
+      "bytes": 253237,
+      "sha256": "bf9b3b8b8d7eebcc9b62e5edfb41229513a2f1eb918827c94c27bb900d1ca686"
+    },
+    {
       "path": "rate_5_hz/sigma_0p1_deg_s/linear_forced.npz",
       "bytes": 299023,
       "sha256": "8363b32ab66bd7dd9f586fe5dfef4bc2f678a837ac37926671a8d073d1858068"
+    },
+    {
+      "path": "rate_5_hz/sigma_0p1_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16716,
+      "sha256": "6454bc26f6dfc44f0d44d7204c4eac7538d6c2f1113b0c399b201dede809f984"
     },
     {
       "path": "rate_5_hz/sigma_0p1_deg_s/linear_forced_plot.npz",
@@ -497,6 +902,11 @@
       "sha256": "1db92bc3bc0d6431679764a0773671b710ee711793e108cc4100c40abd968bab"
     },
     {
+      "path": "rate_5_hz/sigma_0p1_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27645,
+      "sha256": "3e1a67c56ed471ad2b6ff5b0e5b9e3d5be3a5e565500af9db15fffaa1096d7b1"
+    },
+    {
       "path": "rate_5_hz/sigma_0p1_deg_s/nonlinear_plot.npz",
       "bytes": 63928,
       "sha256": "b71a9f5683072ae060ed8d2480454dd4c0a00588ae319d68e9f23ddc7e1f5956"
@@ -512,9 +922,34 @@
       "sha256": "d4a27b6cf1489df2805e1cbc8ba1720bbd03dad685ea27eec94d5988aec07cb4"
     },
     {
+      "path": "rate_5_hz/sigma_0p5_deg_s/gyro_progress.pdf",
+      "bytes": 109619,
+      "sha256": "d7c4e9d3145e75398cb2d3cf29cd9b5c1e69918967a614462492d458125f94f0"
+    },
+    {
+      "path": "rate_5_hz/sigma_0p5_deg_s/gyro_progress.png",
+      "bytes": 257974,
+      "sha256": "1b004031979d82151285f1b47667c177bb2eb72eb4ba39aefa9c1030d2ec119b"
+    },
+    {
+      "path": "rate_5_hz/sigma_0p5_deg_s/gyro_progress_events.json",
+      "bytes": 96500,
+      "sha256": "530f2a27bd57e0af2d3f4f5a64d034697d82e9f61caf4328890b45615a4aa674"
+    },
+    {
+      "path": "rate_5_hz/sigma_0p5_deg_s/gyro_width.png",
+      "bytes": 247736,
+      "sha256": "83a93d5901ac611986df9d9a0c26091d0fb142dca31d96fbbbd49cce7c23d8fc"
+    },
+    {
       "path": "rate_5_hz/sigma_0p5_deg_s/linear_forced.npz",
       "bytes": 301210,
       "sha256": "5bb276c813cfa3146a78f90fb456fd5d34342e2991a19d310d4e08b1fa41845c"
+    },
+    {
+      "path": "rate_5_hz/sigma_0p5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16807,
+      "sha256": "ee7aec07a93575d31df11b2c657e13cfd8014d648d91f4c49fecaf07c91e138d"
     },
     {
       "path": "rate_5_hz/sigma_0p5_deg_s/linear_forced_plot.npz",
@@ -532,6 +967,11 @@
       "sha256": "2befb5ea8e8a799084fca1165c8322abe69b1537783f2bde977b6a1ca66b617d"
     },
     {
+      "path": "rate_5_hz/sigma_0p5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27693,
+      "sha256": "a871a97d3c3b19995a34695d2f045cdffb4c60b20448f2204cb5ba7559211f0c"
+    },
+    {
       "path": "rate_5_hz/sigma_0p5_deg_s/nonlinear_plot.npz",
       "bytes": 64169,
       "sha256": "95843da120e6ebe45eb2d1de4cbb008c05475a7d680f10081f07993c6a6806d0"
@@ -547,9 +987,34 @@
       "sha256": "e46cdb47ae72a734c65ef57e6707d0254647555ecf9489f8349bab3d257036b4"
     },
     {
+      "path": "rate_5_hz/sigma_1_deg_s/gyro_progress.pdf",
+      "bytes": 110132,
+      "sha256": "e016defa7a3af54363790bddd0d897606f02f282512b04590f890f2c78adb9ac"
+    },
+    {
+      "path": "rate_5_hz/sigma_1_deg_s/gyro_progress.png",
+      "bytes": 275265,
+      "sha256": "c822d401c7c679ef35f256cdc3ee35b86edd305cf4d465de1b5d503e186c1f92"
+    },
+    {
+      "path": "rate_5_hz/sigma_1_deg_s/gyro_progress_events.json",
+      "bytes": 97278,
+      "sha256": "866b893f693113c0e008db7a67f0930a0581592fe0aa9cb924aa2488ef83602b"
+    },
+    {
+      "path": "rate_5_hz/sigma_1_deg_s/gyro_width.png",
+      "bytes": 245164,
+      "sha256": "676722f17ab00f4ef5c67913f424ff8daeed3eede8ff6757d6b0c3d1c9320b6a"
+    },
+    {
       "path": "rate_5_hz/sigma_1_deg_s/linear_forced.npz",
       "bytes": 302582,
       "sha256": "71b4ea3588b465e68f7371afec287f1d4d5b802cd4b24db12c35a432c067e464"
+    },
+    {
+      "path": "rate_5_hz/sigma_1_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 16974,
+      "sha256": "0aec6b879c5cedd6718aa68ddf47e5fbbb7643237c0ec2940652611a5d1d162f"
     },
     {
       "path": "rate_5_hz/sigma_1_deg_s/linear_forced_plot.npz",
@@ -567,6 +1032,11 @@
       "sha256": "e45bf4e1233b3d76587ee0bf86b0660e9437249b20b694ec73c71b46fbad91ed"
     },
     {
+      "path": "rate_5_hz/sigma_1_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27720,
+      "sha256": "2fe9bbbbcafc37f167f8b4bdee0ab50606d3ebda8fd898d5451cb39f390da5a0"
+    },
+    {
       "path": "rate_5_hz/sigma_1_deg_s/nonlinear_plot.npz",
       "bytes": 64160,
       "sha256": "be53a759cabf9f4bc42a1cf3dbf5105d5ffff7905da7f4b7f079281181e27948"
@@ -582,9 +1052,34 @@
       "sha256": "380258330a7872849c9fdc0736a2a718fe5fc5d33e05d26b7137cd4e80ae00c3"
     },
     {
+      "path": "rate_5_hz/sigma_2_deg_s/gyro_progress.pdf",
+      "bytes": 110529,
+      "sha256": "36c9156f305f5bcd20eb79999bb0ddae4f8eb7eaa3024cf49b93cbe6d4345862"
+    },
+    {
+      "path": "rate_5_hz/sigma_2_deg_s/gyro_progress.png",
+      "bytes": 318144,
+      "sha256": "0ff800410a225dd2cfa222b7da65b8517f31a43622663a9d082e0b2e41bf74af"
+    },
+    {
+      "path": "rate_5_hz/sigma_2_deg_s/gyro_progress_events.json",
+      "bytes": 96739,
+      "sha256": "7c2ee989f546dcb8de140270f0f7bdce3eefe9b0611d7879c69c52702f897de5"
+    },
+    {
+      "path": "rate_5_hz/sigma_2_deg_s/gyro_width.png",
+      "bytes": 242701,
+      "sha256": "c3001a5c084ed6cb5caa50c69d87f59e66caadbfc7c3d89d4f529f801d493772"
+    },
+    {
       "path": "rate_5_hz/sigma_2_deg_s/linear_forced.npz",
       "bytes": 303247,
       "sha256": "d7ac33038cf8624a38beed35e485d47a96e7f150cca596c4331cb4312c488ab5"
+    },
+    {
+      "path": "rate_5_hz/sigma_2_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 17130,
+      "sha256": "7dcda5965e19948f9dea8cd08f304e435ba76f2a9dc4c37cb1273c34a20c8b68"
     },
     {
       "path": "rate_5_hz/sigma_2_deg_s/linear_forced_plot.npz",
@@ -602,6 +1097,11 @@
       "sha256": "ccb72190ae045d24b227f4753d525a5cc1b879904db6e7bba2305a56504bc3e5"
     },
     {
+      "path": "rate_5_hz/sigma_2_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27730,
+      "sha256": "5dd0ebcf93eea01ed44aab504c7b7b0c211d51b141e547547ad55ff918046aec"
+    },
+    {
       "path": "rate_5_hz/sigma_2_deg_s/nonlinear_plot.npz",
       "bytes": 64095,
       "sha256": "0801282ce5f185b54d58a48d527fd23285f13cd8970a30bc24f95bf0d69250cf"
@@ -617,9 +1117,34 @@
       "sha256": "d322b09f198d734c4a2222488b5ec09b6b90a92a5060489c4819ea9c35332ddf"
     },
     {
+      "path": "rate_5_hz/sigma_2p5_deg_s/gyro_progress.pdf",
+      "bytes": 110799,
+      "sha256": "57e97a76c3ed171ba46f74d457fda829bd5e36f57679ba5d124d00e5c066bd6f"
+    },
+    {
+      "path": "rate_5_hz/sigma_2p5_deg_s/gyro_progress.png",
+      "bytes": 328195,
+      "sha256": "2d2d825ea5123bac286447952fc3c43da771d22f7f475dce32f29d4ccafb1d9c"
+    },
+    {
+      "path": "rate_5_hz/sigma_2p5_deg_s/gyro_progress_events.json",
+      "bytes": 96969,
+      "sha256": "a0c0413298e8e99f62a3d00b9ce1e8e07630db1d45524ea79adbbe2af3aa8e5c"
+    },
+    {
+      "path": "rate_5_hz/sigma_2p5_deg_s/gyro_width.png",
+      "bytes": 248918,
+      "sha256": "f68ff1d68d743501a3f83bb859002547015fedbe4094993460fc94562c075fa5"
+    },
+    {
       "path": "rate_5_hz/sigma_2p5_deg_s/linear_forced.npz",
       "bytes": 303388,
       "sha256": "edc1f912c804bbdddfa41d7f645e9d328ee0ff1973e1156250f3032a10b6f61b"
+    },
+    {
+      "path": "rate_5_hz/sigma_2p5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 17313,
+      "sha256": "3d8f63742a125a612dda8ea3ab1e148f92622b37a624a06db08c97d6724911ac"
     },
     {
       "path": "rate_5_hz/sigma_2p5_deg_s/linear_forced_plot.npz",
@@ -637,6 +1162,11 @@
       "sha256": "82293980ba921fe8cde5c063be0d76df1ceac5dc60f4c003eee5908e833c29f6"
     },
     {
+      "path": "rate_5_hz/sigma_2p5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27696,
+      "sha256": "143f56623338fb7aa428f85d14c14782a914a9455cb2da06617046d4c1ae4b92"
+    },
+    {
       "path": "rate_5_hz/sigma_2p5_deg_s/nonlinear_plot.npz",
       "bytes": 64068,
       "sha256": "660646955a70c6a1b5f0f6f63429355bc2fd6d0d7237da0e12fb7b583a5ffaf5"
@@ -652,9 +1182,34 @@
       "sha256": "c0b30fd0fc008c61323e40b99cad266b0e811e579b78cccdb88566eafbbc27f7"
     },
     {
+      "path": "rate_5_hz/sigma_5_deg_s/gyro_progress.pdf",
+      "bytes": 109615,
+      "sha256": "9c2b117143b9708ed394e59b77f217d8169fc12efb8f37f4a8d592865ba2567a"
+    },
+    {
+      "path": "rate_5_hz/sigma_5_deg_s/gyro_progress.png",
+      "bytes": 344740,
+      "sha256": "d70bfa48050a11fb81640172581c3355a6f2b0935b3d4350f170342a6ef591f1"
+    },
+    {
+      "path": "rate_5_hz/sigma_5_deg_s/gyro_progress_events.json",
+      "bytes": 97145,
+      "sha256": "d28f678f0b75a8e8bb0248ace288067c8d69e7bf7c9369378eeeadcc36b90c73"
+    },
+    {
+      "path": "rate_5_hz/sigma_5_deg_s/gyro_width.png",
+      "bytes": 244986,
+      "sha256": "109b42d0d0b183b7b01827eff6287a5e69adca688e16139a365823ea8a7aff39"
+    },
+    {
       "path": "rate_5_hz/sigma_5_deg_s/linear_forced.npz",
       "bytes": 303914,
       "sha256": "87ea8e2549de8ecb3c1b7c635549fd21db52e0946312b3cac5fb4905c06ebef0"
+    },
+    {
+      "path": "rate_5_hz/sigma_5_deg_s/linear_forced_gyro_progress.npz",
+      "bytes": 17707,
+      "sha256": "9809efdbe8f66874d9785cb0f63d852fc48bfad7e431730e5671a620a9f04c4f"
     },
     {
       "path": "rate_5_hz/sigma_5_deg_s/linear_forced_plot.npz",
@@ -670,6 +1225,11 @@
       "path": "rate_5_hz/sigma_5_deg_s/nonlinear.npz",
       "bytes": 329195,
       "sha256": "5edeaf89e8934ed686c56a8c2adc793bbb1b667020cbce301c0c70c5c6413f19"
+    },
+    {
+      "path": "rate_5_hz/sigma_5_deg_s/nonlinear_gyro_progress.npz",
+      "bytes": 27704,
+      "sha256": "0b905dedcf2d278a8898f26ded0943c7948cd5c3e7545223ee7bc0dcda01d78f"
     },
     {
       "path": "rate_5_hz/sigma_5_deg_s/nonlinear_plot.npz",
@@ -697,8 +1257,9 @@
       "sha256": "4f56b45cbaceaf6a82a501163e3ba844f562ff0bd7a27825dd001dbc72b69a0c"
     }
   ],
-  "bytes_excluding_manifest": 21382685,
+  "bytes_excluding_manifest": 36557146,
   "source": "/tmp/synthetic-controlled-rotation-20261113/results",
   "raw_bags_videos_intermediates_included": false,
-  "old_results_overwritten": false
+  "old_results_overwritten": false,
+  "postprocessing": "gyro_progress_manifest.json records the added display and unchanged original inference artifacts"
 }

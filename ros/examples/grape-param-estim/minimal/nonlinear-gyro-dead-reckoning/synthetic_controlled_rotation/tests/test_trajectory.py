@@ -47,7 +47,14 @@ class SyntheticTrajectoryTests(unittest.TestCase):
         first, metadata = TRAJECTORY.generate_dataset()
         second, _ = TRAJECTORY.generate_dataset()
         for key in first:
-            np.testing.assert_array_equal(first[key], second[key])
+            if key == 'torque_body_nm':
+                # BLAS evaluation can differ by one ulp with allocation
+                # alignment. Keep the realized random sensor sequence exact;
+                # this bound applies only to derived deterministic torques.
+                np.testing.assert_allclose(first[key], second[key],
+                    rtol=8*np.finfo(float).eps, atol=8*np.finfo(float).eps)
+            else:
+                np.testing.assert_array_equal(first[key], second[key])
         np.testing.assert_array_equal(first['gyro'], first['gyro_true_body_rad_s']
                                       +first['gyro_bias_rad_s']+first['gyro_realized_noise_rad_s'])
         np.testing.assert_array_equal(first['generator_gyro_covariance_rad2_s2'],

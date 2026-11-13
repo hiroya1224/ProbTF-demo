@@ -1,0 +1,94 @@
+{
+  "schema": "grape/synthetic-controlled-rotation-audit/v1",
+  "role": "read-only construction and integration checks; no state acceptance gate",
+  "analytic_body_omega_vs_rotation_derivative_max_abs_rad_s": 7.206537588899664e-10,
+  "analytic_body_alpha_vs_omega_derivative_max_abs_rad_s2": 1.6119132695280314e-09,
+  "torque_equation_max_abs_residual_nm": 0.0,
+  "torque_profile_vs_analytic_max_abs_nm": 1.0571424305938493e-06,
+  "torque_profile_vs_analytic_rms_axis_nm": [
+    1.609354183149817e-07,
+    2.710943453516736e-07,
+    4.429547436633304e-07
+  ],
+  "torque_profile_check": "all saved input-cell midpoints, not just stored control nodes",
+  "torque_profile_check_count": 5000,
+  "gyroscopic_torque_rms_axis_nm": [
+    0.028559558417141723,
+    0.09007066032624556,
+    0.022975479897471632
+  ],
+  "inertial_torque_rms_axis_nm": [
+    0.1425814655894962,
+    0.15882454238753238,
+    0.3194003555761648
+  ],
+  "gyroscopic_over_inertial_rms_axis": [
+    0.20030344266040193,
+    0.5671079480051191,
+    0.07193316944192586
+  ],
+  "principal_inertias_kg_m2": [
+    0.045,
+    0.07,
+    0.1
+  ],
+  "physical_second_moment_eigenvalues_kg_m2": [
+    0.007500000000000007,
+    0.037500000000000006,
+    0.06250000000000001
+  ],
+  "trajectory_changed_using_comparison_results": false,
+  "estimation_monte_carlo": false,
+  "separate_zero_noise_no_bias_unit_experiment": {
+    "generated_measurements": "analytic omega at original synthetic acquisition times, covariance exactly zero",
+    "purpose": "verify consistency of matched input and nonlinear integration; not the primary noisy reconstruction",
+    "primary_noisy_dataset_or_law_replaced": false,
+    "rates": {
+      "0.5": {
+        "observation_count": 3,
+        "methods": {
+          "nonlinear": {
+            "geodesic_rmse_deg": 0.00015459082071322356,
+            "geodesic_max_deg": 0.0002623039528524172,
+            "geodesic_final_deg": 0.0002613684462555236
+          },
+          "linear_forced": {
+            "geodesic_rmse_deg": 103.09627865457941,
+            "geodesic_max_deg": 179.9694537801937,
+            "geodesic_final_deg": 154.97277051355923
+          }
+        }
+      },
+      "2.0": {
+        "observation_count": 10,
+        "methods": {
+          "nonlinear": {
+            "geodesic_rmse_deg": 1.7885360906717803e-05,
+            "geodesic_max_deg": 2.3880748426718713e-05,
+            "geodesic_final_deg": 7.366224535936776e-06
+          },
+          "linear_forced": {
+            "geodesic_rmse_deg": 30.057391218051123,
+            "geodesic_max_deg": 46.96161523765985,
+            "geodesic_final_deg": 41.835653652099445
+          }
+        }
+      },
+      "5.0": {
+        "observation_count": 25,
+        "methods": {
+          "nonlinear": {
+            "geodesic_rmse_deg": 7.175919919024608e-06,
+            "geodesic_max_deg": 1.0158120913676298e-05,
+            "geodesic_final_deg": 5.314493926111584e-06
+          },
+          "linear_forced": {
+            "geodesic_rmse_deg": 12.426255859982286,
+            "geodesic_max_deg": 19.84552205593383,
+            "geodesic_final_deg": 18.20258124853136
+          }
+        }
+      }
+    }
+  }
+}

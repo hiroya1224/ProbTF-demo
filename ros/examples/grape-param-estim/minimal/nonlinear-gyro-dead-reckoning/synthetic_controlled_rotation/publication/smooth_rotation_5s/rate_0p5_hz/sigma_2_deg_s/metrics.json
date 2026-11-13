@@ -1,0 +1,64 @@
+{
+  "rate_hz": 0.5,
+  "assumed_sigma_deg_s": 2.0,
+  "gyro_count": 3,
+  "actual_acquisition_times": [
+    0.0,
+    2.0,
+    4.0
+  ],
+  "methods": {
+    "nonlinear": {
+      "so3_proxy_rmse_deg": 0.6822829766014771,
+      "so3_proxy_max_deg": 1.0748484113991001,
+      "so3_proxy_final_deg": 1.0748484113991001,
+      "rpy_proxy_rmse_deg": [
+        0.5184770417904693,
+        0.43800335750471747,
+        0.12013220100184502
+      ],
+      "final_rpy_two_sigma_deg": [
+        8.981604922221656,
+        8.388716892522877,
+        11.868048457193584
+      ],
+      "score_count": 501,
+      "exact_moment_internal_difference": 1.887379141862766e-15
+    },
+    "linear_forced": {
+      "so3_proxy_rmse_deg": 102.87325624561626,
+      "so3_proxy_max_deg": 179.89878667644956,
+      "so3_proxy_final_deg": 153.35147110448324,
+      "rpy_proxy_rmse_deg": [
+        122.57511199922267,
+        21.96753700495452,
+        85.49137483278615
+      ],
+      "final_rpy_two_sigma_deg": [
+        15.978644369780493,
+        9.889223611028333,
+        16.106800344025103
+      ],
+      "score_count": 501,
+      "exact_moment_internal_difference": 2.3314683517128287e-15
+    }
+  },
+  "covariance_per_reading_rad2_s2": [
+    [
+      0.0012184696791468343,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0012184696791468343,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0012184696791468343
+    ]
+  ],
+  "same_realized_gyro_for_all_sigmas": true
+}

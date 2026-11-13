@@ -1,0 +1,18 @@
+{
+  "schema": "grape/nonlinear-gyro-rk4-step-audit/v1",
+  "sigma_deg_s": 2.0,
+  "mode": "nonlinear",
+  "coarse_max_step_s": 0.002,
+  "fine_max_step_s": 0.001,
+  "source": "same frozen input.npz and results/torque_profile.npz",
+  "max_mode_rotation_difference_deg": 0.00023215822842269934,
+  "max_abs_wrapped_rpy_mean_difference_deg": [
+    5.5370545931635416e-05,
+    0.00016903790237147694,
+    0.0001760599083007739
+  ],
+  "max_abs_omega_mean_difference_rad_s": 2.8428097746946435e-06,
+  "max_abs_quaternion_second_moment_difference": 1.5560840741293824e-06,
+  "max_abs_rpy_covariance_difference_rad2": 4.376259785587519e-08,
+  "wall_seconds": 2.11260597105138
+}

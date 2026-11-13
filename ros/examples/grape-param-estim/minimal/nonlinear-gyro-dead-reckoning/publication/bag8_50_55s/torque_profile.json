@@ -1,0 +1,85 @@
+{
+  "schema": "grape/nonlinear-gyro-causal-torque/v1",
+  "model_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json",
+  "model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+  "nominal_inertia_body": [
+    [
+      0.065000061483315,
+      -7.27899253e-07,
+      1.9015080033e-05
+    ],
+    [
+      -7.27899253e-07,
+      0.064952656340165,
+      5.9167305e-08
+    ],
+    [
+      1.9015080033e-05,
+      5.9167305e-08,
+      0.128992110664428
+    ]
+  ],
+  "inertia_diagonalized": false,
+  "physical_parameters": "entire nominal grape_vehicle_model.json; no fitted success physical values",
+  "thrust_tau_seconds": 0.19771202959689427,
+  "thrust_tau_source": {
+    "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/imu-first-order-lag/publication/imu_native_20261031/success/estimate.json",
+    "sha256": "f260c5267a089d54160ff3874309f81cc868456029f52213239b8edf69d7b8c3",
+    "field": "time_constants_seconds.thrust_time_constant_seconds",
+    "role": "previously identified value from another record, frozen before evaluation; physical parameters not read"
+  },
+  "thrust_model": "existing exact ZOH-input first-order response over complete supplied command prefix",
+  "thrust_bounds_newton": [
+    1.5,
+    27.6145
+  ],
+  "thrust_bound_role": "existing actuator saturation model; not covariance clipping",
+  "thrust_active_set_counts": {
+    "thrust_command_lower": 0,
+    "thrust_command_upper": 0,
+    "thrust_command_near_kink": 0,
+    "gimbal_command_lower": 0,
+    "gimbal_command_upper": 0,
+    "gimbal_command_near_kink": 0,
+    "gimbal_rate_lower": 0,
+    "gimbal_rate_upper": 0,
+    "gimbal_rate_near_kink": 0,
+    "gimbal_angle_lower": 0,
+    "gimbal_angle_upper": 0,
+    "gimbal_angle_near_kink": 0
+  },
+  "gimbal_model": "actual measured gimbal angles, linear interpolation on original header clock",
+  "actuator_frame": "body frame, torque about nominal CoG; full rotor geometry and reaction moment retained",
+  "torque_profile_interpolation": "piecewise linear from actuator torque evaluated on the bounded-spacing grid plus all calibration times; finite interpolation approximation",
+  "requested_profile_step_seconds": 0.001,
+  "maximum_profile_step_seconds": 0.0009999634279722613,
+  "residual_model": "constant time-weighted mean of strictly past calibration required-minus-actuator torque",
+  "residual_mean_body_nm": [
+    -0.07506385712996964,
+    -0.11721606900531124,
+    -0.011751802226484566
+  ],
+  "calibration_time_seconds": [
+    40.000537236,
+    44.996259130000006
+  ],
+  "calibration_measurement_count": 1000,
+  "calibration_signal": "raw gyro treated as physical omega; local polynomial .08s degree3 within completed past prefix only",
+  "gyro_sensor_lag_inverted": false,
+  "calibration_future_relative_to_prediction_used": false,
+  "calibration_covariance_role": "individual-reading isotropic gyro covariance; used by existing derivative diagnostic",
+  "residual_scatter_role": "time-weighted centred empirical torque scatter, not a posterior or covariance of the estimated mean; saved diagnostic only",
+  "band_conditioning": "nominal J, known control profile, frozen thrust tau and frozen past residual mean; only requested omega candidate uncertainty is propagated",
+  "evaluation_dense_gyro_used": false,
+  "ongoing_mocap_used": false,
+  "input_sha256": {
+    "rotor_command_time": "29dc4e684f2c8a7de78c061e258cff2dfd8ab4d76de7080ac3bfa6394d81e799",
+    "rotor_command": "ef7c7e96d153ea7e192a7ad75f8a36534df6a206274d5116733e7610efb36897",
+    "gimbal_time": "2410478cfcaf7b1b4275c087f918f2a93420cfc5468e446b273e97987c03a31f",
+    "gimbal_angle": "65ab888b5fd0b795ad1d658a85c9b0a64deb8b7ab0ce27442cae7ab467dbcfaf",
+    "past_calibration_gyro_time": "8c92996c715dc8f870e09fd226694d182568c18cf3ba152f3380636a94867339",
+    "past_calibration_gyro": "b6b37ab01b1f9aa5a8ec102b092a7a550cab4e1d045dddf78974cd80f6010247",
+    "gyro_noise_covariance": "1e1023eb7bb9571019060299142eb25873928cbb39baa3fb21f655b9c51cd18b"
+  },
+  "implementation_sha256": "12db46a446f3e52599d45fe649863260363e4b346ec78d5a97e91aae0fd2b304"
+}

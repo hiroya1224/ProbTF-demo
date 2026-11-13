@@ -1,0 +1,111 @@
+{
+  "schema": "grape/nominal-command-input-mapping-read-only-audit/v1",
+  "source_bag": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+  "samples": {
+    "/gimbalrotor/debug/pose/pid": {
+      "record_stamp_ns": 1781254053201376768,
+      "bag_record_seconds": 50.001264810562134,
+      "roll": {
+        "total": [
+          2.1243250370025635
+        ],
+        "p_term": [
+          1.1125775575637817
+        ],
+        "i_term": [
+          1.3813812732696533
+        ],
+        "d_term": [
+          -0.3696337342262268
+        ]
+      },
+      "pitch": {
+        "total": [
+          -0.1483878344297409
+        ],
+        "p_term": [
+          -0.328403502702713
+        ],
+        "i_term": [
+          1.35670006275177
+        ],
+        "d_term": [
+          -1.1766843795776367
+        ]
+      },
+      "yaw": {
+        "total": [
+          -0.27816206216812134
+        ],
+        "p_term": [
+          -0.11421677470207214
+        ],
+        "i_term": [
+          -0.05075746402144432
+        ],
+        "d_term": [
+          -0.11318781971931458
+        ]
+      }
+    },
+    "/gimbalrotor/four_axes/command": {
+      "record_stamp_ns": 1781254053201419679,
+      "bag_record_seconds": 50.00130772590637,
+      "base_thrust": [
+        6.949712753295898,
+        6.950112819671631,
+        7.134677886962891,
+        7.284881591796875
+      ],
+      "angles": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "/gimbalrotor/debug/target_vectoring_force": {
+      "record_stamp_ns": 1781254053201424236,
+      "bag_record_seconds": 50.001312255859375,
+      "data": [
+        0.35890993475914,
+        6.940438747406006,
+        -1.1080373525619507,
+        6.8612189292907715,
+        -0.4090743362903595,
+        7.122940540313721,
+        1.0578794479370117,
+        7.207662105560303
+      ]
+    }
+  },
+  "callerids": {
+    "/gimbalrotor/joint_states": [
+      "/gimbalrotor/servo_bridge"
+    ],
+    "/gimbalrotor/rpy/pid": [
+      "/gimbalrotor/rosserial_server"
+    ],
+    "/gimbalrotor/four_axes/command": [
+      "/gimbalrotor/aerial_robot_base_node"
+    ]
+  },
+  "rpy_pid_window_bag_seconds": [
+    40.0,
+    55.0
+  ],
+  "rpy_pid_message_count": 148,
+  "rpy_pid_all_terms_zero": true,
+  "rpy_pid_shape": [
+    148,
+    4,
+    7
+  ],
+  "source_files": {
+    "/home/leus/catkin_ws/src/jsk_aerial_robot/robots/gimbalrotor/src/control/gimbalrotor_controller.cpp": "703776bb5f6a60013895d15a4b48446fc9466a2cc51584efe20bb852e9724af2",
+    "/home/leus/catkin_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/lib/Jsk_Lib/flight_control/attitude/attitude_control.cpp": "0ab8629c7120294c84ccdd517b29cfd20a73e14d73ffad1bc59975bce1eea431",
+    "/home/leus/catkin_ws/src/jsk_aerial_robot/robots/gimbalrotor/config/grape/GimbalrotorControl.yaml": "fd5649d86e67483a6d5e8fe1cb6e4c508a0e03311b74cf0c83a7469df9d6cc8f"
+  },
+  "command_model": "gimbal_calc_in_fc=false; FourAxis base_thrust=target_full_thrust with4rotormagnitudes, actualgimbalanglesfromservo_bridge",
+  "measured_realized_torque_claimed": false,
+  "predictor_changed": false
+}

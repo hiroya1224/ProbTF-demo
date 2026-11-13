@@ -1,0 +1,522 @@
+{
+  "schema": "grape/nonlinear-gyro-publication/v1",
+  "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113",
+  "scope": "new independent experiment; previous IMU results/core unchanged",
+  "raw_bag_or_video_included": false,
+  "noise_cases": 4,
+  "code_sha256": {
+    "propagation.py": "92887c1cd732a5467bd5ea8f39a52c71b93661c1a1399c1a69f4c567168e8060",
+    "publish.py": "8e1d8f91470342a449e6e6c10820fc982079ea8f36246f9732c8562ae9ebac7e",
+    "extract.py": "cb1a725899a0fcb200d1e4b4479918b1309ba3b5ff192eec28084adf41e578a4",
+    "torque.py": "12db46a446f3e52599d45fe649863260363e4b346ec78d5a97e91aae0fd2b304",
+    "run.py": "1949b09a882c0982e321303e82c0bd1eda09412da0ece4f63481164ba986fc5d",
+    "plot.py": "b76678fc1bc04f981a2a6df1bd3aca6a33b651ec8fa0a3452939ddaadfb4550c",
+    "diagnostic.py": "26f1f91cfc07ff1578daa32c006fe261a1bceddf0a39f6bb43cb5dd388fbf8a0"
+  },
+  "files": [
+    {
+      "path": "RESULTS.md",
+      "bytes": 1444,
+      "sha256": "2a102b128186f77a008711fa0f08dd54a8e79f555dfe00ecef5ff0ec0a9eee37"
+    },
+    {
+      "path": "comparison_table.csv",
+      "bytes": 2440,
+      "sha256": "6af11fead0c7a9ded59434ca3343fc0c9b6a39f7f23c7ba38076e2f65ba68a80"
+    },
+    {
+      "path": "input.json",
+      "bytes": 4845,
+      "sha256": "937682c0cf53e20de07a6a26a7a148924e9e6a86910d90b3717f25e75d400195"
+    },
+    {
+      "path": "input.npz",
+      "bytes": 1116855,
+      "sha256": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a"
+    },
+    {
+      "path": "input_mapping_audit.json",
+      "bytes": 3135,
+      "sha256": "0be157b89a50fcb015ee9c6a2bbee814e6bbc1e9c8d4bbb7c5d62889a3ca3682"
+    },
+    {
+      "path": "input_model_diagnostic.json",
+      "bytes": 6326,
+      "sha256": "9f43ab09575682e26fee9f2bf3ef8aee313837b12a78aa6430ab7c786cf1e0ec"
+    },
+    {
+      "path": "input_model_diagnostic.npz",
+      "bytes": 228831,
+      "sha256": "1c04826ab8824e66ec2087bd5fc2ab87629fe622e659f5dde1e7c7d917587d8f"
+    },
+    {
+      "path": "input_model_diagnostic.png",
+      "bytes": 474473,
+      "sha256": "3f9e2f41bbf0c09f21512ac093fe76467a396d4da46d6bbbeb80a8fc7f7d2a20"
+    },
+    {
+      "path": "noise_overview.pdf",
+      "bytes": 154822,
+      "sha256": "5329edb9d60937278cc93feb5ec597b565aa203e54db6810a9abfccb4f7ae773"
+    },
+    {
+      "path": "noise_overview.png",
+      "bytes": 746617,
+      "sha256": "37657aa39ed7027a3379c8a079ed802e2047d65b593929f18c2274bb3ce455a8"
+    },
+    {
+      "path": "rk4_step_audit.json",
+      "bytes": 665,
+      "sha256": "4eeca2d3f92f936740c2c911d23de15e6edea79d5294e82bb93bd8d474879370"
+    },
+    {
+      "path": "sigma_0p1_deg_s/comparison.pdf",
+      "bytes": 153822,
+      "sha256": "63ffabbe0dc7c46985ffb4728fcfef22f9de9cca08c788aad115052d1e274d52"
+    },
+    {
+      "path": "sigma_0p1_deg_s/constant.npz",
+      "bytes": 222416,
+      "sha256": "138c5ce41991616b89db321ec317be0590d2e4580a63a1909b75cf2231b93029"
+    },
+    {
+      "path": "sigma_0p1_deg_s/linear_forced.npz",
+      "bytes": 281849,
+      "sha256": "a555437b4f0634763851a3720fe026758f89020217151029ad16b7ab210ce4bb"
+    },
+    {
+      "path": "sigma_0p1_deg_s/metrics.json",
+      "bytes": 2915,
+      "sha256": "bf2fb0318ca114a60c17f6099ccb03dd8307124dc576b520e0fcc1455c140c60"
+    },
+    {
+      "path": "sigma_0p1_deg_s/nonlinear.npz",
+      "bytes": 332672,
+      "sha256": "84022e9a9a3f60f32508978db6083a41137725c5820ebe0bbabfe678773defc4"
+    },
+    {
+      "path": "sigma_0p1_deg_s/omega.png",
+      "bytes": 306081,
+      "sha256": "b434fe4c6db0f406145b25cc6034f8bad26f81a6fb0bed64c92be574d955d2d7"
+    },
+    {
+      "path": "sigma_0p1_deg_s/rpy.png",
+      "bytes": 287497,
+      "sha256": "36de8bd564a66c2dc3b692b8dc4fdac8fe3e97fc2ae62b0d283112e047e9efed"
+    },
+    {
+      "path": "sigma_0p1_deg_s/uncertainty.png",
+      "bytes": 233190,
+      "sha256": "ad97bb0fbc5e5a17e6b62be41299e0bdfa92da7d4a60d7f1e8e3bc64a5b3eaf0"
+    },
+    {
+      "path": "sigma_0p5_deg_s/comparison.pdf",
+      "bytes": 155330,
+      "sha256": "7253d3bfc9400e6eb39177d9ea62afb4d95c66121abd169ab5494f5b524353be"
+    },
+    {
+      "path": "sigma_0p5_deg_s/constant.npz",
+      "bytes": 225425,
+      "sha256": "8296780e323bd90bb4865495eac2bdd577a1eb04f14442ff2a9ad41892ded359"
+    },
+    {
+      "path": "sigma_0p5_deg_s/linear_forced.npz",
+      "bytes": 285078,
+      "sha256": "af1f3177517da63eeb36a4ea3d5f7f9012625f3bf618d495a70f5c7a1472cd16"
+    },
+    {
+      "path": "sigma_0p5_deg_s/metrics.json",
+      "bytes": 2909,
+      "sha256": "a3b8ba78f8b189bb759c7155c1dd6809bb9e0050f1623680d4b7b81d38146280"
+    },
+    {
+      "path": "sigma_0p5_deg_s/nonlinear.npz",
+      "bytes": 334862,
+      "sha256": "1fb4340ecb94bebe6ffb97fa5ec817832c20e7f96db110cc3ba44665568785e2"
+    },
+    {
+      "path": "sigma_0p5_deg_s/omega.png",
+      "bytes": 329260,
+      "sha256": "84a5c0a3a3bbe0babc6cddb6edc4178747635289c0b0580e2d7cfd964ebead58"
+    },
+    {
+      "path": "sigma_0p5_deg_s/rpy.png",
+      "bytes": 299622,
+      "sha256": "0b4b51233400528da514e828df3f9eaa54c2cd21e5f8fc1e0cebfb05c15d0284"
+    },
+    {
+      "path": "sigma_0p5_deg_s/uncertainty.png",
+      "bytes": 225620,
+      "sha256": "0926be97567ce65c8c7e969a17f0360d0cd5c08a6d242b6e1b5955f7b02e91a6"
+    },
+    {
+      "path": "sigma_2_deg_s/comparison.pdf",
+      "bytes": 153826,
+      "sha256": "64d602a44a249a1b3bdb44fcf9094bdb2175629fcd3cca6b1f84d5adeb4e8fc4"
+    },
+    {
+      "path": "sigma_2_deg_s/constant.npz",
+      "bytes": 227560,
+      "sha256": "079435e918fb3eb8c85a2d0ec603b6d59b56f845ad110b89d7605c850176ed3c"
+    },
+    {
+      "path": "sigma_2_deg_s/linear_forced.npz",
+      "bytes": 286155,
+      "sha256": "219c7de8f4219a17b5110733baa2eb05f6a58ddf08731b02e3bb768fb531484f"
+    },
+    {
+      "path": "sigma_2_deg_s/metrics.json",
+      "bytes": 2894,
+      "sha256": "9a56a2d8ee5c6127c1dff81a0317af0bd0333e3bc658125aee6aedaa2cdcc8cc"
+    },
+    {
+      "path": "sigma_2_deg_s/nonlinear.npz",
+      "bytes": 335913,
+      "sha256": "cf493521a02f630c5fabf8f6f44b7cee5d80cb7c28526c8008a8cbf205831e20"
+    },
+    {
+      "path": "sigma_2_deg_s/omega.png",
+      "bytes": 336983,
+      "sha256": "8ef716f587c34a0e1640af88c51325bab201236ff133dae29a8a0f41aa1b2831"
+    },
+    {
+      "path": "sigma_2_deg_s/rpy.png",
+      "bytes": 292835,
+      "sha256": "ab395537486658ef815b088e6b7abfb48f38f0c0ee07a692d0df0b96d033f2bd"
+    },
+    {
+      "path": "sigma_2_deg_s/uncertainty.png",
+      "bytes": 232724,
+      "sha256": "0ca06a5687891d078d380a6787ece6494335ac7a389272c805c17b8dad7e3fdd"
+    },
+    {
+      "path": "sigma_5_deg_s/comparison.pdf",
+      "bytes": 150697,
+      "sha256": "52cfb2349037e258fc7371518ddc2a0ff552fca5e974eb8a1452046e41840a36"
+    },
+    {
+      "path": "sigma_5_deg_s/constant.npz",
+      "bytes": 228918,
+      "sha256": "8a007afef64075f40e44eef00514c79ff1ff5928065bd86d38187e9266a838a8"
+    },
+    {
+      "path": "sigma_5_deg_s/linear_forced.npz",
+      "bytes": 287310,
+      "sha256": "762899abc8647d067f1c300dafc4949c69ed4a08edb2c5fc1eeba9832b4989b9"
+    },
+    {
+      "path": "sigma_5_deg_s/metrics.json",
+      "bytes": 2861,
+      "sha256": "1009550453f95a925d0f78289fd39a760d64e015de098a1b7128c1a04229f672"
+    },
+    {
+      "path": "sigma_5_deg_s/nonlinear.npz",
+      "bytes": 336489,
+      "sha256": "6efdfac882704b1e568356f10317bed02dec780838673ed871c86969d93268a2"
+    },
+    {
+      "path": "sigma_5_deg_s/omega.png",
+      "bytes": 322254,
+      "sha256": "22a836f9041f737de9952b14bce6263372d4f5c0117bfce4b4251b101968d505"
+    },
+    {
+      "path": "sigma_5_deg_s/rpy.png",
+      "bytes": 270226,
+      "sha256": "5c0786d6cea02848d24daba455cc2fc35653476edeb2732410c85f14421bd440"
+    },
+    {
+      "path": "sigma_5_deg_s/uncertainty.png",
+      "bytes": 228787,
+      "sha256": "3304310926294c3131f07a11bd1278ad986012b6033d9ec11c8922bfbf2269a2"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 25526,
+      "sha256": "bb8be2cf785496e03226e643eeb565ff67947fa7c4ecf06b719540ee216cc5ca"
+    },
+    {
+      "path": "torque_profile.json",
+      "bytes": 4171,
+      "sha256": "0967ed98397cd9fe176eeeee21e2d628a77d0b23e3c5d88b85af8f7ef54dfe61"
+    },
+    {
+      "path": "torque_profile.npz",
+      "bytes": 2393014,
+      "sha256": "366b59a9dfad16bd3c2659941295585d4dffa589a6be58cc999bac69adb44905"
+    }
+  ],
+  "byte_exact_source_copies": [
+    {
+      "path": "input.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/input.npz",
+      "sha256": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a",
+      "bytes": 1116855
+    },
+    {
+      "path": "input.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/input.json",
+      "sha256": "937682c0cf53e20de07a6a26a7a148924e9e6a86910d90b3717f25e75d400195",
+      "bytes": 4845
+    },
+    {
+      "path": "input_model_diagnostic.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/input_model_diagnostic.npz",
+      "sha256": "1c04826ab8824e66ec2087bd5fc2ab87629fe622e659f5dde1e7c7d917587d8f",
+      "bytes": 228831
+    },
+    {
+      "path": "input_model_diagnostic.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/input_model_diagnostic.json",
+      "sha256": "9f43ab09575682e26fee9f2bf3ef8aee313837b12a78aa6430ab7c786cf1e0ec",
+      "bytes": 6326
+    },
+    {
+      "path": "input_model_diagnostic.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/input_model_diagnostic.png",
+      "sha256": "3f9e2f41bbf0c09f21512ac093fe76467a396d4da46d6bbbeb80a8fc7f7d2a20",
+      "bytes": 474473
+    },
+    {
+      "path": "rk4_step_audit.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/rk4_step_audit.json",
+      "sha256": "4eeca2d3f92f936740c2c911d23de15e6edea79d5294e82bb93bd8d474879370",
+      "bytes": 665
+    },
+    {
+      "path": "input_mapping_audit.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/input_mapping_audit.json",
+      "sha256": "0be157b89a50fcb015ee9c6a2bbee814e6bbc1e9c8d4bbb7c5d62889a3ca3682",
+      "bytes": 3135
+    },
+    {
+      "path": "summary.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/summary.json",
+      "sha256": "bb8be2cf785496e03226e643eeb565ff67947fa7c4ecf06b719540ee216cc5ca",
+      "bytes": 25526
+    },
+    {
+      "path": "comparison_table.csv",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/comparison_table.csv",
+      "sha256": "6af11fead0c7a9ded59434ca3343fc0c9b6a39f7f23c7ba38076e2f65ba68a80",
+      "bytes": 2440
+    },
+    {
+      "path": "noise_overview.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/noise_overview.png",
+      "sha256": "37657aa39ed7027a3379c8a079ed802e2047d65b593929f18c2274bb3ce455a8",
+      "bytes": 746617
+    },
+    {
+      "path": "noise_overview.pdf",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/noise_overview.pdf",
+      "sha256": "5329edb9d60937278cc93feb5ec597b565aa203e54db6810a9abfccb4f7ae773",
+      "bytes": 154822
+    },
+    {
+      "path": "torque_profile.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/torque_profile.npz",
+      "sha256": "366b59a9dfad16bd3c2659941295585d4dffa589a6be58cc999bac69adb44905",
+      "bytes": 2393014
+    },
+    {
+      "path": "torque_profile.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/torque_profile.json",
+      "sha256": "0967ed98397cd9fe176eeeee21e2d628a77d0b23e3c5d88b85af8f7ef54dfe61",
+      "bytes": 4171
+    },
+    {
+      "path": "sigma_0p1_deg_s/comparison.pdf",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p1_deg_s/comparison.pdf",
+      "sha256": "63ffabbe0dc7c46985ffb4728fcfef22f9de9cca08c788aad115052d1e274d52",
+      "bytes": 153822
+    },
+    {
+      "path": "sigma_0p1_deg_s/rpy.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p1_deg_s/rpy.png",
+      "sha256": "36de8bd564a66c2dc3b692b8dc4fdac8fe3e97fc2ae62b0d283112e047e9efed",
+      "bytes": 287497
+    },
+    {
+      "path": "sigma_0p1_deg_s/omega.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p1_deg_s/omega.png",
+      "sha256": "b434fe4c6db0f406145b25cc6034f8bad26f81a6fb0bed64c92be574d955d2d7",
+      "bytes": 306081
+    },
+    {
+      "path": "sigma_0p1_deg_s/uncertainty.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p1_deg_s/uncertainty.png",
+      "sha256": "ad97bb0fbc5e5a17e6b62be41299e0bdfa92da7d4a60d7f1e8e3bc64a5b3eaf0",
+      "bytes": 233190
+    },
+    {
+      "path": "sigma_0p1_deg_s/metrics.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p1_deg_s/metrics.json",
+      "sha256": "bf2fb0318ca114a60c17f6099ccb03dd8307124dc576b520e0fcc1455c140c60",
+      "bytes": 2915
+    },
+    {
+      "path": "sigma_0p1_deg_s/constant.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p1_deg_s/constant.npz",
+      "sha256": "138c5ce41991616b89db321ec317be0590d2e4580a63a1909b75cf2231b93029",
+      "bytes": 222416
+    },
+    {
+      "path": "sigma_0p1_deg_s/linear_forced.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p1_deg_s/linear_forced.npz",
+      "sha256": "a555437b4f0634763851a3720fe026758f89020217151029ad16b7ab210ce4bb",
+      "bytes": 281849
+    },
+    {
+      "path": "sigma_0p1_deg_s/nonlinear.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p1_deg_s/nonlinear.npz",
+      "sha256": "84022e9a9a3f60f32508978db6083a41137725c5820ebe0bbabfe678773defc4",
+      "bytes": 332672
+    },
+    {
+      "path": "sigma_0p5_deg_s/comparison.pdf",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p5_deg_s/comparison.pdf",
+      "sha256": "7253d3bfc9400e6eb39177d9ea62afb4d95c66121abd169ab5494f5b524353be",
+      "bytes": 155330
+    },
+    {
+      "path": "sigma_0p5_deg_s/rpy.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p5_deg_s/rpy.png",
+      "sha256": "0b4b51233400528da514e828df3f9eaa54c2cd21e5f8fc1e0cebfb05c15d0284",
+      "bytes": 299622
+    },
+    {
+      "path": "sigma_0p5_deg_s/omega.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p5_deg_s/omega.png",
+      "sha256": "84a5c0a3a3bbe0babc6cddb6edc4178747635289c0b0580e2d7cfd964ebead58",
+      "bytes": 329260
+    },
+    {
+      "path": "sigma_0p5_deg_s/uncertainty.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p5_deg_s/uncertainty.png",
+      "sha256": "0926be97567ce65c8c7e969a17f0360d0cd5c08a6d242b6e1b5955f7b02e91a6",
+      "bytes": 225620
+    },
+    {
+      "path": "sigma_0p5_deg_s/metrics.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p5_deg_s/metrics.json",
+      "sha256": "a3b8ba78f8b189bb759c7155c1dd6809bb9e0050f1623680d4b7b81d38146280",
+      "bytes": 2909
+    },
+    {
+      "path": "sigma_0p5_deg_s/constant.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p5_deg_s/constant.npz",
+      "sha256": "8296780e323bd90bb4865495eac2bdd577a1eb04f14442ff2a9ad41892ded359",
+      "bytes": 225425
+    },
+    {
+      "path": "sigma_0p5_deg_s/linear_forced.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p5_deg_s/linear_forced.npz",
+      "sha256": "af1f3177517da63eeb36a4ea3d5f7f9012625f3bf618d495a70f5c7a1472cd16",
+      "bytes": 285078
+    },
+    {
+      "path": "sigma_0p5_deg_s/nonlinear.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_0p5_deg_s/nonlinear.npz",
+      "sha256": "1fb4340ecb94bebe6ffb97fa5ec817832c20e7f96db110cc3ba44665568785e2",
+      "bytes": 334862
+    },
+    {
+      "path": "sigma_2_deg_s/comparison.pdf",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_2_deg_s/comparison.pdf",
+      "sha256": "64d602a44a249a1b3bdb44fcf9094bdb2175629fcd3cca6b1f84d5adeb4e8fc4",
+      "bytes": 153826
+    },
+    {
+      "path": "sigma_2_deg_s/rpy.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_2_deg_s/rpy.png",
+      "sha256": "ab395537486658ef815b088e6b7abfb48f38f0c0ee07a692d0df0b96d033f2bd",
+      "bytes": 292835
+    },
+    {
+      "path": "sigma_2_deg_s/omega.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_2_deg_s/omega.png",
+      "sha256": "8ef716f587c34a0e1640af88c51325bab201236ff133dae29a8a0f41aa1b2831",
+      "bytes": 336983
+    },
+    {
+      "path": "sigma_2_deg_s/uncertainty.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_2_deg_s/uncertainty.png",
+      "sha256": "0ca06a5687891d078d380a6787ece6494335ac7a389272c805c17b8dad7e3fdd",
+      "bytes": 232724
+    },
+    {
+      "path": "sigma_2_deg_s/metrics.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_2_deg_s/metrics.json",
+      "sha256": "9a56a2d8ee5c6127c1dff81a0317af0bd0333e3bc658125aee6aedaa2cdcc8cc",
+      "bytes": 2894
+    },
+    {
+      "path": "sigma_2_deg_s/constant.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_2_deg_s/constant.npz",
+      "sha256": "079435e918fb3eb8c85a2d0ec603b6d59b56f845ad110b89d7605c850176ed3c",
+      "bytes": 227560
+    },
+    {
+      "path": "sigma_2_deg_s/linear_forced.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_2_deg_s/linear_forced.npz",
+      "sha256": "219c7de8f4219a17b5110733baa2eb05f6a58ddf08731b02e3bb768fb531484f",
+      "bytes": 286155
+    },
+    {
+      "path": "sigma_2_deg_s/nonlinear.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_2_deg_s/nonlinear.npz",
+      "sha256": "cf493521a02f630c5fabf8f6f44b7cee5d80cb7c28526c8008a8cbf205831e20",
+      "bytes": 335913
+    },
+    {
+      "path": "sigma_5_deg_s/comparison.pdf",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_5_deg_s/comparison.pdf",
+      "sha256": "52cfb2349037e258fc7371518ddc2a0ff552fca5e974eb8a1452046e41840a36",
+      "bytes": 150697
+    },
+    {
+      "path": "sigma_5_deg_s/rpy.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_5_deg_s/rpy.png",
+      "sha256": "5c0786d6cea02848d24daba455cc2fc35653476edeb2732410c85f14421bd440",
+      "bytes": 270226
+    },
+    {
+      "path": "sigma_5_deg_s/omega.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_5_deg_s/omega.png",
+      "sha256": "22a836f9041f737de9952b14bce6263372d4f5c0117bfce4b4251b101968d505",
+      "bytes": 322254
+    },
+    {
+      "path": "sigma_5_deg_s/uncertainty.png",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_5_deg_s/uncertainty.png",
+      "sha256": "3304310926294c3131f07a11bd1278ad986012b6033d9ec11c8922bfbf2269a2",
+      "bytes": 228787
+    },
+    {
+      "path": "sigma_5_deg_s/metrics.json",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_5_deg_s/metrics.json",
+      "sha256": "1009550453f95a925d0f78289fd39a760d64e015de098a1b7128c1a04229f672",
+      "bytes": 2861
+    },
+    {
+      "path": "sigma_5_deg_s/constant.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_5_deg_s/constant.npz",
+      "sha256": "8a007afef64075f40e44eef00514c79ff1ff5928065bd86d38187e9266a838a8",
+      "bytes": 228918
+    },
+    {
+      "path": "sigma_5_deg_s/linear_forced.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_5_deg_s/linear_forced.npz",
+      "sha256": "762899abc8647d067f1c300dafc4949c69ed4a08edb2c5fc1eeba9832b4989b9",
+      "bytes": 287310
+    },
+    {
+      "path": "sigma_5_deg_s/nonlinear.npz",
+      "source": "/tmp/nonlinear-gyro-dead-reckoning-20261113/results/sigma_5_deg_s/nonlinear.npz",
+      "sha256": "6efdfac882704b1e568356f10317bed02dec780838673ed871c86969d93268a2",
+      "bytes": 336489
+    }
+  ],
+  "total_bytes_excluding_manifest": 12538144,
+  "maximum_file_bytes": 2393014
+}

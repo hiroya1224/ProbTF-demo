@@ -1,0 +1,107 @@
+{
+  "sigma_deg_s": 5.0,
+  "sigma_rad_s": 0.08726646259971647,
+  "covariance_rad2_s2": [
+    [
+      0.007615435494667714,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.007615435494667714,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.007615435494667714
+    ]
+  ],
+  "actual_observation_times": [
+    50.000988619000005,
+    52.000961632000006,
+    54.000961632000006
+  ],
+  "observation_rate_hz": 0.5,
+  "measurement_values_randomly_perturbed": false,
+  "methods": {
+    "constant": {
+      "rpy_rmse_deg": [
+        4.694464339364642,
+        10.525214530957175,
+        4.667368332822372
+      ],
+      "rpy_final_error_deg": [
+        3.9239064930759318,
+        -14.62196559634379,
+        1.7526836912535018
+      ],
+      "rpy_final_two_sigma_deg": [
+        31.935919570871597,
+        29.64962254795436,
+        31.988971921613633
+      ],
+      "geodesic_rmse_deg": 12.35499341145645,
+      "geodesic_final_deg": 15.325080760217553,
+      "empirical_two_sigma_axis_fraction": [
+        1.0,
+        0.9105367793240556,
+        1.0
+      ],
+      "max_core_product_enumeration_residual": 1.4432899320127035e-15
+    },
+    "linear_forced": {
+      "rpy_rmse_deg": [
+        107.84115303526157,
+        7.961258126536656,
+        19.712078409711808
+      ],
+      "rpy_final_error_deg": [
+        -31.837239702969303,
+        4.412483940736298,
+        -15.434697281477899
+      ],
+      "rpy_final_two_sigma_deg": [
+        29.884007683427722,
+        23.045349204520342,
+        23.47667390057239
+      ],
+      "geodesic_rmse_deg": 108.70246988558658,
+      "geodesic_final_deg": 35.97374245063672,
+      "empirical_two_sigma_axis_fraction": [
+        0.073558648111332,
+        0.9065606361829026,
+        0.6043737574552683
+      ],
+      "max_core_product_enumeration_residual": 1.9984014443252818e-15
+    },
+    "nonlinear": {
+      "rpy_rmse_deg": [
+        107.72793213863334,
+        9.010267027784442,
+        22.225781689303766
+      ],
+      "rpy_final_error_deg": [
+        -31.992762158097765,
+        6.29410612932534,
+        -11.68923555903975
+      ],
+      "rpy_final_two_sigma_deg": [
+        30.087937237701354,
+        23.25978732230936,
+        37.23190251416358
+      ],
+      "geodesic_rmse_deg": 108.63259944095861,
+      "geodesic_final_deg": 34.717233663970674,
+      "empirical_two_sigma_axis_fraction": [
+        0.073558648111332,
+        0.9085487077534792,
+        0.6560636182902585
+      ],
+      "max_core_product_enumeration_residual": 1.7763568394002505e-15
+    }
+  },
+  "band": "mean +/- 2 weighted standard deviations of the finite cubature-product Euler law; not guaranteed credible intervals",
+  "uncertainty_scope": "only independent individual sparse gyro candidates; conditional on nominal inertia, fixed actuator model, measured gimbal/command history and strictly-past residual torque mean"
+}

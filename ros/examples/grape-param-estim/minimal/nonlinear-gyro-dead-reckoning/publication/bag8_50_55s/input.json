@@ -1,0 +1,161 @@
+{
+  "schema": "grape/nonlinear-sparse-gyro-input/v1",
+  "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+  "bag_size_bytes": 271283601,
+  "bag_sha256_computed": false,
+  "time_origin_ns": 1781254003200111893,
+  "requested_window_seconds": [
+    50.0,
+    55.0
+  ],
+  "actual_window_seconds": [
+    50.000988619000005,
+    55.000988619000005
+  ],
+  "requested_gyro_rate_hz": 0.5,
+  "sparse_selection": "first original native gyro header stamp at or after each requested bag-local epoch; no averaging",
+  "sparse_requested_epochs": [
+    50.0,
+    52.0,
+    54.0
+  ],
+  "sparse_actual_epochs": [
+    50.000988619000005,
+    52.000961632000006,
+    54.000961632000006
+  ],
+  "sparse_source_indices": [
+    10060,
+    10460,
+    10860
+  ],
+  "actual_sparse_intervals_seconds": [
+    1.9999730130000017,
+    2.0
+  ],
+  "source_clock": "native spinal/Imu.stamp and mocap/joint header stamps; issued rotor/gimbal commands use bag record time",
+  "units": {
+    "time": "s from exact first bag record ns",
+    "gyro": "rad/s",
+    "rotor_command": "N base_thrust",
+    "gimbal_angle": "rad",
+    "quaternion": "xyzw except initial wxyz"
+  },
+  "source_indices": "original per-topic prefix indices; not renumbered after extraction",
+  "extrinsics": {
+    "body_frame": "gimbalrotor/main_body",
+    "imu_frame": "gimbalrotor/fc",
+    "source": "bag /tf_static main_body->FC, identity rotation; native fields copied directly to converted IMU",
+    "physical_imu_lever_arm_calibrated": false,
+    "sensor_position_model": "nominal FC origin; physical accelerometer-chip offset is not independently calibrated"
+  },
+  "native_gyro_body_alignment": "spinal/Imu.gyro copied directly into FC/baselink omega; static main_body->FC rotation is identity",
+  "initial_mocap_alignment": {
+    "time": 50.000988619000005,
+    "bracket_times": [
+      49.997495885000006,
+      50.006054706
+    ],
+    "bracket_source_indices": [
+      5986,
+      5987
+    ],
+    "use": "one initial quaternion only"
+  },
+  "mocap_role_after_initialization": "read-only orientation and height reference, never predictor/torque calibration input",
+  "dense_gyro_role": "past calibration 40–45 s, and read-only high-rate reference; evaluation predictor may read sparse_gyro only",
+  "stationary_noise_diagnostic": {
+    "start_seconds": 0.003795632,
+    "end_seconds": 4.102580743,
+    "count": 821,
+    "formula": "trace(unbiased sample covariance)/3 * I; no division by N and no bias subtraction",
+    "means_not_subtracted": [
+      0.00020664767211758678,
+      0.00026996974881215703,
+      -9.917525823736572e-05
+    ]
+  },
+  "past_residual_calibration_window": [
+    40.0,
+    45.0
+  ],
+  "command_history": {
+    "rotor": {
+      "count": 8891,
+      "clock": "bag record",
+      "pre_evaluation_count": 7890
+    },
+    "joint": {
+      "count": 2787,
+      "clock": "header",
+      "pre_evaluation_count": 2536
+    },
+    "gimbal_command": {
+      "count": 8892,
+      "clock": "bag record",
+      "pre_evaluation_count": 7891
+    }
+  },
+  "recorded_startup_gains": {
+    "xy": {
+      "stamp_ns": 1781254003200774173,
+      "record_ns": 1781254003200774173,
+      "source_index": 0,
+      "doubles": {
+        "p_gain": 3.0,
+        "i_gain": 0.1,
+        "d_gain": 1.0
+      },
+      "bools": {
+        "pid_control_flag": false
+      }
+    },
+    "z": {
+      "stamp_ns": 1781254003201015795,
+      "record_ns": 1781254003201015795,
+      "source_index": 0,
+      "doubles": {
+        "p_gain": 5.0,
+        "i_gain": 1.0,
+        "d_gain": 2.5
+      },
+      "bools": {
+        "pid_control_flag": false
+      }
+    },
+    "roll_pitch": {
+      "stamp_ns": 1781254003201128947,
+      "record_ns": 1781254003201128947,
+      "source_index": 0,
+      "doubles": {
+        "p_gain": 12.0,
+        "i_gain": 1.0,
+        "d_gain": 12.0
+      },
+      "bools": {
+        "pid_control_flag": false
+      }
+    },
+    "yaw": {
+      "stamp_ns": 1781254003213512493,
+      "record_ns": 1781254003213512493,
+      "source_index": 0,
+      "doubles": {
+        "p_gain": 4.0,
+        "i_gain": 1.0,
+        "d_gain": 2.0
+      },
+      "bools": {
+        "pid_control_flag": false
+      }
+    }
+  },
+  "model_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json",
+  "model_sha256": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+  "extraction_code_sha256": "cb1a725899a0fcb200d1e4b4479918b1309ba3b5ff192eec28084adf41e578a4",
+  "helper_code_sha256": "fb32791360d5ed258390aac68fffd22088429509ae6ffbffcbd0303d45a2d720",
+  "full_bag_or_video_copied": false,
+  "synthetic_noise_added": false,
+  "identified_model_from_another_bag_used": false,
+  "arrays_sha256": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a"
+}

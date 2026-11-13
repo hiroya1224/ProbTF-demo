@@ -1,0 +1,95 @@
+{
+  "schema": "grape/synthetic-controlled-rotation-audit/v1",
+  "role": "read-only construction and integration checks; no state acceptance gate",
+  "motion_profile": "three_frequency",
+  "angular_rate_scale": 0.013333333333333334,
+  "analytic_body_omega_vs_rotation_derivative_max_abs_rad_s": 7.267893925577695e-11,
+  "analytic_body_alpha_vs_omega_derivative_max_abs_rad_s2": 2.0521044585830595e-10,
+  "torque_equation_max_abs_residual_nm": 0.0,
+  "torque_profile_vs_analytic_max_abs_nm": 1.2886140557735737e-07,
+  "torque_profile_vs_analytic_rms_axis_nm": [
+    3.2791418585116126e-08,
+    3.937299789292756e-08,
+    6.008343862246936e-08
+  ],
+  "torque_profile_check": "all saved input-cell midpoints, not just stored control nodes",
+  "torque_profile_check_count": 5000,
+  "gyroscopic_torque_rms_axis_nm": [
+    7.654031487206878e-06,
+    1.2980599412432214e-05,
+    4.308072269514386e-06
+  ],
+  "inertial_torque_rms_axis_nm": [
+    0.004325802891307063,
+    0.004772147475664853,
+    0.008852488525823543
+  ],
+  "gyroscopic_over_inertial_rms_axis": [
+    0.0017693897941092212,
+    0.002720075077022586,
+    0.00048665098598516486
+  ],
+  "principal_inertias_kg_m2": [
+    0.045,
+    0.07,
+    0.1
+  ],
+  "physical_second_moment_eigenvalues_kg_m2": [
+    0.007500000000000007,
+    0.037500000000000006,
+    0.06250000000000001
+  ],
+  "trajectory_changed_using_comparison_results": false,
+  "estimation_monte_carlo": false,
+  "scaled_motion_consistency": {
+    "operation": "body omega(t) and alpha(t) scaled at unchanged physical times; attitude is reintegrated",
+    "omega_vs_scaled_source_max_abs_rad_s": 0.0,
+    "alpha_vs_scaled_source_max_abs_rad_s2": 0.0,
+    "gyroscopic_vs_squared_scale_max_abs_nm": 1.6940658945086007e-20,
+    "source_peak_axis_body_omega_deg_s": [
+      128.51715147161593,
+      145.81120774228583,
+      163.8400605188985
+    ],
+    "scaled_peak_axis_body_omega_deg_s": [
+      1.713562019621546,
+      1.944149436563811,
+      2.1845341402519796
+    ]
+  },
+  "separate_zero_noise_no_bias_unit_experiment": {
+    "generated_measurements": "analytic omega at original synthetic acquisition times, covariance exactly zero",
+    "purpose": "verify consistency of matched input and nonlinear integration; not the primary noisy reconstruction",
+    "primary_noisy_dataset_or_law_replaced": false,
+    "requested_rates_hz": [
+      0.5
+    ],
+    "rates": {
+      "0.5": {
+        "observation_count": 3,
+        "acquisition_source_index": [
+          0,
+          400,
+          800
+        ],
+        "acquisition_times_seconds": [
+          0.0,
+          2.0,
+          4.0
+        ],
+        "methods": {
+          "nonlinear": {
+            "geodesic_rmse_deg": 5.562641109904761e-06,
+            "geodesic_max_deg": 1.0084942913089744e-05,
+            "geodesic_final_deg": 1.0084942913089744e-05
+          },
+          "linear_forced": {
+            "geodesic_rmse_deg": 0.007931672974648911,
+            "geodesic_max_deg": 0.011153032127942983,
+            "geodesic_final_deg": 0.008323587275842462
+          }
+        }
+      }
+    }
+  }
+}

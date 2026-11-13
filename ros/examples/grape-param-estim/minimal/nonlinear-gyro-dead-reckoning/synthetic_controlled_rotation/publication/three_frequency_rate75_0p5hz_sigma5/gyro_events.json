@@ -1,0 +1,450 @@
+{
+  "nonlinear": {
+    "events": [
+      {
+        "observation_index": 0,
+        "time_seconds": 0.0,
+        "acquired_gyro_rad_s": [
+          0.027899602952428174,
+          0.013819964064059843,
+          0.028565237471184703
+        ],
+        "before_mean_rad_s": null,
+        "before_covariance_rad2_s2": null,
+        "after_mean_rad_s": [
+          0.027899602952428177,
+          0.013819964064059841,
+          0.028565237471184706
+        ],
+        "after_covariance_rad2_s2": [
+          [
+            0.007615435494667713,
+            -1.0030885127016853e-36,
+            0.0
+          ],
+          [
+            -1.0030885127016853e-36,
+            0.007615435494667713,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667713
+          ]
+        ],
+        "before_two_sigma_deg_s": null,
+        "after_two_sigma_deg_s": [
+          10.0,
+          10.0,
+          10.0
+        ],
+        "post_over_pre_width_ratio": null,
+        "post_minus_assumed_covariance_max_abs_rad2_s2": 8.673617379884035e-19,
+        "post_mean_minus_acquisition_max_abs_rad_s": 3.469446951953614e-18,
+        "source_index": 0,
+        "stamp_ns": 0,
+        "requested_stamp_ns": 0
+      },
+      {
+        "observation_index": 1,
+        "time_seconds": 2.0,
+        "acquired_gyro_rad_s": [
+          -0.002416607765027228,
+          -0.003504391858751057,
+          0.018474459389642595
+        ],
+        "before_mean_rad_s": [
+          -0.0021476512257537963,
+          -0.004525960971949456,
+          0.019974035078961533
+        ],
+        "before_covariance_rad2_s2": [
+          [
+            0.007618913714406748,
+            5.4666345170114685e-09,
+            0.0001907299603448994
+          ],
+          [
+            5.466634517012104e-09,
+            0.007615529606538192,
+            2.163162266362709e-05
+          ],
+          [
+            0.0001907299603448994,
+            2.163162266362709e-05,
+            0.007616709024874435
+          ]
+        ],
+        "after_mean_rad_s": [
+          -0.0024166077650272302,
+          -0.003504391858751062,
+          0.018474459389642598
+        ],
+        "after_covariance_rad2_s2": [
+          [
+            0.007615435494667713,
+            1.7240583812060216e-36,
+            0.0
+          ],
+          [
+            1.7240583812060216e-36,
+            0.007615435494667713,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667713
+          ]
+        ],
+        "before_two_sigma_deg_s": [
+          10.00228340367259,
+          10.000061790018302,
+          10.00083611565544
+        ],
+        "after_two_sigma_deg_s": [
+          10.0,
+          10.0,
+          10.0
+        ],
+        "post_over_pre_width_ratio": [
+          0.9997717117601614,
+          0.9999938210363496,
+          0.9999163954247654
+        ],
+        "post_minus_assumed_covariance_max_abs_rad2_s2": 8.673617379884035e-19,
+        "post_mean_minus_acquisition_max_abs_rad_s": 4.7704895589362195e-18,
+        "source_index": 400,
+        "stamp_ns": 2000000000,
+        "requested_stamp_ns": 2000000000
+      },
+      {
+        "observation_index": 2,
+        "time_seconds": 4.0,
+        "acquired_gyro_rad_s": [
+          0.002523678974400164,
+          -0.01711942429017081,
+          0.029997966187377538
+        ],
+        "before_mean_rad_s": [
+          0.002495658235113789,
+          -0.02841087612180475,
+          0.0288941801476241
+        ],
+        "before_covariance_rad2_s2": [
+          [
+            0.007615482039852381,
+            6.429310430924853e-06,
+            -2.7762729118163072e-05
+          ],
+          [
+            6.429310430924846e-06,
+            0.007615724787980363,
+            3.5926533867363506e-05
+          ],
+          [
+            -2.7762729118163075e-05,
+            3.5926533867363506e-05,
+            0.007615381422733377
+          ]
+        ],
+        "after_mean_rad_s": [
+          0.0025236789744001687,
+          -0.01711942429017081,
+          0.029997966187377538
+        ],
+        "after_covariance_rad2_s2": [
+          [
+            0.007615435494667713,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.007615435494667713,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667713
+          ]
+        ],
+        "before_two_sigma_deg_s": [
+          10.000030559718862,
+          10.000189936980952,
+          9.999964498399102
+        ],
+        "after_two_sigma_deg_s": [
+          10.0,
+          10.0,
+          10.0
+        ],
+        "post_over_pre_width_ratio": [
+          0.9999969440374528,
+          0.9999810066626585,
+          1.0000035501726936
+        ],
+        "post_minus_assumed_covariance_max_abs_rad2_s2": 8.673617379884035e-19,
+        "post_mean_minus_acquisition_max_abs_rad_s": 4.7704895589362195e-18,
+        "source_index": 800,
+        "stamp_ns": 4000000000,
+        "requested_stamp_ns": 4000000000
+      }
+    ],
+    "metadata": {
+      "source": "original saved six-point angular-rate trajectories and unchanged weights",
+      "operation": "weighted mean and centered full covariance, with both sides of every acquisition retained",
+      "moment_units": {
+        "time": "s",
+        "mean": "rad/s",
+        "covariance": "(rad/s)^2"
+      },
+      "stage_codes": {
+        "0": "interior or final prediction",
+        "1": "before acquisition",
+        "2": "after acquisition"
+      },
+      "observation_count": 3,
+      "prediction_blocks": 3,
+      "retained_pre_observation_endpoints": 2,
+      "equal_timestamp_boundary_pairs": 2,
+      "angular_rate_update": "fresh independent Gaussian centered at the acquired gyro with covariance sigma^2 I; not Bayesian conditioning of prior rate",
+      "covariance_reset_sigma_deg_s": 5.0,
+      "linear_forced_covariance": "constant sigma^2 I between acquisitions because its angular-rate sensitivity is identity",
+      "nonlinear_covariance": "nonlinear dynamics can increase or decrease different marginal widths; a new observation need not narrow every axis",
+      "moments_changed": false,
+      "interpolation_across_observations": false,
+      "monte_carlo": false,
+      "covariance_floor_or_clip": false,
+      "canonical_time_bitwise_equal": true,
+      "canonical_mean_max_abs_difference_rad_s": 0.0,
+      "canonical_covariance_max_abs_difference_rad2_s2": 0.0
+    }
+  },
+  "linear_forced": {
+    "events": [
+      {
+        "observation_index": 0,
+        "time_seconds": 0.0,
+        "acquired_gyro_rad_s": [
+          0.027899602952428174,
+          0.013819964064059843,
+          0.028565237471184703
+        ],
+        "before_mean_rad_s": null,
+        "before_covariance_rad2_s2": null,
+        "after_mean_rad_s": [
+          0.027899602952428177,
+          0.013819964064059841,
+          0.028565237471184706
+        ],
+        "after_covariance_rad2_s2": [
+          [
+            0.007615435494667713,
+            -1.0030885127016853e-36,
+            0.0
+          ],
+          [
+            -1.0030885127016853e-36,
+            0.007615435494667713,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667713
+          ]
+        ],
+        "before_two_sigma_deg_s": null,
+        "after_two_sigma_deg_s": [
+          10.0,
+          10.0,
+          10.0
+        ],
+        "post_over_pre_width_ratio": null,
+        "post_minus_assumed_covariance_max_abs_rad2_s2": 8.673617379884035e-19,
+        "post_mean_minus_acquisition_max_abs_rad_s": 3.469446951953614e-18,
+        "source_index": 0,
+        "stamp_ns": 0,
+        "requested_stamp_ns": 0
+      },
+      {
+        "observation_index": 1,
+        "time_seconds": 2.0,
+        "acquired_gyro_rad_s": [
+          -0.002416607765027228,
+          -0.003504391858751057,
+          0.018474459389642595
+        ],
+        "before_mean_rad_s": [
+          -0.002013870638708383,
+          -0.004653667950726217,
+          0.019979597642674832
+        ],
+        "before_covariance_rad2_s2": [
+          [
+            0.007615435494667722,
+            -1.3213183433562951e-33,
+            4.044452883213195e-33
+          ],
+          [
+            -1.3213183433562951e-33,
+            0.0076154354946677055,
+            2.0222264416065976e-33
+          ],
+          [
+            4.044452883213195e-33,
+            1.829633447167874e-33,
+            0.007615435494667713
+          ]
+        ],
+        "after_mean_rad_s": [
+          -0.0024166077650272302,
+          -0.003504391858751062,
+          0.018474459389642598
+        ],
+        "after_covariance_rad2_s2": [
+          [
+            0.007615435494667713,
+            1.7240583812060216e-36,
+            0.0
+          ],
+          [
+            1.7240583812060216e-36,
+            0.007615435494667713,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667713
+          ]
+        ],
+        "before_two_sigma_deg_s": [
+          10.000000000000005,
+          9.999999999999993,
+          10.0
+        ],
+        "after_two_sigma_deg_s": [
+          10.0,
+          10.0,
+          10.0
+        ],
+        "post_over_pre_width_ratio": [
+          0.9999999999999994,
+          1.0000000000000007,
+          1.0
+        ],
+        "post_minus_assumed_covariance_max_abs_rad2_s2": 8.673617379884035e-19,
+        "post_mean_minus_acquisition_max_abs_rad_s": 4.7704895589362195e-18,
+        "source_index": 400,
+        "stamp_ns": 2000000000,
+        "requested_stamp_ns": 2000000000
+      },
+      {
+        "observation_index": 2,
+        "time_seconds": 4.0,
+        "acquired_gyro_rad_s": [
+          0.002523678974400164,
+          -0.01711942429017081,
+          0.029997966187377538
+        ],
+        "before_mean_rad_s": [
+          0.0024947648289449084,
+          -0.02827980846104261,
+          0.028913714783025776
+        ],
+        "before_covariance_rad2_s2": [
+          [
+            0.0076154354946677185,
+            1.8597261025489246e-33,
+            0.0
+          ],
+          [
+            1.667133108110201e-33,
+            0.007615435494667713,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667711
+          ]
+        ],
+        "after_mean_rad_s": [
+          0.0025236789744001687,
+          -0.01711942429017081,
+          0.029997966187377538
+        ],
+        "after_covariance_rad2_s2": [
+          [
+            0.007615435494667713,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.007615435494667713,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667713
+          ]
+        ],
+        "before_two_sigma_deg_s": [
+          10.000000000000004,
+          10.0,
+          9.999999999999998
+        ],
+        "after_two_sigma_deg_s": [
+          10.0,
+          10.0,
+          10.0
+        ],
+        "post_over_pre_width_ratio": [
+          0.9999999999999997,
+          1.0,
+          1.0000000000000002
+        ],
+        "post_minus_assumed_covariance_max_abs_rad2_s2": 8.673617379884035e-19,
+        "post_mean_minus_acquisition_max_abs_rad_s": 4.7704895589362195e-18,
+        "source_index": 800,
+        "stamp_ns": 4000000000,
+        "requested_stamp_ns": 4000000000
+      }
+    ],
+    "metadata": {
+      "source": "original saved six-point angular-rate trajectories and unchanged weights",
+      "operation": "weighted mean and centered full covariance, with both sides of every acquisition retained",
+      "moment_units": {
+        "time": "s",
+        "mean": "rad/s",
+        "covariance": "(rad/s)^2"
+      },
+      "stage_codes": {
+        "0": "interior or final prediction",
+        "1": "before acquisition",
+        "2": "after acquisition"
+      },
+      "observation_count": 3,
+      "prediction_blocks": 3,
+      "retained_pre_observation_endpoints": 2,
+      "equal_timestamp_boundary_pairs": 2,
+      "angular_rate_update": "fresh independent Gaussian centered at the acquired gyro with covariance sigma^2 I; not Bayesian conditioning of prior rate",
+      "covariance_reset_sigma_deg_s": 5.0,
+      "linear_forced_covariance": "constant sigma^2 I between acquisitions because its angular-rate sensitivity is identity",
+      "nonlinear_covariance": "nonlinear dynamics can increase or decrease different marginal widths; a new observation need not narrow every axis",
+      "moments_changed": false,
+      "interpolation_across_observations": false,
+      "monte_carlo": false,
+      "covariance_floor_or_clip": false,
+      "canonical_time_bitwise_equal": true,
+      "canonical_mean_max_abs_difference_rad_s": 0.0,
+      "canonical_covariance_max_abs_difference_rad2_s2": 0.0
+    }
+  }
+}

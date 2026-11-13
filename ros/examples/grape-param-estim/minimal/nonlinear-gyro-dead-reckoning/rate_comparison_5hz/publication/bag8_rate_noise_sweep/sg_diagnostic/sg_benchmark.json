@@ -1,0 +1,96 @@
+{
+  "full_rate": {
+    "geodesic_rmse_deg": 0.23082848914240778,
+    "geodesic_max_deg": 0.7323297786419413,
+    "geodesic_final_deg": 0.24584787081675444,
+    "rpy_rmse_deg": [
+      0.15174774857334453,
+      0.1596031127256602,
+      0.069383866749146
+    ],
+    "rpy_final_error_deg": [
+      0.1572187586436703,
+      0.18828253052895208,
+      0.0090712760419848
+    ]
+  },
+  "0p5hz": {
+    "geodesic_rmse_deg": 10.718598208212054,
+    "geodesic_max_deg": 19.34168023482626,
+    "geodesic_final_deg": 11.883826656734351,
+    "rpy_rmse_deg": [
+      3.9105012200787863,
+      9.130533582602542,
+      4.289067499452978
+    ],
+    "rpy_final_error_deg": [
+      1.0492125988695158,
+      -11.667319263185654,
+      1.8330747565630767
+    ]
+  },
+  "2hz": {
+    "geodesic_rmse_deg": 5.963068089300858,
+    "geodesic_max_deg": 11.89619196130299,
+    "geodesic_final_deg": 8.746547042371008,
+    "rpy_rmse_deg": [
+      1.8241395755579073,
+      5.527679181523199,
+      1.265185704618012
+    ],
+    "rpy_final_error_deg": [
+      -1.0192286247845623,
+      8.535084540419373,
+      1.613397773411206
+    ]
+  },
+  "5hz": {
+    "geodesic_rmse_deg": 1.5655911363426978,
+    "geodesic_max_deg": 3.0334057599951585,
+    "geodesic_final_deg": 1.8871189383052662,
+    "rpy_rmse_deg": [
+      0.863536771670813,
+      1.2540575523628499,
+      0.3536224338686789
+    ],
+    "rpy_final_error_deg": [
+      1.42652057615928,
+      1.1240365220901487,
+      0.43569715988699903
+    ]
+  },
+  "window_seconds": 0.32,
+  "sg_degree": 3,
+  "comparison_count": 604,
+  "same_comparison_clock": true,
+  "acquisition_counts": {
+    "0p5hz": 3,
+    "2hz": 10,
+    "5hz": 25
+  },
+  "periods_seconds": {
+    "0p5hz": 2.0,
+    "2hz": 0.5,
+    "5hz": 0.2
+  },
+  "input": "same centered-SG body angular velocity derived from mocap",
+  "sampling_clock": "exact requested start+k*period for each rate, excluding the end; not new native gyro observations",
+  "attitude_initialization": "one raw-mocap SLERP at evaluation start, no later resets",
+  "full_rate_interpolation": "piecewise linear, RK4; finite integration approximation",
+  "sparse_interpolation": "zero-order hold with exact constant-rate right quaternion increments",
+  "gyro_measurement_values_used": false,
+  "force_torque_model_used": false,
+  "artificial_noise_added": false,
+  "uncertainty_propagated": false,
+  "result_role": "offline kinematic sampling diagnostic, not an independent gyro/IMU estimate or controlled dynamics prediction",
+  "units": "angles degrees in metrics; omega radians/second and quaternion wxyz in arrays",
+  "numerical_sg_grid_max_step_seconds": 0.0025000000000048317,
+  "numerical_sg_grid_count": 2001,
+  "sg_grid_role": "numerical polynomial evaluations; not additional independently acquired mocap samples",
+  "source_sha256": {
+    "sg_compare.py": "2dd1429804c76111fb80eb5f399e64e7d4826abfd3d6e307e305549c80a057ac",
+    "roundtrip.py": "a2725f6a089383925308bed24ac287c280b58e93bbf334237c6330db2d376235",
+    "sg_benchmark.py": "4c449fa7ff75a901cebbb5d1c359b6ecfcb2c294ca86b5e50826ec6f8673f261"
+  },
+  "input_sha256": "f39a3c6abdead6def0d709cf6944e5bd8a2a82e66bfc3c2080da28b7c425bc7f"
+}

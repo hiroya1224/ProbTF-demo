@@ -1,0 +1,98 @@
+{
+  "schema": "grape/5hz-moment-display-approximation-audit/v1",
+  "sigma_deg_s": 2.5,
+  "rate_hz": 0.5,
+  "observation_count": 3,
+  "output_dt_seconds": 0.02,
+  "max_step_seconds": 0.002,
+  "original_pipeline_modified": false,
+  "input_and_torque": "byte-identical frozen source arrays from existing publication",
+  "source_sha256": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/run.py": "1949b09a882c0982e321303e82c0bd1eda09412da0ece4f63481164ba986fc5d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/rate_comparison_5hz/engine.py": "613b3012faa59bfdb7e8f617d13f179981ada90b208998c0db92af27f06f045c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/publication/bag8_50_55s/input.npz": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/publication/bag8_50_55s/torque_profile.npz": "366b59a9dfad16bd3c2659941295585d4dffa589a6be58cc999bac69adb44905"
+  },
+  "interpretation": "The quaternion and rotation moments are exact for the same finite cubature law. Euler proxies are a display approximation; errors below quantify them against the old complete 6^3=216 enumeration.",
+  "methods": {
+    "constant": {
+      "M2_max_abs": 0.0,
+      "rotation_mean_max_abs": 1.7763568394002505e-15,
+      "rotation_covariance_max_abs": 3.469446951953614e-17,
+      "proxy_rpy_mean_max_abs_difference_deg": [
+        0.0007297485478770839,
+        0.1687670874929113,
+        0.0012834344123812676
+      ],
+      "proxy_rpy_mean_final_difference_deg": [
+        -0.0006699595153839758,
+        -0.1687670874929113,
+        0.001283222588431815
+      ],
+      "proxy_rpy_std_max_abs_difference_deg": [
+        0.031029875896933068,
+        0.0690550769905782,
+        0.02827253167855305
+      ],
+      "proxy_rpy_std_final_difference_deg": [
+        0.029899389764294872,
+        0.0690550769905782,
+        0.026453165411265876
+      ],
+      "exact_final_two_sigma_deg": [
+        15.822319469505185,
+        14.952019456725699,
+        15.829736177178267
+      ],
+      "proxy_final_two_sigma_deg": [
+        15.882118249033775,
+        15.090129610706855,
+        15.882642508000798
+      ],
+      "proxy_rpy_covariance_max_abs_difference_rad2": 0.00031597400145253265,
+      "final_law_node_count": 216,
+      "all_weights_positive": true,
+      "exact_weight_sum": 1.0
+    },
+    "nonlinear": {
+      "M2_max_abs": 0.0,
+      "rotation_mean_max_abs": 1.3322676295501878e-15,
+      "rotation_covariance_max_abs": 4.5102810375396984e-17,
+      "proxy_rpy_mean_max_abs_difference_deg": [
+        0.021062606501880115,
+        0.12879217078779587,
+        0.032633410719175374
+      ],
+      "proxy_rpy_mean_final_difference_deg": [
+        0.003148997552152166,
+        0.03565170380143679,
+        0.003025509854418299
+      ],
+      "proxy_rpy_std_max_abs_difference_deg": [
+        0.01539729866548767,
+        0.08128085707809374,
+        0.018190407433873085
+      ],
+      "proxy_rpy_std_final_difference_deg": [
+        0.013413069221535725,
+        0.08128085707809374,
+        0.01692061542841931
+      ],
+      "exact_final_two_sigma_deg": [
+        14.985226763907018,
+        11.69930854692464,
+        18.58868215598414
+      ],
+      "proxy_final_two_sigma_deg": [
+        15.01205290235009,
+        11.861870261080828,
+        18.622523386840978
+      ],
+      "proxy_rpy_covariance_max_abs_difference_rad2": 0.00029168226862940835,
+      "final_law_node_count": 216,
+      "all_weights_positive": true,
+      "exact_weight_sum": 1.0
+    }
+  },
+  "wall_seconds": 2.651483552996069
+}

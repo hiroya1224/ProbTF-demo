@@ -1,0 +1,84 @@
+{
+  "rate_hz": 0.5,
+  "sigma_deg_s": 5.0,
+  "covariance_rad2_s2": [
+    [
+      0.007615435494667714,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.007615435494667714,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.007615435494667714
+    ]
+  ],
+  "original_gyro_count": 3,
+  "actual_observation_times": [
+    50.000988619000005,
+    52.000961632000006,
+    54.000961632000006
+  ],
+  "same_measurements_for_all_sigmas": true,
+  "random_sensor_noise_added": false,
+  "methods": {
+    "constant": {
+      "geodesic_rmse_deg": 12.548098342221035,
+      "geodesic_max_deg": 19.75567755886901,
+      "geodesic_final_deg": 15.978635676142671,
+      "rpy_proxy_rmse_deg": [
+        4.687917299172202,
+        10.756009832802976,
+        4.663578587683406
+      ],
+      "final_rpy_two_sigma_delta_deg": [
+        32.382014723633866,
+        30.799971538336557,
+        32.382703319472206
+      ],
+      "common_score_count": 501,
+      "exact_rotation_moment_internal_difference": 1.5543122344752192e-15
+    },
+    "linear_forced": {
+      "geodesic_rmse_deg": 108.60252163399909,
+      "geodesic_max_deg": 179.87676570917006,
+      "geodesic_final_deg": 35.96683892842411,
+      "rpy_proxy_rmse_deg": [
+        107.74751768320537,
+        8.000082012634046,
+        19.68692430072864
+      ],
+      "final_rpy_two_sigma_delta_deg": [
+        30.113279475349962,
+        23.60910663287574,
+        23.550952701525507
+      ],
+      "common_score_count": 501,
+      "exact_rotation_moment_internal_difference": 3.219646771412954e-15
+    },
+    "nonlinear": {
+      "geodesic_rmse_deg": 108.53795412910523,
+      "geodesic_max_deg": 179.94686199449185,
+      "geodesic_final_deg": 34.71296670239332,
+      "rpy_proxy_rmse_deg": [
+        107.63628980539052,
+        9.218915966080774,
+        22.154008411357864
+      ],
+      "final_rpy_two_sigma_delta_deg": [
+        30.301751709762748,
+        24.594781452340953,
+        37.518975550426056
+      ],
+      "common_score_count": 501,
+      "exact_rotation_moment_internal_difference": 2.8033131371785203e-15
+    }
+  },
+  "state": "same factored independent six-point increment law, exact quaternion second moment and rotation-entry mean/full covariance",
+  "visualization": "Euler center f(E[R]) and delta-method covariance Df Cov(vecR) Df.T; approximate Euler statistics, not a new candidate law"
+}

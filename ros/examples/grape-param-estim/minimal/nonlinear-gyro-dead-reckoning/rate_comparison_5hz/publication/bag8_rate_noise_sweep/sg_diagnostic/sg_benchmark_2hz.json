@@ -1,0 +1,22 @@
+{
+  "rate_label": "2hz",
+  "metric": {
+    "geodesic_rmse_deg": 5.963068089300858,
+    "geodesic_max_deg": 11.89619196130299,
+    "geodesic_final_deg": 8.746547042371008,
+    "rpy_rmse_deg": [
+      1.8241395755579073,
+      5.527679181523199,
+      1.265185704618012
+    ],
+    "rpy_final_error_deg": [
+      -1.0192286247845623,
+      8.535084540419373,
+      1.613397773411206
+    ]
+  },
+  "result_role": "offline kinematic sampling diagnostic, not an independent gyro/IMU estimate or controlled dynamics prediction",
+  "input_sha256": "f39a3c6abdead6def0d709cf6944e5bd8a2a82e66bfc3c2080da28b7c425bc7f",
+  "original_result_summary": "sg_benchmark.json",
+  "noise_propagation": false
+}

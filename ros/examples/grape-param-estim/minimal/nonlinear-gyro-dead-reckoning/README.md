@@ -129,3 +129,7 @@ env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 \
 ## 追加のSG微分・再積分検査
 
 同じ区間のmocap姿勢からbody角速度をSG微分で求め、原ジャイロとの時間ずれを調べた。また、そのSG角速度を再積分する往復検査も別に行った。[説明・二つのPDF・数値結果](gyro_mocap_sg_check/README.md)を参照。元の予測やトルクには戻していない。
+
+## 取得2 Hz・5 Hzとノイズ条件の追加
+
+[周波数とノイズの比較](rate_comparison_5hz/README.md)では、0.5／2／5 Hzとσ=0.1／0.5／1／2／2.5／5 deg/sの18条件を分離保存した。元の物理入力を固定し、同じ候補法則のモーメントで伝播する。旧公開図は上書きしていない。

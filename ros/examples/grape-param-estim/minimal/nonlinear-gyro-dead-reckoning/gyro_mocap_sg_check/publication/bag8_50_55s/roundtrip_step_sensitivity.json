@@ -1,0 +1,66 @@
+{
+  "window_seconds": 0.16,
+  "normal_max_step_s": 0.002,
+  "refined_max_step_s": 0.001,
+  "max_full_rate_orientation_change_deg": 2.3316450217286203e-12,
+  "normal_metrics": {
+    "window_seconds": 0.16,
+    "max_integrator_step_seconds": 0.002,
+    "full_rate": {
+      "geodesic_rmse_deg": 0.1743266558012025,
+      "geodesic_max_deg": 0.8592456732198096,
+      "geodesic_final_deg": 0.09135261025591453,
+      "rpy_rmse_deg": [
+        0.07669783408293987,
+        0.14407749733341496,
+        0.06082277164922152
+      ],
+      "rpy_final_error_deg": [
+        0.033526411695116366,
+        0.08121144470670744,
+        0.02284816788785673
+      ]
+    },
+    "sparse_0p5hz": {
+      "geodesic_rmse_deg": 11.647474594365958,
+      "geodesic_max_deg": 20.11744792521918,
+      "geodesic_final_deg": 10.861358124826713,
+      "rpy_rmse_deg": [
+        3.092894342445915,
+        9.55259602903109,
+        6.152079636661339
+      ],
+      "rpy_final_error_deg": [
+        -2.446220664122148,
+        6.313495159003019,
+        8.5311112686587
+      ]
+    },
+    "full_rate_vs_fitted_mocap": {
+      "geodesic_rmse_deg": 0.04802902721938699,
+      "geodesic_max_deg": 0.1344463254713219,
+      "geodesic_final_deg": 0.03530670310496163,
+      "rpy_rmse_deg": [
+        0.022189461114900763,
+        0.024219380152269123,
+        0.035148091790033816
+      ],
+      "rpy_final_error_deg": [
+        -0.002078696065484015,
+        0.010249532163759897,
+        -0.03358278231400116
+      ]
+    },
+    "initial_attitude": "raw mocap SLERP once at evaluation start; no later resets",
+    "angular_input": "mocap-derived centered-SG body angular velocity; not an independent sensor observation",
+    "full_rate_input_interpolation": "piecewise linear over supplied SG evaluation grid",
+    "sparse_input": "SG-derived rate at exactly start+0/2/4 seconds, then zero-order hold",
+    "uncertainty_propagated": false,
+    "force_torque_model_used": false,
+    "experiment_role": "noncausal offline differentiation/integration consistency diagnostic, separate from IMU prediction",
+    "sg_rate_grid_max_step_seconds": 0.0025000000000048317,
+    "sg_degree": 3,
+    "sg_queries": 2001
+  },
+  "finite_integration_check_only": true
+}

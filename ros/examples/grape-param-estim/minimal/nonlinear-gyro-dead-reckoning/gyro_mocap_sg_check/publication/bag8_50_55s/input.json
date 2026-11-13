@@ -1,0 +1,133 @@
+{
+  "schema": "grape/sg-mocap-gyro-original-clock-input/v1",
+  "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+  "bag_size_bytes": 271283601,
+  "bag_mtime_ns": 1781196760000000000,
+  "full_bag_sha256_computed": false,
+  "bag_origin_record_ns": 1781254003200111893,
+  "source_support_interval_seconds": [
+    39.5,
+    60.5
+  ],
+  "eval_interval_seconds": [
+    50.000988619,
+    55.000988619
+  ],
+  "wide_comparison_interval_seconds": [
+    40.0,
+    60.0
+  ],
+  "time_origin": "first original bag record shared by all header and record arrays",
+  "time_alignment_applied": false,
+  "resampling_applied": false,
+  "bias_or_scale_adjustment_applied": false,
+  "raw_bag_copied": false,
+  "original_trajectory_or_filter_modified": false,
+  "use": "read-only SG differentiation/gyro comparison and separate kinematic reconstruction diagnostic",
+  "clock_diagnostics": {
+    "gyro": {
+      "count": 4200,
+      "record_minus_header_seconds": {
+        "mean": 0.000802057807857143,
+        "std": 0.0010020717362120531,
+        "minimum": -0.001511097,
+        "p05": -0.00078363315,
+        "median": 0.0007868015000000001,
+        "p95": 0.0025438034999999996,
+        "maximum": 0.005634863
+      },
+      "header_interval_seconds": {
+        "minimum": 0.003744986,
+        "p05": 0.005,
+        "median": 0.005,
+        "p95": 0.005,
+        "maximum": 0.006993283,
+        "mean": 0.005000320753512742,
+        "std": 4.401843365414748e-05
+      },
+      "nonpositive_header_interval_count": 0,
+      "nonpositive_record_interval_count": 0,
+      "mean_header_rate_hz": 199.98717068250008,
+      "note": "Record minus header is a timestamp/transport diagnostic; it does not identify sensor dynamics or physical latency on its own"
+    },
+    "mocap": {
+      "count": 2520,
+      "record_minus_header_seconds": {
+        "mean": 0.0004963227261904762,
+        "std": 0.0002804054096874505,
+        "minimum": 6.068e-05,
+        "p05": 0.00022281975,
+        "median": 0.00046109950000000003,
+        "p95": 0.0009125396499999993,
+        "maximum": 0.006827044
+      },
+      "header_interval_seconds": {
+        "minimum": 0.0016666480000000002,
+        "p05": 0.0058741302,
+        "median": 0.008365197000000001,
+        "p95": 0.0105536695,
+        "maximum": 0.015422702000000002,
+        "mean": 0.00833335140651052,
+        "std": 0.0013846461321885286
+      },
+      "nonpositive_header_interval_count": 0,
+      "nonpositive_record_interval_count": 0,
+      "mean_header_rate_hz": 119.99973974681293,
+      "note": "Record minus header is a timestamp/transport diagnostic; it does not identify sensor dynamics or physical latency on its own"
+    },
+    "converted": {
+      "count": 4200,
+      "record_minus_header_seconds": {
+        "mean": 0.001124716612857143,
+        "std": 0.000996863177718646,
+        "minimum": -0.001264074,
+        "p05": -0.00048289975,
+        "median": 0.001174382,
+        "p95": 0.0027799830499999987,
+        "maximum": 0.011776564000000002
+      },
+      "header_interval_seconds": {
+        "minimum": 0.003744986,
+        "p05": 0.005,
+        "median": 0.005,
+        "p95": 0.005,
+        "maximum": 0.006993283,
+        "mean": 0.005000320753512742,
+        "std": 4.401843365414748e-05
+      },
+      "nonpositive_header_interval_count": 0,
+      "nonpositive_record_interval_count": 0,
+      "mean_header_rate_hz": 199.98717068250008,
+      "note": "Record minus header is a timestamp/transport diagnostic; it does not identify sensor dynamics or physical latency on its own"
+    }
+  },
+  "topics": {
+    "gyro": "/gimbalrotor/imu",
+    "mocap": "/gimbalrotor/mocap/pose",
+    "converted": "/gimbalrotor/sensor_plugin/imu1/ros_converted",
+    "static": "/tf_static"
+  },
+  "extrinsics": {
+    "body_frame": "gimbalrotor/main_body",
+    "imu_frame": "gimbalrotor/fc",
+    "source": "bag /tf_static main_body->FC, identity rotation; native fields copied directly to converted IMU",
+    "physical_imu_lever_arm_calibrated": false,
+    "sensor_position_model": "nominal FC origin; physical accelerometer-chip offset is not independently calibrated"
+  },
+  "extractor_sha256": "0302f035903d069320876ad79b158de0b3e0d01e20a01f3bec05b2efb2848a3e",
+  "extrinsic_helper_sha256": "fb32791360d5ed258390aac68fffd22088429509ae6ffbffcbd0303d45a2d720",
+  "mocap_frames": [
+    "world"
+  ],
+  "converted_frames": [
+    "gimbalrotor/fc"
+  ],
+  "native_vs_converted_same_header_stamp": {
+    "exact_timestamp_pair_count": 4200,
+    "native_count": 4200,
+    "converted_count": 4200,
+    "maximum_absolute_gyro_difference_rad_s": 0.0,
+    "role": "value/frame-copy check, never used to shift, replace or interpolate source measurements"
+  },
+  "arrays_sha256": "f39a3c6abdead6def0d709cf6944e5bd8a2a82e66bfc3c2080da28b7c425bc7f"
+}

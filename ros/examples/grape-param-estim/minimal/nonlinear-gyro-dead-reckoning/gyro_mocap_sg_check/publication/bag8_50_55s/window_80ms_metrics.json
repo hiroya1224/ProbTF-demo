@@ -1,0 +1,243 @@
+{
+  "sg_window_seconds": 0.08,
+  "primary": {
+    "best_lag_seconds": 0.014249870714129262,
+    "best_axis_lag_seconds": [
+      0.009256964633894188,
+      0.07427573481991795,
+      0.012820460692350832
+    ],
+    "best_at_search_boundary": false,
+    "before": {
+      "rmse_axis_rad_s": [
+        0.07568862512903221,
+        0.13379838723919393,
+        0.05457302682544569
+      ],
+      "vector_rmse_rad_s": 0.16312262767201638,
+      "mean_error_axis_rad_s": [
+        0.0023471136244031976,
+        0.0006388245058600953,
+        0.0004710219945184042
+      ],
+      "correlation_axis": [
+        0.6122771213040618,
+        0.8095501469087856,
+        0.6054962413613052
+      ]
+    },
+    "after": {
+      "rmse_axis_rad_s": [
+        0.07557739355001852,
+        0.13225365491524702,
+        0.05416499888506627
+      ],
+      "vector_rmse_rad_s": 0.16166885525194657,
+      "mean_error_axis_rad_s": [
+        0.002208357334189821,
+        0.00024933644340737653,
+        7.787826923974227e-05
+      ],
+      "correlation_axis": [
+        0.6144014974317449,
+        0.814304931823405,
+        0.6110119948833068
+      ]
+    },
+    "sign_convention": "gyro(t) compared with mocap_SG(t-lag); positive lag means gyro later",
+    "fixed_support_count": 1001,
+    "requested_window_seconds": [
+      50.000988619,
+      55.000988619
+    ],
+    "effective_gyro_window_seconds": [
+      50.000988619000005,
+      55.00089973
+    ],
+    "bias_or_scale_or_rotation_fitted": false
+  },
+  "wide": {
+    "best_lag_seconds": 0.009195072024984468,
+    "best_axis_lag_seconds": [
+      0.014335028352147037,
+      0.00912586389780481,
+      0.009645042828390361
+    ],
+    "best_at_search_boundary": false,
+    "before": {
+      "rmse_axis_rad_s": [
+        0.07927087863102615,
+        0.11229403195946158,
+        0.05276566722794479
+      ],
+      "vector_rmse_rad_s": 0.14723463400524237,
+      "mean_error_axis_rad_s": [
+        -5.930775868160825e-05,
+        -0.0013115300103984293,
+        -4.033977815277027e-05
+      ],
+      "correlation_axis": [
+        0.5228485042889228,
+        0.7887761152536421,
+        0.7482953925635631
+      ]
+    },
+    "after": {
+      "rmse_axis_rad_s": [
+        0.07905568890254241,
+        0.11155032764950838,
+        0.052649982167068995
+      ],
+      "vector_rmse_rad_s": 0.146510402936996,
+      "mean_error_axis_rad_s": [
+        -0.0001561972784829749,
+        -0.001308692103191383,
+        -5.0671969589124365e-05
+      ],
+      "correlation_axis": [
+        0.5256941780732142,
+        0.7916873124917433,
+        0.7497162464285837
+      ]
+    },
+    "sign_convention": "gyro(t) compared with mocap_SG(t-lag); positive lag means gyro later",
+    "fixed_support_count": 3800,
+    "requested_window_seconds": [
+      40.5,
+      59.5
+    ],
+    "effective_gyro_window_seconds": [
+      40.500537236,
+      59.49688408
+    ],
+    "bias_or_scale_or_rotation_fitted": false
+  },
+  "past_shift": {
+    "best_lag_seconds": 0.014005048710718292,
+    "best_axis_lag_seconds": [
+      0.0098197304283114,
+      0.013946594942343186,
+      0.009355125064180075
+    ],
+    "best_at_search_boundary": false,
+    "before": {
+      "rmse_axis_rad_s": [
+        0.07627491810239569,
+        0.11472431752545943,
+        0.04985967097517058
+      ],
+      "vector_rmse_rad_s": 0.1465111564112504,
+      "mean_error_axis_rad_s": [
+        8.062592259209681e-06,
+        -0.0010730835025789445,
+        -0.0006661839861983904
+      ],
+      "correlation_axis": [
+        0.511250577749127,
+        0.7404781313890291,
+        0.8149522602834556
+      ]
+    },
+    "after": {
+      "rmse_axis_rad_s": [
+        0.07609802087528217,
+        0.11367272284841438,
+        0.049748505384566814
+      ],
+      "vector_rmse_rad_s": 0.1455586153029272,
+      "mean_error_axis_rad_s": [
+        6.381241289602278e-05,
+        -0.0013117345518454443,
+        -0.00038854061244575035
+      ],
+      "correlation_axis": [
+        0.514119953944973,
+        0.7449344374349182,
+        0.8151972548644288
+      ]
+    },
+    "sign_convention": "gyro(t) compared with mocap_SG(t-lag); positive lag means gyro later",
+    "fixed_support_count": 1800,
+    "requested_window_seconds": [
+      40.5,
+      49.5
+    ],
+    "effective_gyro_window_seconds": [
+      40.500537236,
+      49.495988619
+    ],
+    "bias_or_scale_or_rotation_fitted": false
+  },
+  "primary_using_past_shift": {
+    "lag_seconds": 0.014005048710718292,
+    "rmse_axis_rad_s": [
+      0.07558085854698683,
+      0.1322984616487192,
+      0.05417864064468485
+    ],
+    "vector_rmse_rad_s": 0.16171170098487972
+  },
+  "roundtrip": {
+    "window_seconds": 0.08,
+    "max_integrator_step_seconds": 0.002,
+    "full_rate": {
+      "geodesic_rmse_deg": 0.20431547513231454,
+      "geodesic_max_deg": 0.8602134770480265,
+      "geodesic_final_deg": 0.20492048941084268,
+      "rpy_rmse_deg": [
+        0.07647834416492706,
+        0.1839313454371276,
+        0.045836917827833876
+      ],
+      "rpy_final_error_deg": [
+        -0.01818920969876709,
+        0.17327064718200783,
+        0.1091098828831074
+      ]
+    },
+    "sparse_0p5hz": {
+      "geodesic_rmse_deg": 14.997903979676002,
+      "geodesic_max_deg": 22.961049498841525,
+      "geodesic_final_deg": 17.491861675031448,
+      "rpy_rmse_deg": [
+        4.702944344867892,
+        9.57142987953164,
+        10.887142755735777
+      ],
+      "rpy_final_error_deg": [
+        -3.1838333136059958,
+        8.149530302721049,
+        15.153711180265663
+      ]
+    },
+    "full_rate_vs_fitted_mocap": {
+      "geodesic_rmse_deg": 0.15731438147250373,
+      "geodesic_max_deg": 0.31671392535938436,
+      "geodesic_final_deg": 0.11337026454648094,
+      "rpy_rmse_deg": [
+        0.05397564714223401,
+        0.1453429389846493,
+        0.027682002387013363
+      ],
+      "rpy_final_error_deg": [
+        -0.030978010337767196,
+        0.1059381964182969,
+        0.028030201034892052
+      ]
+    },
+    "comparison_count": 604,
+    "comparison_clock": "native mocap header times plus fixed endpoints and sparse-rate knots",
+    "units": "angular velocity rad/s, quaternion wxyz body-to-world, diagnostic errors degrees",
+    "initial_attitude": "raw mocap SLERP once at evaluation start; no later resets",
+    "angular_input": "mocap-derived centered-SG body angular velocity; not an independent sensor observation",
+    "full_rate_input_interpolation": "piecewise linear over supplied SG evaluation grid",
+    "sparse_input": "SG-derived rate at exactly start+0/2/4 seconds, then zero-order hold",
+    "uncertainty_propagated": false,
+    "force_torque_model_used": false,
+    "experiment_role": "noncausal offline differentiation/integration consistency diagnostic, separate from IMU prediction",
+    "sg_rate_grid_max_step_seconds": 0.0025000000000048317,
+    "sg_degree": 3,
+    "sg_queries": 2001,
+    "sg_grid_role": "numerical polynomial evaluation grid, not additional independently acquired mocap observations"
+  }
+}

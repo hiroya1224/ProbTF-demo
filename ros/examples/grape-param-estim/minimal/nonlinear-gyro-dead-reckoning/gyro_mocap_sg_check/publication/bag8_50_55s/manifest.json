@@ -1,0 +1,309 @@
+{
+  "schema": "grape/sg-clock-roundtrip-publication/v1",
+  "files": [
+    {
+      "path": "RESULTS.md",
+      "bytes": 1129,
+      "sha256": "ad55dd89b7ff679743adb149459cfbaeb6a2afd2d5d12e33657af9538691986e"
+    },
+    {
+      "path": "gyro_aligned.png",
+      "bytes": 391826,
+      "sha256": "be2097b64930e0a690bfff8dca2ea0972516baeb4cbfad5c992bc8ec61966e79"
+    },
+    {
+      "path": "gyro_comparison.pdf",
+      "bytes": 169240,
+      "sha256": "2ac6f4589770f8ae3516f316950c536f931bf458958c06c20ab0dfe77aef6189"
+    },
+    {
+      "path": "gyro_unshifted.png",
+      "bytes": 507998,
+      "sha256": "91785a876acc99924b5ca08657ffdf4b536332f3cc89e5f0609996a07e6939fb"
+    },
+    {
+      "path": "input.json",
+      "bytes": 4843,
+      "sha256": "d88e5b4379d8cc7bd6573143b6d541adfd42e73cad2dc525cd37262a48b1aee8"
+    },
+    {
+      "path": "input.npz",
+      "bytes": 400965,
+      "sha256": "f39a3c6abdead6def0d709cf6944e5bd8a2a82e66bfc3c2080da28b7c425bc7f"
+    },
+    {
+      "path": "lag_scan.png",
+      "bytes": 145729,
+      "sha256": "cfed22d4b9b3a6fd31360e8362299c6b407009cd57aeca2af6a161935e1c2a39"
+    },
+    {
+      "path": "lag_table.csv",
+      "bytes": 472,
+      "sha256": "5ba1fbd1593474082944d1b0b1c679b0e5cc97ccbc70ef1dd17054d911669ebb"
+    },
+    {
+      "path": "roundtrip_errors.png",
+      "bytes": 339466,
+      "sha256": "ff1e1e183dd8456f068a180fd0376753b3ce27ecccf555fef86c0cf94b82fea4"
+    },
+    {
+      "path": "roundtrip_full.png",
+      "bytes": 276595,
+      "sha256": "5acd1a9042993ac44675a0124f1a81243b96a1c04e9bf3eaacb27efdefb23f2c"
+    },
+    {
+      "path": "roundtrip_sparse.png",
+      "bytes": 270404,
+      "sha256": "8c9aabec3e61c0444343a76b3000c4f3138b5830b9ecc1c30a13b09ba9675714"
+    },
+    {
+      "path": "roundtrip_step_sensitivity.json",
+      "bytes": 2223,
+      "sha256": "207f91ea335cbd31e7cfeb5d1f32a2423f84a05be05c3dd32b8a52761f9aea06"
+    },
+    {
+      "path": "roundtrip_table.csv",
+      "bytes": 1339,
+      "sha256": "270fed7d8f980689da15c515c76fe8e374051b4b534de2924ce87dd1fb0f3d5e"
+    },
+    {
+      "path": "sg_roundtrip.pdf",
+      "bytes": 106624,
+      "sha256": "b163ef68fd3220548eac114c4772addc2c1db4a176e601e158bf6f1d92541b90"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 31860,
+      "sha256": "99e9a96b03d9f40ad7e81386e6fdbff5360158b128f981092e08970e45177d24"
+    },
+    {
+      "path": "window_160ms_comparison.npz",
+      "bytes": 82390,
+      "sha256": "71c82964bff5d117fb115b6a774d11703d4d188e1ec311c885a8ab7b51c0cd83"
+    },
+    {
+      "path": "window_160ms_metrics.json",
+      "bytes": 6971,
+      "sha256": "f36008bd6b5b7b4b40bacf84cf20be390c07d2a319f5013ec65b07e0af0084c3"
+    },
+    {
+      "path": "window_160ms_roundtrip.npz",
+      "bytes": 264464,
+      "sha256": "0aa5970cbe2955929cd3c83f1e0e449e72e4a368ff58e51149ccb6282e762a16"
+    },
+    {
+      "path": "window_160ms_sg.npz",
+      "bytes": 256776,
+      "sha256": "839fbfa5faf7e6e78fda5cadd294cf363f7eac4d0e1a1ce8f6b361bdc2e2c292"
+    },
+    {
+      "path": "window_320ms_comparison.npz",
+      "bytes": 82396,
+      "sha256": "dfe3effe356300457d2e02aabe4713e610016a1d4d288b8dbe72b51fe26b28bd"
+    },
+    {
+      "path": "window_320ms_metrics.json",
+      "bytes": 6975,
+      "sha256": "e756c6d20ae570d549c84bcbdf4d62fe8ebb6042cb601d5e5e9ff3a20da7c7d3"
+    },
+    {
+      "path": "window_320ms_roundtrip.npz",
+      "bytes": 264529,
+      "sha256": "a05a0312a7d48ee077a4ba381aa3b0f3039819a2eacc05c08d41b5ec53d69bee"
+    },
+    {
+      "path": "window_320ms_sg.npz",
+      "bytes": 256752,
+      "sha256": "eb5738451b346deede94823041659f6b6245d143fa9a1b71b6980874ec07493d"
+    },
+    {
+      "path": "window_80ms_comparison.npz",
+      "bytes": 82386,
+      "sha256": "99646012d3764668e416adc7ec2f4e0af7dc2e0547ad056337c79313731867ac"
+    },
+    {
+      "path": "window_80ms_metrics.json",
+      "bytes": 6968,
+      "sha256": "effb020841dbc39322c5dd461d5c90b4b56a65417d85e9093865ba92e0246839"
+    },
+    {
+      "path": "window_80ms_roundtrip.npz",
+      "bytes": 264836,
+      "sha256": "5ed17d28328d5b98a5f9ed3c2df339821bf2c1b1f4d1e8ce74097653fd6d3a83"
+    },
+    {
+      "path": "window_80ms_sg.npz",
+      "bytes": 257823,
+      "sha256": "3b5f3ecfbc4c3cd9cda9e4789db679b4a5caf4a4e9b210a1eff7ad2aafd4d8e8"
+    }
+  ],
+  "source_copies": [
+    {
+      "path": "input.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/input.npz",
+      "bytes": 400965,
+      "sha256": "f39a3c6abdead6def0d709cf6944e5bd8a2a82e66bfc3c2080da28b7c425bc7f"
+    },
+    {
+      "path": "input.json",
+      "source": "/tmp/gyro-mocap-sg-20261113/input.json",
+      "bytes": 4843,
+      "sha256": "d88e5b4379d8cc7bd6573143b6d541adfd42e73cad2dc525cd37262a48b1aee8"
+    },
+    {
+      "path": "roundtrip_step_sensitivity.json",
+      "source": "/tmp/gyro-mocap-sg-20261113/roundtrip_step_sensitivity.json",
+      "bytes": 2223,
+      "sha256": "207f91ea335cbd31e7cfeb5d1f32a2423f84a05be05c3dd32b8a52761f9aea06"
+    },
+    {
+      "path": "gyro_aligned.png",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/gyro_aligned.png",
+      "bytes": 391826,
+      "sha256": "be2097b64930e0a690bfff8dca2ea0972516baeb4cbfad5c992bc8ec61966e79"
+    },
+    {
+      "path": "gyro_comparison.pdf",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/gyro_comparison.pdf",
+      "bytes": 169240,
+      "sha256": "2ac6f4589770f8ae3516f316950c536f931bf458958c06c20ab0dfe77aef6189"
+    },
+    {
+      "path": "gyro_unshifted.png",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/gyro_unshifted.png",
+      "bytes": 507998,
+      "sha256": "91785a876acc99924b5ca08657ffdf4b536332f3cc89e5f0609996a07e6939fb"
+    },
+    {
+      "path": "lag_scan.png",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/lag_scan.png",
+      "bytes": 145729,
+      "sha256": "cfed22d4b9b3a6fd31360e8362299c6b407009cd57aeca2af6a161935e1c2a39"
+    },
+    {
+      "path": "lag_table.csv",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/lag_table.csv",
+      "bytes": 472,
+      "sha256": "5ba1fbd1593474082944d1b0b1c679b0e5cc97ccbc70ef1dd17054d911669ebb"
+    },
+    {
+      "path": "roundtrip_errors.png",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/roundtrip_errors.png",
+      "bytes": 339466,
+      "sha256": "ff1e1e183dd8456f068a180fd0376753b3ce27ecccf555fef86c0cf94b82fea4"
+    },
+    {
+      "path": "roundtrip_full.png",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/roundtrip_full.png",
+      "bytes": 276595,
+      "sha256": "5acd1a9042993ac44675a0124f1a81243b96a1c04e9bf3eaacb27efdefb23f2c"
+    },
+    {
+      "path": "roundtrip_sparse.png",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/roundtrip_sparse.png",
+      "bytes": 270404,
+      "sha256": "8c9aabec3e61c0444343a76b3000c4f3138b5830b9ecc1c30a13b09ba9675714"
+    },
+    {
+      "path": "roundtrip_table.csv",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/roundtrip_table.csv",
+      "bytes": 1339,
+      "sha256": "270fed7d8f980689da15c515c76fe8e374051b4b534de2924ce87dd1fb0f3d5e"
+    },
+    {
+      "path": "sg_roundtrip.pdf",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/sg_roundtrip.pdf",
+      "bytes": 106624,
+      "sha256": "b163ef68fd3220548eac114c4772addc2c1db4a176e601e158bf6f1d92541b90"
+    },
+    {
+      "path": "summary.json",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/summary.json",
+      "bytes": 31860,
+      "sha256": "99e9a96b03d9f40ad7e81386e6fdbff5360158b128f981092e08970e45177d24"
+    },
+    {
+      "path": "window_160ms_comparison.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_160ms_comparison.npz",
+      "bytes": 82390,
+      "sha256": "71c82964bff5d117fb115b6a774d11703d4d188e1ec311c885a8ab7b51c0cd83"
+    },
+    {
+      "path": "window_160ms_metrics.json",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_160ms_metrics.json",
+      "bytes": 6971,
+      "sha256": "f36008bd6b5b7b4b40bacf84cf20be390c07d2a319f5013ec65b07e0af0084c3"
+    },
+    {
+      "path": "window_160ms_roundtrip.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_160ms_roundtrip.npz",
+      "bytes": 264464,
+      "sha256": "0aa5970cbe2955929cd3c83f1e0e449e72e4a368ff58e51149ccb6282e762a16"
+    },
+    {
+      "path": "window_160ms_sg.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_160ms_sg.npz",
+      "bytes": 256776,
+      "sha256": "839fbfa5faf7e6e78fda5cadd294cf363f7eac4d0e1a1ce8f6b361bdc2e2c292"
+    },
+    {
+      "path": "window_320ms_comparison.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_320ms_comparison.npz",
+      "bytes": 82396,
+      "sha256": "dfe3effe356300457d2e02aabe4713e610016a1d4d288b8dbe72b51fe26b28bd"
+    },
+    {
+      "path": "window_320ms_metrics.json",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_320ms_metrics.json",
+      "bytes": 6975,
+      "sha256": "e756c6d20ae570d549c84bcbdf4d62fe8ebb6042cb601d5e5e9ff3a20da7c7d3"
+    },
+    {
+      "path": "window_320ms_roundtrip.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_320ms_roundtrip.npz",
+      "bytes": 264529,
+      "sha256": "a05a0312a7d48ee077a4ba381aa3b0f3039819a2eacc05c08d41b5ec53d69bee"
+    },
+    {
+      "path": "window_320ms_sg.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_320ms_sg.npz",
+      "bytes": 256752,
+      "sha256": "eb5738451b346deede94823041659f6b6245d143fa9a1b71b6980874ec07493d"
+    },
+    {
+      "path": "window_80ms_comparison.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_80ms_comparison.npz",
+      "bytes": 82386,
+      "sha256": "99646012d3764668e416adc7ec2f4e0af7dc2e0547ad056337c79313731867ac"
+    },
+    {
+      "path": "window_80ms_metrics.json",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_80ms_metrics.json",
+      "bytes": 6968,
+      "sha256": "effb020841dbc39322c5dd461d5c90b4b56a65417d85e9093865ba92e0246839"
+    },
+    {
+      "path": "window_80ms_roundtrip.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_80ms_roundtrip.npz",
+      "bytes": 264836,
+      "sha256": "5ed17d28328d5b98a5f9ed3c2df339821bf2c1b1f4d1e8ce74097653fd6d3a83"
+    },
+    {
+      "path": "window_80ms_sg.npz",
+      "source": "/tmp/gyro-mocap-sg-20261113/results/window_80ms_sg.npz",
+      "bytes": 257823,
+      "sha256": "3b5f3ecfbc4c3cd9cda9e4789db679b4a5caf4a4e9b210a1eff7ad2aafd4d8e8"
+    }
+  ],
+  "source_sha256": {
+    "publish.py": "3d1060bb78432e1811805153bf128e0fbc534e861a82d58aebb73d17ba92da7c",
+    "extract.py": "0302f035903d069320876ad79b158de0b3e0d01e20a01f3bec05b2efb2848a3e",
+    "run.py": "c8f49014b62118e70a3d3cd567a783fa3d4415d62a65f61a9491757d914b2042",
+    "sg_compare.py": "2dd1429804c76111fb80eb5f399e64e7d4826abfd3d6e307e305549c80a057ac",
+    "roundtrip.py": "a2725f6a089383925308bed24ac287c280b58e93bbf334237c6330db2d376235"
+  },
+  "bytes_excluding_manifest": 4483979,
+  "original_prediction_changed": false,
+  "model_or_filter_parameters_retuned": false,
+  "raw_bag_or_video_included": false
+}

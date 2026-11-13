@@ -125,3 +125,7 @@ env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 \
 ```
 
 元bagからの抽出は `extract.py --output <新しい出力先>`、検算は同フォルダの `tests` を `python3 -m unittest discover -s .../tests -v` で実行する。
+
+## 追加のSG微分・再積分検査
+
+同じ区間のmocap姿勢からbody角速度をSG微分で求め、原ジャイロとの時間ずれを調べた。また、そのSG角速度を再積分する往復検査も別に行った。[説明・二つのPDF・数値結果](gyro_mocap_sg_check/README.md)を参照。元の予測やトルクには戻していない。

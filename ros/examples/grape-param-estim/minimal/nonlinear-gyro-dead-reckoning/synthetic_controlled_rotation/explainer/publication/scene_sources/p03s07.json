@@ -1,0 +1,44 @@
+{
+  "schema": "grape/synthetic-explainer-render-scene/v1",
+  "scene_id": "p03s07",
+  "kind": "rk4",
+  "source_data": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5",
+  "sources": [
+    {
+      "path": "/tmp/synthetic-explainer-20261113/derived_data.npz",
+      "sha256": "2fe16d41c3ac8080efca86e25002cae49112c341b01f9f92cc6ad171e510e47b",
+      "keys": [
+        "rk4_dt",
+        "rk4_k_omega",
+        "rk4_stage_omega",
+        "rk4_stage_time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/input.npz",
+      "sha256": "9eb18a291da6437b700969f6a855405ceb59833459f590f8475ff70e9fd39d41",
+      "keys": [
+        "time"
+      ]
+    }
+  ],
+  "data_time_interval": [
+    0.0,
+    0.002
+  ],
+  "animation": "reveal saved samples in time; heatmaps/axes use latest saved sample at or before displayed time; cubature construction keeps its actual observation clock fixed; duplicated acquisition limits retained",
+  "physical_units": "deg and deg/s for display; archived radian arrays unchanged",
+  "modifies_inference": false,
+  "monte_carlo": false,
+  "dimension": [
+    960,
+    540
+  ],
+  "renderer_sha256": "dd1d6973fb131127c9a0de668c657c103701d9c097479abeaaa86d914bc7fe41",
+  "requested_duration_seconds": 17.066666666666666,
+  "encoded_duration_seconds": 17.066666666666666,
+  "frames": 256,
+  "fps": 15.0,
+  "output_bytes": 75990,
+  "output_sha256": "4209e421d96d1677bdcb0c784c98b5a8c6f95c8ef91a25b3f02d4ddfeec7389d"
+}

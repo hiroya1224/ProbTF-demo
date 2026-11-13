@@ -1,0 +1,338 @@
+[
+  {
+    "id": "p01s01",
+    "part": 1,
+    "duration_seconds": 20.066666666666666,
+    "speech_seconds": 19.528,
+    "title": "この動画で説明する合成実験"
+  },
+  {
+    "id": "p01s02",
+    "part": 1,
+    "duration_seconds": 18.133333333333333,
+    "speech_seconds": 17.632,
+    "title": "既知の慣性と既知の入力"
+  },
+  {
+    "id": "p01s03",
+    "part": 1,
+    "duration_seconds": 18.8,
+    "speech_seconds": 18.268,
+    "title": "座標系・四元数・単位"
+  },
+  {
+    "id": "p01s04",
+    "part": 1,
+    "duration_seconds": 18.066666666666666,
+    "speech_seconds": 17.56,
+    "title": "三つの周波数を重ねる"
+  },
+  {
+    "id": "p01s05",
+    "part": 1,
+    "duration_seconds": 19.4,
+    "speech_seconds": 18.844,
+    "title": "三軸で異なる波形"
+  },
+  {
+    "id": "p01s06",
+    "part": 1,
+    "duration_seconds": 16.866666666666667,
+    "speech_seconds": 16.36,
+    "title": "RPYの微分はgyroではない"
+  },
+  {
+    "id": "p01s07",
+    "part": 1,
+    "duration_seconds": 17.866666666666667,
+    "speech_seconds": 17.32,
+    "title": "角加速度も解析微分する"
+  },
+  {
+    "id": "p01s08",
+    "part": 1,
+    "duration_seconds": 18.0,
+    "speech_seconds": 17.476,
+    "title": "真値から既知トルクを生成"
+  },
+  {
+    "id": "p02s01",
+    "part": 2,
+    "duration_seconds": 19.466666666666665,
+    "speech_seconds": 18.916,
+    "title": "200 Hzの生成と0.5 Hzの取得"
+  },
+  {
+    "id": "p02s02",
+    "part": 2,
+    "duration_seconds": 18.333333333333332,
+    "speech_seconds": 17.788,
+    "title": "小さいnoiseと固定bias"
+  },
+  {
+    "id": "p02s03",
+    "part": 2,
+    "duration_seconds": 17.8,
+    "speech_seconds": 17.284,
+    "title": "仮定する五度毎秒は別の値"
+  },
+  {
+    "id": "p02s04",
+    "part": 2,
+    "duration_seconds": 18.533333333333335,
+    "speech_seconds": 18.028,
+    "title": "区間の初期条件を固定する"
+  },
+  {
+    "id": "p02s05",
+    "part": 2,
+    "duration_seconds": 17.2,
+    "speech_seconds": 16.636,
+    "title": "Gaussianを決定論的な六点へ"
+  },
+  {
+    "id": "p02s06",
+    "part": 2,
+    "duration_seconds": 17.533333333333335,
+    "speech_seconds": 17.02,
+    "title": "重み付き平均と共分散が一致"
+  },
+  {
+    "id": "p02s07",
+    "part": 2,
+    "duration_seconds": 17.866666666666667,
+    "speech_seconds": 17.356,
+    "title": "六点はMonte Carloではない"
+  },
+  {
+    "id": "p02s08",
+    "part": 2,
+    "duration_seconds": 18.666666666666668,
+    "speech_seconds": 18.148,
+    "title": "六本を観測間で追跡する"
+  },
+  {
+    "id": "p03s01",
+    "part": 3,
+    "duration_seconds": 18.266666666666666,
+    "speech_seconds": 17.74,
+    "title": "body座標のEuler運動方程式"
+  },
+  {
+    "id": "p03s02",
+    "part": 3,
+    "duration_seconds": 18.4,
+    "speech_seconds": 17.896,
+    "title": "三軸の結合は積で現れる"
+  },
+  {
+    "id": "p03s03",
+    "part": 3,
+    "duration_seconds": 18.266666666666666,
+    "speech_seconds": 17.752,
+    "title": "生成データ上のジャイロ項"
+  },
+  {
+    "id": "p03s04",
+    "part": 3,
+    "duration_seconds": 19.066666666666666,
+    "speech_seconds": 18.508,
+    "title": "線形側が省くのはこの一項"
+  },
+  {
+    "id": "p03s05",
+    "part": 3,
+    "duration_seconds": 17.2,
+    "speech_seconds": 16.672,
+    "title": "角速度と四元数を結合した状態"
+  },
+  {
+    "id": "p03s06",
+    "part": 3,
+    "duration_seconds": 17.666666666666668,
+    "speech_seconds": 17.104,
+    "title": "RK4の前半二段"
+  },
+  {
+    "id": "p03s07",
+    "part": 3,
+    "duration_seconds": 17.066666666666666,
+    "speech_seconds": 16.504,
+    "title": "RK4の後半と重み付き更新"
+  },
+  {
+    "id": "p03s08",
+    "part": 3,
+    "duration_seconds": 17.2,
+    "speech_seconds": 16.672,
+    "title": "刻み・補間・正規化の役割"
+  },
+  {
+    "id": "p04s01",
+    "part": 4,
+    "duration_seconds": 16.733333333333334,
+    "speech_seconds": 16.216,
+    "title": "六本の流れから候補の広がりへ"
+  },
+  {
+    "id": "p04s02",
+    "part": 4,
+    "duration_seconds": 17.333333333333332,
+    "speech_seconds": 16.816,
+    "title": "区間開始からの増分を一度合成"
+  },
+  {
+    "id": "p04s03",
+    "part": 4,
+    "duration_seconds": 17.333333333333332,
+    "speech_seconds": 16.828,
+    "title": "四元数の二次モーメント"
+  },
+  {
+    "id": "p04s04",
+    "part": 4,
+    "duration_seconds": 17.0,
+    "speech_seconds": 16.48,
+    "title": "既存coreの四元数積モーメント"
+  },
+  {
+    "id": "p04s05",
+    "part": 4,
+    "duration_seconds": 19.333333333333332,
+    "speech_seconds": 18.796,
+    "title": "候補を全列挙しない理由"
+  },
+  {
+    "id": "p04s06",
+    "part": 4,
+    "duration_seconds": 18.8,
+    "speech_seconds": 18.28,
+    "title": "回転行列の平均も必要"
+  },
+  {
+    "id": "p04s07",
+    "part": 4,
+    "duration_seconds": 17.666666666666668,
+    "speech_seconds": 17.14,
+    "title": "回転を九成分の確率変数として扱う"
+  },
+  {
+    "id": "p04s08",
+    "part": 4,
+    "duration_seconds": 17.866666666666667,
+    "speech_seconds": 17.344,
+    "title": "全共分散はwithinとbetweenの和"
+  },
+  {
+    "id": "p05s01",
+    "part": 5,
+    "duration_seconds": 18.0,
+    "speech_seconds": 17.44,
+    "title": "角速度の平均と全共分散"
+  },
+  {
+    "id": "p05s02",
+    "part": 5,
+    "duration_seconds": 18.133333333333333,
+    "speech_seconds": 17.62,
+    "title": "観測直前と直後を両方残す"
+  },
+  {
+    "id": "p05s03",
+    "part": 5,
+    "duration_seconds": 18.666666666666668,
+    "speech_seconds": 18.112,
+    "title": "今回はBayes条件付けではない"
+  },
+  {
+    "id": "p05s04",
+    "part": 5,
+    "duration_seconds": 17.8,
+    "speech_seconds": 17.284,
+    "title": "姿勢候補は観測時にも保持する"
+  },
+  {
+    "id": "p05s05",
+    "part": 5,
+    "duration_seconds": 18.466666666666665,
+    "speech_seconds": 17.92,
+    "title": "非線形では幅が時間で変わる"
+  },
+  {
+    "id": "p05s06",
+    "part": 5,
+    "duration_seconds": 19.133333333333333,
+    "speech_seconds": 18.628,
+    "title": "実際に保存されたくびれ"
+  },
+  {
+    "id": "p05s07",
+    "part": 5,
+    "duration_seconds": 18.4,
+    "speech_seconds": 17.86,
+    "title": "RPY中心は回転平均からの代理量"
+  },
+  {
+    "id": "p05s08",
+    "part": 5,
+    "duration_seconds": 19.866666666666667,
+    "speech_seconds": 19.312,
+    "title": "RPYの帯はJacobianで変換"
+  },
+  {
+    "id": "p06s01",
+    "part": 6,
+    "duration_seconds": 18.733333333333334,
+    "speech_seconds": 18.196,
+    "title": "六つのパネルを時刻で追う"
+  },
+  {
+    "id": "p06s02",
+    "part": 6,
+    "duration_seconds": 19.4,
+    "speech_seconds": 18.844,
+    "title": "誤差は同じ501時刻で評価"
+  },
+  {
+    "id": "p06s03",
+    "part": 6,
+    "duration_seconds": 19.0,
+    "speech_seconds": 18.496,
+    "title": "今回の三周波数での数値結果"
+  },
+  {
+    "id": "p06s04",
+    "part": 6,
+    "duration_seconds": 18.133333333333333,
+    "speech_seconds": 17.632,
+    "title": "角速度を取り直しても姿勢誤差は残る"
+  },
+  {
+    "id": "p06s05",
+    "part": 6,
+    "duration_seconds": 19.733333333333334,
+    "speech_seconds": 19.204,
+    "title": "無ノイズの別検証で式を照合"
+  },
+  {
+    "id": "p06s06",
+    "part": 6,
+    "duration_seconds": 19.133333333333333,
+    "speech_seconds": 18.628,
+    "title": "どこに有限の近似があるか"
+  },
+  {
+    "id": "p06s07",
+    "part": 6,
+    "duration_seconds": 18.533333333333335,
+    "speech_seconds": 17.992,
+    "title": "この比較が示す範囲と限界"
+  },
+  {
+    "id": "p06s08",
+    "part": 6,
+    "duration_seconds": 19.266666666666666,
+    "speech_seconds": 18.736,
+    "title": "再現できる形で保存する"
+  }
+]

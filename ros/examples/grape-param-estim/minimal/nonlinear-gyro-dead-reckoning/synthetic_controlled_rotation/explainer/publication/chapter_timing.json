@@ -1,0 +1,38 @@
+[
+  {
+    "part": 1,
+    "title": "何を生成し、何を比較するのか",
+    "start_seconds": 0.0,
+    "duration_seconds": 147.20000000000002
+  },
+  {
+    "part": 2,
+    "title": "gyro観測から六点の候補を作る",
+    "start_seconds": 147.20000000000002,
+    "duration_seconds": 145.39999999999998
+  },
+  {
+    "part": 3,
+    "title": "非線形Euler式を六本同時に積分する",
+    "start_seconds": 292.6,
+    "duration_seconds": 143.13333333333333
+  },
+  {
+    "part": 4,
+    "title": "回転候補をモーメントとして伝播する",
+    "start_seconds": 435.73333333333335,
+    "duration_seconds": 142.06666666666666
+  },
+  {
+    "part": 5,
+    "title": "観測時の処理と帯の意味",
+    "start_seconds": 577.8,
+    "duration_seconds": 148.46666666666667
+  },
+  {
+    "part": 6,
+    "title": "結果・検証・近似の範囲",
+    "start_seconds": 726.2666666666667,
+    "duration_seconds": 151.93333333333334
+  }
+]

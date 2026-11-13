@@ -1,0 +1,50 @@
+{
+  "schema": "grape/synthetic-explainer-render-scene/v1",
+  "scene_id": "p06s03",
+  "kind": "results",
+  "source_data": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5",
+  "sources": [
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/input.npz",
+      "sha256": "9eb18a291da6437b700969f6a855405ceb59833459f590f8475ff70e9fd39d41",
+      "keys": [
+        "time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/linear_forced_rpy_plot.npz",
+      "sha256": "c9030f4ce75513e5c41baefffd24c9676eac625c8853cdad27ba022a7e69cd14",
+      "keys": [
+        "error_geodesic_rad",
+        "time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/nonlinear_rpy_plot.npz",
+      "sha256": "b87708834b88443aaaa4f615e97777379e05449566a341ccd454aec4b9b6d11c",
+      "keys": [
+        "error_geodesic_rad",
+        "time"
+      ]
+    }
+  ],
+  "data_time_interval": [
+    0.0,
+    5.0
+  ],
+  "animation": "reveal saved samples in time; heatmaps/axes use latest saved sample at or before displayed time; cubature construction keeps its actual observation clock fixed; duplicated acquisition limits retained",
+  "physical_units": "deg and deg/s for display; archived radian arrays unchanged",
+  "modifies_inference": false,
+  "monte_carlo": false,
+  "dimension": [
+    960,
+    540
+  ],
+  "renderer_sha256": "dd1d6973fb131127c9a0de668c657c103701d9c097479abeaaa86d914bc7fe41",
+  "requested_duration_seconds": 19.0,
+  "encoded_duration_seconds": 19.0,
+  "frames": 285,
+  "fps": 15.0,
+  "output_bytes": 120271,
+  "output_sha256": "914525377b91973d9782b7f73b01784a4776fc800b60769b27eece186351ec40"
+}

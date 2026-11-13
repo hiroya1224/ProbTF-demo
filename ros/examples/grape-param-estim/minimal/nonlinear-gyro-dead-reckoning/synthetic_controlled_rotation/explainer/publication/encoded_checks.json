@@ -1,0 +1,681 @@
+{
+  "schema": "grape/synthetic-encoded-video-check/v1",
+  "chapters": [
+    {
+      "file": "synthetic_complete_ja_2x.mp4",
+      "bytes": 18507458,
+      "dimensions": [
+        960,
+        540
+      ],
+      "fps": "202337280/13489393",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "duration_seconds": 878.243,
+      "audio": {
+        "peak_pcm16": 22788.0,
+        "rms_pcm16": 4423.061471018144,
+        "full_scale_sample_count": 0,
+        "decoded_audio_seconds": 878.208
+      },
+      "complete_video_audio_decode_succeeded": true,
+      "embedded_chapters": [
+        {
+          "id": 0,
+          "time_base": "1/1000",
+          "start": 0,
+          "start_time": "0.000000",
+          "end": 147200,
+          "end_time": "147.200000",
+          "tags": {
+            "title": "何を生成し、何を比較するのか"
+          }
+        },
+        {
+          "id": 1,
+          "time_base": "1/1000",
+          "start": 147200,
+          "start_time": "147.200000",
+          "end": 292600,
+          "end_time": "292.600000",
+          "tags": {
+            "title": "gyro観測から六点の候補を作る"
+          }
+        },
+        {
+          "id": 2,
+          "time_base": "1/1000",
+          "start": 292600,
+          "start_time": "292.600000",
+          "end": 435733,
+          "end_time": "435.733000",
+          "tags": {
+            "title": "非線形Euler式を六本同時に積分する"
+          }
+        },
+        {
+          "id": 3,
+          "time_base": "1/1000",
+          "start": 435733,
+          "start_time": "435.733000",
+          "end": 577800,
+          "end_time": "577.800000",
+          "tags": {
+            "title": "回転候補をモーメントとして伝播する"
+          }
+        },
+        {
+          "id": 4,
+          "time_base": "1/1000",
+          "start": 577800,
+          "start_time": "577.800000",
+          "end": 726267,
+          "end_time": "726.267000",
+          "tags": {
+            "title": "観測時の処理と帯の意味"
+          }
+        },
+        {
+          "id": 5,
+          "time_base": "1/1000",
+          "start": 726267,
+          "start_time": "726.267000",
+          "end": 878200,
+          "end_time": "878.200000",
+          "tags": {
+            "title": "結果・検証・近似の範囲"
+          }
+        }
+      ],
+      "scene_frames": [
+        {
+          "id": "p01s01",
+          "title": "この動画で説明する合成実験",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 11.036666666666667,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 48.01946907429891,
+          "sha256": "2ecfab05c25b76219d22bb80e674415ec1832c6cade45a2426204b482e7c862b"
+        },
+        {
+          "id": "p01s02",
+          "title": "既知の慣性と既知の入力",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 30.04,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.00708157282133,
+          "sha256": "0e1c7791a0c3e1148b775d9f0c588ea7af73f25f9821d5a3a78d6cd68504d3f8"
+        },
+        {
+          "id": "p01s03",
+          "title": "座標系・四元数・単位",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 48.540000000000006,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 36.04133579788889,
+          "sha256": "a17f86cdb055c51a4f2f7adb2722f5341b43206fb4702db25c4c96e78d0cb12b"
+        },
+        {
+          "id": "p01s04",
+          "title": "三つの周波数を重ねる",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 66.93666666666667,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.21236932929497,
+          "sha256": "0fb673ddef71efee7762f2558413ed253582a8aba87a1731e0bdf747778585d8"
+        },
+        {
+          "id": "p01s05",
+          "title": "三軸で異なる波形",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 85.73666666666666,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.42432714410391,
+          "sha256": "34436b52a2b536081722bd1a08a724267b30cc130ca4f51384ccffc9d1bfd0e7"
+        },
+        {
+          "id": "p01s06",
+          "title": "RPYの微分はgyroではない",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 103.74333333333334,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.149399060078494,
+          "sha256": "ff665512d77ec956d6b83806374e0110f9806854a88992881e988ba50eb8c813"
+        },
+        {
+          "id": "p01s07",
+          "title": "角加速度も解析微分する",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 121.16000000000001,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.12399621105974,
+          "sha256": "2b4ae83bf6f80ae33d35c0adf7ea435000f7af40f9fd5e6ebf3688f39d80d226"
+        },
+        {
+          "id": "p01s08",
+          "title": "真値から既知トルクを生成",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 139.10000000000002,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.56894783153312,
+          "sha256": "69f6aa02fa0f9642a4e10c9a76af70fb774c731a7fdf6a98500c77ab6a8e41fc"
+        },
+        {
+          "id": "p02s01",
+          "title": "200 Hzの生成と0.5 Hzの取得",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 157.9066666666667,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 36.67704802840997,
+          "sha256": "0fe7513d3dd9fec10fa4831184a3e0f6c76f0c4cd27abf6f38ffb0165d5a2753"
+        },
+        {
+          "id": "p02s02",
+          "title": "小さいnoiseと固定bias",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 176.75000000000003,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 40.14925966187434,
+          "sha256": "165a10602b1693f3966a39fc2e68cefb56643d3f90adf03af2416153a0256341"
+        },
+        {
+          "id": "p02s03",
+          "title": "仮定する五度毎秒は別の値",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 194.79000000000002,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 40.93202300344186,
+          "sha256": "db3e49c3b15ac147f21baad1715569730458d7ab3bb6f8263db3ecef91307684"
+        },
+        {
+          "id": "p02s04",
+          "title": "区間の初期条件を固定する",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 212.99333333333337,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.83087017255948,
+          "sha256": "2138dc70ecd2f44b0bc8cf4ba1e6f4955e19aa57cf47ed7de9c659674f30095a"
+        },
+        {
+          "id": "p02s05",
+          "title": "Gaussianを決定論的な六点へ",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 230.79333333333338,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 34.18069508951504,
+          "sha256": "567f20002106d66f0cfb046250b36c140c4a32a58c4d2de5281040e497556b67"
+        },
+        {
+          "id": "p02s06",
+          "title": "重み付き平均と共分散が一致",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 248.1766666666667,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 35.67696016794214,
+          "sha256": "5316f91e6faa254b8c319b834a41d1fbec1e496bc6605b840c9244c90d654688"
+        },
+        {
+          "id": "p02s07",
+          "title": "六点はMonte Carloではない",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 265.8933333333334,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 34.93065415047073,
+          "sha256": "5f7a8f32f952d95307716ebb85382b24d9fa3228155e389fee048afa836c52d1"
+        },
+        {
+          "id": "p02s08",
+          "title": "六本を観測間で追跡する",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 284.20000000000005,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.37700121659521,
+          "sha256": "493b4929761b15056f3bcc140e64b15ae51c4b616064f2991cd62286fd074456"
+        },
+        {
+          "id": "p03s01",
+          "title": "body座標のEuler運動方程式",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 302.64666666666676,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.149471125804794,
+          "sha256": "5819c1fdb4586453f74a45d91e89d160c9584dec2c3af5a2bab70bb8fc825cc9"
+        },
+        {
+          "id": "p03s02",
+          "title": "三軸の結合は積で現れる",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 320.98666666666674,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.19100616369761,
+          "sha256": "67c813faf7ca6e6e1c417f8a9afae46c87d17606d2f79cc1edb082d17f4676cd"
+        },
+        {
+          "id": "p03s03",
+          "title": "生成データ上のジャイロ項",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 339.3133333333334,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 36.094684441682595,
+          "sha256": "d434b699336082b9e305a35cee8e0d4d06055664457454f9a47a61fc26c95dbd"
+        },
+        {
+          "id": "p03s04",
+          "title": "線形側が省くのはこの一項",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 358.02000000000004,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.90669551581854,
+          "sha256": "612d93ef4eae6cd88da7abb4448b9ea1403c13e4129c99a6ab25f1cbed4bed5f"
+        },
+        {
+          "id": "p03s05",
+          "title": "角速度と四元数を結合した状態",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 376.06,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.075538350672204,
+          "sha256": "fd97264a51945d51d5b77d5e3ef1e488e5325740b7f3fd492a710b660f372178"
+        },
+        {
+          "id": "p03s06",
+          "title": "RK4の前半二段",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 393.51666666666665,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 50.757622655539016,
+          "sha256": "c08c628092e60c2fe805153164ab14e076d74dd9b4cfae24df16d9596b9d8ada"
+        },
+        {
+          "id": "p03s07",
+          "title": "RK4の後半と重み付き更新",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 410.85333333333335,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 52.73612033592746,
+          "sha256": "831c9933ebff5529d5c15b45806eb2d2a8fdf01b813f4684201086635201325a"
+        },
+        {
+          "id": "p03s08",
+          "title": "刻み・補間・正規化の役割",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 427.99333333333334,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 53.91635925331676,
+          "sha256": "43800e84488f0e8ed2d5bda53cd6b853188e4634acd1f9acfcd97ec3f91264d1"
+        },
+        {
+          "id": "p04s01",
+          "title": "六本の流れから候補の広がりへ",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 444.93666666666667,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.51228526790915,
+          "sha256": "24a747627b123e8cd38afadceec644b76942164c7c9d798330643c4596b78ff9"
+        },
+        {
+          "id": "p04s02",
+          "title": "区間開始からの増分を一度合成",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 462.00000000000006,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 39.371604251043294,
+          "sha256": "0e75baf31901f260bcd654245642305e3c61dd94803139476ad954559fedef94"
+        },
+        {
+          "id": "p04s03",
+          "title": "四元数の二次モーメント",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 479.33333333333337,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.81114570419229,
+          "sha256": "9a1f0f68cdc01b02133a553302b099851ef4fd24506896b8e0778ea85eae3a4b"
+        },
+        {
+          "id": "p04s04",
+          "title": "既存coreの四元数積モーメント",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 496.48333333333335,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 39.235377826497036,
+          "sha256": "c27e101b8d99165ab4863c8e5c10346743d7c61bb0eb2c0a56d53dbcec05a78f"
+        },
+        {
+          "id": "p04s05",
+          "title": "候補を全列挙しない理由",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 514.7666666666667,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.97354722350148,
+          "sha256": "722d3aa994c0c9a9fe00c9f69e6687b4622a988e74971e335825f419bfd6a620"
+        },
+        {
+          "id": "p04s06",
+          "title": "回転行列の平均も必要",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 533.8066666666667,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 46.68644360595837,
+          "sha256": "cb958eb7e08a4a60d26336ea00b361d36e8c8fc61dfa40dbd4cafe850d961573"
+        },
+        {
+          "id": "p04s07",
+          "title": "回転を九成分の確率変数として扱う",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 551.9833333333333,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.037062419967135,
+          "sha256": "e5bb80f77c9862135b4fec2dfec5c72b8ace887445f0cffb8e56519a852fbe14"
+        },
+        {
+          "id": "p04s08",
+          "title": "全共分散はwithinとbetweenの和",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 569.76,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 40.502586650645895,
+          "sha256": "41980df3135e6a37e743697f5b4bd10375e4e247a8b3d4ef4b372c7e25be2b83"
+        },
+        {
+          "id": "p05s01",
+          "title": "角速度の平均と全共分散",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 587.6999999999999,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 39.345267987670184,
+          "sha256": "af5c4ac219160158f3794129a7c1f0ab1a3b96e85e41ac9db1ff1b311b665515"
+        },
+        {
+          "id": "p05s02",
+          "title": "観測直前と直後を両方残す",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 605.7733333333333,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.99174561320082,
+          "sha256": "f29bf2599ade532e7e3a1ad57ab558dfcf4f00e87956c04a677647d6c6f09e64"
+        },
+        {
+          "id": "p05s03",
+          "title": "今回はBayes条件付けではない",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 624.1999999999999,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.792995682381466,
+          "sha256": "ebff5ccffe1b9e5866122176b9231225bed06bb99e04f14b66cd148e50dc8b2f"
+        },
+        {
+          "id": "p05s04",
+          "title": "姿勢候補は観測時にも保持する",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 642.3899999999999,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 39.25682262540045,
+          "sha256": "c5819dd150a523b29cda517b8f41d8b394603aa1ba6033fd5229b1ce8bd883db"
+        },
+        {
+          "id": "p05s05",
+          "title": "非線形では幅が時間で変わる",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 660.5566666666665,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.28483562546814,
+          "sha256": "c81d143f588359708dfe217665615270566d467c01c483a6d80e477598fcdab3"
+        },
+        {
+          "id": "p05s06",
+          "title": "実際に保存されたくびれ",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 679.3899999999999,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 34.80848071965001,
+          "sha256": "612add206e633ce797800ea92686501f2947441c3c3d86a8840f4f7e49b47f56"
+        },
+        {
+          "id": "p05s07",
+          "title": "RPY中心は回転平均からの代理量",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 698.1199999999999,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 39.292595690887524,
+          "sha256": "5025787e18c53d09296b05b268fcb73cc9e208f35d36ffbc721b49a5ff97c093"
+        },
+        {
+          "id": "p05s08",
+          "title": "RPYの帯はJacobianで変換",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 717.3266666666665,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.50703246157634,
+          "sha256": "efd48c8227e9b40222104c8203d86b549604502f9c30ccc03bcdab5042941d67"
+        },
+        {
+          "id": "p06s01",
+          "title": "六つのパネルを時刻で追う",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 736.5699999999998,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 47.41619884393483,
+          "sha256": "481dcba78f3573c4b70a58883ceca2006a81945e5873b6f751b016ac6219e29a"
+        },
+        {
+          "id": "p06s02",
+          "title": "誤差は同じ501時刻で評価",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 755.6699999999998,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 36.8268128635855,
+          "sha256": "e0b9ca67e1f1620e7ea25fef47f855a2df8beac845d42b89e70c265b1b3be656"
+        },
+        {
+          "id": "p06s03",
+          "title": "今回の三周波数での数値結果",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 774.8499999999999,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 37.22095051254499,
+          "sha256": "5200f15322141806b669912e971c9582ab3673151300bfd1e68ca364aec0f121"
+        },
+        {
+          "id": "p06s04",
+          "title": "角速度を取り直しても姿勢誤差は残る",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 793.3733333333332,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 39.07325220435221,
+          "sha256": "79a42011bc4242ff6894683641789bb6438548dc7eae880819844b59b60df442"
+        },
+        {
+          "id": "p06s05",
+          "title": "無ノイズの別検証で式を照合",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 812.3866666666665,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 56.41732846167938,
+          "sha256": "a82ae3cf85169810229ce15da159cfff8064bdccd39fbba738fadda35ea595e5"
+        },
+        {
+          "id": "p06s06",
+          "title": "どこに有限の近似があるか",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 831.7899999999998,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 34.16899505376911,
+          "sha256": "6b0a1325155707681bf70a409bcfb2b330c521c62b7d18871371c981ac25c8f3"
+        },
+        {
+          "id": "p06s07",
+          "title": "この比較が示す範囲と限界",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 850.5933333333332,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 34.86869814487525,
+          "sha256": "97954db3e7bb4c835d3510d5a628873eca7056d5753e37c31de35227d624311e"
+        },
+        {
+          "id": "p06s08",
+          "title": "再現できる形で保存する",
+          "chapter": "synthetic_complete_ja_2x.mp4",
+          "time_seconds": 869.5299999999999,
+          "size": [
+            960,
+            540
+          ],
+          "pixel_std": 38.204096372493005,
+          "sha256": "316a131c3a1ff6de1b85f8b478e0c9b90d9b2d2c0aaa37c8be254e463a220afc"
+        }
+      ]
+    }
+  ],
+  "all_dimensions_960_540": true,
+  "all_files_under_50MB": true,
+  "japanese_voice": "ja-JP-NanamiNeural",
+  "declared_speed_multiplier": 2.0,
+  "measured_speed_ratio_min": 2.0,
+  "measured_speed_ratio_max": 2.0,
+  "maximum_trimmed_audio_tail_peak_pcm16": 0,
+  "all_chapters_have_nonzero_audio": true,
+  "narration_scene_count": 48,
+  "inspected_encoded_scene_count": 48,
+  "note": "Audio signal/encoding and frame checks complement manual Japanese-script and visual review; no ASR verification is claimed."
+}

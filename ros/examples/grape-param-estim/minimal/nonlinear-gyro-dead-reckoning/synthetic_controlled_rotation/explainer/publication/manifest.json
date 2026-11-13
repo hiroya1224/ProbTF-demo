@@ -1,0 +1,310 @@
+{
+  "files": [
+    {
+      "path": "INDEX.md",
+      "bytes": 1291,
+      "sha256": "74272f0667afb7168a0542cde8559a7b9cbfcdc02293ee6d86b27509a055e292"
+    },
+    {
+      "path": "chapter_timing.json",
+      "bytes": 957,
+      "sha256": "0d8c3061cfa80f7ad7073436c136e292ada1e5b4adfa51ce5fe8ff94f5a289ad"
+    },
+    {
+      "path": "derived_data.json",
+      "bytes": 758,
+      "sha256": "13679815399b934b3368cbfb62ac1ada10b504140ca99f2c5ef1a5e1236e66e4"
+    },
+    {
+      "path": "derived_data.npz",
+      "bytes": 207590,
+      "sha256": "2fe16d41c3ac8080efca86e25002cae49112c341b01f9f92cc6ad171e510e47b"
+    },
+    {
+      "path": "encoded_checks.json",
+      "bytes": 22036,
+      "sha256": "b350d7743d0891e55998637cf77565828ca64b815dfb1741423653826af014e3"
+    },
+    {
+      "path": "narration.md",
+      "bytes": 40168,
+      "sha256": "a28a9f98b979cf94e853704462eadb7ac98eca1a71ecef3e8d8fee2b39bc87f1"
+    },
+    {
+      "path": "narration_manifest.json",
+      "bytes": 269858,
+      "sha256": "647ce82b6b0a3083eccc5356b2f2dbd52ce56942c421b364ae3066083e556520"
+    },
+    {
+      "path": "review.json",
+      "bytes": 1024,
+      "sha256": "3f47bb71999f62cb117b0e8c4b544b83a91283f2c254a0a9d9799875b1c2db5a"
+    },
+    {
+      "path": "scene_sources/p01s01.json",
+      "bytes": 3577,
+      "sha256": "d93d9a3c9be880f497201240dbbbaa5c24b2851c5ba2d571e24fc2302b7736e5"
+    },
+    {
+      "path": "scene_sources/p01s02.json",
+      "bytes": 2693,
+      "sha256": "042e3efcb186e08447c0cf991ec62f3fbcad4fe6599f04d424c7d3181ceb0db0"
+    },
+    {
+      "path": "scene_sources/p01s03.json",
+      "bytes": 1503,
+      "sha256": "137373ced0256af60df3acfacd52849a00c6a3f56f38f2e14b9fc20c048cd8ec"
+    },
+    {
+      "path": "scene_sources/p01s04.json",
+      "bytes": 1687,
+      "sha256": "8d65f32fe22b4b234867f8df800495fed8307f982bf956fcdfae0ca1e2aaa251"
+    },
+    {
+      "path": "scene_sources/p01s05.json",
+      "bytes": 1659,
+      "sha256": "1a2185ade17b5797b3dd4f8cca88cd04c48e6fe1d0235645cde811eacad251bc"
+    },
+    {
+      "path": "scene_sources/p01s06.json",
+      "bytes": 1531,
+      "sha256": "f4bd5bb303ed255e1663f32d1d3571f854707aa42c5502a3dc9498363a006521"
+    },
+    {
+      "path": "scene_sources/p01s07.json",
+      "bytes": 1502,
+      "sha256": "887066c1da9a4ed12ea6eb649810d24bed30661b488434068a3537cf6390f295"
+    },
+    {
+      "path": "scene_sources/p01s08.json",
+      "bytes": 1602,
+      "sha256": "fa2cef9f9190af17db5ab4cfecad1a748a16c8dd4c68a2da481e5c5147cf41b3"
+    },
+    {
+      "path": "scene_sources/p02s01.json",
+      "bytes": 1875,
+      "sha256": "53c00ea0bcd6cbbc20d4c08fbef0c02309899f6a2be0e7bf397b4892bd6c8179"
+    },
+    {
+      "path": "scene_sources/p02s02.json",
+      "bytes": 1567,
+      "sha256": "9d88ffdf50036a588b1c31a8cc64bcab0eafb77f5dfb69572c3cad7418965ff7"
+    },
+    {
+      "path": "scene_sources/p02s03.json",
+      "bytes": 1539,
+      "sha256": "e9192ee41428c901e4196c8bb02f951ca9feb17381b805179550ad6896f5c9d1"
+    },
+    {
+      "path": "scene_sources/p02s04.json",
+      "bytes": 1875,
+      "sha256": "77ba3f6db071a8e3475fc397c17ba2160887cddf8b09b77d83b9adcd4df6c9c3"
+    },
+    {
+      "path": "scene_sources/p02s05.json",
+      "bytes": 1816,
+      "sha256": "2c936617c11dca7beaf35e843a3d28cb39c53ec1376add287831ceacfdff1be2"
+    },
+    {
+      "path": "scene_sources/p02s06.json",
+      "bytes": 1844,
+      "sha256": "f13033d42ff8da877263d5ca3e1fac014cb8c0779b20899be1bf3fb6b35d831d"
+    },
+    {
+      "path": "scene_sources/p02s07.json",
+      "bytes": 1844,
+      "sha256": "ffcc4b67b47eaaf382e9ee0ffa1c1c1f138ce50a669cdb5064338a413f60e85e"
+    },
+    {
+      "path": "scene_sources/p02s08.json",
+      "bytes": 1876,
+      "sha256": "f21267eb7711ea26883dca7e99e678d013ea09dd3dfa7b8149a29c77930db943"
+    },
+    {
+      "path": "scene_sources/p03s01.json",
+      "bytes": 1629,
+      "sha256": "0c1769a60226093efb9279e16a98d0c2b264fd25f8b973666b3df78645b9a9d0"
+    },
+    {
+      "path": "scene_sources/p03s02.json",
+      "bytes": 1601,
+      "sha256": "9955c228febe692f2a0346c07780427237e692344ee990ea81ecdfccddf1f1e2"
+    },
+    {
+      "path": "scene_sources/p03s03.json",
+      "bytes": 1630,
+      "sha256": "c83b2e6f53d0a2906d64862bb78c5038a8814f1910532e8cbf955925394c1367"
+    },
+    {
+      "path": "scene_sources/p03s04.json",
+      "bytes": 2692,
+      "sha256": "b86a3ecd74da9375a34928938c6cf8842eac167cf0a7bb591de9d705db762f0d"
+    },
+    {
+      "path": "scene_sources/p03s05.json",
+      "bytes": 1797,
+      "sha256": "4dd3f1205ae8f8f546487a51e175b4905dce548a3dc296d2b249a72b4b8dad00"
+    },
+    {
+      "path": "scene_sources/p03s06.json",
+      "bytes": 1719,
+      "sha256": "fa6582ea26e9ea071bddd83a6cd587fa421077a924a95781933baad6c075184a"
+    },
+    {
+      "path": "scene_sources/p03s07.json",
+      "bytes": 1719,
+      "sha256": "fc87e3423db756e33c83bd2b24bc45bcab86d2bac80122bd8f78ab669c646efc"
+    },
+    {
+      "path": "scene_sources/p03s08.json",
+      "bytes": 1691,
+      "sha256": "8db6e5cf0bba1343776188237e1f35e6ecaea62cb9ca81575dea8562b43e126e"
+    },
+    {
+      "path": "scene_sources/p04s01.json",
+      "bytes": 1876,
+      "sha256": "fdcc1819f6c71fbffbc0375b2e67d9b8de3211123737314db1680af3fa1301ac"
+    },
+    {
+      "path": "scene_sources/p04s02.json",
+      "bytes": 1825,
+      "sha256": "e7c76fd872e69c24ac5f1364fa332a0caa0890280e552b2747451b4a3fae52b4"
+    },
+    {
+      "path": "scene_sources/p04s03.json",
+      "bytes": 1848,
+      "sha256": "5334161442fe41be84cf3af7fdf35ea626ec220129ccd6d9016b35e58b09b88c"
+    },
+    {
+      "path": "scene_sources/p04s04.json",
+      "bytes": 1791,
+      "sha256": "0381ff041f083b6f3c8d357459be58b781d3c0c5b7c4bcdf6ad89c68950682a4"
+    },
+    {
+      "path": "scene_sources/p04s05.json",
+      "bytes": 1819,
+      "sha256": "e40aea1b9795ab7e10ab59da3feb8258b49f281184b853a3eba889f4739dcec2"
+    },
+    {
+      "path": "scene_sources/p04s06.json",
+      "bytes": 1786,
+      "sha256": "fe62b843ebf6b2cf9ce4da889f8be1357ea6b6345a68bed9b9b11027ee501d6b"
+    },
+    {
+      "path": "scene_sources/p04s07.json",
+      "bytes": 1829,
+      "sha256": "3544286e87ca8bb4858d0c7b13b848afcb26181a3b814de2797f73fe016bcf07"
+    },
+    {
+      "path": "scene_sources/p04s08.json",
+      "bytes": 2157,
+      "sha256": "4813044e2cfcd81e6f89d3b0322d308443bfff73e6b76530710b6c3ae700244e"
+    },
+    {
+      "path": "scene_sources/p05s01.json",
+      "bytes": 2654,
+      "sha256": "8e3a388210d94a148030fb20788b3612e2bdc7009bf915522d325305ce2938e1"
+    },
+    {
+      "path": "scene_sources/p05s02.json",
+      "bytes": 2691,
+      "sha256": "298a103b7e20504863a950dc38d4f0584770cc86c9ee1d517f4bb5672e404b57"
+    },
+    {
+      "path": "scene_sources/p05s03.json",
+      "bytes": 2686,
+      "sha256": "ace1a7786ea05d1a053e452cb6f7454ef0bd59bf48e6409abced2b11179a1793"
+    },
+    {
+      "path": "scene_sources/p05s04.json",
+      "bytes": 2668,
+      "sha256": "f4c9c49217044caf2fd211f3fadbcba8024d7213d927e031571fe9544a808e10"
+    },
+    {
+      "path": "scene_sources/p05s05.json",
+      "bytes": 3043,
+      "sha256": "2d0d3f5567e3e998fa5f369e6133f05e6023b092d8a9587e23e3b95881c0861a"
+    },
+    {
+      "path": "scene_sources/p05s06.json",
+      "bytes": 3043,
+      "sha256": "0f6562e49361b841b540eebca5ddf4eb0462c87ace3b48add04957b575a79a83"
+    },
+    {
+      "path": "scene_sources/p05s07.json",
+      "bytes": 2671,
+      "sha256": "0f4e92ab82a0373b98e1a9da6f188ac062a248ce2eddbef76d5eafc6bbdb827e"
+    },
+    {
+      "path": "scene_sources/p05s08.json",
+      "bytes": 2699,
+      "sha256": "b6757b9ca32fdb1f4567c3f36ae0607f07f79bab0d6d1b140434ab47c3d36fef"
+    },
+    {
+      "path": "scene_sources/p06s01.json",
+      "bytes": 3577,
+      "sha256": "9eeb9bba7f4f81532898230b5b360066b15feadaed26d9de5f8a443cc4fbbfab"
+    },
+    {
+      "path": "scene_sources/p06s02.json",
+      "bytes": 2182,
+      "sha256": "ef923c4cc846aba9e29bb7b82b56d163b1b96cdb2494b4f52668c10a7976f63d"
+    },
+    {
+      "path": "scene_sources/p06s03.json",
+      "bytes": 2182,
+      "sha256": "b0e74f47a36311af1d2cb729873a9eaae78d44c6f057d5b5f68991633d9a0baf"
+    },
+    {
+      "path": "scene_sources/p06s04.json",
+      "bytes": 2695,
+      "sha256": "725cbbec59174ec2e1577d3109dd5efae5c8e175c64633cba52591bec0e65186"
+    },
+    {
+      "path": "scene_sources/p06s05.json",
+      "bytes": 1819,
+      "sha256": "d014421df0da2add76af94f735f18fa2555e78d31d4a6c71b4b6bf3d0fb4f410"
+    },
+    {
+      "path": "scene_sources/p06s06.json",
+      "bytes": 3043,
+      "sha256": "5ec0b36d1f36df53d7debbcf286c7155f5f02547b4704d07773be036aaf0515c"
+    },
+    {
+      "path": "scene_sources/p06s07.json",
+      "bytes": 3043,
+      "sha256": "22e9effa5c3b5905e87a994650fa8fe1ae5968fc09baded4609f0c8fe888675e"
+    },
+    {
+      "path": "scene_sources/p06s08.json",
+      "bytes": 1876,
+      "sha256": "4b343c3c001d742b543687743d2a4c77314fc8c30bc609bfce69dc95a40d9dac"
+    },
+    {
+      "path": "scene_timing.json",
+      "bytes": 7907,
+      "sha256": "1788591076024ef2fbb4dbcd4e83de13a02ea2fd37c5d3722195cb286c722ba8"
+    },
+    {
+      "path": "story.json",
+      "bytes": 62877,
+      "sha256": "b20e8967103efa162211f68391ae3ea4a4df0340c19424bc5d695428f6305afd"
+    },
+    {
+      "path": "synthetic_complete_ja_2x.mp4",
+      "bytes": 18507458,
+      "sha256": "a1201e8819a70ead762d4a7e3a1d66546ccec353f8b1b810211b62dff99fd366"
+    },
+    {
+      "path": "synthetic_complete_ja_2x.srt",
+      "bytes": 33066,
+      "sha256": "dde5d92db06816a789362f09b3f56ae0c42a237f86f076bab79c4902e81a7368"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 6936,
+      "sha256": "a96e8f088f58d4d10caf00c49360845675fb8fc6d8abf3c14982a050f240baee"
+    }
+  ],
+  "bytes_excluding_manifest": 19263897
+}

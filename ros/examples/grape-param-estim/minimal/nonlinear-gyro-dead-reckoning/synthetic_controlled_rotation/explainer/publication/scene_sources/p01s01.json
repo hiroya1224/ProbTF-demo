@@ -1,0 +1,82 @@
+{
+  "schema": "grape/synthetic-explainer-render-scene/v1",
+  "scene_id": "p01s01",
+  "kind": "results",
+  "source_data": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5",
+  "sources": [
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/acquisitions.npz",
+      "sha256": "5710180a117717e6b32117d21ced06dfce2748d651c60cbc566ca60ef9b1e8f7",
+      "keys": [
+        "gyro",
+        "time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/input.npz",
+      "sha256": "9eb18a291da6437b700969f6a855405ceb59833459f590f8475ff70e9fd39d41",
+      "keys": [
+        "time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/linear_forced_gyro_plot.npz",
+      "sha256": "ebf5df4b6d539aafa686dfd3d9283747dbc1390d8f71303f969026129ac20d0e",
+      "keys": [
+        "covariance_rad2_s2",
+        "mean_rad_s",
+        "reference_omega_rad_s",
+        "time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/linear_forced_rpy_plot.npz",
+      "sha256": "c9030f4ce75513e5c41baefffd24c9676eac625c8853cdad27ba022a7e69cd14",
+      "keys": [
+        "reference_rpy_rad",
+        "rpy_covariance_delta_rad2",
+        "rpy_proxy_rad",
+        "time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/nonlinear_gyro_plot.npz",
+      "sha256": "ab38fcac7c6031826a0dff2cdb10f8f87555fb6eb3f5a0a187718c7e72e76fd7",
+      "keys": [
+        "covariance_rad2_s2",
+        "mean_rad_s",
+        "reference_omega_rad_s",
+        "time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/nonlinear_rpy_plot.npz",
+      "sha256": "b87708834b88443aaaa4f615e97777379e05449566a341ccd454aec4b9b6d11c",
+      "keys": [
+        "reference_rpy_rad",
+        "rpy_covariance_delta_rad2",
+        "rpy_proxy_rad",
+        "time"
+      ]
+    }
+  ],
+  "data_time_interval": [
+    0.0,
+    5.0
+  ],
+  "animation": "reveal saved samples in time; heatmaps/axes use latest saved sample at or before displayed time; cubature construction keeps its actual observation clock fixed; duplicated acquisition limits retained",
+  "physical_units": "deg and deg/s for display; archived radian arrays unchanged",
+  "modifies_inference": false,
+  "monte_carlo": false,
+  "dimension": [
+    960,
+    540
+  ],
+  "renderer_sha256": "dd1d6973fb131127c9a0de668c657c103701d9c097479abeaaa86d914bc7fe41",
+  "requested_duration_seconds": 20.066666666666666,
+  "encoded_duration_seconds": 20.066666666666666,
+  "frames": 301,
+  "fps": 15.0,
+  "output_bytes": 250649,
+  "output_sha256": "e3e0f2f329d1a3ccde1e06d3938667e90dd8bd2b6c169c98c80aa62947103ab8"
+}

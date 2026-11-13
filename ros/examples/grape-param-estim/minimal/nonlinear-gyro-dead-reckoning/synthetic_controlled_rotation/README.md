@@ -2,6 +2,8 @@
 
 2026-11-13。実測や機体同定の結果と分け、既知の慣性・既知の入力トルクの下で、Euler式のジャイロ項の違いを比較した。
 
+3周波数・0.5 Hz・sigma=5 deg/sの例は、[日本語音声付きの詳細解説動画](explainer/publication/INDEX.md)にもまとめた。960×540 px、音声2倍速。保存済みの6候補、RK4の実計算段、回転モーメント、全共分散、観測前後をアニメーションで説明する。[全文台本と再現手順](explainer/README.md)も保存した。
+
 最新指定の[0.5 Hz・sigma=5 deg/s・2×3図PDF](publication/three_frequency_0p5hz_sigma5/attitude_and_gyro.pdf)／[PNG](publication/three_frequency_0p5hz_sigma5/attitude_and_gyro.png)は、各軸に振幅のある3周波数成分を使って再計算した。上段はroll・pitch・yaw、下段はomega_x・omega_y・omega_z。[係数と保存値](publication/three_frequency_0p5hz_sigma5/INDEX.md)を別保存し、以下の旧2周波数の比較も保持している。
 
 3周波数版の再現は次のコマンド。生成noise・bias・既知Jと推定法は従来と同じで、3周波数に対応するgyroと入力トルクを生成し直す。

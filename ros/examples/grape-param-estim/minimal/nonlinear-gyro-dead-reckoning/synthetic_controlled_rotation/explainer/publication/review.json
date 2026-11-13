@@ -1,0 +1,18 @@
+{
+  "schema": "grape/synthetic-explainer-review/v1",
+  "review_date": "2026-11-13",
+  "scope": "48 encoded scene midpoint frames, Japanese script/formulas and source-data alignment",
+  "encoded_midpoint_frames_visually_reviewed": 48,
+  "final_layout_corrections": [
+    "clock versus subplot title",
+    "six-panel xlabel versus bullets",
+    "error and RMSE formula separation"
+  ],
+  "same_saved_law_used_for_animation": true,
+  "renderer_sha256": "dd1d6973fb131127c9a0de668c657c103701d9c097479abeaaa86d914bc7fe41",
+  "video_audio_complete_decode": true,
+  "speech_speed_measured_normal_to_final": 2.0,
+  "raw_frames_audio_and_intermediate_clips_excluded": true,
+  "audio_validation": "PCM frame ratio, silence-only trimmed guard, encoded signal and full stream decode; no ASR claim",
+  "scientific_review": "Known-input nonlinear versus no-gyroscopic-term comparison; deterministic six-point approximation; independent rate replacement rather than Bayesian conditioning; Euler display approximation explicitly stated."
+}

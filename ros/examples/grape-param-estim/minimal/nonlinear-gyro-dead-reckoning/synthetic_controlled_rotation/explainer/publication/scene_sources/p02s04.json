@@ -1,0 +1,45 @@
+{
+  "schema": "grape/synthetic-explainer-render-scene/v1",
+  "scene_id": "p02s04",
+  "kind": "acquisition",
+  "source_data": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5",
+  "sources": [
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/acquisitions.npz",
+      "sha256": "5710180a117717e6b32117d21ced06dfce2748d651c60cbc566ca60ef9b1e8f7",
+      "keys": [
+        "gyro",
+        "time"
+      ]
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/publication/three_frequency_0p5hz_sigma5/input.npz",
+      "sha256": "9eb18a291da6437b700969f6a855405ceb59833459f590f8475ff70e9fd39d41",
+      "keys": [
+        "gyro",
+        "gyro_true_body_rad_s",
+        "imu_time",
+        "time"
+      ]
+    }
+  ],
+  "data_time_interval": [
+    0.0,
+    5.0
+  ],
+  "animation": "reveal saved samples in time; heatmaps/axes use latest saved sample at or before displayed time; cubature construction keeps its actual observation clock fixed; duplicated acquisition limits retained",
+  "physical_units": "deg and deg/s for display; archived radian arrays unchanged",
+  "modifies_inference": false,
+  "monte_carlo": false,
+  "dimension": [
+    960,
+    540
+  ],
+  "renderer_sha256": "dd1d6973fb131127c9a0de668c657c103701d9c097479abeaaa86d914bc7fe41",
+  "requested_duration_seconds": 18.533333333333335,
+  "encoded_duration_seconds": 18.533333333333335,
+  "frames": 278,
+  "fps": 15.0,
+  "output_bytes": 125120,
+  "output_sha256": "7326b18856a23a366a96f5b2e381a9137778c1b47a5a1eee9b0ad8992d5f0bbb"
+}

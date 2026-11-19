@@ -1,0 +1,153 @@
+{
+  "schema": "grape/body-omega-scaled-synthetic-input/v1",
+  "body_omega_scale": 3.0,
+  "alpha_scale": 3.0,
+  "gyroscopic_torque_scale": 9.0,
+  "time_or_frequency_rescaled": false,
+  "rpy_amplitudes_scaled": false,
+  "quaternion": "Hamilton xyzw, body-to-world; integrate qdot=q Hamilton (0,omega3)/2 from the same q0",
+  "torque": "J alpha3 + omega3 cross(J omega3), saved at unchanged 1 kHz timestamps",
+  "base_motion_parameters": {
+    "amplitude_deg": [
+      [
+        2.5626009811857444,
+        6.13018004662314,
+        0.32452623294190724
+      ],
+      [
+        2.370015635782653,
+        1.7344981044752088,
+        2.5507932711072585
+      ],
+      [
+        3.4427117348542287,
+        1.6838470152874212,
+        0.17954534383670692
+      ]
+    ],
+    "frequency_hz": [
+      [
+        0.25,
+        0.1,
+        1.3
+      ],
+      [
+        0.75,
+        0.9,
+        0.6000000000000001
+      ],
+      [
+        0.25,
+        0.45,
+        0.75
+      ]
+    ],
+    "phase_rad": [
+      [
+        -1.4308597431619872,
+        -0.6871079240203412,
+        -2.9480529183246054
+      ],
+      [
+        -2.729997564341949,
+        -0.23670589083289437,
+        2.604232691212421
+      ],
+      [
+        -1.9464350396359609,
+        -0.5673090905556315,
+        -2.328169623243522
+      ]
+    ],
+    "offset_deg": [
+      -3.3925244818167504,
+      -0.2668421782199386,
+      4.210062997193932
+    ]
+  },
+  "quaternion_truth_integration": {
+    "method": "scipy solve_ivp DOP853",
+    "rtol": 1e-11,
+    "atol": 1e-13,
+    "function_evaluations": 5420,
+    "maximum_norm_error": 3.0973001940992617e-12
+  },
+  "base_file_sha256": {
+    "source_input.npz": "891c694345d9ba5fb5afa6330feca6fcf31125e0ec1999f9e305faca6ee74a22",
+    "sensor_input.npz": "da026b19450d87aec34d81e796f8903f89ce790ccedfe772118d2f10414ffb89"
+  },
+  "unchanged_source_arrays": {
+    "time": true,
+    "imu_time": true,
+    "imu_source_index": true,
+    "imu_stamp_ns": true,
+    "imu_record_ns": true,
+    "gyro_realized_noise_rad_s": true,
+    "gyro_bias_rad_s": true,
+    "generator_gyro_covariance_rad2_s2": true,
+    "initial_quaternion_wxyz": true,
+    "inertia_body_kg_m2": true,
+    "reference_time": true,
+    "torque_time": true
+  },
+  "unchanged_sensor_disturbances_and_clocks": {
+    "time": true,
+    "stamp_ns": true,
+    "record_ns": true,
+    "source_index": true,
+    "spike_mask": true,
+    "spike_vector_rad_s": true,
+    "active_spike_count": true,
+    "event_requested_onset_seconds": true,
+    "event_requested_stop_seconds": true,
+    "event_applied_stop_seconds": true,
+    "event_native_start_array_index": true,
+    "event_native_stop_array_index_exclusive": true,
+    "event_width_seconds": true,
+    "event_direction_body": true,
+    "event_magnitude_deg_s": true,
+    "event_vector_body_rad_s": true
+  },
+  "native_reading_count": 4001,
+  "acquisition_count": 201,
+  "native_rate_hz": 200.0,
+  "acquisition_rate_hz": 10.0,
+  "generation_white_sigma_deg_s": 2.0,
+  "measurement_assumed_sigma_deg_s": 5.0,
+  "fixed_bias_and_white_noise_and_pulse_realization_reused": true,
+  "new_random_draws": false,
+  "future_truth_or_noise_supplied_to_estimator": false,
+  "estimator_data_fields": [
+    "time",
+    "initial_quaternion_wxyz",
+    "sparse_gyro_time",
+    "sparse_gyro"
+  ],
+  "process_covariance_rad2_s2": [
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "old_omega_std_deg_s": [
+    4.379235680718442,
+    12.457042793881401,
+    5.267923274737443
+  ],
+  "new_omega_std_deg_s": [
+    13.137707042155323,
+    37.3711283816442,
+    15.803769824212358
+  ]
+}

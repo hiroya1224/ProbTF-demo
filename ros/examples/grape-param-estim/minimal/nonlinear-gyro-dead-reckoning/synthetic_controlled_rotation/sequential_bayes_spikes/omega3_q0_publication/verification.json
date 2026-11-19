@@ -1,0 +1,803 @@
+{
+  "schema": "grape/omega3-q0-independent-postrun-verification/v1",
+  "created_utc": "2026-11-19T22:46:32.814739+00:00",
+  "post_run_only": true,
+  "observations_or_filter_state_changed": false,
+  "finite_differences_are_diagnostics_not_observation_gates": true,
+  "verifier_sha256": "532ca0c1bd4827968ea7be6e542b7c23d35044efc94e7becaed34f84cc520e60",
+  "source_scaling_and_disturbances": {
+    "body_omega_scale": 3.0,
+    "expected_scale": 3.0,
+    "scaling_checks": {
+      "gyro_true_body_rad_s": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "reference_omega_body_rad_s": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "reference_alpha_body_rad_s2": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "reference_gyroscopic_torque_body_nm": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      }
+    },
+    "unchanged_source_arrays": {
+      "time": true,
+      "imu_time": true,
+      "imu_source_index": true,
+      "imu_stamp_ns": true,
+      "imu_record_ns": true,
+      "gyro_realized_noise_rad_s": true,
+      "gyro_bias_rad_s": true,
+      "generator_gyro_covariance_rad2_s2": true,
+      "initial_quaternion_wxyz": true,
+      "inertia_body_kg_m2": true,
+      "reference_time": true,
+      "torque_time": true
+    },
+    "unchanged_native_disturbances_and_clocks": {
+      "time": true,
+      "stamp_ns": true,
+      "record_ns": true,
+      "source_index": true,
+      "spike_mask": true,
+      "spike_vector_rad_s": true,
+      "active_spike_count": true,
+      "event_requested_onset_seconds": true,
+      "event_requested_stop_seconds": true,
+      "event_applied_stop_seconds": true,
+      "event_native_start_array_index": true,
+      "event_native_stop_array_index_exclusive": true,
+      "event_width_seconds": true,
+      "event_direction_body": true,
+      "event_magnitude_deg_s": true,
+      "event_vector_body_rad_s": true
+    },
+    "time_or_frequency_rescaled": false,
+    "base_frequency_coefficients_unchanged": true,
+    "gyro_white_from_new_truth_plus_original_bias_and_noise": {
+      "shape_matches": true,
+      "maximum_absolute_finite_difference": 0.0,
+      "nonfinite_difference_count": 0
+    },
+    "gyro_spike_from_new_white_plus_original_pulses": {
+      "shape_matches": true,
+      "maximum_absolute_finite_difference": 0.0,
+      "nonfinite_difference_count": 0
+    },
+    "nominal_native_rate_hz": 200.00000000000426,
+    "requested_acquisition_rate_hz": 10.0,
+    "native_index_stride": 20,
+    "expected_acquisition_count": 201,
+    "selected_native_index_exact": true,
+    "selected_values_and_clocks_exact": {
+      "time": true,
+      "stamp_ns": true,
+      "record_ns": true,
+      "source_index": true,
+      "gyro_spike": true,
+      "spike_mask": true,
+      "spike_vector_rad_s": true
+    },
+    "selected_first_time_seconds": 0.0,
+    "selected_last_time_seconds": 20.0,
+    "new_gyro_and_alpha_are_body_coordinates": true,
+    "torque_from_new_body_omega_and_alpha": {
+      "shape_matches": true,
+      "maximum_absolute_finite_difference": 0.0,
+      "nonfinite_difference_count": 0
+    },
+    "torque_relation_to_original": {
+      "shape_matches": true,
+      "maximum_absolute_finite_difference": 1.6653345369377348e-16,
+      "nonfinite_difference_count": 0
+    },
+    "gyroscopic_term_at_control_times_vs_9x_original": {
+      "shape_matches": true,
+      "maximum_absolute_finite_difference": 3.122502256758253e-17,
+      "nonfinite_difference_count": 0
+    },
+    "original_noise_white_covariance": {
+      "shape_matches": true,
+      "maximum_absolute_finite_difference": 0.0,
+      "nonfinite_difference_count": 0
+    },
+    "source_reference_quaternion_maximum_norm_error": 3.0973001940992617e-12
+  },
+  "baseline_input_hashes": {
+    "recorded": {
+      "source_input.npz": "891c694345d9ba5fb5afa6330feca6fcf31125e0ec1999f9e305faca6ee74a22",
+      "sensor_input.npz": "da026b19450d87aec34d81e796f8903f89ce790ccedfe772118d2f10414ffb89"
+    },
+    "current": {
+      "source_input.npz": "891c694345d9ba5fb5afa6330feca6fcf31125e0ec1999f9e305faca6ee74a22",
+      "sensor_input.npz": "da026b19450d87aec34d81e796f8903f89ce790ccedfe772118d2f10414ffb89"
+    },
+    "unchanged_since_generation": true
+  },
+  "new_input_hashes": {
+    "recorded": {
+      "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
+      "sensor_input.npz": "ef05a742a8d52c7daa1d28ae656c1b7f79f4a78f58c187e6df5fe8d16562e040",
+      "acquisitions.npz": "a7271e21ff131cd60a0db0a2eb0284467eaf40722a906189cb3cc85ccc85c357"
+    },
+    "current": {
+      "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
+      "sensor_input.npz": "ef05a742a8d52c7daa1d28ae656c1b7f79f4a78f58c187e6df5fe8d16562e040",
+      "acquisitions.npz": "a7271e21ff131cd60a0db0a2eb0284467eaf40722a906189cb3cc85ccc85c357"
+    },
+    "unchanged_since_run_start": true
+  },
+  "declared_process_covariance_rad2_s2": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ]
+  ],
+  "declared_process_covariance_exactly_zero": true,
+  "numerical_test_provenance": {
+    "tests_run_by_this_verifier": false,
+    "counts_or_status_not_inferred_from_historical_runs": true,
+    "supplied_evidence": {
+      "command": "env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -m unittest discover -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/tests -v",
+      "passed": 50,
+      "exit_code": 0,
+      "wall_seconds": 5.55,
+      "execution_session_id": 51762,
+      "source_sha256": {
+        "test_adaptive_engine.py": "dc56f156d69a34fdb37299562d68d19b0978b127b41cad5ff02d577833d59f7e",
+        "test_engine.py": "92f287d888d889bab52a15cec38d293012cd7afc13438df7c515279cf798008f",
+        "test_flight_motion.py": "2131cb37a20ef4e1466450a894b0bf3502f091e6d7a66e254c18ad462f1a4638",
+        "test_frequent_input.py": "ca9c1aa0757cbfcc23f2c0c67a2616d4127a8c2138036b82bbc3243e80a71f35",
+        "test_full_rate.py": "21ac41e3974dfcaa53144cfbdc9a60ca337e59b6be947f00f6f11be33b5eeb26",
+        "test_model_comparison.py": "0c77bd811a564c6c397aa15edd84f6e927f670c4c22ec749ed32f116c62744cc",
+        "test_omega3.py": "02379b6142371a33660ae23d408320d185dfdbbb3234b246d9215c5cbf03a6d1",
+        "test_process_noise.py": "e46da90124b2c02dbf490020048a15a5937d44d970c954771b8759b70bdf52c4"
+      }
+    },
+    "supplied_evidence_sha256": "8ffee87b2b04a0ffe3386c886289e25f895e3765f98ff9db29421a91f3ecd522"
+  },
+  "code_sha256": {
+    "omega3_input.py": "6795ee5f2cf74df5e5018cc916ed72029648453bd9f08f88285ebb6c1f3e98c7",
+    "omega3_plotting.py": "f716dd03c599946bfadb350c1e3638a6dec1d3363cc4f9acf39614fc94835d54",
+    "omega3_run.py": "cb8465a5ef75b55e1a216ab2b40a9048a89ce961d3e8367dd79f2d55c3b01e63",
+    "omega3_verify.py": "532ca0c1bd4827968ea7be6e542b7c23d35044efc94e7becaed34f84cc520e60",
+    "full_rate_engine.py": "b14243e5245c110a86177b7399df73da7a1bea8211336c24b92142d0db6bd07c",
+    "full_rate_flow.py": "185b4009d83fe53254edaefdc951b2cdddf1305e2e4c71a67753176b75a68145",
+    "full_rate_flow.cpp": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28"
+  },
+  "unchanged_included_physics_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+  "models": {
+    "nonlinear": {
+      "structure": {
+        "selected_observation_count": 201,
+        "expected_selected_count": 201,
+        "requested_selection_count_matches": true,
+        "expected_saved_rows": 401,
+        "actual_saved_rows": 401,
+        "expected_prior_rows": 200,
+        "actual_prior_rows": 200,
+        "expected_posterior_rows": 201,
+        "actual_posterior_rows": 201,
+        "time_rows_exact": true,
+        "event_side_rows_exact": true,
+        "acquisition_indices_exact": true,
+        "likelihood_factor_count_all_rows_exact": true,
+        "first_reading_likelihood_count": 0,
+        "final_likelihood_count": 200,
+        "expected_final_likelihood_count": 200,
+        "event_times_exact": true
+      },
+      "covariance": {
+        "fields": {
+          "quaternion_second_moment": {
+            "shape": [
+              401,
+              4,
+              4
+            ],
+            "expected_shape": [
+              401,
+              4,
+              4
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_mean": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              9
+            ],
+            "expected_shape": [
+              401,
+              9,
+              9
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape": [
+              401,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              3
+            ],
+            "expected_shape": [
+              401,
+              9,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          }
+        },
+        "numerical_eigenvalues_are_diagnostics_not_acceptance_gates": true,
+        "minimum_omega_diagonal_rad2_s2": 3.7003842645801136e-05,
+        "minimum_omega_eigenvalue_rad2_s2": 2.776339413699691e-05,
+        "minimum_joint_rotation_omega_eigenvalue": -7.993722523034076e-19,
+        "maximum_joint_covariance_asymmetry": 0.0,
+        "maximum_quaternion_second_moment_trace_error": 2.6645352591003757e-15,
+        "minimum_quaternion_second_moment_eigenvalue": -2.318486354608472e-20,
+        "final_omega_covariance_rad2_s2": [
+          [
+            3.75247552740349e-05,
+            -1.3441240499582747e-06,
+            -3.726041738575625e-08
+          ],
+          [
+            -1.3441240499582747e-06,
+            3.8556049392979644e-05,
+            -3.385559676236612e-06
+          ],
+          [
+            -3.726041738575625e-08,
+            -3.385559676236612e-06,
+            3.7003842645801136e-05
+          ]
+        ],
+        "final_omega_two_sigma_deg_s": [
+          0.7019587021933369,
+          0.7115392997681577,
+          0.6970694358884812
+        ]
+      },
+      "recorded_engine_metadata": {
+        "schema": "grape/full-rate-causal-bayes-rotation/v1",
+        "mode": "nonlinear",
+        "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 Gaussian gyro likelihoods once",
+        "acquired_observation_count": 201,
+        "likelihood_count": 200,
+        "quadrature_order_per_axis": 11,
+        "quadrature_nodes_per_refresh": 1331,
+        "scheduled_refresh_seconds": 0.1,
+        "initial_dense_seconds": 0.25,
+        "reanchor_displacement_sigma": 1.0,
+        "actual_proposal_refresh_count": 201,
+        "proposal_is_not_posterior_state": true,
+        "proposal_density_divided_out": true,
+        "proposal_selection_uses_only_current_prefix": true,
+        "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+        "previous_online_outputs_rewritten": false,
+        "every_observation_updated": true,
+        "numerical_regridding_is_not_observation_rejection": true,
+        "monte_carlo": false,
+        "node_pruning": false,
+        "covariance_floor": false,
+        "process_noise": false,
+        "full_joint_quaternion_omega_law": true,
+        "native_step_count": 66201763,
+        "maximum_quaternion_norm_correction": 2.1094237467877974e-14,
+        "native_source_sha256": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
+        "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+        "wall_seconds": 134.5935205980204
+      },
+      "declared_measurement_covariance_comparison": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "q0_process_noise_metadata": false,
+      "independent_original_prior_and_all_factors": {
+        "last_refresh_acquisition_index": 200,
+        "last_refresh_time_seconds": 20.0,
+        "original_prior_used_once": true,
+        "reevaluated_likelihood_factors": 200,
+        "future_truth_bias_or_spike_labels_used": false,
+        "last_refresh_normalized_log_weight_comparison": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "final_posterior_weight_sum": 0.9999999999999056,
+        "final_float_underflow_zero_weight_count": 0,
+        "final_saved_moments_vs_independent_all_factor_moments": {
+          "quaternion_second_moment": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 9.08162434143378e-14,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_mean": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 8.992806499463768e-14,
+            "nonfinite_difference_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 4.524158825347513e-14,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 1.250735626179278e-15,
+            "nonfinite_difference_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 3.652406068560543e-18,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 6.657001339060997e-17,
+            "nonfinite_difference_count": 0
+          }
+        },
+        "source_of_rotations": "Same native quaternion candidates, converted independently with scipy Rotation",
+        "numerical_differences_are_diagnostics_not_filter_gates": true
+      }
+    },
+    "linear_forced": {
+      "structure": {
+        "selected_observation_count": 201,
+        "expected_selected_count": 201,
+        "requested_selection_count_matches": true,
+        "expected_saved_rows": 401,
+        "actual_saved_rows": 401,
+        "expected_prior_rows": 200,
+        "actual_prior_rows": 200,
+        "expected_posterior_rows": 201,
+        "actual_posterior_rows": 201,
+        "time_rows_exact": true,
+        "event_side_rows_exact": true,
+        "acquisition_indices_exact": true,
+        "likelihood_factor_count_all_rows_exact": true,
+        "first_reading_likelihood_count": 0,
+        "final_likelihood_count": 200,
+        "expected_final_likelihood_count": 200,
+        "event_times_exact": true
+      },
+      "covariance": {
+        "fields": {
+          "quaternion_second_moment": {
+            "shape": [
+              401,
+              4,
+              4
+            ],
+            "expected_shape": [
+              401,
+              4,
+              4
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_mean": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              9
+            ],
+            "expected_shape": [
+              401,
+              9,
+              9
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape": [
+              401,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              3
+            ],
+            "expected_shape": [
+              401,
+              9,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          }
+        },
+        "numerical_eigenvalues_are_diagnostics_not_acceptance_gates": true,
+        "minimum_omega_diagonal_rad2_s2": 3.788773877944527e-05,
+        "minimum_omega_eigenvalue_rad2_s2": 3.788773877944394e-05,
+        "minimum_joint_rotation_omega_eigenvalue": -7.993722523034076e-19,
+        "maximum_joint_covariance_asymmetry": 0.0,
+        "maximum_quaternion_second_moment_trace_error": 2.6645352591003757e-15,
+        "minimum_quaternion_second_moment_eigenvalue": -2.318486354608472e-20,
+        "final_omega_covariance_rad2_s2": [
+          [
+            3.7887738779446485e-05,
+            2.7492214625216285e-18,
+            -5.494266726075897e-19
+          ],
+          [
+            2.7492214625216285e-18,
+            3.7887738779458594e-05,
+            3.177445889984935e-18
+          ],
+          [
+            -5.494266726075897e-19,
+            3.177445889984935e-18,
+            3.788773877944527e-05
+          ]
+        ],
+        "final_omega_two_sigma_deg_s": [
+          0.7053456158586459,
+          0.7053456158587587,
+          0.7053456158586346
+        ]
+      },
+      "recorded_engine_metadata": {
+        "schema": "grape/full-rate-causal-bayes-rotation/v1",
+        "mode": "linear_forced",
+        "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 Gaussian gyro likelihoods once",
+        "acquired_observation_count": 201,
+        "likelihood_count": 200,
+        "quadrature_order_per_axis": 11,
+        "quadrature_nodes_per_refresh": 1331,
+        "scheduled_refresh_seconds": 0.1,
+        "initial_dense_seconds": 0.25,
+        "reanchor_displacement_sigma": 1.0,
+        "actual_proposal_refresh_count": 201,
+        "proposal_is_not_posterior_state": true,
+        "proposal_density_divided_out": true,
+        "proposal_selection_uses_only_current_prefix": true,
+        "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+        "previous_online_outputs_rewritten": false,
+        "every_observation_updated": true,
+        "numerical_regridding_is_not_observation_rejection": true,
+        "monte_carlo": false,
+        "node_pruning": false,
+        "covariance_floor": false,
+        "process_noise": false,
+        "full_joint_quaternion_omega_law": true,
+        "native_step_count": 35365014,
+        "maximum_quaternion_norm_correction": 2.1316282072803006e-14,
+        "native_source_sha256": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
+        "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+        "wall_seconds": 82.04184708092362
+      },
+      "declared_measurement_covariance_comparison": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "q0_process_noise_metadata": false,
+      "independent_original_prior_and_all_factors": {
+        "last_refresh_acquisition_index": 200,
+        "last_refresh_time_seconds": 20.0,
+        "original_prior_used_once": true,
+        "reevaluated_likelihood_factors": 200,
+        "future_truth_bias_or_spike_labels_used": false,
+        "last_refresh_normalized_log_weight_comparison": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "final_posterior_weight_sum": 1.0000000000001783,
+        "final_float_underflow_zero_weight_count": 0,
+        "final_saved_moments_vs_independent_all_factor_moments": {
+          "quaternion_second_moment": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 1.7064127888488656e-13,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_mean": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 1.7419399256368706e-13,
+            "nonfinite_difference_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 1.1834977442504169e-13,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 2.310651670001107e-15,
+            "nonfinite_difference_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 6.783039841612437e-18,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 1.1308228659023811e-16,
+            "nonfinite_difference_count": 0
+          }
+        },
+        "source_of_rotations": "Same native quaternion candidates, converted independently with scipy Rotation",
+        "numerical_differences_are_diagnostics_not_filter_gates": true
+      },
+      "analytic_linear_angular_reference": {
+        "reference": "Exact forced-linear Gaussian posterior with ALL selected readings; a(t) is known-input zero-W0 flow",
+        "oracle_or_generated_bias_used": false,
+        "expected_mean": "mean_{j included}(y_j-a(t_j))+a(t)",
+        "expected_covariance": "R / number_of_included_readings; y0 initializes once",
+        "maximum_all_time_mean_difference_rad_s": 9.547918011776346e-15,
+        "maximum_all_time_mean_difference_deg_s": 5.470554052117249e-13,
+        "per_component_maximum_mean_difference_deg_s": [
+          3.053332494204976e-13,
+          5.470554052117249e-13,
+          1.8447217152488398e-13
+        ],
+        "maximum_all_time_covariance_difference_rad2_s2": 2.862293735361732e-17,
+        "maximum_relative_covariance_frobenius_difference": 2.948498138036898e-13,
+        "final_analytic_mean_rad_s": [
+          0.3542832299419795,
+          -0.6635611763522324,
+          -0.02801401857216467
+        ],
+        "final_analytic_covariance_rad2_s2": [
+          [
+            3.788773877944136e-05,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            3.788773877944136e-05,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            3.788773877944136e-05
+          ]
+        ],
+        "final_mean_difference_rad_s": [
+          9.43689570931383e-16,
+          -1.1102230246251565e-15,
+          2.8796409701215e-16
+        ],
+        "final_covariance_difference_rad2_s2": [
+          [
+            5.1228552649940085e-18,
+            2.7492214625216285e-18,
+            -5.494266726075897e-19
+          ],
+          [
+            2.7492214625216285e-18,
+            1.7232038278941486e-17,
+            3.177445889984935e-18
+          ],
+          [
+            -5.494266726075897e-19,
+            3.177445889984935e-18,
+            3.90990408452585e-18
+          ]
+        ],
+        "finite_differences_are_reported_without_quality_gate": true
+      }
+    }
+  },
+  "both_models_same_measurement_covariance": true,
+  "known_input_nonlinear_dynamics": {
+    "scope": "Generator/known-input consistency only; no reference data are passed to either Bayesian filter",
+    "reference_initial_omega_used_only_for_this_separate_check": true,
+    "individual_steps": {
+      "configured_step": {
+        "maximum_step_seconds": 0.002,
+        "maximum_body_omega_difference_deg_s": 0.00017933142847457127,
+        "maximum_orientation_difference_deg": 0.00044869404767355507,
+        "maximum_quaternion_norm_correction": 8.43769498715119e-15
+      },
+      "half_step": {
+        "maximum_step_seconds": 0.001,
+        "maximum_body_omega_difference_deg_s": 0.00017933066621011407,
+        "maximum_orientation_difference_deg": 0.00044868495774244327,
+        "maximum_quaternion_norm_correction": 8.881784197001252e-16
+      }
+    },
+    "configured_vs_half_step_maximum_omega_difference_deg_s": 2.7126473795000116e-09,
+    "configured_vs_half_step_maximum_orientation_difference_deg": 2.0510719845243862e-08,
+    "finite_differences_are_diagnostics_not_acceptance_gates": true
+  },
+  "plotted_saved_numeric_identity": {
+    "available": true,
+    "renderer_hash_matches_current_source": true,
+    "native_count_matches": true,
+    "acquisition_count_matches": true,
+    "process_covariance_display": "Q=0",
+    "all_native_samples_drawn": true,
+    "all_saved_moment_rows_drawn": true,
+    "smoothing": false,
+    "covariance_adjustment": false,
+    "models": {
+      "nonlinear": {
+        "saved_time_exact": true,
+        "plotted_omega_two_sigma_vs_saved_covariance": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_rpy_two_sigma_vs_saved_covariance": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_omega_error_uses_new_truth": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_rpy_error_uses_new_truth": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_so3_error_uses_new_truth": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "stored_moment_row_count_matches": true
+      },
+      "linear_forced": {
+        "saved_time_exact": true,
+        "plotted_omega_two_sigma_vs_saved_covariance": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_rpy_two_sigma_vs_saved_covariance": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_omega_error_uses_new_truth": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_rpy_error_uses_new_truth": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_so3_error_uses_new_truth": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "stored_moment_row_count_matches": true
+      }
+    }
+  },
+  "publication_files": {
+    "maximum_bytes": 1329408,
+    "all_files_below_50000000_bytes": true,
+    "intermediate_cache_excluded": true
+  },
+  "wall_seconds": 2.1865650448016822
+}

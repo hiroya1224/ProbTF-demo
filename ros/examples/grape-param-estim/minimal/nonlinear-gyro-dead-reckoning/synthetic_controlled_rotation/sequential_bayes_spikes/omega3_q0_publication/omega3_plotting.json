@@ -1,0 +1,88 @@
+{
+  "schema": "grape/omega3-q0-saved-moment-plots/v1",
+  "renderer_sha256": "f716dd03c599946bfadb350c1e3638a6dec1d3363cc4f9acf39614fc94835d54",
+  "helper_sha256": "ed3ced48dd6a45e5360a656c811cbebea45cd2a9f7042e6e5ab125527924347b",
+  "settings": {
+    "native_reading_count": 4001,
+    "selected_acquisition_count": 201,
+    "selected_readings_match_native_values_times_indices": true,
+    "nominal_rate_hz": 10.000000000000036,
+    "data_range_seconds": [
+      0.0,
+      20.0
+    ],
+    "stored_moment_rows": {
+      "nonlinear": 401,
+      "linear_forced": 401
+    },
+    "stored_prior_rows": {
+      "nonlinear": 200,
+      "linear_forced": 200
+    },
+    "stored_posterior_rows": {
+      "nonlinear": 201,
+      "linear_forced": 201
+    },
+    "final_recorded_likelihood_factor_count": {
+      "nonlinear": 200,
+      "linear_forced": 200
+    },
+    "acquired_spike_readings": 61,
+    "observed_gyro_sha256": "123a59c8b148efd14d526574221e1bc230b4054f8345df611e1e9538b629e5af",
+    "initialization": "First selected reading initializes the initial law once; subsequent selected readings are likelihood updates",
+    "profile": "body_omega_scaled",
+    "model_process_covariance": "Q=0",
+    "body_rate_multiplier": 3,
+    "temporal_frequency_change": false
+  },
+  "files": [
+    "attitude_and_gyro.pdf",
+    "attitude_and_gyro.png",
+    "reconstruction_errors.pdf",
+    "reconstruction_errors.png",
+    "omega3_plotted_data.npz",
+    "omega3_metrics.json"
+  ],
+  "metrics_evaluation": "Equal-weight errors on identical saved timestamps; last/posterior row at duplicate times. No estimate interpolation.",
+  "all_native_samples_drawn": true,
+  "all_saved_moment_rows_drawn": true,
+  "averaging": false,
+  "downsampling": false,
+  "smoothing": false,
+  "covariance_adjustment": false,
+  "no_estimator_rerun": true,
+  "reference": "New omega-x3 truth only; not earlier motion",
+  "metadata": {
+    "config": {
+      "body_omega_scale": 3.0,
+      "process_covariance_rad2_s2": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "acquisition_rate_hz": 10.0,
+      "assumed_sigma_deg_s": 5.0,
+      "quadrature_orders": [
+        7,
+        11
+      ],
+      "max_step_seconds": 0.002,
+      "refresh_seconds": 0.1,
+      "reanchor_displacement_sigma": 1.0,
+      "dense_startup_seconds": 0.25
+    },
+    "input_generation": "generation.json"
+  }
+}

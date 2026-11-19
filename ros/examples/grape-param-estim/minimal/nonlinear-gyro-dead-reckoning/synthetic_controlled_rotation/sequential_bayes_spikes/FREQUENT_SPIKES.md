@@ -1,10 +1,10 @@
-# 1 Hz更新・頻発するランダムスパイク・白色σ=2 deg/s
+# 同じスパイク入りgyroによる非線形・ジャイロ項なしの比較
 
-[完成した図・比較動画・結果](frequent_publication/INDEX.md)。単発スパイクを最後の観測へ入れた[旧5秒試験](publication/INDEX.md)と分離し、旧結果は保持する。
+[上書きした図・比較動画・結果](frequent_publication/INDEX.md)。比較するのは、同じスパイク入り観測を受け取る **非線形Euler** と **ジャイロ項なし** の二モデルだけである。白色ノイズのみの対照と旧単発比較の出力は削除した。
 
 ## 今回の入力と時計
 
-20秒の同じ3周波数姿勢運動を使う。ジャイロの生データは200 Hz、Bayes更新に取得する測定は1 Hzの0、1、…、19秒。更新の間は、既知の入力トルクを含む非線形Euler式と四元数式で共同候補を時間発展させる。
+20秒の同じ3周波数姿勢運動を使う。ジャイロの生データは200 Hz、Bayes更新に取得する測定は1 Hzの0、1、…、19秒。更新の間は、各モデルの角速度式と共通の四元数式で共同候補を時間発展させる。
 
 白色ノイズの生成標準偏差はユーザー指定の **2 deg/s**。各軸独立・等方で、旧σ=0.2の標準Gaussian実現値を同じseedから10倍して生成する。旧保存測定を上書きしない。固定bias `[0.03,-0.02,0.04] deg/s` は従来と同じで、推定には教えず差し引かない。生成する分散と実現した標本標準偏差は別々に保存する。推定の観測モデルは引き続き等方σ=5 deg/sで、生成側のσ=2とは区別する。
 
@@ -16,25 +16,27 @@
 
 ## 保持するBayes法則
 
-未知量は同じ初期body角速度 \(W_0\)。初期姿勢 \(q_0\)、慣性 \(J\)、body重心まわり入力トルク \(\tau(t)\) は既知固定。
+状態は両モデルとも \(\omega,q\) で、\(q\in S^3\) はbodyから世界へのHamilton四元数（wxyz順）。回転行列を状態として時間積分しない。未知量は同じ初期body角速度 \(W_0\)。初期姿勢 \(q_0\)、慣性 \(J\)、body重心まわり入力トルク \(\tau(t)\) は既知固定。
 
 \[
 \dot\omega=J^{-1}\{\tau-\omega\times(J\omega)\},\qquad
 \dot q=\tfrac12 q\odot(0,\omega).
 \]
 
-この流れを \(\Phi_t(w)=(q_t(w),\omega_t(w))\) とすると、初回gyroを一度だけ使った初期法則から、
+ジャイロ項なしのモデルでは角速度式だけを \(\dot\omega=J^{-1}\tau\) に替え、四元数式は変えない。J・トルク・時刻・初期姿勢・初回gyro・観測共分散・全取得値を共通にする。
+
+モデル \(m\) の流れを \(\Phi_t^m(w)=(q_t^m(w),\omega_t^m(w))\) とすると、初回gyroを一度だけ使った初期法則から、
 
 \[
-\pi_k(w)\propto
-\mathcal N(w;y_0,R)
-\prod_{j=1}^{k}\mathcal N(y_j;\omega_{t_j}(w),R),
-\qquad R=(5\pi/180)^2I
+\pi_{m,k}(w)\propto
+\mathcal N(w;y_0,\Sigma_g)
+\prod_{j=1}^{k}\mathcal N(y_j;\omega_{t_j}^m(w),\Sigma_g),
+\qquad \Sigma_g=(5\pi/180)^2I_3
 \]
 
-を保持する。姿勢・角速度は \((\Phi_t)_*\pi_k\) から同時に得る。初回の \(y_0\) を再び尤度として数えず、観測のたびに新しい独立Gaussianへ角速度を置換しない。
+を保持する。姿勢・角速度は \((\Phi_t^m)_*\pi_{m,k}\) から同時に得る。初回の \(y_0\) を再び尤度として数えず、観測のたびに新しい独立Gaussianへ角速度を置換しない。
 
-推定は両条件で通常のGaussian尤度のまま。外れ値除去、ロバスト尤度、BFS、過程雑音の追加は行わない。過去のスパイクも過去の尤度として残るため、正常観測が続けば必ず速やかに真値へ戻ると保証するモデルではない。
+推定は両モデルで同じスパイク入り測定列と通常のGaussian尤度を使う。外れ値除去、ロバスト尤度、BFS、過程雑音の追加は行わない。過去のスパイクも過去の尤度として残るため、正常観測が続けば必ず速やかに真値へ戻ると保証するモデルではない。
 
 ## 適応するのは積分点の配置
 
@@ -57,13 +59,13 @@ proposalの局所探索と有限求積は、大域的な積分の厳密解を保
 
 ## C++の伝播と保存する量
 
-積分点ごとの角速度・四元数の同時RK4評価だけをC++へ移し、Python基準実装と同じ式・原トルクの補間・最大刻み0.002秒を使う。コンパイル済みライブラリは`/tmp`のキャッシュへ置く。確率法則や既存ProbTF coreの変更ではない。
+積分点ごとの角速度・四元数の同時RK4評価だけをC++で行い、Python基準実装と同じ式・原トルクの補間・最大刻み0.002秒を使う。コンパイル済みライブラリは`/tmp`のキャッシュへ置く。確率法則や既存ProbTF coreの変更ではない。
 
 各時刻の同じ物理的な候補と重みから、四元数二次モーメント、回転平均、全9×9回転共分散、全3×3角速度共分散、全9×3回転–角速度交差共分散を保存する。RPYは従来と同じ \(f(E[R])\) とJacobianによる局所delta-methodの±2σ表示。保証付き95%領域と呼ばず、表示近似を推定へ戻さない。
 
 生データ4001件、スパイク147件のログ、原nsとindex、1 Hz取得20件、観測直前・直後、proposalパラメータと求積点・対数重みを保存する。`event_proposal_covariance_rad2_s2`は積分配置用、`omega_covariance_rad2_s2`は実際の角速度候補の共分散である。
 
-図には、滑らかな推定平均に加えて、200 Hzの生測定を間引き・平滑化せずに描く。生gyroの全体・固定2〜4秒拡大、白色ノイズ成分、加算スパイク成分を別図に示す。真値・生成biasを引く図は推定完了後の診断だけで、フィルタへ戻さない。
+図には、滑らかな推定平均に加えて、200 Hzの生測定を間引き・平滑化せずに描く。生gyroの全体・固定2〜4秒拡大を示す。角速度は実際に保存した全3×3共分散から±2σを描き、推定誤差と±2σ、および半幅だけの図も併記する。真値を引く推定誤差図は表示・評価専用で、フィルタへ戻さない。
 
 生成側と推定側に一致する既知J・入力トルクを与えた合成回転の試験である。未知の機体誤差を同定した結果、実機の飛行全体を再現した結果、スパイクを除去した結果とは区別する。
 
@@ -74,7 +76,7 @@ proposalの局所探索と有限求積は、大域的な積分の厳密解を保
 ```bash
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/synthetic-bayes-mpl \
 python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/frequent_run.py \
-  --output /tmp/synthetic-frequent-spikes-1hz-20261120
+  --output /tmp/synthetic-spiked-model-comparison-20261120
 
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -m unittest discover \
   -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/tests -v

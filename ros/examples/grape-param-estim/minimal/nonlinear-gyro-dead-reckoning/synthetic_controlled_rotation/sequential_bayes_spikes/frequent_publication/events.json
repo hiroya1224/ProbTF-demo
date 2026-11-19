@@ -1,2357 +1,5 @@
 {
-  "white": [
-    {
-      "acquisition_index": 0,
-      "time": 0.0,
-      "initialization": true,
-      "first_reading_used_once": true,
-      "likelihood_applications": 0,
-      "log_predictive_evidence": null,
-      "proposal": {
-        "initialization": true,
-        "first_reading_used_once": true,
-        "placement": "initial posterior N(y0,R), no repeated y0 likelihood"
-      }
-    },
-    {
-      "acquisition_index": 1,
-      "time": 1.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 1,
-      "log_predictive_evidence": 3.0645926721034686,
-      "innovation_rad_s": [
-        -0.080455217329785,
-        0.08092581159764684,
-        -0.0066643414408612545
-      ],
-      "prior_omega_mean_rad_s": [
-        1.8842020321616813,
-        -0.3841462467928988,
-        -0.32098351409764386
-      ],
-      "posterior_omega_mean_rad_s": [
-        1.8466986683300457,
-        -0.3439374384231941,
-        -0.3206991758566041
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0077228960759135505,
-          0.0008079894796182227,
-          -0.0020662056531411494
-        ],
-        [
-          0.0008079894796182227,
-          0.008105841016855306,
-          -0.0008746974887537405
-        ],
-        [
-          -0.0020662056531411494,
-          -0.0008746974887537405,
-          0.0077407973058171604
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0037463676624239425,
-          0.00017366947996506503,
-          -0.0005149547456477126
-        ],
-        [
-          0.00017366947996506503,
-          0.003909847090702361,
-          -0.0001711193861862477
-        ],
-        [
-          -0.0005149547456477126,
-          -0.0001711193861862477,
-          0.003728899439514843
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        1.8842069670139925,
-        -0.38414443793312036,
-        -0.32098027087490605
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.00772284262728613,
-          0.0008080382480549917,
-          -0.0020661927145062976
-        ],
-        [
-          0.0008080382480549917,
-          0.00810570711232062,
-          -0.0008746910365171375
-        ],
-        [
-          -0.0020661927145062976,
-          -0.0008746910365171375,
-          0.007740747604709949
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 4.934852311233584e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 1.3390453468611896e-07,
-      "minimum_quadrature_mass": 4.5580120387576925e-29,
-      "maximum_quadrature_mass": 0.03229431313846608,
-      "inverse_squared_mass_sum": 86.51554597042914,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 3.0645916966208877,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 0.43848516619828404,
-        "chosen_optimality": 5.761968777662219e-07,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 5,
-        "starts_cost": [
-          0.43848516619828404,
-          0.43848516619828404
-        ],
-        "starts_nfev": [
-          5,
-          5
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 4.322097456138155,
-      "prior_rpy_proxy_deg_reference_only": [
-        17.774650375269538,
-        6.705136078312961,
-        45.148903022573
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 1.606175341683765,
-      "posterior_rpy_proxy_deg_reference_only": [
-        16.633692275904657,
-        9.230679769029766,
-        45.91355235900897
-      ]
-    },
-    {
-      "acquisition_index": 2,
-      "time": 2.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 2,
-      "log_predictive_evidence": 3.7320384114718737,
-      "innovation_rad_s": [
-        0.01743626449888236,
-        -0.043665011147411725,
-        -0.013608743065526951
-      ],
-      "prior_omega_mean_rad_s": [
-        -0.41803419196082225,
-        0.22559306206114255,
-        1.4960082475306262
-      ],
-      "posterior_omega_mean_rad_s": [
-        -0.41332337743131303,
-        0.21014694637586712,
-        1.4940431692890028
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.007024177992030946,
-          0.00011744093410658211,
-          0.004498621888714438
-        ],
-        [
-          0.00011744093410658211,
-          0.003912144482604191,
-          0.0005825600113155956
-        ],
-        [
-          0.004498621888714438,
-          0.0005825600113155956,
-          0.004891364472041705
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0031569927463762533,
-          -3.66134916325625e-05,
-          0.0016018169221088427
-        ],
-        [
-          -3.66134916325625e-05,
-          0.002573758902311236,
-          0.00024568877471635886
-        ],
-        [
-          0.0016018169221088427,
-          0.00024568877471635886,
-          0.0023823638645515356
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -0.41803979212966874,
-        0.22560082076363144,
-        1.4960059784130983
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.007024149614519048,
-          0.00011742511272705612,
-          0.0044985944222359275
-        ],
-        [
-          0.00011742511272705612,
-          0.003912142253322505,
-          0.0005825435103644779
-        ],
-        [
-          0.0044985944222359275,
-          0.0005825435103644779,
-          0.0048913418411716545
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 7.758702488896985e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 2.8377511897617613e-08,
-      "minimum_quadrature_mass": 6.66011981196661e-31,
-      "maximum_quadrature_mass": 0.03237669821867354,
-      "inverse_squared_mass_sum": 86.29390309628353,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 6.796630024030655,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 0.5413518658650159,
-        "chosen_optimality": 5.220062541734151e-07,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 4,
-        "starts_cost": [
-          0.5413518658650159,
-          0.5413518658650558
-        ],
-        "starts_nfev": [
-          4,
-          4
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 2.6463825777064742,
-      "prior_rpy_proxy_deg_reference_only": [
-        -15.213993781871539,
-        -30.11232487881577,
-        1.4903386419676732
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 3.815439186737213,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -14.267303784141113,
-        -30.77136769901586,
-        0.3883974368360698
-      ]
-    },
-    {
-      "acquisition_index": 3,
-      "time": 3.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 3,
-      "log_predictive_evidence": 4.0169194292376424,
-      "innovation_rad_s": [
-        -0.036807346742532276,
-        0.011465984774844534,
-        -0.032021466679414065
-      ],
-      "prior_omega_mean_rad_s": [
-        -1.111719102631906,
-        0.24555159734411594,
-        -0.05914555145208432
-      ],
-      "posterior_omega_mean_rad_s": [
-        -1.1196872070889716,
-        0.2479481013689604,
-        -0.06498690966402762
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.002157412864693632,
-          -0.00029449552289734113,
-          -0.00013658207557361104
-        ],
-        [
-          -0.00029449552289734113,
-          0.003087427104824949,
-          0.0006243382880237955
-        ],
-        [
-          -0.00013658207557361104,
-          0.0006243382880237955,
-          0.0020360850027783955
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0016738164835869596,
-          -0.0001587674602399492,
-          -7.426107053406099e-05
-        ],
-        [
-          -0.0001587674602399492,
-          0.0021720671572141165,
-          0.00035099781540309414
-        ],
-        [
-          -7.426107053406099e-05,
-          0.00035099781540309414,
-          0.0015868358856497191
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -1.1117269270541885,
-        0.2455464279630104,
-        -0.05914367341630075
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.002157411120578153,
-          -0.0002944944059153748,
-          -0.0001365779074612768
-        ],
-        [
-          -0.0002944944059153748,
-          0.003087425601467466,
-          0.0006243352614200052
-        ],
-        [
-          -0.0001365779074612768,
-          0.0006243352614200052,
-          0.00203608588733245
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 7.824422282531884e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 4.168112334229299e-09,
-      "minimum_quadrature_mass": 2.151116545482118e-30,
-      "maximum_quadrature_mass": 0.03233420909589553,
-      "inverse_squared_mass_sum": 86.40528625392118,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 10.81354945326619,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 0.673955949167156,
-        "chosen_optimality": 1.354745213788533e-07,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 5,
-        "starts_cost": [
-          0.6739559491672107,
-          0.673955949167156
-        ],
-        "starts_nfev": [
-          4,
-          5
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 5.1578822412539544,
-      "prior_rpy_proxy_deg_reference_only": [
-        7.629475870753897,
-        3.7850888251112034,
-        -40.28360882807677
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 5.334190228408857,
-      "posterior_rpy_proxy_deg_reference_only": [
-        6.816170331063876,
-        2.998989446535575,
-        -41.32671137710718
-      ]
-    },
-    {
-      "acquisition_index": 4,
-      "time": 4.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 4,
-      "log_predictive_evidence": 3.985810652308869,
-      "innovation_rad_s": [
-        -0.0067815761714510245,
-        0.06736307160489918,
-        0.006851344729493114
-      ],
-      "prior_omega_mean_rad_s": [
-        -0.026962880505553614,
-        -1.6384984327207042,
-        2.2679072489010434
-      ],
-      "posterior_omega_mean_rad_s": [
-        -0.02815103328752969,
-        -1.6251617115438082,
-        2.266871611734705
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0020520436323988207,
-          0.0001193351933512741,
-          -0.0006298227032566126
-        ],
-        [
-          0.0001193351933512741,
-          0.001953844332461725,
-          -0.00044422776023927437
-        ],
-        [
-          -0.0006298227032566126,
-          -0.00044422776023927437,
-          0.0016604977373207582
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0015871065422437495,
-          5.730698766158714e-05,
-          -0.00040470914411322174
-        ],
-        [
-          5.730698766158714e-05,
-          0.0015444785546125414,
-          -0.0002919750593148133
-        ],
-        [
-          -0.00040470914411322174,
-          -0.0002919750593148133,
-          0.0013202677850741086
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -0.02695934155121802,
-        -1.6384994831868407,
-        2.267908483622835
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0020520461913731735,
-          0.00011933469698952062,
-          -0.0006298263689620799
-        ],
-        [
-          0.00011933469698952062,
-          0.001953843891209004,
-          -0.00044422649467446793
-        ],
-        [
-          -0.0006298263689620799,
-          -0.00044422649467446793,
-          0.0016604977709424684
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 3.5389543355940356e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 3.665705467252242e-09,
-      "minimum_quadrature_mass": 3.1017854198661623e-29,
-      "maximum_quadrature_mass": 0.032297730903119035,
-      "inverse_squared_mass_sum": 86.49979996926703,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 14.799360105575024,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 0.918557920952538,
-        "chosen_optimality": 7.100916774582799e-07,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 5,
-        "starts_cost": [
-          0.918557920952538,
-          0.9185579209525542
-        ],
-        "starts_nfev": [
-          5,
-          5
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 7.184572177070318,
-      "prior_rpy_proxy_deg_reference_only": [
-        24.263478268453373,
-        6.350188638704285,
-        26.750805036972626
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 6.027765106168556,
-      "posterior_rpy_proxy_deg_reference_only": [
-        26.008327852398082,
-        7.510888412518666,
-        27.1891106945442
-      ]
-    },
-    {
-      "acquisition_index": 5,
-      "time": 5.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 5,
-      "log_predictive_evidence": 3.9617090857111616,
-      "innovation_rad_s": [
-        -0.06486401979598963,
-        0.04253936439886629,
-        -0.012739803927070303
-      ],
-      "prior_omega_mean_rad_s": [
-        0.053927182523270056,
-        -0.012955367838001783,
-        1.322457490826843
-      ],
-      "posterior_omega_mean_rad_s": [
-        0.0396148490864231,
-        -0.000719759509272226,
-        1.315136529361413
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0018093950773586066,
-          -0.00046687194889085196,
-          0.0005845336925396898
-        ],
-        [
-          -0.00046687194889085196,
-          0.0021863600159243808,
-          -0.000673510138644669
-        ],
-        [
-          0.0005845336925396898,
-          -0.000673510138644669,
-          0.0010856292622412338
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0014150781810404701,
-          -0.0002655345284653351,
-          0.00038642026250131154
-        ],
-        [
-          -0.0002655345284653351,
-          0.0016629592537298205,
-          -0.0004435590598933525
-        ],
-        [
-          0.00038642026250131154,
-          -0.0004435590598933525,
-          0.0008863033766193658
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        0.05392573716151182,
-        -0.012952425883773062,
-        1.3224556852024605
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0018093925505075514,
-          -0.00046687158179154853,
-          0.0005845303308410094
-        ],
-        [
-          -0.00046687158179154853,
-          0.002186363363232842,
-          -0.0006735114541338089
-        ],
-        [
-          0.0005845303308410094,
-          -0.0006735114541338089,
-          0.0010856280178246109
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 2.941954228721441e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 3.3616986803855844e-09,
-      "minimum_quadrature_mass": 5.545372747235741e-32,
-      "maximum_quadrature_mass": 0.03226347496791146,
-      "inverse_squared_mass_sum": 86.58992226841873,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 18.76106919128614,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 1.2225580681099297,
-        "chosen_optimality": 3.1652028882334093e-06,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          1.2225580681101234,
-          1.2225580681099297
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 7.019477832695351,
-      "prior_rpy_proxy_deg_reference_only": [
-        -17.866023360405002,
-        -17.32146162433141,
-        21.416729494963576
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 7.534607241533802,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -18.256075165433412,
-        -14.363217599547053,
-        19.53726537488985
-      ]
-    },
-    {
-      "acquisition_index": 6,
-      "time": 6.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 6,
-      "log_predictive_evidence": 3.268323823558383,
-      "innovation_rad_s": [
-        -0.08341004045475198,
-        -0.0050561742807317955,
-        0.10818595593281821
-      ],
-      "prior_omega_mean_rad_s": [
-        0.8631976224224149,
-        2.548871615768865,
-        -0.6580062331124126
-      ],
-      "posterior_omega_mean_rad_s": [
-        0.8486586443727742,
-        2.54511120170535,
-        -0.6461560598223045
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0013782672651396859,
-          -0.00011361620730843549,
-          -0.00016156539794522047
-        ],
-        [
-          -0.00011361620730843549,
-          0.0016192833277261219,
-          -0.0003581858864411233
-        ],
-        [
-          -0.00016156539794522047,
-          -0.0003581858864411233,
-          0.0008205152997298746
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0011716633678215587,
-          -9.083623370130647e-05,
-          -0.00012546387019187583
-        ],
-        [
-          -9.083623370130647e-05,
-          0.0013178334776014382,
-          -0.00026120567172856224
-        ],
-        [
-          -0.00012546387019187583,
-          -0.00026120567172856224,
-          0.0007201712950528181
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        0.8631982408711258,
-        2.5488725395927485,
-        -0.6580056858497243
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0013782672455178915,
-          -0.0001136167502281646,
-          -0.00016156499407166166
-        ],
-        [
-          -0.0001136167502281646,
-          0.0016192839311567225,
-          -0.0003581861833875825
-        ],
-        [
-          -0.00016156499407166166,
-          -0.0003581861833875825,
-          0.0008205151111278168
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 9.238238836140056e-07,
-      "regridded_prior_covariance_max_difference_rad2_s2": 6.034306006263979e-10,
-      "minimum_quadrature_mass": 6.470419971265895e-33,
-      "maximum_quadrature_mass": 0.0321436853309035,
-      "inverse_squared_mass_sum": 86.90996531669494,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 22.029393014844505,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 2.282250316405827,
-        "chosen_optimality": 1.324895267730901e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          2.282250316405827,
-          2.282250316406044
-        ],
-        "starts_nfev": [
-          6,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 8.54625928096906,
-      "prior_rpy_proxy_deg_reference_only": [
-        -30.626292458100174,
-        25.38456582629598,
-        16.685046681010263
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 5.126389477305536,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -31.484667071403702,
-        27.428170202000146,
-        20.04995750994417
-      ]
-    },
-    {
-      "acquisition_index": 7,
-      "time": 7.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 7,
-      "log_predictive_evidence": 4.006545195343534,
-      "innovation_rad_s": [
-        -0.0511957944638024,
-        -0.0565631686163226,
-        -0.009627889847964699
-      ],
-      "prior_omega_mean_rad_s": [
-        1.4936114882690366,
-        -0.34735421964473767,
-        0.9959293810467377
-      ],
-      "posterior_omega_mean_rad_s": [
-        1.4894292112302314,
-        -0.3550426671275547,
-        0.9945964638316728
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0012175103155860813,
-          -0.0004852302434870927,
-          -0.00017673018935267926
-        ],
-        [
-          -0.0004852302434870927,
-          0.0016162104225327502,
-          0.000272144726927445
-        ],
-        [
-          -0.00017673018935267926,
-          0.000272144726927445,
-          0.0006313842782191024
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0010272942891728972,
-          -0.00034235824714690946,
-          -0.00013270876774790924
-        ],
-        [
-          -0.00034235824714690946,
-          0.001315607427864277,
-          0.00020360903303955207
-        ],
-        [
-          -0.00013270876774790924,
-          0.00020360903303955207,
-          0.0005708868915987929
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        1.4936108165769906,
-        -0.34735842718749294,
-        0.9959301002438729
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0012175082091693073,
-          -0.0004852280841286129,
-          -0.00017672811594376877
-        ],
-        [
-          -0.0004852280841286129,
-          0.0016162104993245247,
-          0.00027214499033062836
-        ],
-        [
-          -0.00017672811594376877,
-          0.00027214499033062836,
-          0.0006313844595831333
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 4.2075427552634714e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 2.159358479785628e-09,
-      "minimum_quadrature_mass": 2.306879345142774e-30,
-      "maximum_quadrature_mass": 0.032232170630936884,
-      "inverse_squared_mass_sum": 86.67308583928106,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 26.035938210188036,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 2.6257822931284514,
-        "chosen_optimality": 1.0721933367818792e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          2.62578229313032,
-          2.6257822931284514
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 6.11043938004052,
-      "prior_rpy_proxy_deg_reference_only": [
-        27.91360978839822,
-        -2.1110190002977904,
-        -13.643204959772994
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 7.0468716627338335,
-      "posterior_rpy_proxy_deg_reference_only": [
-        26.233326596265822,
-        -3.8667300969808114,
-        -14.662825159155737
-      ]
-    },
-    {
-      "acquisition_index": 8,
-      "time": 8.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 8,
-      "log_predictive_evidence": 4.177132836577343,
-      "innovation_rad_s": [
-        -0.04716448763418468,
-        0.025013939597438806,
-        0.025424937341892995
-      ],
-      "prior_omega_mean_rad_s": [
-        0.6465429282490818,
-        0.44750150042782627,
-        -0.5370854749298566
-      ],
-      "posterior_omega_mean_rad_s": [
-        0.6413088802653706,
-        0.45287756724125056,
-        -0.535860755379036
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0009638984978398055,
-          -0.00020448491821745943,
-          0.00019484925745976377
-        ],
-        [
-          -0.00020448491821745943,
-          0.0014020901992230271,
-          0.0001833597740091924
-        ],
-        [
-          0.00019484925745976377,
-          0.0001833597740091924,
-          0.0005787985105072913
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0008484904428649583,
-          -0.00016013215186641468,
-          0.00016061904860888184
-        ],
-        [
-          -0.00016013215186641468,
-          0.0011777335890379558,
-          0.00014845934132813986
-        ],
-        [
-          0.00016061904860888184,
-          0.00014845934132813986,
-          0.000529414326252699
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        0.6465417407756758,
-        0.44750581233592013,
-        -0.5370856545914708
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0009638978962026935,
-          -0.00020448537317212037,
-          0.0001948479736850034
-        ],
-        [
-          -0.00020448537317212037,
-          0.0014020897066597396,
-          0.00018335963966601668
-        ],
-        [
-          0.0001948479736850034,
-          0.00018335963966601668,
-          0.000578798517360222
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 4.311908093856953e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 1.2837747603790424e-09,
-      "minimum_quadrature_mass": 7.686819215197456e-31,
-      "maximum_quadrature_mass": 0.03229643703587904,
-      "inverse_squared_mass_sum": 86.50114627468601,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 30.2130710467654,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 2.8282085681674505,
-        "chosen_optimality": 3.170810183528161e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          2.828208568169295,
-          2.8282085681674505
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 7.783615727691663,
-      "prior_rpy_proxy_deg_reference_only": [
-        27.801248290339945,
-        -27.6302400942775,
-        -30.867754509633063
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 6.977045067211966,
-      "posterior_rpy_proxy_deg_reference_only": [
-        25.990316490823755,
-        -26.993264073642713,
-        -28.816281113102526
-      ]
-    },
-    {
-      "acquisition_index": 9,
-      "time": 9.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 9,
-      "log_predictive_evidence": 4.243210876815525,
-      "innovation_rad_s": [
-        -0.031213359010023867,
-        -0.034825496982173465,
-        -0.020345222241591687
-      ],
-      "prior_omega_mean_rad_s": [
-        -1.3597371233812579,
-        0.4062154221963977,
-        -0.49274784417688305
-      ],
-      "posterior_omega_mean_rad_s": [
-        -1.36281872283768,
-        0.40211866305990496,
-        -0.492641035765277
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0009183365047910219,
-          -1.7859962039473166e-05,
-          -8.24059208071528e-05
-        ],
-        [
-          -1.7859962039473166e-05,
-          0.001214694598258323,
-          -0.00027942165305323895
-        ],
-        [
-          -8.24059208071528e-05,
-          -0.00027942165305323895,
-          0.00048404190749714156
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0008179604012712096,
-          -1.2908895929634649e-05,
-          -7.25036408610164e-05
-        ],
-        [
-          -1.2908895929634649e-05,
-          0.0010396117530229096,
-          -0.00022671949855514507
-        ],
-        [
-          -7.25036408610164e-05,
-          -0.00022671949855514507,
-          0.0004474029845445919
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -1.3597368395236882,
-        0.4062157659188168,
-        -0.492748009317667
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0009183364550023214,
-          -1.786014575618665e-05,
-          -8.240575103209254e-05
-        ],
-        [
-          -1.786014575618665e-05,
-          0.0012146947663336709,
-          -0.0002794217501008967
-        ],
-        [
-          -8.240575103209254e-05,
-          -0.0002794217501008967,
-          0.00048404188767157394
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 3.4372241908275925e-07,
-      "regridded_prior_covariance_max_difference_rad2_s2": 1.8371671348319375e-10,
-      "minimum_quadrature_mass": 5.639891885094496e-31,
-      "maximum_quadrature_mass": 0.032183390739522956,
-      "inverse_squared_mass_sum": 86.80345791273517,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 34.45628192358092,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 2.9833921352108237,
-        "chosen_optimality": 4.0976551505256253e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 5,
-        "starts_cost": [
-          2.9833921352108237,
-          2.983392135210829
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 7.620218931348504,
-      "prior_rpy_proxy_deg_reference_only": [
-        -28.602692499386592,
-        16.796891824306744,
-        49.20443158485612
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 8.022796724760113,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -29.631366101364847,
-        17.83703635753432,
-        49.08882307869059
-      ]
-    },
-    {
-      "acquisition_index": 10,
-      "time": 10.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 10,
-      "log_predictive_evidence": 4.30226176094429,
-      "innovation_rad_s": [
-        0.018395040224408632,
-        -0.03954276633216436,
-        -0.005254593107574923
-      ],
-      "prior_omega_mean_rad_s": [
-        -1.5210762073695063,
-        -1.8498005346387414,
-        -0.7043691071464141
-      ],
-      "posterior_omega_mean_rad_s": [
-        -1.5187866479237593,
-        -1.854277298688166,
-        -0.7048385583807703
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0009038935429007131,
-          -4.149691593172968e-05,
-          -0.00026731253107708684
-        ],
-        [
-          -4.149691593172968e-05,
-          0.0009649615020285918,
-          -8.801922064244754e-05
-        ],
-        [
-          -0.00026731253107708684,
-          -8.801922064244754e-05,
-          0.0004716771512078551
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0008003910310093081,
-          -3.6549185155044995e-05,
-          -0.0002240436990709053
-        ],
-        [
-          -3.6549185155044995e-05,
-          0.000853332446409204,
-          -7.394092892145643e-05
-        ],
-        [
-          -0.0002240436990709053,
-          -7.394092892145643e-05,
-          0.00043766860957587046
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -1.5210769598301974,
-        -1.8498031328441236,
-        -0.7043690347394629
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0009038933775758277,
-          -4.149704092386834e-05,
-          -0.0002673121265774756
-        ],
-        [
-          -4.149704092386834e-05,
-          0.0009649613709526338,
-          -8.801925795857209e-05
-        ],
-        [
-          -0.0002673121265774756,
-          -8.801925795857209e-05,
-          0.00047167706654858895
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 2.598205382176033e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 4.0449961121510197e-10,
-      "minimum_quadrature_mass": 2.3880227838404636e-32,
-      "maximum_quadrature_mass": 0.03213190149950266,
-      "inverse_squared_mass_sum": 86.94336033585918,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 38.7585436845252,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 3.097818603610202,
-        "chosen_optimality": 2.114930723415372e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          3.097818603610512,
-          3.097818603610202
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 8.687352672851214,
-      "prior_rpy_proxy_deg_reference_only": [
-        -15.437538721912007,
-        -0.8336481822640499,
-        12.240736333725648
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 8.556999303299737,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -15.588692775899272,
-        -2.7078714529938464,
-        12.134322118437355
-      ]
-    },
-    {
-      "acquisition_index": 11,
-      "time": 11.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 11,
-      "log_predictive_evidence": 4.229934749911841,
-      "innovation_rad_s": [
-        0.00946528953252923,
-        -0.03588463561155253,
-        0.04288908728786778
-      ],
-      "prior_omega_mean_rad_s": [
-        0.7562329476377855,
-        -1.2537556315682028,
-        -2.8285885346037207
-      ],
-      "posterior_omega_mean_rad_s": [
-        0.7566211212529401,
-        -1.257239588419474,
-        -2.827061766959286
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.000694201435851927,
-          -0.00010764055757964022,
-          -0.00017219227150807491
-        ],
-        [
-          -0.00010764055757964022,
-          0.0009767041799220947,
-          0.0001478227295694029
-        ],
-        [
-          -0.00017219227150807491,
-          0.0001478227295694029,
-          0.0004332878982490853
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.000630703073232781,
-          -8.612505728526802e-05,
-          -0.00014577286970275308
-        ],
-        [
-          -8.612505728526802e-05,
-          0.0008616638688408891,
-          0.00012080065383814401
-        ],
-        [
-          -0.00014577286970275308,
-          0.00012080065383814401,
-          0.00040640699526013364
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        0.756234106421231,
-        -1.2537550895917169,
-        -2.8285900096493215
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0006942016022042423,
-          -0.00010764092094136156,
-          -0.000172192846661813
-        ],
-        [
-          -0.00010764092094136156,
-          0.0009767046601141627,
-          0.00014782325455526095
-        ],
-        [
-          -0.000172192846661813,
-          0.00014782325455526095,
-          0.00043328802112610384
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 1.4750456007739388e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 5.751537380854679e-10,
-      "minimum_quadrature_mass": 4.2134183712451104e-33,
-      "maximum_quadrature_mass": 0.032142687990647345,
-      "inverse_squared_mass_sum": 86.91505940805767,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 42.988478434437056,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 3.2989833454123327,
-        "chosen_optimality": 1.1476387960840384e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          3.2989833454124082,
-          3.2989833454123327
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 9.268980909614879,
-      "prior_rpy_proxy_deg_reference_only": [
-        24.838074891193706,
-        2.792356413559762,
-        -24.15961315194493
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 8.426998397345766,
-      "posterior_rpy_proxy_deg_reference_only": [
-        26.20940456413675,
-        1.6872559088052677,
-        -23.286964188459592
-      ]
-    },
-    {
-      "acquisition_index": 12,
-      "time": 12.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 12,
-      "log_predictive_evidence": 4.3216150586198765,
-      "innovation_rad_s": [
-        -0.007904711811441922,
-        0.04215193987172272,
-        0.016057005377105027
-      ],
-      "prior_omega_mean_rad_s": [
-        1.3517628442901584,
-        1.2205597155453678,
-        0.4309931034828116
-      ],
-      "posterior_omega_mean_rad_s": [
-        1.35092005507224,
-        1.2245266545088158,
-        0.4323371141695453
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0006131881734249977,
-          -5.206730470329298e-05,
-          -1.0593224211084352e-05
-        ],
-        [
-          -5.206730470329298e-05,
-          0.0007383321649998834,
-          9.681818593984545e-05
-        ],
-        [
-          -1.0593224211084352e-05,
-          9.681818593984545e-05,
-          0.0004426890074773293
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.000565969229274037,
-          -4.403476562628999e-05,
-          -1.1736600746982907e-05
-        ],
-        [
-          -4.403476562628999e-05,
-          0.0006724141319275951,
-          8.285755664079633e-05
-        ],
-        [
-          -1.1736600746982907e-05,
-          8.285755664079633e-05,
-          0.00041604217663124087
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        1.351765780428845,
-        1.2205604342941625,
-        0.4309933890144226
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0006131882061578293,
-          -5.2067297959356686e-05,
-          -1.0593108087908756e-05
-        ],
-        [
-          -5.2067297959356686e-05,
-          0.0007383322147029753,
-          9.681831775724701e-05
-        ],
-        [
-          -1.0593108087908756e-05,
-          9.681831775724701e-05,
-          0.00044268898680710787
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 2.936138686626677e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 1.3181740155790087e-10,
-      "minimum_quadrature_mass": 2.889156915638563e-33,
-      "maximum_quadrature_mass": 0.03217066484623498,
-      "inverse_squared_mass_sum": 86.83880334438471,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 47.31009349305691,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 3.4218214765116968,
-        "chosen_optimality": 2.330148893991968e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          3.421821476511808,
-          3.4218214765116968
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 9.223304659363825,
-      "prior_rpy_proxy_deg_reference_only": [
-        -14.267401215854166,
-        14.761400005888412,
-        -15.671328611605775
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 8.465568136130953,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -15.029143420561615,
-        16.31591138608213,
-        -15.069833515907316
-      ]
-    },
-    {
-      "acquisition_index": 13,
-      "time": 13.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 13,
-      "log_predictive_evidence": 4.442649205807449,
-      "innovation_rad_s": [
-        -0.005300392556801536,
-        0.0020774388624941187,
-        0.00898231352124823
-      ],
-      "prior_omega_mean_rad_s": [
-        0.3783842169247272,
-        0.7173259978325849,
-        -0.3422014845281228
-      ],
-      "posterior_omega_mean_rad_s": [
-        0.37813846476802326,
-        0.7176355042478708,
-        -0.34182206656881964
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0006526837919784387,
-          -0.00010672906522071055,
-          0.00020785489436164046
-        ],
-        [
-          -0.00010672906522071055,
-          0.0006363569777916423,
-          3.924241706578661e-05
-        ],
-        [
-          0.00020785489436164046,
-          3.924241706578661e-05,
-          0.00045534859262278906
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0005948608352609,
-          -9.183428358463391e-05,
-          0.00018044060915064515
-        ],
-        [
-          -9.183428358463391e-05,
-          0.0005859456868022954,
-          3.653771749169562e-05
-        ],
-        [
-          0.00018044060915064515,
-          3.653771749169562e-05,
-          0.00042453684912600566
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        0.37838416013646203,
-        0.7173240459217249,
-        -0.3422031765343141
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0006526844660899906,
-          -0.00010672935831586175,
-          0.0002078560176454685
-        ],
-        [
-          -0.00010672935831586175,
-          0.000636356991899466,
-          3.924214942946825e-05
-        ],
-        [
-          0.0002078560176454685,
-          3.924214942946825e-05,
-          0.00045534888021043753
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 1.9519108599430623e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 1.123283828040507e-09,
-      "minimum_quadrature_mass": 3.9164289533063746e-32,
-      "maximum_quadrature_mass": 0.032187943388343646,
-      "inverse_squared_mass_sum": 86.78881410889235,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 51.752742698864374,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 3.4289342610565336,
-        "chosen_optimality": 2.9012399254346732e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          3.428934261057752,
-          3.4289342610565336
-        ],
-        "starts_nfev": [
-          4,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 9.258087296515548,
-      "prior_rpy_proxy_deg_reference_only": [
-        -33.43940444452723,
-        -16.36411651720873,
-        -11.250257617387417
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 9.024814686101653,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -33.60705883073504,
-        -16.096138558986798,
-        -10.906710453508406
-      ]
-    },
-    {
-      "acquisition_index": 14,
-      "time": 14.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 14,
-      "log_predictive_evidence": 4.406071065897052,
-      "innovation_rad_s": [
-        0.013623322609574218,
-        0.01807646348286096,
-        -0.011367029645692472
-      ],
-      "prior_omega_mean_rad_s": [
-        -0.610116364788783,
-        -1.4792887576558105,
-        -1.9421844386129348
-      ],
-      "posterior_omega_mean_rad_s": [
-        -0.6090975410809254,
-        -1.477600783872977,
-        -1.9419067019191043
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0006232003760493381,
-          9.231389414349104e-05,
-          0.00011706943627458864
-        ],
-        [
-          9.231389414349104e-05,
-          0.0008832833912160104,
-          0.00026530884203550335
-        ],
-        [
-          0.00011706943627458864,
-          0.00026530884203550335,
-          0.0003202645139973755
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0005749852605109428,
-          7.361320644362022e-05,
-          0.00010211857910243929
-        ],
-        [
-          7.361320644362022e-05,
-          0.0007813655097708383,
-          0.00022641054160748046
-        ],
-        [
-          0.00010211857910243929,
-          0.00022641054160748046,
-          0.0002980037361172628
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -0.6101178426519447,
-        -1.4792902402316075,
-        -1.9421840170226214
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0006232003577208408,
-          9.231405654641055e-05,
-          0.00011706947085101386
-        ],
-        [
-          9.231405654641055e-05,
-          0.0008832836512925153,
-          0.00026530896028266335
-        ],
-        [
-          0.00011706947085101386,
-          0.00026530896028266335,
-          0.00032026450849446627
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 1.4825757970182707e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 2.6007650482003097e-10,
-      "minimum_quadrature_mass": 2.991335633868092e-30,
-      "maximum_quadrature_mass": 0.03224709030282591,
-      "inverse_squared_mass_sum": 86.62698266098103,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 56.15881376476142,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 3.4680521005707963,
-        "chosen_optimality": 2.0969410520305868e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          3.468052100571928,
-          3.4680521005707963
-        ],
-        "starts_nfev": [
-          4,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 9.39742255183144,
-      "prior_rpy_proxy_deg_reference_only": [
-        27.326377010408436,
-        -0.6399748678517619,
-        40.442142391919496
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 8.739688398647031,
-      "posterior_rpy_proxy_deg_reference_only": [
-        28.1031171635461,
-        -0.884564613129202,
-        40.79796176215663
-      ]
-    },
-    {
-      "acquisition_index": 15,
-      "time": 15.000000000000002,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 15,
-      "log_predictive_evidence": 4.446161381198721,
-      "innovation_rad_s": [
-        -0.00011937559405905684,
-        0.002045416472208794,
-        0.00512897273529922
-      ],
-      "prior_omega_mean_rad_s": [
-        -0.8624939745993975,
-        -0.9207812550940977,
-        -0.38787264292411155
-      ],
-      "posterior_omega_mean_rad_s": [
-        -0.8623084888984763,
-        -0.9205192287246348,
-        -0.38764013946452697
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0007422436657105211,
-          7.293067120545029e-05,
-          0.0003273993019861275
-        ],
-        [
-          7.293067120545029e-05,
-          0.0006909908140984197,
-          0.00012891959181723022
-        ],
-        [
-          0.0003273993019861275,
-          0.00012891959181723022,
-          0.0003513905570338617
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0006641811549144427,
-          5.596759111479945e-05,
-          0.0002843818220052953
-        ],
-        [
-          5.596759111479945e-05,
-          0.000631212752794219,
-          0.00011052444889808225
-        ],
-        [
-          0.0002843818220052953,
-          0.00011052444889808225,
-          0.00032233756217805775
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -0.8625009727791291,
-        -0.9207988779838971,
-        -0.38788435502884067
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0007422486441434853,
-          7.293050253466077e-05,
-          0.0003274045441705627
-        ],
-        [
-          7.293050253466077e-05,
-          0.0006909890215883922,
-          0.00012891809633623955
-        ],
-        [
-          0.0003274045441705627,
-          0.00012891809633623955,
-          0.0003513929476158357
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 1.7622889799451258e-05,
-      "regridded_prior_covariance_max_difference_rad2_s2": 5.2421844352369684e-09,
-      "minimum_quadrature_mass": 1.4174468999258467e-31,
-      "maximum_quadrature_mass": 0.03227957339096431,
-      "inverse_squared_mass_sum": 86.540665760495,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 60.60497514596014,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 3.4700535040686358,
-        "chosen_optimality": 2.2851216863184476e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 6,
-        "starts_cost": [
-          3.4700535040686797,
-          3.4700535040686358
-        ],
-        "starts_nfev": [
-          4,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 9.48657427935974,
-      "prior_rpy_proxy_deg_reference_only": [
-        25.81762804860274,
-        -8.146762844852589,
-        -20.40403959489429
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 9.256691989032253,
-      "posterior_rpy_proxy_deg_reference_only": [
-        25.748237479793097,
-        -7.899619276663358,
-        -20.160632511449283
-      ]
-    },
-    {
-      "acquisition_index": 16,
-      "time": 16.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 16,
-      "log_predictive_evidence": 4.1166122397878695,
-      "innovation_rad_s": [
-        -0.031216617844953776,
-        -0.02760365347182603,
-        0.06188785657870177
-      ],
-      "prior_omega_mean_rad_s": [
-        -0.5529337611204967,
-        1.39112939381424,
-        -2.1372921267801335
-      ],
-      "posterior_omega_mean_rad_s": [
-        -0.5533724099338058,
-        1.389269551904793,
-        -2.134997049327697
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0004549347252937596,
-          -0.00020036521080629328,
-          9.519775571848751e-05
-        ],
-        [
-          -0.00020036521080629328,
-          0.0006665229481073274,
-          -5.512680422789051e-05
-        ],
-        [
-          9.519775571848751e-05,
-          -5.512680422789051e-05,
-          0.00031878162655702417
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.00042456454804722056,
-          -0.00017474582477419048,
-          8.329822965983167e-05
-        ],
-        [
-          -0.00017474582477419048,
-          0.0006065834377478479,
-          -4.452547179520436e-05
-        ],
-        [
-          8.329822965983167e-05,
-          -4.452547179520436e-05,
-          0.0003054140027962649
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -0.5529331606024832,
-        1.3911299260862486,
-        -2.1372918069646376
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.00045493490643607756,
-          -0.0002003650849850248,
-          9.51977711310522e-05
-        ],
-        [
-          -0.0002003650849850248,
-          0.0006665224043121154,
-          -5.5126513407232615e-05
-        ],
-        [
-          9.51977711310522e-05,
-          -5.5126513407232615e-05,
-          0.00031878170025064883
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 6.005180135382204e-07,
-      "regridded_prior_covariance_max_difference_rad2_s2": 5.437952119852207e-10,
-      "minimum_quadrature_mass": 3.4375306625839357e-32,
-      "maximum_quadrature_mass": 0.032250830193648765,
-      "inverse_squared_mass_sum": 86.61832108147195,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 64.72158738574797,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 3.822892620961342,
-        "chosen_optimality": 2.1569698326118214e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 5,
-        "starts_cost": [
-          3.822892620961342,
-          3.8228926209614857
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 10.27770311212354,
-      "prior_rpy_proxy_deg_reference_only": [
-        -40.68574435319661,
-        -4.554417294416572,
-        -53.045773263836864
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 8.438491160630795,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -40.72048522229262,
-        -5.158054713324583,
-        -50.54133570394908
-      ]
-    },
-    {
-      "acquisition_index": 17,
-      "time": 17.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 17,
-      "log_predictive_evidence": 4.420285474769031,
-      "innovation_rad_s": [
-        0.016993455514010908,
-        0.007601779266734887,
-        0.023159063023946602
-      ],
-      "prior_omega_mean_rad_s": [
-        -0.20466878505592986,
-        -0.8093111093904333,
-        -0.13838295532859768
-      ],
-      "posterior_omega_mean_rad_s": [
-        -0.2039236504819407,
-        -0.8091303818152298,
-        -0.13779678050098462
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0005514965702007337,
-          -5.6744072795195244e-05,
-          -0.00014314502001927577
-        ],
-        [
-          -5.6744072795195244e-05,
-          0.0004322638805100359,
-          -3.817228197090933e-05
-        ],
-        [
-          -0.00014314502001927577,
-          -3.817228197090933e-05,
-          0.0003227989546284201
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.0005120588165359294,
-          -5.079238561306726e-05,
-          -0.00012764770101964052
-        ],
-        [
-          -5.079238561306726e-05,
-          0.0004081686736841621,
-          -3.556157974466228e-05
-        ],
-        [
-          -0.00012764770101964052,
-          -3.556157974466228e-05,
-          0.00030668551861122797
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        -0.20466936247577566,
-        -0.8093120223502632,
-        -0.13838314568207086
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0005514965415770707,
-          -5.674399424257033e-05,
-          -0.00014314498009287364
-        ],
-        [
-          -5.674399424257033e-05,
-          0.0004322638310872723,
-          -3.817226800207867e-05
-        ],
-        [
-          -0.00014314498009287364,
-          -3.817226800207867e-05,
-          0.000322798963433973
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 9.129598299573161e-07,
-      "regridded_prior_covariance_max_difference_rad2_s2": 7.855262491499428e-11,
-      "minimum_quadrature_mass": 1.623465743573416e-31,
-      "maximum_quadrature_mass": 0.03226032144721615,
-      "inverse_squared_mass_sum": 86.59346038385102,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 69.14187286051701,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 3.879018375345287,
-        "chosen_optimality": 1.3267858816945477e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 4,
-        "starts_cost": [
-          3.879018375345287,
-          3.8790183753453062
-        ],
-        "starts_nfev": [
-          4,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 8.955896428338566,
-      "prior_rpy_proxy_deg_reference_only": [
-        -27.863591728307092,
-        25.661351228962904,
-        1.7984274346822284
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 7.985822442537219,
-      "posterior_rpy_proxy_deg_reference_only": [
-        -27.141772687712194,
-        25.523870237103413,
-        2.831966815232291
-      ]
-    },
-    {
-      "acquisition_index": 18,
-      "time": 18.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 18,
-      "log_predictive_evidence": 4.309939685184332,
-      "innovation_rad_s": [
-        0.048272874507541974,
-        -0.020189789777343037,
-        -0.005431749703177835
-      ],
-      "prior_omega_mean_rad_s": [
-        0.48864894461096836,
-        0.38700198398086844,
-        -0.9593097382242849
-      ],
-      "posterior_omega_mean_rad_s": [
-        0.49176958812195165,
-        0.38557936760701506,
-        -0.9587475447109125
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0005221040425171039,
-          -6.0830555313290365e-05,
-          0.00014814339551482867
-        ],
-        [
-          -6.0830555313290365e-05,
-          0.00042038273717329025,
-          3.1452502385838296e-05
-        ],
-        [
-          0.00014814339551482867,
-          3.1452502385838296e-05,
-          0.0003053017454450757
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.00048679434598101497,
-          -5.383829502568883e-05,
-          0.00013565671541853757
-        ],
-        [
-          -5.383829502568883e-05,
-          0.000398282380191943,
-          2.9955242810738933e-05
-        ],
-        [
-          0.00013565671541853757,
-          2.9955242810738933e-05,
-          0.00029004415987013535
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        0.48864969384182144,
-        0.3870031120669886,
-        -0.9593097503364691
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.0005221039479156057,
-          -6.083052761667289e-05,
-          0.00014814314625325985
-        ],
-        [
-          -6.083052761667289e-05,
-          0.00042038269228642986,
-          3.1452564501615086e-05
-        ],
-        [
-          0.00014814314625325985,
-          3.1452564501615086e-05,
-          0.00030530169019334926
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 1.128086120183447e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 2.4926156882358434e-10,
-      "minimum_quadrature_mass": 2.133583619269393e-32,
-      "maximum_quadrature_mass": 0.03230571368375777,
-      "inverse_squared_mass_sum": 86.47496986868178,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 73.45181254570136,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 4.047027058143548,
-        "chosen_optimality": 3.5377900929704028e-06,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 5,
-        "starts_cost": [
-          4.047027058143548,
-          4.047027058143673
-        ],
-        "starts_nfev": [
-          5,
-          6
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 8.234173384329573,
-      "prior_rpy_proxy_deg_reference_only": [
-        28.971030593663077,
-        -12.419273961252992,
-        -1.7805727157114184
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 7.906580976566208,
-      "posterior_rpy_proxy_deg_reference_only": [
-        30.257574732258476,
-        -14.04798565461035,
-        -1.9011134584705007
-      ]
-    },
-    {
-      "acquisition_index": 19,
-      "time": 19.0,
-      "initialization": false,
-      "likelihood_applications": 1,
-      "target_likelihood_factor_count": 19,
-      "log_predictive_evidence": 4.075601160409121,
-      "innovation_rad_s": [
-        0.04745103037819831,
-        0.06313593742012569,
-        -0.018446723623900763
-      ],
-      "prior_omega_mean_rad_s": [
-        1.1153732823875795,
-        1.7181264058317398,
-        -2.9415854679085798
-      ],
-      "posterior_omega_mean_rad_s": [
-        1.1174892950776099,
-        1.7210093939151017,
-        -2.9427356321451303
-      ],
-      "prior_omega_covariance_rad2_s2": [
-        [
-          0.0004416380613182217,
-          -7.009226158817714e-05,
-          -1.688201010318765e-05
-        ],
-        [
-          -7.009226158817714e-05,
-          0.0004027189415813564,
-          -5.119659750190897e-05
-        ],
-        [
-          -1.688201010318765e-05,
-          -5.119659750190897e-05,
-          0.0002809632331376042
-        ]
-      ],
-      "posterior_omega_covariance_rad2_s2": [
-        [
-          0.00041451078793054995,
-          -6.317360499123116e-05,
-          -1.2890840253605159e-05
-        ],
-        [
-          -6.317360499123116e-05,
-          0.00038390721290154655,
-          -4.8651594123758416e-05
-        ],
-        [
-          -1.2890840253605159e-05,
-          -4.8651594123758416e-05,
-          0.0002704440552161466
-        ]
-      ],
-      "regridded_prior_omega_mean_rad_s": [
-        1.1153736926996187,
-        1.7181252500010769,
-        -2.9415859329598417
-      ],
-      "regridded_prior_omega_covariance_rad2_s2": [
-        [
-          0.00044163809210384387,
-          -7.009220980544337e-05,
-          -1.688174937219563e-05
-        ],
-        [
-          -7.009220980544337e-05,
-          0.0004027189009857709,
-          -5.119672386513731e-05
-        ],
-        [
-          -1.688174937219563e-05,
-          -5.119672386513731e-05,
-          0.0002809632335894568
-        ]
-      ],
-      "regridded_prior_mean_max_difference_rad_s": 1.1558306629577686e-06,
-      "regridded_prior_covariance_max_difference_rad2_s2": 2.6073099201987275e-10,
-      "minimum_quadrature_mass": 9.447375846769161e-32,
-      "maximum_quadrature_mass": 0.03231420530991243,
-      "inverse_squared_mass_sum": 86.45375938315382,
-      "zero_mass_from_float_exp_count": 0,
-      "quadrature_concentration_is_not_an_acceptance_gate": true,
-      "full_target_log_normalizer_diagnostic": 77.5274137061105,
-      "proposal": {
-        "placement": "Gaussian importance proposal only; not posterior replacement",
-        "starts": [
-          "previous proposal center",
-          "original first-reading center"
-        ],
-        "chosen_cost": 4.458732038836738,
-        "chosen_optimality": 1.3552177259512632e-05,
-        "chosen_status": 2,
-        "chosen_success": true,
-        "chosen_nfev": 4,
-        "starts_cost": [
-          4.458732038836738,
-          4.458732038836991
-        ],
-        "starts_nfev": [
-          4,
-          5
-        ],
-        "maximum_function_evaluations_per_start": 24,
-        "finite_unconverged_proposal_does_not_reject_observation": true,
-        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
-        "covariance": "inverse Gauss-Newton precision for proposal placement only"
-      },
-      "prior_so3_proxy_error_deg_reference_only": 8.071984976380163,
-      "prior_rpy_proxy_deg_reference_only": [
-        0.3740404555017722,
-        -5.996495504762502,
-        7.162020145848402
-      ],
-      "posterior_so3_proxy_error_deg_reference_only": 8.427889959671008,
-      "posterior_rpy_proxy_deg_reference_only": [
-        2.502988283312272,
-        -5.181881591196231,
-        5.5337562430042615
-      ]
-    }
-  ],
-  "spike": [
+  "nonlinear": [
     {
       "acquisition_index": 0,
       "time": 0.0,
@@ -4700,6 +2348,2358 @@
         28.438649235285965,
         -10.44286419318219,
         21.725730386562415
+      ]
+    }
+  ],
+  "linear_forced": [
+    {
+      "acquisition_index": 0,
+      "time": 0.0,
+      "initialization": true,
+      "first_reading_used_once": true,
+      "likelihood_applications": 0,
+      "log_predictive_evidence": null,
+      "proposal": {
+        "initialization": true,
+        "first_reading_used_once": true,
+        "placement": "initial posterior N(y0,R), no repeated y0 likelihood"
+      }
+    },
+    {
+      "acquisition_index": 1,
+      "time": 1.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 1,
+      "log_predictive_evidence": -8.568384771541481,
+      "innovation_rad_s": [
+        -0.35401344447543726,
+        0.4931142748447649,
+        0.008081089048666945
+      ],
+      "prior_omega_mean_rad_s": [
+        2.1577602593073335,
+        -0.7963347100400169,
+        -0.33572894458717206
+      ],
+      "posterior_omega_mean_rad_s": [
+        1.980755808574545,
+        -0.5497776838294456,
+        -0.3316871129161845
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.007615435494667788,
+          -2.18722074571327e-19,
+          -1.9366839441550507e-20
+        ],
+        [
+          -2.18722074571327e-19,
+          0.00761543549466775,
+          -1.1862029016098749e-20
+        ],
+        [
+          -1.9366839441550507e-20,
+          -1.1862029016098749e-20,
+          0.007615435494667702
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0038077177473338475,
+          2.923927942207892e-19,
+          4.472333845863874e-19
+        ],
+        [
+          2.923927942207892e-19,
+          0.003807717747333853,
+          -3.581625151489409e-19
+        ],
+        [
+          4.472333845863874e-19,
+          -3.581625151489409e-19,
+          0.0038077177473338345
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        2.1575328575341155,
+        -0.7937840662231068,
+        -0.3357263623528855
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.007544756763051365,
+          6.232837927083826e-19,
+          1.3991183716452962e-19
+        ],
+        [
+          6.232837927083826e-19,
+          0.007050205120216045,
+          1.8874434754877696e-21
+        ],
+        [
+          1.3991183716452962e-19,
+          1.8874434754877696e-21,
+          0.007615420165360936
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.0025506438169100587,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.0005652303744517048,
+      "minimum_quadrature_mass": 6.337622824279276e-28,
+      "maximum_quadrature_mass": 0.0322362268425548,
+      "inverse_squared_mass_sum": 86.67072521002687,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -8.57914587451068,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 12.098976661876877,
+        "chosen_optimality": 2.842170943040401e-14,
+        "chosen_status": 1,
+        "chosen_success": true,
+        "chosen_nfev": 2,
+        "starts_cost": [
+          12.098976661876877,
+          12.098976661876877
+        ],
+        "starts_nfev": [
+          2,
+          2
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 29.983804640349142,
+      "prior_rpy_proxy_deg_reference_only": [
+        28.832222321720078,
+        -15.879316832009978,
+        38.10723443027827
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 13.160757565584248,
+      "posterior_rpy_proxy_deg_reference_only": [
+        21.051968720959028,
+        -1.7563497520074536,
+        44.45406838736974
+      ]
+    },
+    {
+      "acquisition_index": 2,
+      "time": 2.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 2,
+      "log_predictive_evidence": -6.630225511828071,
+      "innovation_rad_s": [
+        -0.4634830360346053,
+        0.04437859985478815,
+        -0.15802359689471723
+      ],
+      "prior_omega_mean_rad_s": [
+        0.06288510857266535,
+        0.13754945105894267,
+        1.6404231013598165
+      ],
+      "posterior_omega_mean_rad_s": [
+        -0.09161201983083124,
+        0.1523444406450202,
+        1.5877481116200103
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0038077177473338376,
+          2.4999036426277007e-19,
+          4.321098688090034e-19
+        ],
+        [
+          2.4999036426277007e-19,
+          0.0038077177473337864,
+          -3.4469738388871146e-19
+        ],
+        [
+          4.321098688090034e-19,
+          -3.4469738388871146e-19,
+          0.003807717747333854
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0025384784982226314,
+          4.348075932608105e-20,
+          -4.6674021719900646e-20
+        ],
+        [
+          4.348075932608105e-20,
+          0.0025384784982225754,
+          4.845573753463206e-19
+        ],
+        [
+          -4.6674021719900646e-20,
+          4.845573753463206e-19,
+          0.0025384784982225533
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.06284355454249115,
+        0.13755263555913266,
+        1.6404224107205843
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.003798023296196189,
+          -2.512417946932823e-19,
+          -2.9604947501937717e-19
+        ],
+        [
+          -2.512417946932823e-19,
+          0.0038077177228144393,
+          -2.0742467509684026e-19
+        ],
+        [
+          -2.9604947501937717e-19,
+          -2.0742467509684026e-19,
+          0.00380771586638558
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 4.1554030174209555e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 9.694451137648701e-06,
+      "minimum_quadrature_mass": 6.337622824542441e-28,
+      "maximum_quadrature_mass": 0.03223622684250973,
+      "inverse_squared_mass_sum": 86.67072521014772,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -15.209505612821408,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 22.680690296231464,
+        "chosen_optimality": 3.793232394855295e-11,
+        "chosen_status": 1,
+        "chosen_success": true,
+        "chosen_nfev": 2,
+        "starts_cost": [
+          22.68069029623147,
+          22.680690296231464
+        ],
+        "starts_nfev": [
+          2,
+          2
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 36.911644056235254,
+      "prior_rpy_proxy_deg_reference_only": [
+        26.332620647894146,
+        -36.375739715981936,
+        -20.675178875836536
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 23.76865616273577,
+      "posterior_rpy_proxy_deg_reference_only": [
+        7.508924358533635,
+        -42.07239976222561,
+        -13.14028247287163
+      ]
+    },
+    {
+      "acquisition_index": 3,
+      "time": 3.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 3,
+      "log_predictive_evidence": -24.4700663341413,
+      "innovation_rad_s": [
+        -0.10216056636463677,
+        -0.7457003658814985,
+        -0.1197150430169243
+      ],
+      "prior_omega_mean_rad_s": [
+        -1.0463658830098015,
+        1.0027179480004589,
+        0.028548024885425922
+      ],
+      "posterior_omega_mean_rad_s": [
+        -1.0719111974558384,
+        0.8162909451373592,
+        -0.0013805811961095594
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.002538478498222637,
+          1.5074487827727202e-19,
+          -5.1755107431912626e-20
+        ],
+        [
+          1.5074487827727202e-19,
+          0.0025384784982225737,
+          4.872740065100961e-19
+        ],
+        [
+          -5.1755107431912626e-20,
+          4.872740065100961e-19,
+          0.002538478498222562
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0019038588736669006,
+          7.250154227919732e-21,
+          -2.7142490733600694e-19
+        ],
+        [
+          7.250154227919732e-21,
+          0.0019038588736669426,
+          3.1334686264907584e-20
+        ],
+        [
+          -2.7142490733600694e-19,
+          3.1334686264907584e-20,
+          0.0019038588736669255
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        -1.046372780155176,
+        1.0021287050473515,
+        0.028548231103833088
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0025384784957587655,
+          9.026062308515582e-19,
+          9.614882974775287e-20
+        ],
+        [
+          9.026062308515582e-19,
+          0.0024456998574254947,
+          -2.316893949457701e-19
+        ],
+        [
+          9.614882974775287e-20,
+          -2.316893949457701e-19,
+          0.002538478493058383
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.0005892429531073606,
+      "regridded_prior_covariance_max_difference_rad2_s2": 9.277864079707899e-05,
+      "minimum_quadrature_mass": 6.337622824211234e-28,
+      "maximum_quadrature_mass": 0.03223622684252147,
+      "inverse_squared_mass_sum": 86.67072521011718,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -39.68287896053998,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 51.28209209347843,
+        "chosen_optimality": 4.2374637132525095e-10,
+        "chosen_status": 1,
+        "chosen_success": true,
+        "chosen_nfev": 2,
+        "starts_cost": [
+          51.28209209347843,
+          51.28209209347844
+        ],
+        "starts_nfev": [
+          2,
+          2
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 41.51164774429138,
+      "prior_rpy_proxy_deg_reference_only": [
+        40.58932295880958,
+        24.914313768676738,
+        -21.47877587503073
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 46.814264527986445,
+      "posterior_rpy_proxy_deg_reference_only": [
+        50.030795990080144,
+        1.3740358517381814,
+        -33.496995894972535
+      ]
+    },
+    {
+      "acquisition_index": 4,
+      "time": 4.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 4,
+      "log_predictive_evidence": -10.581781811245854,
+      "innovation_rad_s": [
+        -0.4376357656240893,
+        -0.23454602134300973,
+        -0.18803220358769535
+      ],
+      "prior_omega_mean_rad_s": [
+        0.40389130894708464,
+        -1.3365893397727953,
+        2.462790797218232
+      ],
+      "posterior_omega_mean_rad_s": [
+        0.3163689522844382,
+        -1.383502255671186,
+        2.4251865570712896
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0019038588736669001,
+          4.267504962237999e-20,
+          -2.7288509199959557e-19
+        ],
+        [
+          4.267504962237999e-20,
+          0.001903858873666927,
+          3.3713852909929137e-20
+        ],
+        [
+          -2.7288509199959557e-19,
+          3.3713852909929137e-20,
+          0.0019038588736669318
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0015230870989335332,
+          -4.605323618564069e-19,
+          -1.574416065593235e-19
+        ],
+        [
+          -4.605323618564069e-19,
+          0.0015230870989335968,
+          4.679835761659073e-19
+        ],
+        [
+          -1.574416065593235e-19,
+          4.679835761659073e-19,
+          0.00152308709893361
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.4038972501764486,
+        -1.3365939793587898,
+        2.4627935479240817
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0019038433702477063,
+          1.1713554529342719e-19,
+          -4.459896288944523e-20
+        ],
+        [
+          1.1713554529342719e-19,
+          0.0019038588553924119,
+          -7.415890251249157e-19
+        ],
+        [
+          -4.459896288944523e-20,
+          -7.415890251249157e-19,
+          0.0019038588707275103
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 5.9412293639815594e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.5503419193829e-08,
+      "minimum_quadrature_mass": 6.337622823949961e-28,
+      "maximum_quadrature_mass": 0.032236226842535215,
+      "inverse_squared_mass_sum": 86.67072521008049,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -50.2646609542786,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 66.0887103184519,
+        "chosen_optimality": 2.1165647012821864e-10,
+        "chosen_status": 1,
+        "chosen_success": true,
+        "chosen_nfev": 2,
+        "starts_cost": [
+          66.0887103184519,
+          66.0887103184519
+        ],
+        "starts_nfev": [
+          2,
+          2
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 63.32827250229208,
+      "prior_rpy_proxy_deg_reference_only": [
+        68.65475077941954,
+        -37.00715832618258,
+        30.728688955659166
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 50.71601718221683,
+      "posterior_rpy_proxy_deg_reference_only": [
+        51.11139375620462,
+        -33.486936832288485,
+        26.11609835786006
+      ]
+    },
+    {
+      "acquisition_index": 5,
+      "time": 5.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 5,
+      "log_predictive_evidence": -9.30934186678899,
+      "innovation_rad_s": [
+        -0.42658758143187603,
+        -0.06707127196704776,
+        -0.24901678092009538
+      ],
+      "prior_omega_mean_rad_s": [
+        0.2747812129554499,
+        0.5264393826827205,
+        1.5108496239823117
+      ],
+      "posterior_omega_mean_rad_s": [
+        0.2036832157948794,
+        0.5152626449674939,
+        1.4693448916409941
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0015230870989335263,
+          -4.340161928238387e-19,
+          -1.4623956332649602e-19
+        ],
+        [
+          -4.340161928238387e-19,
+          0.0015230870989336,
+          4.733076583199535e-19
+        ],
+        [
+          -1.4623956332649602e-19,
+          4.733076583199535e-19,
+          0.0015230870989336005
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0012692392491113068,
+          2.5682398074707994e-19,
+          7.069713115158369e-19
+        ],
+        [
+          2.5682398074707994e-19,
+          0.0012692392491113426,
+          2.176349055009811e-20
+        ],
+        [
+          7.069713115158369e-19,
+          2.176349055009811e-20,
+          0.001269239249111309
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.27478112881628247,
+        0.5264415518178591,
+        1.5108473013503412
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0015230859775260347,
+          4.3071754915738186e-19,
+          1.0790704980461492e-19
+        ],
+        [
+          4.3071754915738186e-19,
+          0.001523087098932783,
+          3.4371632862628235e-20
+        ],
+        [
+          1.0790704980461492e-19,
+          3.4371632862628235e-20,
+          0.001523087096579542
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 2.3226319705305087e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.1214074916061911e-09,
+      "minimum_quadrature_mass": 6.337622828090654e-28,
+      "maximum_quadrature_mass": 0.032236226842047556,
+      "inverse_squared_mass_sum": 86.67072521137916,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -59.57400283368553,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 79.684121420874,
+        "chosen_optimality": 1.5364030048203858e-09,
+        "chosen_status": 3,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          79.684121420874,
+          79.68412142087402
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 56.32791227049434,
+      "prior_rpy_proxy_deg_reference_only": [
+        24.801742025900154,
+        -53.028345716695576,
+        19.432354826968357
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 41.90346260479342,
+      "posterior_rpy_proxy_deg_reference_only": [
+        10.245448747011725,
+        -46.40799381919005,
+        14.116879983516005
+      ]
+    },
+    {
+      "acquisition_index": 6,
+      "time": 6.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 6,
+      "log_predictive_evidence": -32.25364519981483,
+      "innovation_rad_s": [
+        -0.41665530233652626,
+        -0.6838677044550892,
+        0.09358155945002844
+      ],
+      "prior_omega_mean_rad_s": [
+        1.1964428843041892,
+        3.2276831459432223,
+        -0.6434018366296228
+      ],
+      "posterior_omega_mean_rad_s": [
+        1.1369217360904897,
+        3.1299894876920242,
+        -0.6300327083977638
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.001269239249111297,
+          2.0153454327027112e-19,
+          7.009510166057613e-19
+        ],
+        [
+          2.0153454327027112e-19,
+          0.0012692392491113732,
+          3.194666623468701e-20
+        ],
+        [
+          7.009510166057613e-19,
+          3.194666623468701e-20,
+          0.0012692392491113098
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0010879193563810654,
+          -1.285356483625046e-18,
+          4.561172183133382e-19
+        ],
+        [
+          -1.285356483625046e-18,
+          0.0010879193563811207,
+          3.700801801611882e-19
+        ],
+        [
+          4.561172183133382e-19,
+          3.700801801611882e-19,
+          0.0010879193563810975
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        1.1964440947438177,
+        3.227684456693277,
+        -0.6434014469341214
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0012692391396057253,
+          7.735799836539872e-20,
+          9.800545544649522e-20
+        ],
+        [
+          7.735799836539872e-20,
+          0.0012690924666691277,
+          3.4391886170765185e-19
+        ],
+        [
+          9.800545544649522e-20,
+          3.4391886170765185e-19,
+          0.0012692392491109846
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 1.310750054717147e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.4678244224545708e-07,
+      "minimum_quadrature_mass": 6.337622819159058e-28,
+      "maximum_quadrature_mass": 0.03223622684270334,
+      "inverse_squared_mass_sum": 86.67072520963458,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -91.82765124123684,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 116.26609536689044,
+        "chosen_optimality": 4.466443215278559e-09,
+        "chosen_status": 4,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          116.26609536689045,
+          116.26609536689044
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 29.748002303774363,
+      "prior_rpy_proxy_deg_reference_only": [
+        -4.652975932204877,
+        17.039247977581358,
+        46.052916055269954
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 21.50398896393949,
+      "posterior_rpy_proxy_deg_reference_only": [
+        -30.546232511421362,
+        4.193213465659898,
+        26.62325089246349
+      ]
+    },
+    {
+      "acquisition_index": 7,
+      "time": 7.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 7,
+      "log_predictive_evidence": -74.56943313220953,
+      "innovation_rad_s": [
+        -0.15341064780022595,
+        -1.1565917103173775,
+        -0.11291059431011863
+      ],
+      "prior_omega_mean_rad_s": [
+        1.59582634160546,
+        0.7526743220563173,
+        1.0992120855088916
+      ],
+      "posterior_omega_mean_rad_s": [
+        1.576651265531296,
+        0.6080975049983182,
+        1.0850981931736559
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0010879193563810268,
+          -1.2940190738717318e-18,
+          4.588494502886367e-19
+        ],
+        [
+          -1.2940190738717318e-18,
+          0.001087919356381115,
+          3.699285569502568e-19
+        ],
+        [
+          4.588494502886367e-19,
+          3.699285569502568e-19,
+          0.0010879193563810977
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0009519294368334282,
+          -6.486047802385261e-19,
+          8.206055589504009e-19
+        ],
+        [
+          -6.486047802385261e-19,
+          0.0009519294368334162,
+          -8.509349050549489e-19
+        ],
+        [
+          8.206055589504009e-19,
+          -8.509349050549489e-19,
+          0.0009519294368334559
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        1.5958277757778674,
+        0.752064811851207,
+        1.0992120077415077
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.001087919356380514,
+          -2.953449107670707e-20,
+          -2.1026397430666391e-19
+        ],
+        [
+          -2.953449107670707e-20,
+          0.001026965703966858,
+          4.57514704020383e-19
+        ],
+        [
+          -2.1026397430666391e-19,
+          4.57514704020383e-19,
+          0.001087919356381011
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.0006095102051103529,
+      "regridded_prior_covariance_max_difference_rad2_s2": 6.095365241425704e-05,
+      "minimum_quadrature_mass": 6.3376228175565665e-28,
+      "maximum_quadrature_mass": 0.03223622684307898,
+      "inverse_squared_mass_sum": 86.67072520863367,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -166.40237777883954,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 195.20007637376247,
+        "chosen_optimality": 1.9939321305173507e-09,
+        "chosen_status": 4,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          195.20007637376247,
+          195.20007637376256
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 75.32031100990966,
+      "prior_rpy_proxy_deg_reference_only": [
+        92.0340653628253,
+        45.07510718404758,
+        17.6079075331952
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 53.88478292539914,
+      "posterior_rpy_proxy_deg_reference_only": [
+        80.99374452590489,
+        2.2906756017534957,
+        -4.414373216956988
+      ]
+    },
+    {
+      "acquisition_index": 8,
+      "time": 8.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 8,
+      "log_predictive_evidence": -66.16581517269341,
+      "innovation_rad_s": [
+        1.048930037600637,
+        0.24677989979053327,
+        0.21835836477795056
+      ],
+      "prior_omega_mean_rad_s": [
+        0.6088292924981309,
+        0.7060625307623067,
+        -0.5851546943535905
+      ],
+      "posterior_omega_mean_rad_s": [
+        0.7253751927928214,
+        0.7334833866628122,
+        -0.5608930615567658
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0009519294368334596,
+          -6.185158171118787e-19,
+          8.249317795344962e-19
+        ],
+        [
+          -6.185158171118787e-19,
+          0.0009519294368334084,
+          -8.44542703158188e-19
+        ],
+        [
+          8.249317795344962e-19,
+          -8.44542703158188e-19,
+          0.0009519294368334539
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0008461594994075346,
+          4.388945696274262e-19,
+          -1.2159001182944198e-19
+        ],
+        [
+          4.388945696274262e-19,
+          0.0008461594994075082,
+          -5.658203220241894e-19
+        ],
+        [
+          -1.2159001182944198e-19,
+          -5.658203220241894e-19,
+          0.0008461594994075396
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.6088790100196881,
+        0.7060635061765775,
+        -0.5851551530543978
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0009452357364211064,
+          5.42995668884113e-19,
+          -1.1456225419089726e-19
+        ],
+        [
+          5.42995668884113e-19,
+          0.0009519294368272571,
+          -8.036893791148087e-20
+        ],
+        [
+          -1.1456225419089726e-19,
+          -8.036893791148087e-20,
+          0.0009519294368316076
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 4.9717521557246513e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 6.693700412353223e-06,
+      "minimum_quadrature_mass": 6.337622819354045e-28,
+      "maximum_quadrature_mass": 0.03223622684274823,
+      "inverse_squared_mass_sum": 86.67072520951359,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -232.56856035380068,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 265.7491359534452,
+        "chosen_optimality": 4.69829330995708e-09,
+        "chosen_status": 4,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          265.74913595344526,
+          265.7491359534452
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 70.31978442403367,
+      "prior_rpy_proxy_deg_reference_only": [
+        83.39210569729468,
+        8.25612396355414,
+        -2.094422634452906
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 104.98960951055136,
+      "posterior_rpy_proxy_deg_reference_only": [
+        104.458907447025,
+        5.1384055488141245,
+        33.84689070453368
+      ]
+    },
+    {
+      "acquisition_index": 9,
+      "time": 9.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 9,
+      "log_predictive_evidence": -241.40414057559892,
+      "innovation_rad_s": [
+        0.42664136780275874,
+        -1.9918318325634539,
+        0.1564971070021991
+      ],
+      "prior_omega_mean_rad_s": [
+        -1.8175918501940405,
+        2.363221757777678,
+        -0.6695901734206738
+      ],
+      "posterior_omega_mean_rad_s": [
+        -1.7749288565998733,
+        2.1640387914146735,
+        -0.6539407190503854
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.000846159499407507,
+          4.4443764399269445e-19,
+          -1.2240275412314453e-19
+        ],
+        [
+          4.4443764399269445e-19,
+          0.0008461594994074974,
+          -5.664385632324106e-19
+        ],
+        [
+          -1.2240275412314453e-19,
+          -5.664385632324106e-19,
+          0.0008461594994075332
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0007615435494667868,
+          1.9287868575726818e-19,
+          -1.507157615151706e-18
+        ],
+        [
+          1.9287868575726818e-19,
+          0.0007615435494667071,
+          2.6149021582305328e-18
+        ],
+        [
+          -1.507157615151706e-18,
+          2.6149021582305328e-18,
+          0.0007615435494667755
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        -1.8175931203966686,
+        2.3340948853884593,
+        -0.6695904582317075
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0008461594981687941,
+          5.248659309326913e-19,
+          -3.122138029505423e-19
+        ],
+        [
+          5.248659309326913e-19,
+          0.0001748703171348858,
+          4.0360832878313746e-19
+        ],
+        [
+          -3.122138029505423e-19,
+          4.0360832878313746e-19,
+          0.0008461594994075204
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.02912687238921885,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.0006712891822726117,
+      "minimum_quadrature_mass": 6.337622824295083e-28,
+      "maximum_quadrature_mass": 0.03223622684167535,
+      "inverse_squared_mass_sum": 86.67072521237807,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -474.8055607706502,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 512.3876471550141,
+        "chosen_optimality": 7.064450358029717e-09,
+        "chosen_status": 3,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          512.3876471550142,
+          512.3876471550141
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 90.68953122945042,
+      "prior_rpy_proxy_deg_reference_only": [
+        3.246768125496837,
+        -15.78939180972375,
+        137.47239105992475
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 72.1883995830851,
+      "posterior_rpy_proxy_deg_reference_only": [
+        -56.80557213462682,
+        1.4803334021087813,
+        118.57059387668126
+      ]
+    },
+    {
+      "acquisition_index": 10,
+      "time": 10.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 10,
+      "log_predictive_evidence": -495.0106161151872,
+      "innovation_rad_s": [
+        -0.00725850791888627,
+        -2.8385244557378404,
+        0.6414890708441607
+      ],
+      "prior_omega_mean_rad_s": [
+        -2.1413649745455534,
+        0.4105194042577193,
+        -0.7486750916885381
+      ],
+      "posterior_omega_mean_rad_s": [
+        -2.142025085813232,
+        0.15247001048843556,
+        -0.6903578602778837
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.000761543549466793,
+          1.6509561979587737e-19,
+          -1.512552672960595e-18
+        ],
+        [
+          1.6509561979587737e-19,
+          0.000761543549466705,
+          2.6146451427973973e-18
+        ],
+        [
+          -1.512552672960595e-18,
+          2.6146451427973973e-18,
+          0.0007615435494667774
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0006923123176970542,
+          -1.6716804627824506e-18,
+          6.087140709276411e-18
+        ],
+        [
+          -1.6716804627824506e-18,
+          0.0006923123176970682,
+          1.4148891837365922e-18
+        ],
+        [
+          6.087140709276411e-18,
+          1.4148891837365922e-18,
+          0.0006923123176970575
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        -2.1413652461481014,
+        0.31958478272656743,
+        -0.7486750432488354
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.000761543549466761,
+          2.704222734376013e-20,
+          2.191049653645493e-18
+        ],
+        [
+          2.704222734376013e-20,
+          1.0294796275366207e-05,
+          -2.364241739701553e-20
+        ],
+        [
+          2.191049653645493e-18,
+          -2.364241739701553e-20,
+          0.0007615433239171172
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.0909346215311519,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.0007512487531913389,
+      "minimum_quadrature_mass": 6.337622811690941e-28,
+      "maximum_quadrature_mass": 0.0322362268440355,
+      "inverse_squared_mass_sum": 86.67072520608806,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -975.8678096608998,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 1017.8664823337634,
+        "chosen_optimality": 9.014229362946935e-09,
+        "chosen_status": 4,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          1017.8664823337635,
+          1017.8664823337634
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 70.36683678075293,
+      "prior_rpy_proxy_deg_reference_only": [
+        -72.77432136855003,
+        39.91035675247102,
+        -2.681951681252206
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 79.340096033671,
+      "posterior_rpy_proxy_deg_reference_only": [
+        -57.55283681772436,
+        -54.62884895338966,
+        -5.663122297275948
+      ]
+    },
+    {
+      "acquisition_index": 11,
+      "time": 11.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 11,
+      "log_predictive_evidence": -269.81968142925916,
+      "innovation_rad_s": [
+        0.08580577692429792,
+        -2.122174073374522,
+        -0.23819000203111296
+      ],
+      "prior_omega_mean_rad_s": [
+        0.6798924602460168,
+        0.8325338061947665,
+        -2.54750944528474
+      ],
+      "posterior_omega_mean_rad_s": [
+        0.6870440828557048,
+        0.6556864320980688,
+        -2.5673593881377306
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0006923123176970372,
+          -1.6701828600907807e-18,
+          6.082196210872264e-18
+        ],
+        [
+          -1.6701828600907807e-18,
+          0.0006923123176970646,
+          1.4155722236538974e-18
+        ],
+        [
+          6.082196210872264e-18,
+          1.4155722236538974e-18,
+          0.0006923123176970452
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0006346196245556836,
+          1.7052700471146728e-18,
+          -4.2330556964842735e-19
+        ],
+        [
+          1.7052700471146728e-18,
+          0.000634619624555689,
+          -2.2035270531413273e-18
+        ],
+        [
+          -4.2330556964842735e-19,
+          -2.2035270531413273e-18,
+          0.0006346196245556642
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.6798937051907386,
+        0.8099554691799973,
+        -2.5475102918488135
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0006923123176970866,
+          1.0742745709072076e-18,
+          -3.237745012021757e-18
+        ],
+        [
+          1.0742745709072076e-18,
+          0.00017123666015055421,
+          4.4326984436204026e-18
+        ],
+        [
+          -3.237745012021757e-18,
+          4.4326984436204026e-18,
+          0.0006923123176970324
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.02257833701476919,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.0005210756575465104,
+      "minimum_quadrature_mass": 6.337622817641586e-28,
+      "maximum_quadrature_mass": 0.03223622684192822,
+      "inverse_squared_mass_sum": 86.67072521169892,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -1246.3460994530683,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 1292.7738066186532,
+        "chosen_optimality": 8.135074835990963e-09,
+        "chosen_status": 3,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          1292.7738066186537,
+          1292.7738066186532
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 71.19120552333457,
+      "prior_rpy_proxy_deg_reference_only": [
+        -7.3600268143137955,
+        31.558757905816037,
+        -85.14577281030228
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 59.50464202497931,
+      "posterior_rpy_proxy_deg_reference_only": [
+        51.36399132061565,
+        -5.593374679650399,
+        -69.97437915897196
+      ]
+    },
+    {
+      "acquisition_index": 12,
+      "time": 12.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 12,
+      "log_predictive_evidence": -1165.0195169555655,
+      "innovation_rad_s": [
+        -0.005783309980335272,
+        -4.436414837081608,
+        -0.2847419519541241
+      ],
+      "prior_omega_mean_rad_s": [
+        1.6067195374162964,
+        4.965575743785602,
+        0.7614582674822352
+      ],
+      "posterior_omega_mean_rad_s": [
+        1.6062760889848384,
+        4.624315866670025,
+        0.7395556584775806
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0006346196245556884,
+          1.7108161148469515e-18,
+          -4.219389426225931e-19
+        ],
+        [
+          1.7108161148469515e-18,
+          0.0006346196245556931,
+          -2.200631301876823e-18
+        ],
+        [
+          -4.219389426225931e-19,
+          -2.200631301876823e-18,
+          0.000634619624555691
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0005858027303590953,
+          3.1623404791455826e-18,
+          9.163334157924185e-18
+        ],
+        [
+          3.1623404791455826e-18,
+          0.0005858027303590303,
+          4.2106918138976925e-18
+        ],
+        [
+          9.163334157924185e-18,
+          4.2106918138976925e-18,
+          0.0005858027303590225
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        1.6067210774472485,
+        4.778342082720533,
+        0.7614589370567063
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0006346196245556648,
+          3.7199535822650543e-22,
+          -3.903196667415249e-18
+        ],
+        [
+          3.7199535822650543e-22,
+          7.723998894394893e-08,
+          2.239442895676048e-21
+        ],
+        [
+          -3.903196667415249e-18,
+          2.239442895676048e-21,
+          0.0006346196245555202
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.18723366106506933,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.0006345423845667491,
+      "minimum_quadrature_mass": 6.337622812390551e-28,
+      "maximum_quadrature_mass": 0.032236226842170104,
+      "inverse_squared_mass_sum": 86.67072521108481,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -2439.6510564425907,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 2490.518251104872,
+        "chosen_optimality": 2.4935502551670652e-08,
+        "chosen_status": 3,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          2490.518251104872,
+          2490.518251104872
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 106.10412062554207,
+      "prior_rpy_proxy_deg_reference_only": [
+        80.0312545331944,
+        6.090343924082384,
+        80.70747162548959
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 45.54709516667879,
+      "posterior_rpy_proxy_deg_reference_only": [
+        -16.682686609715073,
+        -28.048709111074597,
+        -12.704949826712369
+      ]
+    },
+    {
+      "acquisition_index": 13,
+      "time": 13.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 13,
+      "log_predictive_evidence": -735.026311179663,
+      "innovation_rad_s": [
+        0.19258890521432298,
+        -3.2842359184910244,
+        -1.1918939356249345
+      ],
+      "prior_omega_mean_rad_s": [
+        0.40823754943038887,
+        4.356405262597149,
+        0.23067825078999357
+      ],
+      "posterior_omega_mean_rad_s": [
+        0.42199329019296344,
+        4.121815573450581,
+        0.14554212781704698
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0005858027303590911,
+          3.1717141583986367e-18,
+          9.163558744371417e-18
+        ],
+        [
+          3.1717141583986367e-18,
+          0.0005858027303590564,
+          4.213159048530587e-18
+        ],
+        [
+          9.163558744371417e-18,
+          4.213159048530587e-18,
+          0.0005858027303590244
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0005439596781905366,
+          4.2076097433407275e-18,
+          -4.1608988537267975e-18
+        ],
+        [
+          4.2076097433407275e-18,
+          0.0005439596781904793,
+          3.56410885212436e-18
+        ],
+        [
+          -4.1608988537267975e-18,
+          3.56410885212436e-18,
+          0.0005439596781904813
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.4082368929274402,
+        4.270037477688443,
+        0.23067200784801217
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0005858027303590826,
+          -7.128417941907792e-20,
+          7.624135591876438e-19
+        ],
+        [
+          -7.128417941907792e-20,
+          5.6009192663691025e-06,
+          -3.0270919010990035e-20
+        ],
+        [
+          7.624135591876438e-19,
+          -3.0270919010990035e-20,
+          0.000585137303140716
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.08636778490870611,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.0005802018110926873,
+      "minimum_quadrature_mass": 6.337622790106793e-28,
+      "maximum_quadrature_mass": 0.032236226841583726,
+      "inverse_squared_mass_sum": 86.67072521262648,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -3181.668931786183,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 3236.984516048439,
+        "chosen_optimality": 2.225937123512267e-08,
+        "chosen_status": 4,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          3236.9845160484397,
+          3236.984516048439
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 152.82810429647662,
+      "prior_rpy_proxy_deg_reference_only": [
+        167.92702694318538,
+        40.57033243021432,
+        194.64472059973983
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 158.81616584604572,
+      "posterior_rpy_proxy_deg_reference_only": [
+        214.8717841123528,
+        47.55956993296819,
+        163.4465981469094
+      ]
+    },
+    {
+      "acquisition_index": 14,
+      "time": 14.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 14,
+      "log_predictive_evidence": -285.7345279670635,
+      "innovation_rad_s": [
+        -0.3842208317470358,
+        -2.0836712660043255,
+        -0.49917224947920613
+      ],
+      "prior_omega_mean_rad_s": [
+        -0.21227221043217293,
+        0.6224589718313761,
+        -1.4543792187794211
+      ],
+      "posterior_omega_mean_rad_s": [
+        -0.23788833047815997,
+        0.4835453998164441,
+        -1.4876570365967008
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0005439596781905414,
+          4.197942910580794e-18,
+          -4.164741547146467e-18
+        ],
+        [
+          4.197942910580794e-18,
+          0.0005439596781904696,
+          3.558835153563694e-18
+        ],
+        [
+          -4.164741547146467e-18,
+          3.558835153563694e-18,
+          0.0005439596781904849
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0005076956996444866,
+          -3.699366682551283e-18,
+          2.2482320040882795e-17
+        ],
+        [
+          -3.699366682551283e-18,
+          0.000507695699644977,
+          -4.220073788728198e-18
+        ],
+        [
+          2.2482320040882795e-17,
+          -4.220073788728198e-18,
+          0.0005076956996444346
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        -0.21227370821379896,
+        0.614540239671463,
+        -1.4543788629067471
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.000543959678189634,
+          7.910424686266971e-18,
+          1.4905957459158766e-17
+        ],
+        [
+          7.910424686266971e-18,
+          0.00028069156987495545,
+          1.1994136514459908e-17
+        ],
+        [
+          1.4905957459158766e-17,
+          1.1994136514459908e-17,
+          0.0005439596781385731
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 0.007918732159913122,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.00026326810831551415,
+      "minimum_quadrature_mass": 6.337622811577822e-28,
+      "maximum_quadrature_mass": 0.03223622684296171,
+      "inverse_squared_mass_sum": 86.67072520900288,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -3467.5820704399025,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 3527.3537169531355,
+        "chosen_optimality": 3.480661803223484e-08,
+        "chosen_status": 4,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          3527.3537169531355,
+          3527.3537169531355
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 125.56761291665043,
+      "prior_rpy_proxy_deg_reference_only": [
+        273.0534596033239,
+        1.4443340264378386,
+        -4.3065359043390075
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 129.63140732978016,
+      "posterior_rpy_proxy_deg_reference_only": [
+        264.731511567735,
+        15.226265148341557,
+        -18.493576796630013
+      ]
+    },
+    {
+      "acquisition_index": 15,
+      "time": 15.000000000000002,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 15,
+      "log_predictive_evidence": -50.99643895482541,
+      "innovation_rad_s": [
+        0.01634888014225888,
+        -0.9273353500083787,
+        -0.20202570951530124
+      ],
+      "prior_omega_mean_rad_s": [
+        -0.8789622303357154,
+        0.008599511386489832,
+        -0.1807179606735111
+      ],
+      "posterior_omega_mean_rad_s": [
+        -0.8779397362660658,
+        -0.04937085199598537,
+        -0.19335504486268879
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0005076956996444854,
+          -3.719903557885065e-18,
+          2.2482226249814184e-17
+        ],
+        [
+          -3.719903557885065e-18,
+          0.0005076956996449624,
+          -4.2213835430968896e-18
+        ],
+        [
+          2.2482226249814184e-17,
+          -4.2213835430968896e-18,
+          0.0005076956996444421
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.00047596471841674466,
+          8.947917299593985e-18,
+          3.7894532505210055e-18
+        ],
+        [
+          8.947917299593985e-18,
+          0.00047596471841640785,
+          3.3196503762527345e-18
+        ],
+        [
+          3.7894532505210055e-18,
+          3.3196503762527345e-18,
+          0.0004759647184167157
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        -0.8789614953375723,
+        0.008586804644229805,
+        -0.1807291365076155
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0005076956996445119,
+          -7.62279167617927e-18,
+          -1.38743323574103e-17
+        ],
+        [
+          -7.62279167617927e-18,
+          0.0005076941078223063,
+          -9.131905430542857e-18
+        ],
+        [
+          -1.38743323574103e-17,
+          -9.131905430542857e-18,
+          0.0005076956996443775
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 1.2706742260027229e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.5918226561103394e-09,
+      "minimum_quadrature_mass": 6.337622784867287e-28,
+      "maximum_quadrature_mass": 0.03223622684464753,
+      "inverse_squared_mass_sum": 86.67072520448355,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -3518.5785094447233,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 3582.8128997344547,
+        "chosen_optimality": 9.587438398739323e-09,
+        "chosen_status": 3,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          3582.8128997344547,
+          3582.8128997344547
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 118.29099714387661,
+      "prior_rpy_proxy_deg_reference_only": [
+        291.92178440433156,
+        -29.099272325077504,
+        -56.19054911930497
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 114.61248511060545,
+      "posterior_rpy_proxy_deg_reference_only": [
+        289.75433765905944,
+        -19.393543886261597,
+        -53.07577107710407
+      ]
+    },
+    {
+      "acquisition_index": 16,
+      "time": 16.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 16,
+      "log_predictive_evidence": -34.424924205924526,
+      "innovation_rad_s": [
+        0.708781172000122,
+        -0.34946011137311817,
+        0.070091433205131
+      ],
+      "prior_omega_mean_rad_s": [
+        -1.2929315509655726,
+        1.712985851715532,
+        -2.1454957034065627
+      ],
+      "posterior_omega_mean_rad_s": [
+        -1.251238344118848,
+        1.6924304110932735,
+        -2.1413725109458515
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.000475964718416744,
+          8.955392823726878e-18,
+          3.789098096937891e-18
+        ],
+        [
+          8.955392823726878e-18,
+          0.0004759647184164122,
+          3.321144276901192e-18
+        ],
+        [
+          3.789098096937891e-18,
+          3.321144276901192e-18,
+          0.0004759647184167301
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.00044796679380399904,
+          -1.6386114611235122e-17,
+          8.294935038945111e-18
+        ],
+        [
+          -1.6386114611235122e-17,
+          0.0004479667938035476,
+          -5.643335899906095e-18
+        ],
+        [
+          8.294935038945111e-18,
+          -5.643335899906095e-18,
+          0.0004479667938038933
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        -1.2929313419204453,
+        1.7129869530151745,
+        -2.1454955259923754
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.00047596471387317346,
+          1.5133295703852145e-17,
+          -5.250886236446756e-18
+        ],
+        [
+          1.5133295703852145e-17,
+          0.0004759647184162816,
+          5.84671391089989e-20
+        ],
+        [
+          -5.250886236446756e-18,
+          5.84671391089989e-20,
+          0.0004759647184166829
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 1.101299642369824e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.543570543674019e-12,
+      "minimum_quadrature_mass": 6.337622805851254e-28,
+      "maximum_quadrature_mass": 0.03223622684353342,
+      "inverse_squared_mass_sum": 86.67072520741978,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -3553.0034336507365,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 3621.7064385659487,
+        "chosen_optimality": 6.030539623225195e-09,
+        "chosen_status": 3,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          3621.7064385659487,
+          3621.70643856595
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 138.47852792303993,
+      "prior_rpy_proxy_deg_reference_only": [
+        219.35516338202115,
+        -47.83827813732277,
+        -99.84388426567696
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 133.4064881265935,
+      "posterior_rpy_proxy_deg_reference_only": [
+        216.09001707272338,
+        -33.78198996363676,
+        -100.42181808074557
+      ]
+    },
+    {
+      "acquisition_index": 17,
+      "time": 17.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 17,
+      "log_predictive_evidence": -5.316655673519563,
+      "innovation_rad_s": [
+        -0.3198749237237812,
+        -0.13586356245771414,
+        0.19263985339204165
+      ],
+      "prior_omega_mean_rad_s": [
+        0.13219959418186222,
+        -0.6658457676659842,
+        -0.3078637456966927
+      ],
+      "posterior_omega_mean_rad_s": [
+        0.11442892042748676,
+        -0.6733947537222974,
+        -0.29716199259704423
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.0004479667938039995,
+          -1.640546614996588e-17,
+          8.29559938368123e-18
+        ],
+        [
+          -1.640546614996588e-17,
+          0.0004479667938035439,
+          -5.6417453085313464e-18
+        ],
+        [
+          8.29559938368123e-18,
+          -5.6417453085313464e-18,
+          0.00044796679380388834
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.0004230797497038063,
+          3.6799167179744153e-19,
+          1.3709248316171189e-18
+        ],
+        [
+          3.6799167179744153e-19,
+          0.00042307974970315354,
+          -8.950260989762789e-18
+        ],
+        [
+          1.3709248316171189e-18,
+          -8.950260989762789e-18,
+          0.00042307974970364967
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.13219975866098296,
+        -0.6658468374634059,
+        -0.3078642337907146
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.0004479667938040186,
+          -8.421716064612118e-18,
+          -4.719848825928182e-18
+        ],
+        [
+          -8.421716064612118e-18,
+          0.00044796679380319305,
+          -7.5787964167427e-18
+        ],
+        [
+          -4.719848825928182e-18,
+          -7.5787964167427e-18,
+          0.00044796679380390287
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 1.0697974216489214e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 3.5084782301630923e-16,
+      "minimum_quadrature_mass": 6.337622819468785e-28,
+      "maximum_quadrature_mass": 0.032236226842551244,
+      "inverse_squared_mass_sum": 86.67072521001721,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -3558.320089324255,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 3631.4969081769136,
+        "chosen_optimality": 7.851433281302889e-09,
+        "chosen_status": 4,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          3631.4969081769136,
+          3631.4969081769145
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 156.6150435023144,
+      "prior_rpy_proxy_deg_reference_only": [
+        227.69476717468888,
+        -8.130044935507804,
+        -150.9476457191504
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 160.35056725942144,
+      "posterior_rpy_proxy_deg_reference_only": [
+        228.19732459943364,
+        -13.30351473256973,
+        -149.7957873189038
+      ]
+    },
+    {
+      "acquisition_index": 18,
+      "time": 18.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 18,
+      "log_predictive_evidence": -8.186764134184159,
+      "innovation_rad_s": [
+        -0.3456398734404921,
+        0.05187298057455064,
+        0.28541394244558815
+      ],
+      "prior_omega_mean_rad_s": [
+        0.8825616925590024,
+        0.31493921362897476,
+        -1.2501554303730509
+      ],
+      "posterior_omega_mean_rad_s": [
+        0.8643706068976836,
+        0.31766998602842667,
+        -1.2351334962428255
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.00042307974970378704,
+          3.669753649145362e-19,
+          1.3708533869826762e-18
+        ],
+        [
+          3.669753649145362e-19,
+          0.00042307974970315197,
+          -8.948851630457735e-18
+        ],
+        [
+          1.3708533869826762e-18,
+          -8.948851630457735e-18,
+          0.0004230797497036534
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.00040081239445618105,
+          3.497490868503555e-18,
+          1.04060522149206e-17
+        ],
+        [
+          3.497490868503555e-18,
+          0.00040081239445540704,
+          1.085710248871039e-17
+        ],
+        [
+          1.04060522149206e-17,
+          1.085710248871039e-17,
+          0.0004008123944561319
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.8825622062187505,
+        0.3149398633520387,
+        -1.2501552744825706
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.00042307974970375923,
+          -1.7703462828989875e-18,
+          8.377889756888876e-18
+        ],
+        [
+          -1.7703462828989875e-18,
+          0.00042307974970293014,
+          2.839933405284497e-19
+        ],
+        [
+          8.377889756888876e-18,
+          2.839933405284497e-19,
+          0.0004230797497036478
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 6.497230639612717e-07,
+      "regridded_prior_covariance_max_difference_rad2_s2": 2.218277644905342e-16,
+      "minimum_quadrature_mass": 6.337622817765513e-28,
+      "maximum_quadrature_mass": 0.032236226841979534,
+      "inverse_squared_mass_sum": 86.67072521159841,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -3566.5068534584393,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 3644.1621230373985,
+        "chosen_optimality": 3.717744334608142e-09,
+        "chosen_status": 3,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          3644.1621230373985,
+          3644.1621230373994
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 165.41135435323025,
+      "prior_rpy_proxy_deg_reference_only": [
+        290.1487720056516,
+        -25.523779405312244,
+        -110.0012943707285
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 171.0442640585809,
+      "posterior_rpy_proxy_deg_reference_only": [
+        287.5396216939774,
+        -30.751495850105776,
+        -110.7825908820645
+      ]
+    },
+    {
+      "acquisition_index": 19,
+      "time": 19.0,
+      "initialization": false,
+      "likelihood_applications": 1,
+      "target_likelihood_factor_count": 19,
+      "log_predictive_evidence": -130.38637902037635,
+      "innovation_rad_s": [
+        0.6521348212342811,
+        -1.3163964814397575,
+        0.0640773820227567
+      ],
+      "prior_omega_mean_rad_s": [
+        0.5106894915314967,
+        3.097658824691623,
+        -3.0241095735552372
+      ],
+      "posterior_omega_mean_rad_s": [
+        0.5432963230027331,
+        3.0318394625224,
+        -3.0209058755524865
+      ],
+      "prior_omega_covariance_rad2_s2": [
+        [
+          0.000400812394456182,
+          3.507932864655218e-18,
+          1.0407395073055296e-17
+        ],
+        [
+          3.507932864655218e-18,
+          0.0004008123944554073,
+          1.0856839269798284e-17
+        ],
+        [
+          1.0407395073055296e-17,
+          1.0856839269798284e-17,
+          0.0004008123944561376
+        ]
+      ],
+      "posterior_omega_covariance_rad2_s2": [
+        [
+          0.00038077177473340543,
+          -1.6369772626682778e-17,
+          8.104753232725433e-18
+        ],
+        [
+          -1.6369772626682778e-17,
+          0.0003807717747341336,
+          -8.879376623117939e-19
+        ],
+        [
+          8.104753232725433e-18,
+          -8.879376623117939e-19,
+          0.00038077177473330135
+        ]
+      ],
+      "regridded_prior_omega_mean_rad_s": [
+        0.510689586699866,
+        3.0976586052693356,
+        -3.0241097536587755
+      ],
+      "regridded_prior_omega_covariance_rad2_s2": [
+        [
+          0.00040081239434999494,
+          4.746640637071637e-19,
+          -1.9710542544931802e-17
+        ],
+        [
+          4.746640637071637e-19,
+          0.0004007275698647424,
+          1.243537929479911e-17
+        ],
+        [
+          -1.9710542544931802e-17,
+          1.243537929479911e-17,
+          0.00040081239445607464
+        ]
+      ],
+      "regridded_prior_mean_max_difference_rad_s": 2.1942228745075454e-07,
+      "regridded_prior_covariance_max_difference_rad2_s2": 8.482459066492263e-08,
+      "minimum_quadrature_mass": 6.337622801522464e-28,
+      "maximum_quadrature_mass": 0.032236226843929225,
+      "inverse_squared_mass_sum": 86.67072520619253,
+      "zero_mass_from_float_exp_count": 0,
+      "quadrature_concentration_is_not_an_acceptance_gate": true,
+      "full_target_log_normalizer_diagnostic": -3696.893237989622,
+      "proposal": {
+        "placement": "Gaussian importance proposal only; not posterior replacement",
+        "starts": [
+          "previous proposal center",
+          "original first-reading center"
+        ],
+        "chosen_cost": 3779.031119185209,
+        "chosen_optimality": 2.9429060077745817e-08,
+        "chosen_status": 3,
+        "chosen_success": true,
+        "chosen_nfev": 3,
+        "starts_cost": [
+          3779.031119185209,
+          3779.0311191852093
+        ],
+        "starts_nfev": [
+          3,
+          3
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "jacobian": "deterministic central differences (scipy least_squares 3-point)",
+        "covariance": "inverse Gauss-Newton precision for proposal placement only"
+      },
+      "prior_so3_proxy_error_deg_reference_only": 155.3331634532377,
+      "prior_rpy_proxy_deg_reference_only": [
+        283.4781559030698,
+        -33.651351274110596,
+        -167.48433668061944
+      ],
+      "posterior_so3_proxy_error_deg_reference_only": 177.62156631834986,
+      "posterior_rpy_proxy_deg_reference_only": [
+        259.94637279197997,
+        -20.720458039971575,
+        -139.53487887308034
       ]
     }
   ]

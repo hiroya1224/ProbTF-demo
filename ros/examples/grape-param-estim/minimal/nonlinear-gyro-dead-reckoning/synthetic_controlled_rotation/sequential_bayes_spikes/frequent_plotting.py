@@ -19,12 +19,12 @@ from scipy.spatial.transform import Rotation
 
 
 plt.rcParams['path.simplify'] = False
-COLORS = {'white': '#1769aa', 'spike': '#d46b16'}
-LABELS = {'white': 'Bayes: white noise', 'spike': 'Bayes: white + spikes'}
+COLORS = {'nonlinear': '#1769aa', 'linear_forced': '#ba4141'}
+LABELS = {'nonlinear': 'Nonlinear Euler', 'linear_forced': 'No gyroscopic term'}
+STYLES = {'nonlinear': '-', 'linear_forced': '--'}
 RAW = '#738b88'
-WHITE_RAW = '#479daa'
 SPIKE = '#bc2026'
-CASES = ('white', 'spike')
+CASES = ('nonlinear', 'linear_forced')
 
 
 def _sha(path):
@@ -53,11 +53,9 @@ def _settings(source, acquisitions, sensor, cases, metadata):
     intervals = np.diff(np.asarray(acquisitions['time']))
     rate = float(1./np.median(intervals)) if len(intervals) else None
     native_rate = float(1./np.median(np.diff(sensor_time)))
-    covariance = np.asarray(cases['white']['measurement_covariance_rad2_s2'])
+    covariance = np.asarray(cases['nonlinear']['measurement_covariance_rad2_s2'])
     assumed = np.rad2deg(np.sqrt(np.diag(covariance)))
-    truth = _native_truth(source, sensor_time)
-    bias = np.asarray(source.get('gyro_bias_rad_s', np.zeros(3)))
-    white_residual = np.asarray(sensor['gyro_white'])-truth-bias
+    white_residual = np.asarray(source['gyro_realized_noise_rad_s'])
     empirical = np.rad2deg(white_residual.std(axis=0, ddof=1))
     generation_covariance = source.get('generator_gyro_covariance_rad2_s2')
     generated = (np.rad2deg(np.sqrt(np.diag(generation_covariance))).tolist()
@@ -134,7 +132,8 @@ def _mean_legend(names=CASES, raw=True):
     values = [Line2D([], [], color='black', lw=1.8, label='Synthetic truth')]
     if raw:
         values.append(Line2D([], [], color=RAW, lw=.8, label='Raw gyro: every native sample'))
-    values.extend(Line2D([], [], color=COLORS[name], lw=1.7, label=LABELS[name]) for name in names)
+    values.extend(Line2D([], [], color=COLORS[name], ls=STYLES[name], lw=1.7,
+                         label=LABELS[name]) for name in names)
     values.extend((Line2D([], [], color='.25', marker='o', mfc='white', ls='',
                           label='Acquired gyro: clean'),
                    Line2D([], [], color=SPIKE, marker='x', ls='',
@@ -146,16 +145,12 @@ def _comparison(output, source, acquisitions, sensor, cases, settings, names, st
     figure, axes = plt.subplots(2, 3, figsize=(15.5, 9), sharex=True)
     reference_time = np.asarray(source['reference_time'])
     lower, upper = float(reference_time[0]), float(reference_time[-1])
-    raw_name = 'spike' if 'spike' in names else 'white'
-    white_only = raw_name == 'white'
-    contaminated = (np.asarray(acquisitions['spike_mask'], bool)
-                    if raw_name == 'spike' else np.zeros(len(acquisitions['time']), bool))
-    displayed_acquisitions=dict(acquisitions,spike_mask=contaminated)
+    contaminated = np.asarray(acquisitions['spike_mask'], bool)
     for dimension in range(3):
         top, bottom = axes[:, dimension]
         top.plot(reference_time, np.rad2deg(source['reference_rpy_rad'][:, dimension]),
                  color='black', lw=1.9, zorder=5)
-        bottom.plot(sensor['time'], np.rad2deg(sensor['gyro_'+raw_name][:, dimension]),
+        bottom.plot(sensor['time'], np.rad2deg(sensor['gyro_spike'][:, dimension]),
                     color=RAW, lw=.55, alpha=.85, zorder=2)
         bottom.plot(reference_time, np.rad2deg(source['reference_omega_body_rad_s'][:, dimension]),
                     color='black', lw=1.5, zorder=4)
@@ -168,9 +163,14 @@ def _comparison(output, source, acquisitions, sensor, cases, settings, names, st
                 half = _halfwidth(case[cov_key])[:, dimension]
                 axis.fill_between(case['time'], mean-half, mean+half,
                                   color=COLORS[name], alpha=.16, lw=0, zorder=1)
-                axis.plot(case['time'], mean, color=COLORS[name], lw=1.5, zorder=6)
+                axis.plot(case['time'], mean, color=COLORS[name], ls=STYLES[name], lw=1.5, zorder=6)
+                if mean_key=='omega_mean_rad_s':
+                    axis.plot(case['time'],mean-half,color=COLORS[name],ls=STYLES[name],
+                              lw=.65,alpha=.85,zorder=3)
+                    axis.plot(case['time'],mean+half,color=COLORS[name],ls=STYLES[name],
+                              lw=.65,alpha=.85,zorder=3)
         good = ~contaminated
-        observed = np.rad2deg(acquisitions['gyro_'+raw_name][:, dimension])
+        observed = np.rad2deg(acquisitions['gyro_spike'][:, dimension])
         bottom.scatter(acquisitions['time'][good], observed[good],
                        facecolors='white', edgecolors='.2', marker='o', s=24, lw=.8, zorder=8)
         bottom.scatter(acquisitions['time'][contaminated], observed[contaminated],
@@ -182,22 +182,19 @@ def _comparison(output, source, acquisitions, sensor, cases, settings, names, st
             axis.set_ylabel('deg' if row == 0 else 'deg/s', fontsize=11)
             axis.tick_params(labelsize=10)
             axis.grid(alpha=.22)
-            _event_lines(axis, displayed_acquisitions)
+            _event_lines(axis, acquisitions)
             _recovery(axis, settings)
         bottom.set_xlabel('Data time [s]', fontsize=11)
     title = ' / '.join(LABELS[name] for name in names)
-    figure.suptitle(f'{title} — {settings["rate_hz"]:g} Hz updates; '
-                   f'{settings["native_rate_hz"]:g} Hz raw measurements', fontsize=15, y=.993)
+    figure.suptitle(f'{title} — same spiky gyro; {settings["rate_hz"]:g} Hz updates', fontsize=15, y=.993)
     legend=_mean_legend(names)
-    if white_only:legend=legend[:-1]
     figure.legend(handles=legend, loc='upper center',
                   bbox_to_anchor=(.5,.955), ncol=3, frameon=False, fontsize=10)
     figure.text(.035,.015,
         'Raw curve: every native measurement, including white noise and the realized short spikes. '
         'Only the marked acquired samples update the estimator.\n'
-        'Bands: saved +/-2sigma; RPY uses a local moment display approximation, not a guaranteed 95% region.\n'
-        +('White-only control: no spikes are added. Gray area marks the comparison recovery interval.'
-          if white_only else _spike_caption(settings)), fontsize=9.3)
+        'Both models use the same initial law, J, torque, readings and Bayes updates. Only omega cross (J omega) is omitted in the red model.\n'
+        'Bands: saved +/-2sigma; RPY is a local display approximation, not a guaranteed 95% region. '+_spike_caption(settings), fontsize=9.3)
     figure.tight_layout(rect=(0,.085,1,.88))
     return _save(figure, output, stem)
 
@@ -206,7 +203,6 @@ def _raw_sensor(output, source, acquisitions, sensor, settings):
     figure, axes = plt.subplots(3, 2, figsize=(15.5, 9.5))
     time = np.asarray(sensor['time'])
     truth = np.rad2deg(_native_truth(source,time))
-    white = np.rad2deg(sensor['gyro_white'])
     spike = np.rad2deg(sensor['gyro_spike'])
     windows = [(float(time[0]),float(time[-1])),(2.,4.)]
     for dimension in range(3):
@@ -214,9 +210,7 @@ def _raw_sensor(output, source, acquisitions, sensor, settings):
             axis = axes[dimension,column]
             selected = (time>=window[0]) & (time<=window[1])
             axis.plot(time[selected], spike[selected,dimension], color=RAW,lw=.7,
-                      label='Raw white + spikes')
-            axis.plot(time[selected], white[selected,dimension],color=WHITE_RAW,lw=.7,alpha=.8,
-                      label='Raw white only')
+                      label='Shared raw gyro with spikes')
             axis.plot(time[selected],truth[selected,dimension],color='black',lw=1.2,label='Synthetic truth')
             observed = (acquisitions['time']>=window[0])&(acquisitions['time']<=window[1])
             bad = observed & acquisitions['spike_mask']
@@ -234,7 +228,7 @@ def _raw_sensor(output, source, acquisitions, sensor, settings):
         axes[dimension,1].set_title('Fixed zoom: 2–4 s (not selected by results)',fontsize=12)
     handles,labels=axes[0,0].get_legend_handles_labels()
     figure.legend(handles,labels,loc='upper center',bbox_to_anchor=(.5,.953),ncol=3,frameon=False)
-    figure.suptitle('The measurements themselves: raw noisy gyro versus truth',fontsize=16,y=.994)
+    figure.suptitle('The same spiky measurements used by both dynamics models',fontsize=16,y=.994)
     empirical=', '.join(f'{value:.3f}' for value in settings['empirical_white_sigma_xyz_deg_s'])
     figure.text(.04,.015,
         f'Native rate {settings["native_rate_hz"]:g} Hz; every raw point is drawn without averaging or downsampling. '
@@ -245,47 +239,9 @@ def _raw_sensor(output, source, acquisitions, sensor, settings):
     return _save(figure,output,'native_gyro_full_and_zoom')
 
 
-def _noise_components(output,source,acquisitions,sensor,settings):
-    figure,axes=plt.subplots(3,2,figsize=(15.5,9.5))
-    time=np.asarray(sensor['time'])
-    truth=_native_truth(source,time)
-    bias=np.asarray(source.get('gyro_bias_rad_s',np.zeros(3)))
-    white=np.rad2deg(np.asarray(sensor['gyro_white'])-truth-bias)
-    total=np.rad2deg(np.asarray(sensor['gyro_spike'])-truth-bias)
-    spike=np.rad2deg(sensor['spike_vector_rad_s'])
-    generated=settings['generated_white_sigma_xyz_deg_s']
-    for dimension in range(3):
-        left,right=axes[dimension]
-        left.plot(time,white[:,dimension],color=WHITE_RAW,lw=.65)
-        right.plot(time,total[:,dimension],color=RAW,lw=.65,label='White + spike residual')
-        right.plot(time,spike[:,dimension],color=SPIKE,lw=.8,alpha=.8,label='Added spike component')
-        if generated is not None:
-            for value in (-2*generated[dimension],2*generated[dimension]):
-                left.axhline(value,color='.35',ls='--',lw=.9)
-        for axis in (left,right):
-            axis.set_xlim(float(time[0]),float(time[-1]))
-            axis.set_ylabel('xyz'[dimension]+' [deg/s]')
-            axis.grid(alpha=.22)
-            _recovery(axis,settings)
-            if dimension==2:axis.set_xlabel('Data time [s]')
-        left.set_title('White residual: measured − truth − known generator bias',fontsize=11)
-        right.set_title('White + spikes: measured − truth − known generator bias',fontsize=11)
-    handles,labels=axes[0,1].get_legend_handles_labels()
-    figure.legend(handles,labels,loc='upper center',bbox_to_anchor=(.5,.95),ncol=2,frameon=False)
-    figure.suptitle('Noise components — evaluation only, never input to the estimator',fontsize=16,y=.994)
-    empirical=', '.join(f'{v:.3f}' for v in settings['empirical_white_sigma_xyz_deg_s'])
-    assumed=', '.join(f'{v:g}' for v in settings['assumed_sigma_xyz_deg_s'])
-    figure.text(.04,.015,
-        f'Empirical white sigma xyz = ({empirical}) deg/s; assumed measurement sigma xyz = ({assumed}) deg/s.\n'
-        'Dashed horizontal lines on the left: generation +/-2sigma. All residual samples are shown; '
-        'no smoothing, clipping or covariance rescaling.',fontsize=9.5)
-    figure.tight_layout(rect=(0,.07,1,.90))
-    return _save(figure,output,'sensor_noise_components')
-
-
-def _innovations(acquisitions,case,name):
+def _innovations(acquisitions,case):
     stamps=[];values=[]
-    for stamp,observed in zip(acquisitions['time'][1:],acquisitions['gyro_'+name][1:]):
+    for stamp,observed in zip(acquisitions['time'][1:],acquisitions['gyro_spike'][1:]):
         row=np.flatnonzero((case['time']==stamp)&(case['event_side']==-1))
         if not len(row):raise ValueError('Saved pre-observation state is required')
         values.append(np.rad2deg(observed-case['omega_mean_rad_s'][row[0]]))
@@ -299,7 +255,7 @@ def _diagnostics(output,source,acquisitions,cases,settings):
         for name in CASES:
             case=cases[name]
             width=_halfwidth(case['omega_covariance_rad2_s2'])[:,dimension]
-            axis.plot(case['time'],width,color=COLORS[name],lw=1.5)
+            axis.plot(case['time'],width,color=COLORS[name],ls=STYLES[name],lw=1.5)
             for side,filled in ((-1,False),(1,True)):
                 selected=case['event_side']==side
                 axis.scatter(case['time'][selected],width[selected],s=20,
@@ -308,11 +264,11 @@ def _diagnostics(output,source,acquisitions,cases,settings):
         axis.set_ylabel('deg/s')
     for name in CASES:
         case=cases[name]
-        axes[1,0].plot(case['time'],_error(source,case),color=COLORS[name],lw=1.5)
-        stamp,innovation=_innovations(acquisitions,case,name)
+        axes[1,0].plot(case['time'],_error(source,case),color=COLORS[name],ls=STYLES[name],lw=1.5)
+        stamp,innovation=_innovations(acquisitions,case)
         axes[1,1].plot(stamp,np.linalg.norm(innovation,axis=1),marker='o',ls='',ms=4.5,color=COLORS[name])
         axes[1,2].plot(case['time'],np.linalg.norm(case['rotation_omega_covariance_colmajor'],axis=(1,2)),
-                       color=COLORS[name],lw=1.5)
+                       color=COLORS[name],ls=STYLES[name],lw=1.5)
     axes[1,0].set_title('Attitude-center SO(3) error');axes[1,0].set_ylabel('deg')
     axes[1,1].set_title('Acquired gyro innovation norm');axes[1,1].set_ylabel('deg/s')
     axes[1,2].set_title('Rotation/rate cross-covariance norm');axes[1,2].set_ylabel('rad/s')
@@ -320,7 +276,7 @@ def _diagnostics(output,source,acquisitions,cases,settings):
         axis.set_xlim(float(source['reference_time'][0]),float(source['reference_time'][-1]))
         axis.set_xlabel('Data time [s]');axis.grid(alpha=.22)
         _event_lines(axis,acquisitions);_recovery(axis,settings)
-    figure.suptitle('Sequential updates, repeated disturbances and subsequent clean observations',fontsize=15,y=.994)
+    figure.suptitle('Same spiky observations: nonlinear Euler versus no gyroscopic term',fontsize=15,y=.994)
     figure.legend(handles=_mean_legend(raw=False)[1:3],loc='upper center',bbox_to_anchor=(.5,.953),
                   ncol=2,frameon=False)
     figure.text(.04,.015,
@@ -329,6 +285,47 @@ def _diagnostics(output,source,acquisitions,cases,settings):
         fontsize=9.5)
     figure.tight_layout(rect=(0,.07,1,.9))
     return _save(figure,output,'bayes_diagnostics')
+
+
+def _gyro_uncertainty(output,source,acquisitions,cases,settings):
+    """Expose actual saved angular-rate uncertainty without visual rescaling."""
+    figure,axes=plt.subplots(2,3,figsize=(15.5,9),sharex=True)
+    for dimension in range(3):
+        top,bottom=axes[:,dimension]
+        top.axhline(0.,color='black',lw=.8,alpha=.6)
+        for name in CASES:
+            case=cases[name]
+            truth=_reference(source,case['time'],'reference_omega_body_rad_s')[:,dimension]
+            error=np.rad2deg(case['omega_mean_rad_s'][:,dimension]-truth)
+            half=_halfwidth(case['omega_covariance_rad2_s2'])[:,dimension]
+            color,style=COLORS[name],STYLES[name]
+            top.fill_between(case['time'],error-half,error+half,color=color,alpha=.16,lw=0)
+            top.plot(case['time'],error,color=color,ls=style,lw=1.4)
+            top.plot(case['time'],error-half,color=color,ls=style,lw=.65,alpha=.85)
+            top.plot(case['time'],error+half,color=color,ls=style,lw=.65,alpha=.85)
+            bottom.plot(case['time'],half,color=color,ls=style,lw=1.5)
+            for side,filled in ((-1,False),(1,True)):
+                selected=case['event_side']==side
+                bottom.scatter(case['time'][selected],half[selected],s=20,
+                    facecolors=color if filled else 'white',edgecolors=color,zorder=5)
+        top.set_title('omega '+'xyz'[dimension]+' error +/-2sigma',fontsize=12)
+        bottom.set_title('2sigma half-width: omega '+'xyz'[dimension],fontsize=12)
+        top.set_ylabel('mean - truth [deg/s]')
+        bottom.set_ylabel('2sigma [deg/s]')
+        bottom.set_xlabel('Data time [s]')
+        for axis in (top,bottom):
+            axis.set_xlim(float(source['reference_time'][0]),float(source['reference_time'][-1]))
+            axis.grid(alpha=.22)
+            _event_lines(axis,acquisitions);_recovery(axis,settings)
+    figure.suptitle('Angular velocity is estimated: saved full-covariance marginals',fontsize=15,y=.994)
+    figure.legend(handles=_mean_legend(raw=False)[1:3],loc='upper center',
+                  bbox_to_anchor=(.5,.953),ncol=2,frameon=False)
+    figure.text(.04,.015,
+        'Top: estimated rate minus read-only synthetic truth, with the SAME saved +/-2sigma; reference values never return to the filter.\n'
+        'Bottom: 2*sqrt(diag(saved angular-rate covariance)); open markers are priors, filled markers are posteriors. No scaling or clipping.',
+        fontsize=9.5)
+    figure.tight_layout(rect=(0,.07,1,.9))
+    return _save(figure,output,'gyro_uncertainty')
 
 
 def _visible(case,stamp,phase):
@@ -359,11 +356,11 @@ def _movie(output,source,acquisitions,sensor,cases,settings,fps=12):
     width,height=960,540
     figure,axes=plt.subplots(2,3,figsize=(width/100,height/100),dpi=100)
     figure.subplots_adjust(left=.066,right=.985,bottom=.18,top=.81,wspace=.28,hspace=.44)
-    figure.suptitle('Raw noisy gyro and causal Bayes estimates',fontsize=14,y=.986)
+    figure.suptitle('Same spiky gyro: nonlinear Euler vs no gyroscopic term',fontsize=14,y=.986)
     handles=_mean_legend()
     figure.legend(handles=handles,loc='upper center',bbox_to_anchor=(.5,.945),
                   ncol=3,frameon=False,fontsize=7.8)
-    figure.text(.045,.07,'All native measurements shown; only marked acquisitions update the filter. Bands: saved +/-2sigma.',
+    figure.text(.045,.07,'Same spiky measurements and Bayes updates; only the red model omits omega cross (J omega). Bands: saved +/-2sigma.',
                 fontsize=8)
     empirical=float(np.mean(settings['empirical_white_sigma_xyz_deg_s']))
     assumed=float(np.mean(settings['assumed_sigma_xyz_deg_s']))
@@ -374,7 +371,11 @@ def _movie(output,source,acquisitions,sensor,cases,settings,fps=12):
         fontsize=8)
     clock=figure.text(.045,.013,'',fontsize=9,color='#334b65',animated=True)
     phase_text=figure.text(.98,.013,'',fontsize=9,ha='right',animated=True)
-    dynamic=[clock,phase_text];layers=[];cursors=[]
+    width_texts={
+        'nonlinear':figure.text(.045,.096,'',fontsize=8,color=COLORS['nonlinear'],animated=True),
+        'linear_forced':figure.text(.98,.096,'',fontsize=8,ha='right',
+                                   color=COLORS['linear_forced'],animated=True)}
+    dynamic=[clock,phase_text,*width_texts.values()];layers=[];cursors=[]
     reference_time=np.asarray(source['reference_time'])
     lower,upper=float(reference_time[0]),float(reference_time[-1])
     for dimension in range(3):
@@ -405,11 +406,15 @@ def _movie(output,source,acquisitions,sensor,cases,settings,fps=12):
                 band=PolyCollection([],facecolors=COLORS[name],edgecolors='none',alpha=.17,
                                     animated=True,zorder=1)
                 axis.add_collection(band)
-                line,=axis.plot([],[],color=COLORS[name],lw=1.15,animated=True,zorder=6)
+                line,=axis.plot([],[],color=COLORS[name],ls=STYLES[name],lw=1.15,animated=True,zorder=6)
                 endpoint,=axis.plot([],[],color=COLORS[name],marker='o',ls='',ms=3,animated=True,zorder=8)
                 width_line,=axis.plot([],[],color=COLORS[name],lw=1.,animated=True,zorder=7)
-                dynamic.extend((band,line,endpoint,width_line))
-                layers.append(('case',(band,line,endpoint,width_line),case,mean,half))
+                lower_edge,=axis.plot([],[],color=COLORS[name],ls=STYLES[name],lw=.55,
+                                     alpha=.85,animated=True,zorder=3)
+                upper_edge,=axis.plot([],[],color=COLORS[name],ls=STYLES[name],lw=.55,
+                                     alpha=.85,animated=True,zorder=3)
+                dynamic.extend((band,line,endpoint,width_line,lower_edge,upper_edge))
+                layers.append(('case',(band,line,endpoint,width_line,lower_edge,upper_edge),case,mean,half))
             low=min(float(np.min(x)) for x in limits);high=max(float(np.max(x)) for x in limits)
             margin=.07*(high-low) if high!=low else 1.
             axis.set_ylim(low-margin,high+margin);axis.set_xlim(lower,upper)
@@ -440,16 +445,24 @@ def _movie(output,source,acquisitions,sensor,cases,settings,fps=12):
                     if kind=='observation' and phase=='prior':selected &= time<stamp
                     line.set_data(time[selected],value[selected])
                 else:
-                    _,(band,line,endpoint,width_line),case,mean,half=layer
+                    _,(band,line,endpoint,width_line,lower_edge,upper_edge),case,mean,half=layer
                     selected=_visible(case,stamp,phase)
                     time=case['time'][selected];value=mean[selected];uncertainty=half[selected]
                     line.set_data(time,value);endpoint.set_data(time[-1:],value[-1:])
                     width_line.set_data([time[-1],time[-1]],
                                        [value[-1]-uncertainty[-1],value[-1]+uncertainty[-1]])
+                    lower_edge.set_data(time,value-uncertainty)
+                    upper_edge.set_data(time,value+uncertainty)
                     band.set_verts([_band_vertices(time,value,uncertainty)])
+            for name in CASES:
+                visible=_visible(cases[name],stamp,phase)
+                half=_halfwidth(cases[name]['omega_covariance_rad2_s2'][visible][-1:])[0]
+                short='NL' if name=='nonlinear' else 'no gyro term'
+                width_texts[name].set_text('2sigma omega '+short+' xyz = ('+
+                    ', '.join(f'{v:.2f}' for v in half)+') deg/s')
             clock.set_text(f'Data t={stamp:.3f} s  |  {settings["native_rate_hz"]:g} Hz raw / {settings["rate_hz"]:g} Hz update')
             phase_text.set_text({'prior':'Prior: before update','posterior':'After Bayes update',
-                                 'prediction':'Initial posterior' if stamp==lower else 'Nonlinear prediction'}[phase])
+                                 'prediction':'Initial posterior' if stamp==lower else 'Prediction'}[phase])
             for cursor in cursors:cursor.set_xdata([stamp,stamp])
             for artist in dynamic:figure.draw_artist(artist)
             process.stdin.write(np.ascontiguousarray(np.asarray(figure.canvas.buffer_rgba())[...,:3]).tobytes())
@@ -474,21 +487,24 @@ def _movie(output,source,acquisitions,sensor,cases,settings,fps=12):
 def render(output,source,acquisitions,sensor,cases,metadata=None):
     """Write static figures and a small movie from saved sensor/state arrays."""
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
+    if set(cases)!=set(CASES):
+        raise ValueError('Expected only nonlinear and linear_forced models using the same spiky readings')
     settings=_settings(source,acquisitions,sensor,cases,metadata or {})
     files=[]
     files+=_comparison(output,source,acquisitions,sensor,cases,settings,CASES,'attitude_and_gyro')
-    for name in CASES:
-        files+=_comparison(output,source,acquisitions,sensor,cases,settings,(name,),name+'_case')
     files+=_raw_sensor(output,source,acquisitions,sensor,settings)
-    files+=_noise_components(output,source,acquisitions,sensor,settings)
     files+=_diagnostics(output,source,acquisitions,cases,settings)
+    files+=_gyro_uncertainty(output,source,acquisitions,cases,settings)
     movie=_movie(output,source,acquisitions,sensor,cases,settings)
     files.append(movie['file'])
-    record=dict(schema='grape/frequent-spikes-plots/v1',settings=settings,movie=movie,files=files,
+    record=dict(schema='grape/frequent-spikes-model-comparison-plots/v2',settings=settings,movie=movie,files=files,
+        models=list(CASES),model_labels=LABELS,
+        observation_series_shared='sensor.gyro_spike and acquisitions.gyro_spike for both models',
+        model_difference='linear_forced omits only omega cross (J omega); quaternion kinematics and Bayesian observation model are shared',
         renderer_sha256=_sha(Path(__file__)),
         all_native_samples_drawn=True,matplotlib_path_simplification=False,
         averaging=False,downsampling=False,smoothing=False,covariance_adjustment=False,
-        reference_subtraction='Noise/residual diagnostics only; truth and generator bias never returned to the estimator',
+        reference='Read-only synthetic truth; not returned to either estimator',
         raw_zoom='Fixed a priori 2–4 s, display only',
         bands='Saved +/-2sigma from same state moments; local RPY display approximation; not a guaranteed 95% region',
         before_after_timestamps_preserved=True)

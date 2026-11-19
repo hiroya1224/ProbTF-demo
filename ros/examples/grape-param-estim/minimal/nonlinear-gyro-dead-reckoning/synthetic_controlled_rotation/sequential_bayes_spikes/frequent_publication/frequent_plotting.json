@@ -1,5 +1,5 @@
 {
-  "schema": "grape/frequent-spikes-plots/v1",
+  "schema": "grape/frequent-spikes-model-comparison-plots/v2",
   "settings": {
     "rate_hz": 1.0,
     "native_rate_hz": 200.00000000000426,
@@ -31,8 +31,8 @@
   },
   "movie": {
     "file": "frequent_spikes_comparison.mp4",
-    "bytes": 555460,
-    "sha256": "907f1a7430a674bb2a7e897e378f74f3a60f8690d861837b0d30f67ad890c61b",
+    "bytes": 647355,
+    "sha256": "625b9931c488bfd719d3dc5f20b6df272347a0f0e655e2f2535e3623f26f3fbc",
     "width": 960,
     "height": 540,
     "fps": 12,
@@ -45,27 +45,34 @@
   "files": [
     "attitude_and_gyro.pdf",
     "attitude_and_gyro.png",
-    "white_case.pdf",
-    "white_case.png",
-    "spike_case.pdf",
-    "spike_case.png",
     "native_gyro_full_and_zoom.pdf",
     "native_gyro_full_and_zoom.png",
-    "sensor_noise_components.pdf",
-    "sensor_noise_components.png",
     "bayes_diagnostics.pdf",
     "bayes_diagnostics.png",
+    "gyro_uncertainty.pdf",
+    "gyro_uncertainty.png",
     "frequent_spikes_comparison.mp4"
   ],
-  "renderer_sha256": "eec02e746c81463e003430b41d4bd5a4fb70e6e2bc3269317b17c43ff89b4ce2",
+  "models": [
+    "nonlinear",
+    "linear_forced"
+  ],
+  "model_labels": {
+    "nonlinear": "Nonlinear Euler",
+    "linear_forced": "No gyroscopic term"
+  },
+  "observation_series_shared": "sensor.gyro_spike and acquisitions.gyro_spike for both models",
+  "model_difference": "linear_forced omits only omega cross (J omega); quaternion kinematics and Bayesian observation model are shared",
+  "renderer_sha256": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
   "all_native_samples_drawn": true,
   "matplotlib_path_simplification": false,
   "averaging": false,
   "downsampling": false,
   "smoothing": false,
   "covariance_adjustment": false,
-  "reference_subtraction": "Noise/residual diagnostics only; truth and generator bias never returned to the estimator",
+  "reference": "Read-only synthetic truth; not returned to either estimator",
   "raw_zoom": "Fixed a priori 2–4 s, display only",
   "bands": "Saved +/-2sigma from same state moments; local RPY display approximation; not a guaranteed 95% region",
-  "before_after_timestamps_preserved": true
+  "before_after_timestamps_preserved": true,
+  "angular_rate_uncertainty": "Unscaled saved covariance: main bounds, dedicated error/half-width panels, movie current XYZ values and endpoint bars"
 }

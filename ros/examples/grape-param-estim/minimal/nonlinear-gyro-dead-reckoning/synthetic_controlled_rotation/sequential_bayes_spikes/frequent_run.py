@@ -28,75 +28,91 @@ write_json = shared.write_json
 sha = shared.sha
 
 
+MODELS = ('nonlinear', 'linear_forced')
+MODEL_LABELS = {'nonlinear': '非線形Euler', 'linear_forced': 'ジャイロ項なし'}
+OBSOLETE_FILES = ('bayes_white.npz', 'bayes_spike.npz', 'white_case.pdf',
+    'white_case.png', 'spike_case.pdf', 'spike_case.png',
+    'sensor_noise_components.pdf', 'sensor_noise_components.png')
+
+
+def predict_models(engine, selected, profile, acquisitions, config, order):
+    """Compare dynamics only: both receive the identical contaminated readings."""
+    observed = np.asarray(acquisitions['gyro_spike'], float)
+    model_data = dict(selected, sparse_gyro=observed.copy())
+    result = {}
+    for mode in MODELS:
+        result[mode] = engine.predict_adaptive(model_data, profile,
+            sigma_deg_s=config['assumed_sigma_deg_s'], order=order,
+            output_dt=config['output_dt_seconds'], max_step=config['max_step_seconds'],
+            observation_sets={'shared': observed.copy()}, mode=mode)['shared']
+    return result
+
+
 def record_report(output, config, generation, acquisitions, metrics, convergence, events):
     active = float(config['spike_active_until_seconds'])
-    times = acquisitions['time']
-    contaminated = acquisitions['spike_mask']
-    captured = times[contaminated]
-    native_count = int(generation['realized_spike_count'])
-    lines = ['# 1 Hz更新・高頻度スパイク・白色ノイズσ=2 deg/s', '',
+    captured = acquisitions['time'][acquisitions['spike_mask']]
+    lines = ['# 同じスパイク入りgyro：非線形Eulerとジャイロ項なしの比較', '',
         '[比較動画](frequent_spikes_comparison.mp4) / [姿勢・角速度](attitude_and_gyro.pdf) / '
-        '[生gyroの全体と拡大](native_gyro_full_and_zoom.pdf) / '
-        '[ノイズ成分](sensor_noise_components.pdf) / [観測更新の診断](bayes_diagnostics.pdf)', '',
-        f'実験は{config["duration_seconds"]:g}秒。生gyroは{config["sensor_rate_hz"]:g} Hz、'
-        f'Bayes更新は{config["rate_hz"]:g} Hz。生成する白色ノイズの標準偏差は'
-        f'**{config["white_sigma_deg_s"]:g} deg/s**。推定のGaussian観測モデルは従来の'
-        f'σ={config["assumed_sigma_deg_s"]:g} deg/sで、生成側と区別している。', '',
-        f'0〜{active:g}秒は強度{config["spike_rate_hz"]:g}回/秒のPoisson過程で'
-        f'{native_count}回のスパイクが発生した。開始時刻は更新周期とは独立に生成し、'
-        f'幅は{config["spike_width_range_seconds"][0]:g}〜{config["spike_width_range_seconds"][1]:g}秒、'
-        f'単独パルスのベクトル長は{config["spike_magnitude_range_deg_s"][0]:g}〜'
-        f'{config["spike_magnitude_range_deg_s"][1]:g} deg/s。重なるパルスはベクトル和となる。', '',
-        f'{active:g}〜{config["duration_seconds"]:g}秒はスパイクを止めた回復観察区間で、'
-        '白色ノイズは同じσのまま残す。これは事前に定めた入力条件であり、'
-        '推定結果やseedを見て正常区間を切り出したものではない。', '',
-        f'生データ上のスパイク{native_count}回のうち、1 Hzの取得と重なったのは'
-        f'{int(contaminated.sum())}件：'+(', '.join(f'{v:g}' for v in captured) or 'なし')+'秒。'
-        '取得しなかった200 Hz測定値を追加の独立観測として融合していない。', '',
-        '| 条件 | 姿勢中心RMSE [deg] | 終端誤差 [deg] | ω RMSE xyz [deg/s] |',
+        '[共通の生gyro](native_gyro_full_and_zoom.pdf) / [角速度の±2σと半幅](gyro_uncertainty.pdf) / '
+        '[観測更新の診断](bayes_diagnostics.pdf)', '',
+        '**両モデルが受け取る測定列は同一。どちらにも白色ノイズσ=2 deg/sと頻発スパイクが入る。** '
+        '比較の違いは角速度の非線形ジャイロ項だけで、四元数運動学とBayes更新は共通。', '',
+        r'非線形：$\dot\omega=J^{-1}(\tau-\omega\times(J\omega))$。', '',
+        r'ジャイロ項なし：$\dot\omega=J^{-1}\tau$。両者で $\dot q=\tfrac12q\odot(0,\omega)$ を使う。', '',
+        f'{config["duration_seconds"]:g}秒、200 Hzの生データから1 Hzで同じ20件を取得。'
+        f'生成白色σ={config["white_sigma_deg_s"]:g} deg/s、推定の観測σ={config["assumed_sigma_deg_s"]:g} deg/s。'
+        'J、既知トルク、初期姿勢、初回gyroと初期候補も同じ。', '',
+        f'0〜{active:g}秒はPoisson強度{config["spike_rate_hz"]:g}回/秒で'
+        f'{generation["realized_spike_count"]}回のスパイクが発生。取得と重なったのは'
+        +', '.join(f'{v:g}' for v in captured)+'秒。'
+        f'{active:g}秒以降は入力側でスパイクを止め、白色ノイズを残した正常な更新を続ける。', '',
+        '| 動力学モデル | 姿勢中心RMSE [deg] | 終端誤差 [deg] | ω RMSE xyz [deg/s] |',
         '|---|---:|---:|---|']
-    for name, label in (('white','白色ノイズのみ'),('spike','白色＋頻発スパイク')):
+    for name in MODELS:
         item = metrics[name]
-        lines.append(f'| {label} | {item["so3_proxy_rmse_deg"]:.5f} | '
-            f'{item["so3_proxy_final_deg"]:.5f} | '
-            +', '.join(f'{v:.5f}' for v in item['omega_rmse_deg_s'])+' |')
-    lines.extend(['', f'{config["duration_seconds"]:g}秒終端の姿勢中心誤差は、白色のみで{metrics["white"]["so3_proxy_final_deg"]:.3f}度、'
-        f'スパイクありで{metrics["spike"]["so3_proxy_final_deg"]:.3f}度。'
-        '正常観測で誤差が下がる場面はあるが、この試行では回復観察区間の最後にも誤差が残った。'
-        '回復するように観測尤度や共分散を調整した結果ではない。', '',
-        '## スパイク取得と、その後の正常な更新', '',
-        '通常のGaussian尤度をそのまま使い、スパイクを知らせたり外れ値として除去したりしていない。'
-        '同じ初期角速度候補に全観測の尤度を取得順に掛け、姿勢・角速度の依存と全交差共分散を保持する。', '',
-        '| 時刻 [s] | スパイク取得 | 加算ベクトル xyz [deg/s] | 姿勢誤差 直前→直後 [deg] |',
+        lines.append(f'| {MODEL_LABELS[name]} | {item["so3_proxy_rmse_deg"]:.5f} | '
+            f'{item["so3_proxy_final_deg"]:.5f} | '+', '.join(f'{v:.5f}' for v in item['omega_rmse_deg_s'])+' |')
+    lines.extend(['', '## 角速度も推定する共同状態', '',
+        '状態はbody角速度ωと単位四元数q（Hamilton、wxyz順）。トルクτはbody重心まわりの物理トルクで、'
+        'Iの逆はトルク項にも掛かる。各候補のωとqを同時RK4積分し、方位はE[qqᵀ]としても保持する。'
+        '回転行列は同じqから統計・表示用に導出する量で、方位状態を回転行列へ置き換えない。', '',
+        'ωの全3×3共分散と、方位との依存を保持している。±2σの帯は保存した共分散の実値であり、'
+        '角速度曲線の大きい振幅に対して細いため、境界線・独立した半幅図・動画中の数値でも明示する。', '',
+        '| モデル | 初期±2σ半幅xyz [deg/s] | 終端±2σ半幅xyz [deg/s] |',
+        '|---|---|---|'])
+    for name in MODELS:
+        final=', '.join(f'{v:.5f}' for v in metrics[name]['final_omega_two_sigma_deg_s'])
+        initial=', '.join([f'{2*config["assumed_sigma_deg_s"]:.5f}']*3)
+        lines.append(f'| {MODEL_LABELS[name]} | {initial} | {final} |')
+    lines.extend(['', 'モデル誤差を観測雑音として自動で増やす処理は入れていない。'
+        'したがって、ジャイロ項を省いたモデルの予測平均が大きく外れても、仮定したモデル内の共分散は縮み得る。', '',
+        '## 各観測の前後', '',
+        '| 時刻 [s] | スパイク取得 | 非線形の姿勢誤差 直前→直後 [deg] | ジャイロ項なし 直前→直後 [deg] |',
         '|---:|---|---|---|'])
-    for event in events['spike']:
-        if event['initialization']:
-            continue
-        k = event['acquisition_index']
-        vector = np.rad2deg(acquisitions['spike_vector_rad_s'][k])
-        before = event['prior_so3_proxy_error_deg_reference_only']
-        after = event['posterior_so3_proxy_error_deg_reference_only']
-        lines.append(f'| {event["time"]:g} | '+('あり' if contaminated[k] else 'なし')+' | '
-            +', '.join(f'{v:.3f}' for v in vector)+f' | {before:.4f} → {after:.4f} |')
-    lines.extend(['', 'この表の真値比較は推定完了後の評価専用で、フィルタへ戻していない。'
-        '過去のオンライン出力を後の観測で書き換える平滑化も行わない。', '',
-        '## 数値積分とモデルの範囲', '',
-        '観測数を増やすと固定した初期格子では事後の細さを解像しにくいため、'
-        '同じ「初期Gaussian × 全観測尤度」の積分を適応Gauss–Hermite重要度求積で評価する。'
-        '提案Gaussianは積分用の座標と配分であり、Bayes事後をGaussianへ置換する状態更新ではない。'
-        'モンテカルロは使わない。次数間の有限差は診断として保存し、観測の棄却条件には使わない。', '',
-        '| 次数比較 | 条件 | 最大ω平均差 [deg/s] | 最大RPY中心差 [deg] |',
+    paired = {mode: {r['acquisition_index']:r for r in events[mode]} for mode in MODELS}
+    for k, stamp in enumerate(acquisitions['time'][1:],1):
+        changes=[]
+        for mode in MODELS:
+            item=paired[mode][k]
+            changes.append(f'{item["prior_so3_proxy_error_deg_reference_only"]:.4f} → '
+                           f'{item["posterior_so3_proxy_error_deg_reference_only"]:.4f}')
+        lines.append(f'| {stamp:g} | '+('あり' if acquisitions['spike_mask'][k] else 'なし')+' | '+' | '.join(changes)+' |')
+    lines.extend(['', '真値比較は評価専用。モデル・更新へ途中の真値やスパイクフラグを渡していない。'
+        '両モデルとも同じ初期角速度の候補へ全取得尤度を一度ずつ掛け、姿勢・角速度の依存と全交差共分散を保持する。'
+        '外れ値除去・ロバスト化・BFS・過程雑音は加えない。', '',
+        '## 決定論的求積の精細化', '',
+        '| 次数比較 | モデル | 最大ω平均差 [deg/s] | 最大RPY中心差 [deg] |',
         '|---|---|---:|---:|'])
-    for label, cases in convergence.items():
-        for name, item in cases.items():
-            lines.append(f'| {label} | {name} | {item["max_omega_mean_component_difference_deg_s"]:.6g} | '
+    for label, models in convergence.items():
+        for mode, item in models.items():
+            lines.append(f'| {label} | {MODEL_LABELS[mode]} | {item["max_omega_mean_component_difference_deg_s"]:.6g} | '
                 f'{item["max_rpy_proxy_component_difference_deg"]:.6g} |')
-    lines.extend(['', '非線形Euler式と四元数を同時RK4で積分する。既知の慣性Jと入力トルクは生成側と一致しており、'
-        '未知の機体モデル誤差を含む試験とは区別する。既存ProbTF coreと旧結果は変更していない。', '',
-        '表示する姿勢中心はf(E[R])、帯は同じ全回転共分散からの局所delta-method ±2σ。'
-        '厳密なGaussian姿勢分布や保証付き95%領域とは扱わない。', '',
-        '[全イベント](spike_events.json) / [観測前後](events.json) / '
-        '[入力の生成定義](generation.json) / [数値・設定](summary.json) / '
+    lines.extend(['', '同じ初期Gaussian×全観測尤度を、適応Gauss–Hermite重要度求積で評価する。'
+        'proposalは数値積分用であり、事後状態へ代入しない。モンテカルロなし。'
+        '有限な積分差を観測の棄却条件に使わない。', '',
+        'RPY中心はf(E[R])、帯は同じ回転全共分散からの局所delta-method ±2σで、保証付き95%領域ではない。'
+        '生成側と一致するJ・トルクを既知入力として与えた合成回転であり、未知機体の同定実験とは区別する。', '',
+        '[全スパイク](spike_events.json) / [観測前後](events.json) / [設定・数値](summary.json) / '
         '[再現手順](../FREQUENT_SPIKES.md)', ''])
     (output/'INDEX.md').write_text('\n'.join(lines))
 
@@ -106,6 +122,10 @@ def run(args):
     config = json.loads(args.config.read_text())
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    for name in OBSOLETE_FILES:
+        obsolete = output/name
+        if obsolete.exists():
+            obsolete.unlink()
     old_dir = HERE.parent/'publication/three_frequency_0p5hz_sigma5'
     original = {f.name: sha(f) for f in old_dir.glob('*.npz')}
     source, selected, acquisitions, sensor, pulse_events, generation = generator.generate(config)
@@ -118,20 +138,16 @@ def run(args):
     profile = dict(inertia=source['inertia_body_kg_m2'],
         torque=shared.TorqueProfile(source['torque_time'], source['torque_body_nm']))
     engine = load_module('_frequent_adaptive_bayes_engine', HERE/'adaptive_engine.py')
-    observations = {name: acquisitions['gyro_'+name] for name in ('white','spike')}
     previous = None
     convergence, durations = {}, {}
     for order in config['quadrature_orders']:
         print('Frequent-spike adaptive Bayes order', order, flush=True)
         before = time.monotonic()
-        cases = engine.predict_adaptive(selected, profile,
-            sigma_deg_s=config['assumed_sigma_deg_s'], order=order,
-            output_dt=config['output_dt_seconds'], max_step=config['max_step_seconds'],
-            observation_sets=observations)
+        cases = predict_models(engine, selected, profile, acquisitions, config, order)
         durations[str(order)] = time.monotonic()-before
         if previous is not None:
             convergence[f'{previous_order} → {order}'] = {
-                name: shared.refinement(previous[name], cases[name]) for name in observations}
+                name: shared.refinement(previous[name], cases[name]) for name in MODELS}
         previous, previous_order = cases, order
     events = shared.reference_event_diagnostics(source, cases,
         {name: case.get('events',[]) for name, case in cases.items()})
@@ -147,13 +163,16 @@ def run(args):
     plot.render(output, source, acquisitions, sensor, cases,
         metadata=dict(config=config,generation=generation,events=events))
     standardized = source['gyro_realized_noise_rad_s']
-    summary = dict(schema='grape/frequent-poisson-spikes-1hz-bayes/v1',config=config,
+    summary = dict(schema='grape/spiked-gyro-dynamics-comparison/v2',config=config,
         generation=generation,metrics=metrics,quadrature_refinement=convergence,
         inference_wall_seconds=durations,wall_seconds=time.monotonic()-started,
         actual_white_noise_std_deg_s=np.rad2deg(np.std(standardized,axis=0,ddof=1)),
         estimator_noise_covariance_rad2_s2=np.eye(3)*np.deg2rad(config['assumed_sigma_deg_s'])**2,
         posterior_target='initial N(w0;y0,R) times all acquired k>=1 Gaussian gyro likelihoods; no process noise, reset, or posterior Gaussian replacement',
-        observation_input_keys=list(selected),observation_sets=['white gyro values','spiked gyro values'],
+        observation_input_keys=list(selected),observation_sets='same spike-contaminated gyro values for both models',
+        compared_models=list(MODELS),
+        model_difference='only omega cross(J omega) omitted in linear_forced; identical nonlinear quaternion kinematics',
+        same_measurement_sha256=hashlib.sha256(np.ascontiguousarray(acquisitions['gyro_spike']).tobytes()).hexdigest(),
         later_truth_or_spike_flags_supplied_to_estimator=False,
         posterior_moments_and_visualization_use_same_law=True,
         monte_carlo_estimation=False,randomness_only_in_sensor_generation=True,
@@ -180,5 +199,5 @@ def run(args):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path,default=HERE/'frequent_config.json')
-    parser.add_argument('--output',type=Path,default=Path('/tmp/synthetic-frequent-spikes-1hz-20261120'))
+    parser.add_argument('--output',type=Path,default=Path('/tmp/synthetic-spiked-model-comparison-20261120'))
     run(parser.parse_args())

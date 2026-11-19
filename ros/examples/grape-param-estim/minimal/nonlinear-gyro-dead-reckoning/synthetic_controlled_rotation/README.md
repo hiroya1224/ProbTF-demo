@@ -2,9 +2,9 @@
 
 2026-11-13。実測や機体同定の結果と分け、既知の慣性・既知の入力トルクの下で、Euler式のジャイロ項の違いを比較した。
 
-2026-11-20最新：[白色σ=2 deg/s・1 Hz更新・頻発スパイクの20秒比較](sequential_bayes_spikes/frequent_publication/INDEX.md)。200 Hz生測定と全ノイズ成分も表示し、15秒間に147回のPoissonスパイク、その後5秒の正常な更新を含む。[方法・再現](sequential_bayes_spikes/FREQUENT_SPIKES.md)を保存した。
+2026-11-20最新：[同じスパイク入りgyroによる非線形／ジャイロ項なしの20秒比較](sequential_bayes_spikes/frequent_publication/INDEX.md)。200 Hz生測定と全ノイズ成分も表示し、15秒間に147回のPoissonスパイク、その後5秒の正常な更新を含む。[方法・再現](sequential_bayes_spikes/FREQUENT_SPIKES.md)を保存した。
 
-同日追加の[単発スパイク・5秒の旧Bayes比較](sequential_bayes_spikes/publication/INDEX.md)も保持する。以前の独立Gaussian置換を保存したまま、同じ初期角速度の共同候補へ観測尤度を累積する別実装を追加した。白色ノイズのみ／スパイクありの図・動画・観測前後の全モーメントと、[方法・再現手順](sequential_bayes_spikes/README.md)を保存している。
+比較対象を二つの動力学モデルへ統一し、不要な白色ノイズのみの比較と旧単発版の出力は削除した。両モデルへ同一のスパイク入り観測と同じ初期条件を渡し、方位・角速度を四元数とともにBayes更新する。
 
 3周波数・0.5 Hz・sigma=5 deg/sの例は、[日本語音声付きの詳細解説動画](explainer/publication/INDEX.md)にもまとめた。960×540 px、音声2倍速。保存済みの6候補、RK4の実計算段、回転モーメント、全共分散、観測前後をアニメーションで説明する。[全文台本と再現手順](explainer/README.md)も保存した。
 

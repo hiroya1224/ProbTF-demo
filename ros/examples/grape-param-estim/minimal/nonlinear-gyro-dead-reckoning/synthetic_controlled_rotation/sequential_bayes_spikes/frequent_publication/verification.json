@@ -80,5 +80,27 @@
     "height": 540,
     "duration_seconds": 40.5,
     "complete_decode": true
+  },
+  "attitude_and_gyro_main_covariance_visibility": {
+    "layout": {
+      "rows": [
+        "RPY",
+        "omega mean +/-2sigma",
+        "omega 2sigma half-width"
+      ],
+      "columns": [
+        "x / roll",
+        "y / pitch",
+        "z / yaw"
+      ],
+      "omega_band_alpha": 0.34,
+      "omega_band_above_raw": true,
+      "half_width_formula": "2 * rad2deg(sqrt(diag(saved omega covariance)))",
+      "covariance_rescaled": false
+    },
+    "original_npz_files_unchanged": true,
+    "inference_rerun": false,
+    "half_width_values_unchanged": true,
+    "visually_reviewed": true
   }
 }

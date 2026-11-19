@@ -365,8 +365,8 @@
   "source_sha256": {
     "native_flow.py": "075e227b854d34e0e0017c43fa54b62ec236cd31fdfd66bb7154333d419e410d",
     "plotting.py": "5c3e9e3b447274110ab0d736ac222b7a0d25b3eae32d66b1ee295a0d3e26ac27",
-    "frequent_run.py": "4994a42948f8859b566dd3bd071224961675e92d4c71cc803414d6b1763ca265",
-    "frequent_plotting.py": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
+    "frequent_run.py": "02d0837fa6b137d96c9f9d01678e572c2a7153733dab311486f04f0c090813b2",
+    "frequent_plotting.py": "501d3fd9f42f63702096faeed96dcae7b99afafc0169a1fecc8d4d5f3a355261",
     "adaptive_engine.py": "87a1813d9fe56d2a386a5615ab8425e67e5d293a434af5ce9a322511f75e16bd",
     "run.py": "928266615ad34ea85ccfefd2c7c30d55acb9d94bd1e3e4f863ec740ac1b1ab65",
     "frequent_spikes_input.py": "79b00211e1fc2e420c6a8cf17fa12483890c2038c8e757844b6885a7934129dd",
@@ -444,5 +444,6 @@
   },
   "state": "(body angular velocity omega, unit Hamilton quaternion q_wxyz); R(q) derived for statistics/display only",
   "angular_velocity_covariance_display": "same saved full 3x3 covariance, mean +/-2sigma plus boundary curves and independent half-width plots; no rescaling",
-  "replaced_white_noise_comparison": true
+  "replaced_white_noise_comparison": true,
+  "latest_change": "Display-only: attitude_and_gyro has three rows, with strengthened omega +/-2sigma bands and actual half-width panels; inference not rerun."
 }

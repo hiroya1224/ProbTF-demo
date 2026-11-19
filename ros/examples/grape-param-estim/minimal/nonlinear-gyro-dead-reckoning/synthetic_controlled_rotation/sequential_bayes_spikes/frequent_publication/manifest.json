@@ -2,8 +2,8 @@
   "files": [
     {
       "path": "INDEX.md",
-      "bytes": 5444,
-      "sha256": "188968649cb4583892e6a29291c091f3827e985fb435bf8624e3db81f4f9945a"
+      "bytes": 5558,
+      "sha256": "a69a0500db56734bf442414b6916872cceff2dbd599169a89839ecb76aed7483"
     },
     {
       "path": "acquisitions.npz",
@@ -12,13 +12,13 @@
     },
     {
       "path": "attitude_and_gyro.pdf",
-      "bytes": 825088,
-      "sha256": "a0d6aed429b2f11940667bcb015ee7058f7c24cd8b00344efbb48cd1d666cece"
+      "bytes": 867344,
+      "sha256": "ef044b3923d93f3559fdff3491dfc5c4c842945587373c73abd36ec1048e300c"
     },
     {
       "path": "attitude_and_gyro.png",
-      "bytes": 814203,
-      "sha256": "004039b62413ec083a55485c202517b85e85e200929fff9765fa3b329a71ad7e"
+      "bytes": 985025,
+      "sha256": "6b7bb7f2fd1c6697ed231259301fdaa76001bc6f45be5845368d886dcbfe609d"
     },
     {
       "path": "bayes_diagnostics.pdf",
@@ -52,8 +52,8 @@
     },
     {
       "path": "frequent_plotting.json",
-      "bytes": 2592,
-      "sha256": "81b8ffabce8b454e225532d8eeb2eaac2f625d5d8081f52d65289481990e22bb"
+      "bytes": 4058,
+      "sha256": "c13f66e5af0e691abfe0ad0e155c701eed5d3185c45467296b8560cf4b68eab8"
     },
     {
       "path": "frequent_spikes_comparison.mp4",
@@ -112,16 +112,16 @@
     },
     {
       "path": "summary.json",
-      "bytes": 16222,
-      "sha256": "2e59df99e4558af20790b93e43f2637c612802433176f430a1c7e8525831a73c"
+      "bytes": 16383,
+      "sha256": "78769fda6f4870f6cc4ccdf36d60976a996efef6154dd5a537d92cd35307d7b9"
     },
     {
       "path": "verification.json",
-      "bytes": 2905,
-      "sha256": "d8c48e2c52e8027bd038d70600d4e2b32a4e88a3c2d9dea9c144675927e63039"
+      "bytes": 3503,
+      "sha256": "b778424c5d166e31ba65750f3265f995e8bccab525a614393359446312ef1766"
     }
   ],
-  "bytes_excluding_manifest": 10800276,
+  "bytes_excluding_manifest": 11015693,
   "compared_models": [
     "nonlinear",
     "linear_forced"

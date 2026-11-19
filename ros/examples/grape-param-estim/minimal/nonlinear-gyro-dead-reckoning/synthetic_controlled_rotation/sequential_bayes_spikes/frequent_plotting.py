@@ -142,12 +142,13 @@ def _mean_legend(names=CASES, raw=True):
 
 
 def _comparison(output, source, acquisitions, sensor, cases, settings, names, stem):
-    figure, axes = plt.subplots(2, 3, figsize=(15.5, 9), sharex=True)
+    figure, axes = plt.subplots(3, 3, figsize=(15.5, 12), sharex=True,
+        gridspec_kw={'height_ratios': [1., 1., .65]})
     reference_time = np.asarray(source['reference_time'])
     lower, upper = float(reference_time[0]), float(reference_time[-1])
     contaminated = np.asarray(acquisitions['spike_mask'], bool)
     for dimension in range(3):
-        top, bottom = axes[:, dimension]
+        top, bottom, width_axis = axes[:, dimension]
         top.plot(reference_time, np.rad2deg(source['reference_rpy_rad'][:, dimension]),
                  color='black', lw=1.9, zorder=5)
         bottom.plot(sensor['time'], np.rad2deg(sensor['gyro_spike'][:, dimension]),
@@ -161,14 +162,24 @@ def _comparison(output, source, acquisitions, sensor, cases, settings, names, st
                     (bottom, 'omega_mean_rad_s', 'omega_covariance_rad2_s2')):
                 mean = np.rad2deg(case[mean_key][:, dimension])
                 half = _halfwidth(case[cov_key])[:, dimension]
+                is_omega = mean_key == 'omega_mean_rad_s'
                 axis.fill_between(case['time'], mean-half, mean+half,
-                                  color=COLORS[name], alpha=.16, lw=0, zorder=1)
+                                  color=COLORS[name], alpha=.34 if is_omega else .16,
+                                  lw=0, zorder=5 if is_omega else 1)
                 axis.plot(case['time'], mean, color=COLORS[name], ls=STYLES[name], lw=1.5, zorder=6)
-                if mean_key=='omega_mean_rad_s':
+                if is_omega:
                     axis.plot(case['time'],mean-half,color=COLORS[name],ls=STYLES[name],
-                              lw=.65,alpha=.85,zorder=3)
+                              lw=.85,alpha=1.,zorder=7)
                     axis.plot(case['time'],mean+half,color=COLORS[name],ls=STYLES[name],
-                              lw=.65,alpha=.85,zorder=3)
+                              lw=.85,alpha=1.,zorder=7)
+            half = _halfwidth(case['omega_covariance_rad2_s2'])[:, dimension]
+            width_axis.plot(case['time'], half, color=COLORS[name],
+                            ls=STYLES[name], lw=1.5)
+            sides = np.asarray(case['event_side'])
+            for side, fill in ((-1, 'white'), (1, COLORS[name])):
+                rows = sides == side
+                width_axis.scatter(case['time'][rows], half[rows], s=22,
+                    facecolors=fill, edgecolors=COLORS[name], linewidths=.9, zorder=8)
         good = ~contaminated
         observed = np.rad2deg(acquisitions['gyro_spike'][:, dimension])
         bottom.scatter(acquisitions['time'][good], observed[good],
@@ -184,7 +195,14 @@ def _comparison(output, source, acquisitions, sensor, cases, settings, names, st
             axis.grid(alpha=.22)
             _event_lines(axis, acquisitions)
             _recovery(axis, settings)
-        bottom.set_xlabel('Data time [s]', fontsize=11)
+        width_axis.set_xlim(lower, upper)
+        width_axis.set_title('omega '+'xyz'[dimension]+' uncertainty: 2sigma half-width', fontsize=12)
+        width_axis.set_ylabel('deg/s', fontsize=11)
+        width_axis.set_xlabel('Data time [s]', fontsize=11)
+        width_axis.tick_params(labelsize=10)
+        width_axis.grid(alpha=.22)
+        _event_lines(width_axis, acquisitions)
+        _recovery(width_axis, settings)
     title = ' / '.join(LABELS[name] for name in names)
     figure.suptitle(f'{title} — same spiky gyro; {settings["rate_hz"]:g} Hz updates', fontsize=15, y=.993)
     legend=_mean_legend(names)
@@ -194,7 +212,8 @@ def _comparison(output, source, acquisitions, sensor, cases, settings, names, st
         'Raw curve: every native measurement, including white noise and the realized short spikes. '
         'Only the marked acquired samples update the estimator.\n'
         'Both models use the same initial law, J, torque, readings and Bayes updates. Only omega cross (J omega) is omitted in the red model.\n'
-        'Bands: saved +/-2sigma; RPY is a local display approximation, not a guaranteed 95% region. '+_spike_caption(settings), fontsize=9.3)
+        'Middle row: omega mean +/-2sigma (shading and boundaries). Bottom row: the SAME 2sigma half-width; open/filled markers = prior/posterior.\n'
+        'RPY bands use a local display approximation, not a guaranteed 95% region. '+_spike_caption(settings), fontsize=9.3)
     figure.tight_layout(rect=(0,.085,1,.88))
     return _save(figure, output, stem)
 
@@ -508,5 +527,12 @@ def render(output,source,acquisitions,sensor,cases,metadata=None):
         raw_zoom='Fixed a priori 2–4 s, display only',
         bands='Saved +/-2sigma from same state moments; local RPY display approximation; not a guaranteed 95% region',
         before_after_timestamps_preserved=True)
+    record['attitude_and_gyro_layout'] = dict(
+        rows=['RPY', 'omega mean +/-2sigma', 'omega 2sigma half-width'],
+        columns=['x / roll', 'y / pitch', 'z / yaw'],
+        omega_band_alpha=.34, omega_band_above_raw=True,
+        half_width_formula='2 * rad2deg(sqrt(diag(saved omega covariance)))',
+        covariance_rescaled=False)
+    record['file_renderer_sha256'] = {name:record['renderer_sha256'] for name in files}
     (output/'frequent_plotting.json').write_text(json.dumps(record,indent=2,ensure_ascii=False)+'\n')
     return record

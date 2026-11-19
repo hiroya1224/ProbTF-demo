@@ -63,7 +63,7 @@
   },
   "observation_series_shared": "sensor.gyro_spike and acquisitions.gyro_spike for both models",
   "model_difference": "linear_forced omits only omega cross (J omega); quaternion kinematics and Bayesian observation model are shared",
-  "renderer_sha256": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
+  "renderer_sha256": "501d3fd9f42f63702096faeed96dcae7b99afafc0169a1fecc8d4d5f3a355261",
   "all_native_samples_drawn": true,
   "matplotlib_path_simplification": false,
   "averaging": false,
@@ -74,5 +74,33 @@
   "raw_zoom": "Fixed a priori 2–4 s, display only",
   "bands": "Saved +/-2sigma from same state moments; local RPY display approximation; not a guaranteed 95% region",
   "before_after_timestamps_preserved": true,
-  "angular_rate_uncertainty": "Unscaled saved covariance: main bounds, dedicated error/half-width panels, movie current XYZ values and endpoint bars"
+  "angular_rate_uncertainty": "Unscaled saved covariance: main bounds, dedicated error/half-width panels, movie current XYZ values and endpoint bars",
+  "file_renderer_sha256": {
+    "attitude_and_gyro.pdf": "501d3fd9f42f63702096faeed96dcae7b99afafc0169a1fecc8d4d5f3a355261",
+    "attitude_and_gyro.png": "501d3fd9f42f63702096faeed96dcae7b99afafc0169a1fecc8d4d5f3a355261",
+    "native_gyro_full_and_zoom.pdf": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
+    "native_gyro_full_and_zoom.png": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
+    "bayes_diagnostics.pdf": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
+    "bayes_diagnostics.png": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
+    "gyro_uncertainty.pdf": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
+    "gyro_uncertainty.png": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
+    "frequent_spikes_comparison.mp4": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20"
+  },
+  "renderer_versions_note": "Only attitude_and_gyro was redrawn; per-file renderer hashes retain the original renderer for other figures and the movie.",
+  "attitude_and_gyro_layout": {
+    "rows": [
+      "RPY",
+      "omega mean +/-2sigma",
+      "omega 2sigma half-width"
+    ],
+    "columns": [
+      "x / roll",
+      "y / pitch",
+      "z / yaw"
+    ],
+    "omega_band_alpha": 0.34,
+    "omega_band_above_raw": true,
+    "half_width_formula": "2 * rad2deg(sqrt(diag(saved omega covariance)))",
+    "covariance_rescaled": false
+  }
 }

@@ -1,0 +1,146 @@
+{
+  "files": [
+    {
+      "path": "INDEX.md",
+      "bytes": 5105,
+      "sha256": "ce73cce365cdcadc253207185fd27bf56caf506b8ca8efb126dec009e468db4a"
+    },
+    {
+      "path": "acquisitions.npz",
+      "bytes": 3867,
+      "sha256": "4959da665948a85d28954670288fe8c9f0b267cd2bcbdcd6747ac8e8224e3372"
+    },
+    {
+      "path": "attitude_and_gyro.pdf",
+      "bytes": 713180,
+      "sha256": "13119832fd8c8c942601c1e94079b17a4e08ef0823f01279f850ba57c515553d"
+    },
+    {
+      "path": "attitude_and_gyro.png",
+      "bytes": 780623,
+      "sha256": "b7ccf9203596f5fe0555fe363e71e31707b0d3469aac4e7922868fff53548474"
+    },
+    {
+      "path": "bayes_diagnostics.pdf",
+      "bytes": 118338,
+      "sha256": "134598f50239bfe3b0f77efaeb36fb817f2bc53402f71dbda49bf9c1549882ca"
+    },
+    {
+      "path": "bayes_diagnostics.png",
+      "bytes": 330674,
+      "sha256": "2242ce7fc9ff9cb01c6f68565de8056fa0f1440b61d8a8ca459e80b632452edb"
+    },
+    {
+      "path": "bayes_spike.npz",
+      "bytes": 2463582,
+      "sha256": "0f2beea0cfa8f58811ff60f26981cd0363e489fd8f2e19b1b2d6e0ad7bb5474f"
+    },
+    {
+      "path": "bayes_white.npz",
+      "bytes": 2471444,
+      "sha256": "6b4587dd77b17041c38ce34df02fd38c49923280fa178951d772ef5a58191c4b"
+    },
+    {
+      "path": "config.json",
+      "bytes": 514,
+      "sha256": "412acd4d46ae4325e3593411b1937e6dd31a1d3f9eee6ecb1c036ae6ceed40b2"
+    },
+    {
+      "path": "events.json",
+      "bytes": 144344,
+      "sha256": "e1259433bcb1cc02e90898895335fc6990490936b77ca6e391a5842ab7657f56"
+    },
+    {
+      "path": "frequent_plotting.json",
+      "bytes": 2176,
+      "sha256": "2d3f64b2af092a23f1853b0eb6dc3517791cde606c31265385804bad8b01e627"
+    },
+    {
+      "path": "frequent_spikes_comparison.mp4",
+      "bytes": 555460,
+      "sha256": "907f1a7430a674bb2a7e897e378f74f3a60f8690d861837b0d30f67ad890c61b"
+    },
+    {
+      "path": "generation.json",
+      "bytes": 5401,
+      "sha256": "4fab2cb4a4a036016466a7fa0a271d70e7ddf4f1bfa7b61249d91af88c61cd4e"
+    },
+    {
+      "path": "metrics.csv",
+      "bytes": 300,
+      "sha256": "cf8f3fb24b2787809180744adbdfe359b498efa4678151675cd5e576293fc278"
+    },
+    {
+      "path": "native_gyro_full_and_zoom.pdf",
+      "bytes": 418735,
+      "sha256": "be28ef126da14a50caec4e47953681c2c2bb48e0bd70cfeb5b069b21cf79179b"
+    },
+    {
+      "path": "native_gyro_full_and_zoom.png",
+      "bytes": 566658,
+      "sha256": "859ffa149d881995a5e0a17da6420d19007d9a3192b066d272c18f9bc0fe64b4"
+    },
+    {
+      "path": "quadrature_refinement.json",
+      "bytes": 1506,
+      "sha256": "2074bfd2fc8fcc5894cd52c1072fbb92e791fb2e9e4d465143b25beffd2563e4"
+    },
+    {
+      "path": "sensor_input.npz",
+      "bytes": 252020,
+      "sha256": "f4d8a714fee9186a6cd2676d766f5c27ce754fef3cf38f4389c5a85e0f2b9c0f"
+    },
+    {
+      "path": "sensor_noise_components.pdf",
+      "bytes": 338033,
+      "sha256": "ba5cf69b63feec4c6bc50acad1ebb14ac975b06c95b37c5b873925c0037ad748"
+    },
+    {
+      "path": "sensor_noise_components.png",
+      "bytes": 563634,
+      "sha256": "cd37b6103309b2ddab40886cff6a6829d66b4e73f5329d79f51e47a9bee9044d"
+    },
+    {
+      "path": "source_input.npz",
+      "bytes": 1518822,
+      "sha256": "bb29d382f323fadbc2a345494f87921f98e3873d6c0a67c32bd8d0f33d29c028"
+    },
+    {
+      "path": "spike_case.pdf",
+      "bytes": 567806,
+      "sha256": "3635ccf9efab9ed525e92e2f6efe313de9c96df0791ab42632e485c714d8fcc0"
+    },
+    {
+      "path": "spike_case.png",
+      "bytes": 704747,
+      "sha256": "2cb22ebb584f8a6f404ac155fa73ea4b2eb17301e0ba02dd8d6f0072692695ca"
+    },
+    {
+      "path": "spike_events.json",
+      "bytes": 119107,
+      "sha256": "51e1115441a277596bf0433e1f7e2e7303d8200812cb2ff31e2e1c0ee2fb9722"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 15641,
+      "sha256": "0af07dc3032fbca4a66fc9b5cc2fee53445046d629290f7b136b0527f2f84c95"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 2483,
+      "sha256": "64eed2fe27b2348a8dbba96558b1270e7a69714ab100f88d06e21e425444b288"
+    },
+    {
+      "path": "white_case.pdf",
+      "bytes": 567330,
+      "sha256": "3f0be95f71d8309936eaec9ccafe33dd7e3ec404d08ecabbbcde6d23accf105e"
+    },
+    {
+      "path": "white_case.png",
+      "bytes": 655315,
+      "sha256": "2ee4bc7c83198a204fe3faf02d55e6dbc2c5faff9134f7db9542189caec689f9"
+    }
+  ],
+  "bytes_excluding_manifest": 13886845,
+  "compiled_binary_or_intermediate_frames_included": false
+}

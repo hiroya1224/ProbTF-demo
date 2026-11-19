@@ -1,0 +1,27 @@
+{
+  "duration_seconds": 20.0,
+  "sensor_rate_hz": 200.0,
+  "rate_hz": 1.0,
+  "white_seed": 20261113,
+  "white_sigma_deg_s": 2.0,
+  "spike_seed": 20261120,
+  "spike_rate_hz": 10.0,
+  "spike_width_range_seconds": [
+    0.03,
+    0.08
+  ],
+  "spike_magnitude_range_deg_s": [
+    20.0,
+    60.0
+  ],
+  "spike_active_until_seconds": 15.0,
+  "motion_profile": "three_frequency",
+  "assumed_sigma_deg_s": 5.0,
+  "quadrature_orders": [
+    7,
+    11,
+    15
+  ],
+  "output_dt_seconds": 0.02,
+  "max_step_seconds": 0.002
+}

@@ -1,0 +1,71 @@
+{
+  "schema": "grape/frequent-spikes-plots/v1",
+  "settings": {
+    "rate_hz": 1.0,
+    "native_rate_hz": 200.00000000000426,
+    "assumed_sigma_xyz_deg_s": [
+      5.0,
+      5.0,
+      5.0
+    ],
+    "generated_white_sigma_xyz_deg_s": [
+      2.0,
+      2.0,
+      2.0
+    ],
+    "empirical_white_sigma_xyz_deg_s": [
+      1.988952535197995,
+      2.012883149368159,
+      2.0321014515858575
+    ],
+    "native_sample_count": 4001,
+    "acquired_sample_count": 20,
+    "contaminated_acquisition_count": 5,
+    "native_contaminated_sample_count": 1216,
+    "spike_rate_hz": 10.0,
+    "spike_active_until_seconds": 15.0,
+    "fixed_raw_zoom_seconds": [
+      2.0,
+      4.0
+    ]
+  },
+  "movie": {
+    "file": "frequent_spikes_comparison.mp4",
+    "bytes": 555460,
+    "sha256": "907f1a7430a674bb2a7e897e378f74f3a60f8690d861837b0d30f67ad890c61b",
+    "width": 960,
+    "height": 540,
+    "fps": 12,
+    "frames": 486,
+    "duration_seconds": 40.5,
+    "event_hold_seconds_per_side": 0.25,
+    "animation": "Reveal every native measurement and saved posterior; hold both sides of each acquired observation at its original data timestamp",
+    "narration": false
+  },
+  "files": [
+    "attitude_and_gyro.pdf",
+    "attitude_and_gyro.png",
+    "white_case.pdf",
+    "white_case.png",
+    "spike_case.pdf",
+    "spike_case.png",
+    "native_gyro_full_and_zoom.pdf",
+    "native_gyro_full_and_zoom.png",
+    "sensor_noise_components.pdf",
+    "sensor_noise_components.png",
+    "bayes_diagnostics.pdf",
+    "bayes_diagnostics.png",
+    "frequent_spikes_comparison.mp4"
+  ],
+  "renderer_sha256": "eec02e746c81463e003430b41d4bd5a4fb70e6e2bc3269317b17c43ff89b4ce2",
+  "all_native_samples_drawn": true,
+  "matplotlib_path_simplification": false,
+  "averaging": false,
+  "downsampling": false,
+  "smoothing": false,
+  "covariance_adjustment": false,
+  "reference_subtraction": "Noise/residual diagnostics only; truth and generator bias never returned to the estimator",
+  "raw_zoom": "Fixed a priori 2–4 s, display only",
+  "bands": "Saved +/-2sigma from same state moments; local RPY display approximation; not a guaranteed 95% region",
+  "before_after_timestamps_preserved": true
+}

@@ -1,0 +1,101 @@
+{
+  "schema": "grape/frequent-spikes-validation/v1",
+  "tests_passed": 22,
+  "white_noise_generation_sigma_deg_s": 2.0,
+  "white_noise_empirical_sigma_deg_s": [
+    1.988952535197995,
+    2.012883149368159,
+    2.0321014515858575
+  ],
+  "native_sensor_rate_hz": 200.0,
+  "acquired_update_rate_hz": 1.0,
+  "pulse_count": 147,
+  "acquired_contaminated_count": 5,
+  "acquired_contaminated_times": [
+    5.0,
+    8.0,
+    10.0,
+    12.0,
+    13.0
+  ],
+  "clean_observations_after_last_contaminated_count": 6,
+  "exact_native_values_selected_for_1hz_observations": true,
+  "before_first_spike_online_joint_moments_bitwise_identical": true,
+  "numerical_diagnostics": {
+    "white": {
+      "online_rows": 1021,
+      "all_moments_finite": true,
+      "minimum_joint_covariance_eigenvalue_diagnostic": -1.071393875380295e-18,
+      "maximum_core_vs_direct_rotation_mean_difference": 7.549516567451064e-15,
+      "event_log_weights_all_finite": true,
+      "acquisition_likelihood_counts": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "maximum_same_prior_regridding_mean_difference_deg_s": 0.0010097172083327068
+    },
+    "spike": {
+      "online_rows": 1021,
+      "all_moments_finite": true,
+      "minimum_joint_covariance_eigenvalue_diagnostic": -1.071393875380295e-18,
+      "maximum_core_vs_direct_rotation_mean_difference": 6.772360450213455e-15,
+      "event_log_weights_all_finite": true,
+      "acquisition_likelihood_counts": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "maximum_same_prior_regridding_mean_difference_deg_s": 0.0035969172709220676
+    }
+  },
+  "numerical_diagnostics_do_not_reject_observations": true,
+  "original_result_arrays_unchanged": true,
+  "movie": {
+    "file": "frequent_spikes_comparison.mp4",
+    "bytes": 555460,
+    "sha256": "907f1a7430a674bb2a7e897e378f74f3a60f8690d861837b0d30f67ad890c61b",
+    "duration_seconds": 40.5,
+    "width": 960,
+    "height": 540,
+    "fps": "12/1",
+    "complete_decode": true
+  },
+  "source_estimation_files_unchanged_during_media_qc": true,
+  "display_smoothing_or_covariance_changes": false,
+  "all_native_samples_plotted": true
+}

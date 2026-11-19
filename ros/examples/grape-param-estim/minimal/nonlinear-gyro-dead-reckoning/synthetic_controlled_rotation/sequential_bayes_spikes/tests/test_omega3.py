@@ -33,6 +33,8 @@ class OmegaThreeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.source, cls.sensor, cls.acquired, cls.selected, cls.physical, cls.metadata = inputs.generate()
+        (cls.half_source, cls.half_sensor, cls.half_acquired, cls.half_selected,
+         cls.half_physical, cls.half_metadata) = inputs.generate(spike_scale=.5)
         with np.load(HERE/'frequent_publication/source_input.npz', allow_pickle=False) as saved:
             cls.previous = {name: saved[name].copy() for name in saved.files}
         with np.load(HERE/'frequent_publication/sensor_input.npz', allow_pickle=False) as saved:
@@ -66,6 +68,41 @@ class OmegaThreeTests(unittest.TestCase):
         np.testing.assert_array_equal(index, np.arange(0,4001,20))
         for name in ('stamp_ns','record_ns','source_index','spike_vector_rad_s','gyro_spike'):
             np.testing.assert_array_equal(self.acquired[name], self.sensor[name][index], err_msg=name)
+
+    def test_half_spikes_change_only_pulse_amplitudes_without_resampling_or_event_removal(self):
+        # Physical motion and every white-noise draw stay identical. The
+        # half-amplitude signal has the same pulse timestamps and overlaps.
+        for name in self.source:
+            if name in ('reference_quaternion_xyzw', 'reference_rpy_rad'):
+                # These are independent finite-tolerance integrations of
+                # the same prescribed omega, not reused sensor draws.
+                np.testing.assert_allclose(self.half_source[name], self.source[name],
+                                           rtol=0., atol=1e-11, err_msg=name)
+            else:
+                np.testing.assert_array_equal(self.half_source[name], self.source[name], err_msg=name)
+        scaled = ('spike_vector_rad_s', 'event_vector_body_rad_s', 'event_magnitude_deg_s')
+        for name in self.sensor:
+            if name in scaled:
+                np.testing.assert_array_equal(self.half_sensor[name], .5*self.sensor[name], err_msg=name)
+            elif name!='gyro_spike':
+                np.testing.assert_array_equal(self.half_sensor[name], self.sensor[name], err_msg=name)
+        np.testing.assert_array_equal(self.half_sensor['gyro_spike'],
+            self.sensor['gyro_white']+.5*self.sensor['spike_vector_rad_s'])
+        index = self.half_acquired['native_array_index']
+        np.testing.assert_array_equal(index, self.acquired['native_array_index'])
+        for name in ('time','stamp_ns','record_ns','source_index','spike_mask'):
+            np.testing.assert_array_equal(self.half_acquired[name], self.acquired[name], err_msg=name)
+        np.testing.assert_array_equal(self.half_selected['sparse_gyro'],
+            self.half_sensor['gyro_spike'][index])
+        pulse_sum = np.zeros_like(self.half_sensor['spike_vector_rad_s'])
+        counts = np.zeros(len(pulse_sum), dtype=int)
+        for start, stop, vector in zip(self.half_sensor['event_native_start_array_index'],
+                self.half_sensor['event_native_stop_array_index_exclusive'],
+                self.half_sensor['event_vector_body_rad_s']):
+            pulse_sum[int(start):int(stop)] += vector
+            counts[int(start):int(stop)] += 1
+        np.testing.assert_array_equal(pulse_sum, self.half_sensor['spike_vector_rad_s'])
+        np.testing.assert_array_equal(counts, self.half_sensor['active_spike_count'])
 
     def test_quaternion_curve_independently_differentiates_to_threefold_body_omega(self):
         q = self.source['reference_quaternion_xyzw']
@@ -114,17 +151,24 @@ class OmegaThreeTests(unittest.TestCase):
         self.assertEqual(len(self.selected['sparse_gyro']), 201)
 
     def test_q_zero_bayes_keeps_all_prefix_likelihoods_and_matches_linear_reference(self):
+        self.assert_q_zero_prefix_matches_linear_reference(self.selected, self.physical, self.source)
+
+    def test_q_zero_half_spikes_keep_all_prefix_likelihoods_and_match_linear_reference(self):
+        self.assert_q_zero_prefix_matches_linear_reference(
+            self.half_selected, self.half_physical, self.half_source)
+
+    def assert_q_zero_prefix_matches_linear_reference(self, selected, physical, source):
         # A short prefix suffices to expose fresh-Gaussian replacement,
         # doubled observations, a nonzero process covariance, or future data.
-        data = {name: value.copy() for name, value in self.selected.items()}
+        data = {name: value.copy() for name, value in selected.items()}
         data['sparse_gyro_time'] = data['sparse_gyro_time'][:5]
         data['sparse_gyro'] = data['sparse_gyro'][:5]
         data['time'] = np.array([0., data['sparse_gyro_time'][-1]])
-        case = bayes.predict_full_rate(data, self.physical, order=7,
+        case = bayes.predict_full_rate(data, physical, order=7,
             sigma_deg_s=5., max_step=.002, mode='linear_forced',
             refresh_seconds=.1, initial_dense_seconds=.25)
-        zero_flow = native.ControlledFlow(self.physical,
-            self.source['initial_quaternion_wxyz'], *data['time'],
+        zero_flow = native.ControlledFlow(physical,
+            source['initial_quaternion_wxyz'], *data['time'],
             max_step=.002, mode='linear_forced')
         drift = zero_flow.evaluate(np.zeros((1,3)), data['sparse_gyro_time'])[:,0,:3]
         variance = np.deg2rad(5.)**2

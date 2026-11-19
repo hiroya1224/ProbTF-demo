@@ -34,7 +34,8 @@ def run(args):
     output.mkdir(parents=True, exist_ok=True)
     generator = load('_omega3_input_generator', 'omega3_input.py')
     source, sensor, acquired, selected, physical, generation = generator.generate(
-        args.input, config['body_omega_scale'], config['acquisition_rate_hz'])
+        args.input, config['body_omega_scale'], config['acquisition_rate_hz'],
+        spike_scale=config.get('spike_scale', 1.))
     shared.write_json(output/'config.json', config)
     shared.write_json(output/'generation.json', generation)
     np.savez_compressed(output/'source_input.npz', **source)
@@ -125,8 +126,12 @@ def write_report(output):
         '同じ初期姿勢から四元数を積分し直し、角加速度は3倍、ジャイロ項は9倍、'
         'トルクは $J\\alpha_3+\\omega_3\\times J\\omega_3$ として再生成した。', '',
         '20秒・10 Hz取得・201件の観測、生成白色σ=2 deg/s、観測Rのσ=5 deg/s。'
-        'bias・スパイクの実現値・慣性・初期姿勢は従来と同じ。新たな乱数は引かない。'
+        'bias・慣性・初期姿勢は従来と同じ。新たな乱数は引かない。'
         '推定のプロセスノイズはQ=0。全取得尤度を取得順に一度ずつ使い、前回の候補を捨てない。', '',
+        f'スパイク振幅は元の{generation.get("spike_scale", 1.):g}倍。'
+        '発生時刻・頻度・幅・方向・重なりは保持し、加算ベクトルだけを縮小した。'
+        '最新指定の0.5倍では単独パルスの長さは10〜30 deg/s。'
+        '白色ノイズ・観測R・真値の運動・入力トルクは変更していない。', '',
         'body角速度の標準偏差xyzは元の `'
         +', '.join(f'{value:.3f}' for value in generation['old_omega_std_deg_s'])
         +'` から `'+', '.join(f'{value:.3f}' for value in generation['new_omega_std_deg_s'])

@@ -1,6 +1,6 @@
 {
   "schema": "grape/omega3-q0-saved-moment-plots/v1",
-  "renderer_sha256": "f716dd03c599946bfadb350c1e3638a6dec1d3363cc4f9acf39614fc94835d54",
+  "renderer_sha256": "afb6cc4b71b7817a6544c99914ac0b0901a8e88d08ac64b9f02ad4743a6eb046",
   "helper_sha256": "ed3ced48dd6a45e5360a656c811cbebea45cd2a9f7042e6e5ab125527924347b",
   "settings": {
     "native_reading_count": 4001,
@@ -28,12 +28,16 @@
       "linear_forced": 200
     },
     "acquired_spike_readings": 61,
-    "observed_gyro_sha256": "123a59c8b148efd14d526574221e1bc230b4054f8345df611e1e9538b629e5af",
+    "observed_gyro_sha256": "80c55aea416071e128345f742280bef2b51f1bf6b9a1a78372c969ff0d82c9fd",
     "initialization": "First selected reading initializes the initial law once; subsequent selected readings are likelihood updates",
     "profile": "body_omega_scaled",
     "model_process_covariance": "Q=0",
     "body_rate_multiplier": 3,
-    "temporal_frequency_change": false
+    "temporal_frequency_change": false,
+    "spike_scale": 0.5,
+    "spike_scale_reference": "Amplitude of original saved pulses; original onset times, rate and widths",
+    "sensor_white_sigma_deg_s": 2.0,
+    "measurement_assumed_sigma_deg_s": 5.0
   },
   "files": [
     "attitude_and_gyro.pdf",
@@ -55,6 +59,7 @@
   "metadata": {
     "config": {
       "body_omega_scale": 3.0,
+      "spike_scale": 0.5,
       "process_covariance_rad2_s2": [
         [
           0,

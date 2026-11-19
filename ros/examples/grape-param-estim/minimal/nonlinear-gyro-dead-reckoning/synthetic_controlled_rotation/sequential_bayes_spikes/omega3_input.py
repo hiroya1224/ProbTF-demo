@@ -30,7 +30,8 @@ trajectory = load_module('_omega3_base_trajectory', HERE.parent/'trajectory.py')
 shared = load_module('_omega3_input_shared', HERE/'run.py')
 
 
-def generate(directory=HERE/'frequent_publication', scale=3., acquisition_rate_hz=10.):
+def generate(directory=HERE/'frequent_publication', scale=3., acquisition_rate_hz=10.,
+             spike_scale=1.):
     """Return source, sensor, acquisitions, estimator-only data, physics, metadata.
 
     Reference poses are numerically integrated with DOP853 using the analytic
@@ -43,6 +44,9 @@ def generate(directory=HERE/'frequent_publication', scale=3., acquisition_rate_h
         raise ValueError('A finite positive angular-velocity scale is required')
     if not np.isfinite(acquisition_rate_hz) or acquisition_rate_hz <= 0.:
         raise ValueError('A finite positive acquisition rate is required')
+    spike_scale = float(spike_scale)
+    if not np.isfinite(spike_scale) or spike_scale <= 0.:
+        raise ValueError('A finite positive spike-amplitude scale is required')
     original = dict(np.load(directory/'source_input.npz', allow_pickle=False))
     sensor = dict(np.load(directory/'sensor_input.npz', allow_pickle=False))
     parameters = {name: original['motion_'+name].copy() for name in
@@ -88,6 +92,8 @@ def generate(directory=HERE/'frequent_publication', scale=3., acquisition_rate_h
     source['gyro'] = (source['gyro_true_body_rad_s']+source['gyro_bias_rad_s']
                       +source['gyro_realized_noise_rad_s'])
     sensor['gyro_white'] = source['gyro'].copy()
+    for key in ('spike_vector_rad_s', 'event_vector_body_rad_s', 'event_magnitude_deg_s'):
+        sensor[key] = spike_scale*sensor[key]
     sensor['gyro_spike'] = sensor['gyro_white']+sensor['spike_vector_rad_s']
 
     desired = np.arange(*source['time'], 1./acquisition_rate_hz)
@@ -110,6 +116,10 @@ def generate(directory=HERE/'frequent_publication', scale=3., acquisition_rate_h
     old_sensor = dict(np.load(directory/'sensor_input.npz', allow_pickle=False))
     metadata = dict(schema='grape/body-omega-scaled-synthetic-input/v1',
         body_omega_scale=scale, alpha_scale=scale, gyroscopic_torque_scale=scale**2,
+        spike_scale=spike_scale,
+        spike_scaling='Multiply saved per-pulse magnitudes/vectors and their native vector sum; retain every event time/width/direction and acquisition index',
+        spike_timing_rate_width_or_direction_changed=False,
+        single_pulse_magnitude_range_deg_s=(spike_scale*np.array([20.,60.])).tolist(),
         time_or_frequency_rescaled=False, rpy_amplitudes_scaled=False,
         quaternion='Hamilton xyzw, body-to-world; integrate qdot=q Hamilton (0,omega3)/2 from the same q0',
         torque='J alpha3 + omega3 cross(J omega3), saved at unchanged 1 kHz timestamps',
@@ -126,7 +136,7 @@ def generate(directory=HERE/'frequent_publication', scale=3., acquisition_rate_h
         native_reading_count=len(sensor['time']), acquisition_count=len(acquired['time']),
         native_rate_hz=200., acquisition_rate_hz=acquisition_rate_hz,
         generation_white_sigma_deg_s=2., measurement_assumed_sigma_deg_s=5.,
-        fixed_bias_and_white_noise_and_pulse_realization_reused=True,
+        fixed_bias_and_white_noise_and_pulse_timing_and_direction_reused=True,
         new_random_draws=False, future_truth_or_noise_supplied_to_estimator=False,
         estimator_data_fields=list(selected), process_covariance_rad2_s2=np.zeros((3,3)),
         old_omega_std_deg_s=np.rad2deg(np.std(original['reference_omega_body_rad_s'],axis=0)),

@@ -1,5 +1,6 @@
 {
   "body_omega_scale": 3.0,
+  "spike_scale": 0.5,
   "process_covariance_rad2_s2": [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
   "acquisition_rate_hz": 10.0,
   "assumed_sigma_deg_s": 5.0,

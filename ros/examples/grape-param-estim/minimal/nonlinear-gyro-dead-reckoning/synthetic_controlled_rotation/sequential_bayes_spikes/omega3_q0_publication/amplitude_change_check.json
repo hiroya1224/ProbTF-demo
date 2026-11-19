@@ -1,0 +1,28 @@
+{
+  "previous_commit": "fd1cc8c8cf3d8e0861391a28b6f3abf05e2318dc",
+  "true_motion_and_torque_source_file_bitwise_unchanged": true,
+  "previous_source_sha256": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
+  "current_source_sha256": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
+  "scaled_sensor_fields_exact": {
+    "spike_vector_rad_s": true,
+    "event_vector_body_rad_s": true,
+    "event_magnitude_deg_s": true
+  },
+  "other_sensor_fields_exact": {
+    "time": true,
+    "stamp_ns": true,
+    "record_ns": true,
+    "source_index": true,
+    "gyro_white": true,
+    "spike_mask": true,
+    "active_spike_count": true,
+    "event_requested_onset_seconds": true,
+    "event_requested_stop_seconds": true,
+    "event_applied_stop_seconds": true,
+    "event_native_start_array_index": true,
+    "event_native_stop_array_index_exclusive": true,
+    "event_width_seconds": true,
+    "event_direction_body": true
+  },
+  "measured_gyro_reconstruction_max_difference_rad_s": 0.0
+}

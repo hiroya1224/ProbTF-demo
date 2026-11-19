@@ -45,6 +45,9 @@ def refresh_manifest(output):
 
 def source_checks(source, sensor, acquired, original, original_sensor, config):
     scale = float(config['body_omega_scale'])
+    spike_scale = float(config.get('spike_scale', 1.))
+    spike_amplitude_keys = ('spike_vector_rad_s', 'event_vector_body_rad_s',
+                            'event_magnitude_deg_s')
     scaled = {name: difference(source[name], scale*original[name]) for name in (
         'gyro_true_body_rad_s', 'reference_omega_body_rad_s', 'reference_alpha_body_rad_s2')}
     scaled['reference_gyroscopic_torque_body_nm'] = difference(
@@ -55,7 +58,19 @@ def source_checks(source, sensor, acquired, original, original_sensor, config):
         'initial_quaternion_wxyz', 'inertia_body_kg_m2', 'reference_time', 'torque_time')
     preserved = {key: bool(np.array_equal(source[key], original[key])) for key in preserved_keys}
     sensor_preserved = {key: bool(np.array_equal(value, original_sensor[key]))
-        for key, value in sensor.items() if key not in ('gyro_white', 'gyro_spike')}
+        for key, value in sensor.items()
+        if key not in ('gyro_white', 'gyro_spike', *spike_amplitude_keys)}
+    spike_amplitude_checks = {key: difference(sensor[key], spike_scale*original_sensor[key])
+                             for key in spike_amplitude_keys}
+    # Reconstruct all pulse overlaps from their event vectors, independent of
+    # the saved native spike vector. Halving pulse heights must not remove
+    # events, move endpoints, or alter the acquisition schedule.
+    pulse_sum = np.zeros_like(sensor['spike_vector_rad_s'])
+    active_count = np.zeros(len(pulse_sum), dtype=np.int64)
+    for start, stop, vector in zip(sensor['event_native_start_array_index'],
+            sensor['event_native_stop_array_index_exclusive'], sensor['event_vector_body_rad_s']):
+        pulse_sum[int(start):int(stop)] += vector
+        active_count[int(start):int(stop)] += 1
     native_rate = 1./np.median(np.diff(sensor['time']))
     rate = float(config['acquisition_rate_hz'])
     stride = int(round(native_rate/rate))
@@ -73,16 +88,22 @@ def source_checks(source, sensor, acquired, original, original_sensor, config):
     gyroscopic = np.cross(omega, omega@inertia.T)
     expected_torque = alpha@inertia.T+gyroscopic
     baseline_gyroscopic = np.cross(base['omega_body_rad_s'], base['omega_body_rad_s']@inertia.T)
-    return dict(body_omega_scale=scale, expected_scale=3.,
+    return dict(body_omega_scale=scale, expected_scale=3., spike_scale=spike_scale,
         scaling_checks=scaled, unchanged_source_arrays=preserved,
         unchanged_native_disturbances_and_clocks=sensor_preserved,
+        spike_amplitude_vs_declared_scale=spike_amplitude_checks,
+        spike_vector_vs_sum_of_saved_pulses=difference(sensor['spike_vector_rad_s'], pulse_sum),
+        pulse_active_count_exact=bool(np.array_equal(sensor['active_spike_count'], active_count)),
+        pulse_mask_exact=bool(np.array_equal(sensor['spike_mask'], active_count>0)),
+        pulse_event_count=len(sensor['event_vector_body_rad_s']),
+        pulse_event_count_unchanged=len(sensor['event_vector_body_rad_s'])==len(original_sensor['event_vector_body_rad_s']),
         time_or_frequency_rescaled=False,
         base_frequency_coefficients_unchanged=bool(np.array_equal(
             source['base_motion_frequency_hz'], original['motion_frequency_hz'])),
         gyro_white_from_new_truth_plus_original_bias_and_noise=difference(sensor['gyro_white'],
             source['gyro_true_body_rad_s']+original['gyro_bias_rad_s']+original['gyro_realized_noise_rad_s']),
-        gyro_spike_from_new_white_plus_original_pulses=difference(sensor['gyro_spike'],
-            sensor['gyro_white']+original_sensor['spike_vector_rad_s']),
+        gyro_spike_from_new_white_plus_scaled_original_pulses=difference(sensor['gyro_spike'],
+            sensor['gyro_white']+spike_scale*original_sensor['spike_vector_rad_s']),
         nominal_native_rate_hz=native_rate, requested_acquisition_rate_hz=rate,
         native_index_stride=stride, expected_acquisition_count=len(expected_index),
         selected_native_index_exact=bool(np.array_equal(index, expected_index)),

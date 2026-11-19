@@ -1,5 +1,6 @@
 {
   "body_omega_scale": 3.0,
+  "spike_scale": 0.5,
   "process_covariance_rad2_s2": [
     [
       0,

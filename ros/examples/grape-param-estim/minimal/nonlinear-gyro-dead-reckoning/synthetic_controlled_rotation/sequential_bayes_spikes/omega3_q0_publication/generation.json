@@ -3,6 +3,13 @@
   "body_omega_scale": 3.0,
   "alpha_scale": 3.0,
   "gyroscopic_torque_scale": 9.0,
+  "spike_scale": 0.5,
+  "spike_scaling": "Multiply saved per-pulse magnitudes/vectors and their native vector sum; retain every event time/width/direction and acquisition index",
+  "spike_timing_rate_width_or_direction_changed": false,
+  "single_pulse_magnitude_range_deg_s": [
+    10.0,
+    30.0
+  ],
   "time_or_frequency_rescaled": false,
   "rpy_amplitudes_scaled": false,
   "quaternion": "Hamilton xyzw, body-to-world; integrate qdot=q Hamilton (0,omega3)/2 from the same q0",
@@ -96,7 +103,7 @@
     "record_ns": true,
     "source_index": true,
     "spike_mask": true,
-    "spike_vector_rad_s": true,
+    "spike_vector_rad_s": false,
     "active_spike_count": true,
     "event_requested_onset_seconds": true,
     "event_requested_stop_seconds": true,
@@ -105,8 +112,8 @@
     "event_native_stop_array_index_exclusive": true,
     "event_width_seconds": true,
     "event_direction_body": true,
-    "event_magnitude_deg_s": true,
-    "event_vector_body_rad_s": true
+    "event_magnitude_deg_s": false,
+    "event_vector_body_rad_s": false
   },
   "native_reading_count": 4001,
   "acquisition_count": 201,
@@ -114,7 +121,7 @@
   "acquisition_rate_hz": 10.0,
   "generation_white_sigma_deg_s": 2.0,
   "measurement_assumed_sigma_deg_s": 5.0,
-  "fixed_bias_and_white_noise_and_pulse_realization_reused": true,
+  "fixed_bias_and_white_noise_and_pulse_timing_and_direction_reused": true,
   "new_random_draws": false,
   "future_truth_or_noise_supplied_to_estimator": false,
   "estimator_data_fields": [

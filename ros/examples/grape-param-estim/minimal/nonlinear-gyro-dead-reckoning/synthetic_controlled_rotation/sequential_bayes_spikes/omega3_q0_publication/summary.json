@@ -2,6 +2,7 @@
   "schema": "grape/omega3-q0-comparison/v1",
   "config": {
     "body_omega_scale": 3.0,
+    "spike_scale": 0.5,
     "process_covariance_rad2_s2": [
       [
         0,
@@ -62,54 +63,54 @@
   ],
   "metrics_common_501_times": {
     "nonlinear": {
-      "so3_proxy_rmse_deg": 18.97028052357008,
-      "so3_proxy_max_deg": 28.130503310950893,
-      "so3_proxy_final_deg": 27.206771934184474,
+      "so3_proxy_rmse_deg": 9.078026218555948,
+      "so3_proxy_max_deg": 13.683334829869143,
+      "so3_proxy_final_deg": 12.571636206471593,
       "omega_rmse_deg_s": [
-        2.8587689965277168,
-        2.7195110158265305,
-        1.5830527166396797
+        1.3455132474394527,
+        1.688944341075681,
+        0.7461129020500847
       ],
       "omega_final_error_deg_s": [
-        1.0047600012315767,
-        -0.477543064093934,
-        -0.8704622417493914
+        0.41744852749911254,
+        -0.24731126192616568,
+        -0.42358513871216535
       ],
       "final_omega_two_sigma_deg_s": [
-        0.7019587021933369,
-        0.7115392997681577,
-        0.6970694358884812
+        0.7026861195524534,
+        0.7187699713817346,
+        0.6925676090288816
       ],
       "final_rpy_two_sigma_deg": [
-        13.256192856749536,
-        13.401842170147326,
-        14.193258306693862
+        13.498307549047261,
+        13.536034945700573,
+        14.21134704882056
       ],
       "score_count": 501
     },
     "linear_forced": {
-      "so3_proxy_rmse_deg": 18.530835456206468,
-      "so3_proxy_max_deg": 29.261155553855403,
-      "so3_proxy_final_deg": 22.304748902600004,
+      "so3_proxy_rmse_deg": 9.905310581870156,
+      "so3_proxy_max_deg": 19.169401850108137,
+      "so3_proxy_final_deg": 18.938513162779504,
       "omega_rmse_deg_s": [
-        8.92684226481896,
-        8.137836356022262,
-        1.6190067313187433
+        8.214412402562413,
+        7.416013340073158,
+        0.9024822431404954
       ],
       "omega_final_error_deg_s": [
-        17.461358377630255,
-        -10.786202400302416,
-        -1.2767727780176827
+        16.910799473529117,
+        -10.508342480257776,
+        -0.8634432998092649
       ],
       "final_omega_two_sigma_deg_s": [
-        0.7053456158586459,
-        0.7053456158587587,
-        0.7053456158586346
+        0.7053456158586399,
+        0.7053456158586255,
+        0.7053456158585991
       ],
       "final_rpy_two_sigma_deg": [
-        14.116019266531122,
-        13.025195024908891,
-        13.469465083887908
+        13.520462665293262,
+        13.025574104390452,
+        12.956355610103927
       ],
       "score_count": 501
     }
@@ -140,11 +141,11 @@
       "covariance_floor": false,
       "process_noise": false,
       "full_joint_quaternion_omega_law": true,
-      "native_step_count": 66201763,
+      "native_step_count": 62797446,
       "maximum_quaternion_norm_correction": 2.1094237467877974e-14,
       "native_source_sha256": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
       "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
-      "wall_seconds": 134.5935205980204
+      "wall_seconds": 134.36299051903188
     },
     "linear_forced": {
       "schema": "grape/full-rate-causal-bayes-rotation/v1",
@@ -170,34 +171,34 @@
       "covariance_floor": false,
       "process_noise": false,
       "full_joint_quaternion_omega_law": true,
-      "native_step_count": 35365014,
+      "native_step_count": 36174170,
       "maximum_quaternion_norm_correction": 2.1316282072803006e-14,
       "native_source_sha256": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
       "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
-      "wall_seconds": 82.04184708092362
+      "wall_seconds": 81.0937972960528
     }
   },
   "quadrature_refinement": {
     "7 -> 11": {
       "nonlinear": {
-        "max_omega_mean_component_difference_deg_s": 1.4788394512186507e-09,
-        "max_omega_covariance_component_difference_deg2_s2": 1.377545971697451e-08,
-        "max_rpy_proxy_component_difference_deg": 9.227552464049213e-09,
-        "max_rotation_covariance_component_difference": 1.5975043163307667e-10,
+        "max_omega_mean_component_difference_deg_s": 9.995688225169468e-12,
+        "max_omega_covariance_component_difference_deg2_s2": 1.1441994370912738e-10,
+        "max_rpy_proxy_component_difference_deg": 5.333154089878025e-11,
+        "max_rotation_covariance_component_difference": 1.3255568517833716e-12,
         "finite_diagnostic_only": true
       },
       "linear_forced": {
-        "max_omega_mean_component_difference_deg_s": 4.707220928566004e-13,
-        "max_omega_covariance_component_difference_deg2_s2": 7.545558646247718e-14,
-        "max_rpy_proxy_component_difference_deg": 4.6817764911142965e-12,
-        "max_rotation_covariance_component_difference": 5.044575868140555e-15,
+        "max_omega_mean_component_difference_deg_s": 4.325554366790383e-13,
+        "max_omega_covariance_component_difference_deg2_s2": 6.833713490941329e-14,
+        "max_rpy_proxy_component_difference_deg": 2.1373327459434834e-12,
+        "max_rotation_covariance_component_difference": 3.0982161280945775e-15,
         "finite_diagnostic_only": true
       }
     }
   },
   "inference_wall_seconds": {
-    "7": 43.751198993995786,
-    "11": 134.86108608706854
+    "7": 43.636496712919325,
+    "11": 134.54978379397653
   },
   "generation": "generation.json",
   "baseline_input_file_sha256": {
@@ -206,15 +207,15 @@
   },
   "input_file_sha256": {
     "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
-    "sensor_input.npz": "ef05a742a8d52c7daa1d28ae656c1b7f79f4a78f58c187e6df5fe8d16562e040",
-    "acquisitions.npz": "a7271e21ff131cd60a0db0a2eb0284467eaf40722a906189cb3cc85ccc85c357"
+    "sensor_input.npz": "ab8a275c877d51102cb9e5fad146a6296ca9617fa52cee89afc28df0aa02aa2a",
+    "acquisitions.npz": "d203558820e599cda1f38464986fe51eb9e71b7f783bb1a6b93db5f0910261e8"
   },
   "source_sha256": {
-    "omega3_input.py": "6795ee5f2cf74df5e5018cc916ed72029648453bd9f08f88285ebb6c1f3e98c7",
-    "omega3_verify.py": "532ca0c1bd4827968ea7be6e542b7c23d35044efc94e7becaed34f84cc520e60",
-    "omega3_run.py": "cb8465a5ef75b55e1a216ab2b40a9048a89ce961d3e8367dd79f2d55c3b01e63",
-    "omega3_plotting.py": "f716dd03c599946bfadb350c1e3638a6dec1d3363cc4f9acf39614fc94835d54",
-    "omega3_config.json": "5b48748f5b9c88151d7c325d28dc824e7ac3f715f9e0e41551bc49e7f334d915",
+    "omega3_input.py": "ee8f33df22d09f674301d0e3836e5eb7cfda1c876193ad7c193b2162106c6d36",
+    "omega3_verify.py": "ac218709e721c70b21fa5afd19e2c8e64aef489fc7a228b033cd613bd19566dd",
+    "omega3_run.py": "301462f7bd8e3fcfc7920bcd7bbfe3b348b618964129572b98db05ce025b68d0",
+    "omega3_plotting.py": "afb6cc4b71b7817a6544c99914ac0b0901a8e88d08ac64b9f02ad4743a6eb046",
+    "omega3_config.json": "edb42359db37983e459acbb80a3c2ef601727dc8113e28ccb6723c0aec66ada3",
     "full_rate_engine.py": "b14243e5245c110a86177b7399df73da7a1bea8211336c24b92142d0db6bd07c",
     "full_rate_flow.cpp": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
     "full_rate_flow.py": "185b4009d83fe53254edaefdc951b2cdddf1305e2e4c71a67753176b75a68145",
@@ -226,7 +227,7 @@
   "old_input_files_unchanged": true,
   "monte_carlo_inference": false,
   "covariance_rescaling": false,
-  "wall_seconds": 183.9569434451405,
+  "wall_seconds": 183.46144081489183,
   "publication_storage": {
     "report": "publication_storage.json",
     "all_published_moments_unchanged": true,

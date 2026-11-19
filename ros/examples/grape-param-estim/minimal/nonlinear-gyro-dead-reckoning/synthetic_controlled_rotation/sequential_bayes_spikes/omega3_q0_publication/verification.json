@@ -1,13 +1,14 @@
 {
   "schema": "grape/omega3-q0-independent-postrun-verification/v1",
-  "created_utc": "2026-11-19T22:46:32.814739+00:00",
+  "created_utc": "2026-11-19T23:49:55.956956+00:00",
   "post_run_only": true,
   "observations_or_filter_state_changed": false,
   "finite_differences_are_diagnostics_not_observation_gates": true,
-  "verifier_sha256": "532ca0c1bd4827968ea7be6e542b7c23d35044efc94e7becaed34f84cc520e60",
+  "verifier_sha256": "ac218709e721c70b21fa5afd19e2c8e64aef489fc7a228b033cd613bd19566dd",
   "source_scaling_and_disturbances": {
     "body_omega_scale": 3.0,
     "expected_scale": 3.0,
+    "spike_scale": 0.5,
     "scaling_checks": {
       "gyro_true_body_rad_s": {
         "shape_matches": true,
@@ -50,7 +51,6 @@
       "record_ns": true,
       "source_index": true,
       "spike_mask": true,
-      "spike_vector_rad_s": true,
       "active_spike_count": true,
       "event_requested_onset_seconds": true,
       "event_requested_stop_seconds": true,
@@ -58,10 +58,34 @@
       "event_native_start_array_index": true,
       "event_native_stop_array_index_exclusive": true,
       "event_width_seconds": true,
-      "event_direction_body": true,
-      "event_magnitude_deg_s": true,
-      "event_vector_body_rad_s": true
+      "event_direction_body": true
     },
+    "spike_amplitude_vs_declared_scale": {
+      "spike_vector_rad_s": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "event_vector_body_rad_s": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "event_magnitude_deg_s": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      }
+    },
+    "spike_vector_vs_sum_of_saved_pulses": {
+      "shape_matches": true,
+      "maximum_absolute_finite_difference": 0.0,
+      "nonfinite_difference_count": 0
+    },
+    "pulse_active_count_exact": true,
+    "pulse_mask_exact": true,
+    "pulse_event_count": 147,
+    "pulse_event_count_unchanged": true,
     "time_or_frequency_rescaled": false,
     "base_frequency_coefficients_unchanged": true,
     "gyro_white_from_new_truth_plus_original_bias_and_noise": {
@@ -69,7 +93,7 @@
       "maximum_absolute_finite_difference": 0.0,
       "nonfinite_difference_count": 0
     },
-    "gyro_spike_from_new_white_plus_original_pulses": {
+    "gyro_spike_from_new_white_plus_scaled_original_pulses": {
       "shape_matches": true,
       "maximum_absolute_finite_difference": 0.0,
       "nonfinite_difference_count": 0
@@ -127,13 +151,13 @@
   "new_input_hashes": {
     "recorded": {
       "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
-      "sensor_input.npz": "ef05a742a8d52c7daa1d28ae656c1b7f79f4a78f58c187e6df5fe8d16562e040",
-      "acquisitions.npz": "a7271e21ff131cd60a0db0a2eb0284467eaf40722a906189cb3cc85ccc85c357"
+      "sensor_input.npz": "ab8a275c877d51102cb9e5fad146a6296ca9617fa52cee89afc28df0aa02aa2a",
+      "acquisitions.npz": "d203558820e599cda1f38464986fe51eb9e71b7f783bb1a6b93db5f0910261e8"
     },
     "current": {
       "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
-      "sensor_input.npz": "ef05a742a8d52c7daa1d28ae656c1b7f79f4a78f58c187e6df5fe8d16562e040",
-      "acquisitions.npz": "a7271e21ff131cd60a0db0a2eb0284467eaf40722a906189cb3cc85ccc85c357"
+      "sensor_input.npz": "ab8a275c877d51102cb9e5fad146a6296ca9617fa52cee89afc28df0aa02aa2a",
+      "acquisitions.npz": "d203558820e599cda1f38464986fe51eb9e71b7f783bb1a6b93db5f0910261e8"
     },
     "unchanged_since_run_start": true
   },
@@ -160,10 +184,10 @@
     "counts_or_status_not_inferred_from_historical_runs": true,
     "supplied_evidence": {
       "command": "env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -m unittest discover -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/tests -v",
-      "passed": 50,
+      "passed": 52,
       "exit_code": 0,
-      "wall_seconds": 5.55,
-      "execution_session_id": 51762,
+      "wall_seconds": 6.335,
+      "execution_session_id": 50709,
       "source_sha256": {
         "test_adaptive_engine.py": "dc56f156d69a34fdb37299562d68d19b0978b127b41cad5ff02d577833d59f7e",
         "test_engine.py": "92f287d888d889bab52a15cec38d293012cd7afc13438df7c515279cf798008f",
@@ -171,17 +195,17 @@
         "test_frequent_input.py": "ca9c1aa0757cbfcc23f2c0c67a2616d4127a8c2138036b82bbc3243e80a71f35",
         "test_full_rate.py": "21ac41e3974dfcaa53144cfbdc9a60ca337e59b6be947f00f6f11be33b5eeb26",
         "test_model_comparison.py": "0c77bd811a564c6c397aa15edd84f6e927f670c4c22ec749ed32f116c62744cc",
-        "test_omega3.py": "02379b6142371a33660ae23d408320d185dfdbbb3234b246d9215c5cbf03a6d1",
+        "test_omega3.py": "8646da8c9496388fc1a77c49d16e20f39e9bd0c8f7a45111bc689fea56df5e56",
         "test_process_noise.py": "e46da90124b2c02dbf490020048a15a5937d44d970c954771b8759b70bdf52c4"
       }
     },
-    "supplied_evidence_sha256": "8ffee87b2b04a0ffe3386c886289e25f895e3765f98ff9db29421a91f3ecd522"
+    "supplied_evidence_sha256": "67261cf6fee2d17d3ac2c20f0bb2a78b9bc9968f05c275efbae3731a7e10bb19"
   },
   "code_sha256": {
-    "omega3_input.py": "6795ee5f2cf74df5e5018cc916ed72029648453bd9f08f88285ebb6c1f3e98c7",
-    "omega3_plotting.py": "f716dd03c599946bfadb350c1e3638a6dec1d3363cc4f9acf39614fc94835d54",
-    "omega3_run.py": "cb8465a5ef75b55e1a216ab2b40a9048a89ce961d3e8367dd79f2d55c3b01e63",
-    "omega3_verify.py": "532ca0c1bd4827968ea7be6e542b7c23d35044efc94e7becaed34f84cc520e60",
+    "omega3_input.py": "ee8f33df22d09f674301d0e3836e5eb7cfda1c876193ad7c193b2162106c6d36",
+    "omega3_plotting.py": "afb6cc4b71b7817a6544c99914ac0b0901a8e88d08ac64b9f02ad4743a6eb046",
+    "omega3_run.py": "301462f7bd8e3fcfc7920bcd7bbfe3b348b618964129572b98db05ce025b68d0",
+    "omega3_verify.py": "ac218709e721c70b21fa5afd19e2c8e64aef489fc7a228b033cd613bd19566dd",
     "full_rate_engine.py": "b14243e5245c110a86177b7399df73da7a1bea8211336c24b92142d0db6bd07c",
     "full_rate_flow.py": "185b4009d83fe53254edaefdc951b2cdddf1305e2e4c71a67753176b75a68145",
     "full_rate_flow.cpp": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28"
@@ -300,33 +324,33 @@
           }
         },
         "numerical_eigenvalues_are_diagnostics_not_acceptance_gates": true,
-        "minimum_omega_diagonal_rad2_s2": 3.7003842645801136e-05,
-        "minimum_omega_eigenvalue_rad2_s2": 2.776339413699691e-05,
-        "minimum_joint_rotation_omega_eigenvalue": -7.993722523034076e-19,
+        "minimum_omega_diagonal_rad2_s2": 3.652742820744406e-05,
+        "minimum_omega_eigenvalue_rad2_s2": 2.8146565087703882e-05,
+        "minimum_joint_rotation_omega_eigenvalue": -8.971115629558552e-19,
         "maximum_joint_covariance_asymmetry": 0.0,
         "maximum_quaternion_second_moment_trace_error": 2.6645352591003757e-15,
-        "minimum_quaternion_second_moment_eigenvalue": -2.318486354608472e-20,
+        "minimum_quaternion_second_moment_eigenvalue": -2.2862651596334284e-20,
         "final_omega_covariance_rad2_s2": [
           [
-            3.75247552740349e-05,
-            -1.3441240499582747e-06,
-            -3.726041738575625e-08
+            3.760256697824397e-05,
+            -9.690929641926691e-07,
+            -2.0060064520022337e-06
           ],
           [
-            -1.3441240499582747e-06,
-            3.8556049392979644e-05,
-            -3.385559676236612e-06
+            -9.690929641926691e-07,
+            3.93436450918169e-05,
+            -5.20807161103438e-06
           ],
           [
-            -3.726041738575625e-08,
-            -3.385559676236612e-06,
-            3.7003842645801136e-05
+            -2.0060064520022337e-06,
+            -5.20807161103438e-06,
+            3.652742820744406e-05
           ]
         ],
         "final_omega_two_sigma_deg_s": [
-          0.7019587021933369,
-          0.7115392997681577,
-          0.6970694358884812
+          0.7026861195524534,
+          0.7187699713817346,
+          0.6925676090288816
         ]
       },
       "recorded_engine_metadata": {
@@ -353,11 +377,11 @@
         "covariance_floor": false,
         "process_noise": false,
         "full_joint_quaternion_omega_law": true,
-        "native_step_count": 66201763,
+        "native_step_count": 62797446,
         "maximum_quaternion_norm_correction": 2.1094237467877974e-14,
         "native_source_sha256": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
         "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
-        "wall_seconds": 134.5935205980204
+        "wall_seconds": 134.36299051903188
       },
       "declared_measurement_covariance_comparison": {
         "shape_matches": true,
@@ -376,37 +400,37 @@
           "maximum_absolute_finite_difference": 0.0,
           "nonfinite_difference_count": 0
         },
-        "final_posterior_weight_sum": 0.9999999999999056,
+        "final_posterior_weight_sum": 1.0000000000000109,
         "final_float_underflow_zero_weight_count": 0,
         "final_saved_moments_vs_independent_all_factor_moments": {
           "quaternion_second_moment": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 9.08162434143378e-14,
+            "maximum_absolute_finite_difference": 1.0103029524088925e-14,
             "nonfinite_difference_count": 0
           },
           "rotation_mean": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 8.992806499463768e-14,
+            "maximum_absolute_finite_difference": 1.0769163338864018e-14,
             "nonfinite_difference_count": 0
           },
           "omega_mean_rad_s": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 4.524158825347513e-14,
+            "maximum_absolute_finite_difference": 5.495603971894525e-15,
             "nonfinite_difference_count": 0
           },
           "rotation_covariance_colmajor": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 1.250735626179278e-15,
+            "maximum_absolute_finite_difference": 1.6306400674181987e-16,
             "nonfinite_difference_count": 0
           },
           "omega_covariance_rad2_s2": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 3.652406068560543e-18,
+            "maximum_absolute_finite_difference": 4.743384504624082e-19,
             "nonfinite_difference_count": 0
           },
           "rotation_omega_covariance_colmajor": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 6.657001339060997e-17,
+            "maximum_absolute_finite_difference": 8.673617379884035e-18,
             "nonfinite_difference_count": 0
           }
         },
@@ -526,33 +550,33 @@
           }
         },
         "numerical_eigenvalues_are_diagnostics_not_acceptance_gates": true,
-        "minimum_omega_diagonal_rad2_s2": 3.788773877944527e-05,
-        "minimum_omega_eigenvalue_rad2_s2": 3.788773877944394e-05,
-        "minimum_joint_rotation_omega_eigenvalue": -7.993722523034076e-19,
+        "minimum_omega_diagonal_rad2_s2": 3.7887738779441457e-05,
+        "minimum_omega_eigenvalue_rad2_s2": 3.788773877944134e-05,
+        "minimum_joint_rotation_omega_eigenvalue": -8.971115629558552e-19,
         "maximum_joint_covariance_asymmetry": 0.0,
         "maximum_quaternion_second_moment_trace_error": 2.6645352591003757e-15,
-        "minimum_quaternion_second_moment_eigenvalue": -2.318486354608472e-20,
+        "minimum_quaternion_second_moment_eigenvalue": -2.2862651596334284e-20,
         "final_omega_covariance_rad2_s2": [
           [
-            3.7887738779446485e-05,
-            2.7492214625216285e-18,
-            -5.494266726075897e-19
+            3.788773877944583e-05,
+            -9.150693568578723e-21,
+            -9.300731336897704e-20
           ],
           [
-            2.7492214625216285e-18,
-            3.7887738779458594e-05,
-            3.177445889984935e-18
+            -9.150693568578723e-21,
+            3.788773877944429e-05,
+            6.085470527796641e-19
           ],
           [
-            -5.494266726075897e-19,
-            3.177445889984935e-18,
-            3.788773877944527e-05
+            -9.300731336897704e-20,
+            6.085470527796641e-19,
+            3.7887738779441457e-05
           ]
         ],
         "final_omega_two_sigma_deg_s": [
-          0.7053456158586459,
-          0.7053456158587587,
-          0.7053456158586346
+          0.7053456158586399,
+          0.7053456158586255,
+          0.7053456158585991
         ]
       },
       "recorded_engine_metadata": {
@@ -579,11 +603,11 @@
         "covariance_floor": false,
         "process_noise": false,
         "full_joint_quaternion_omega_law": true,
-        "native_step_count": 35365014,
+        "native_step_count": 36174170,
         "maximum_quaternion_norm_correction": 2.1316282072803006e-14,
         "native_source_sha256": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
         "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
-        "wall_seconds": 82.04184708092362
+        "wall_seconds": 81.0937972960528
       },
       "declared_measurement_covariance_comparison": {
         "shape_matches": true,
@@ -602,37 +626,37 @@
           "maximum_absolute_finite_difference": 0.0,
           "nonfinite_difference_count": 0
         },
-        "final_posterior_weight_sum": 1.0000000000001783,
+        "final_posterior_weight_sum": 0.9999999999999925,
         "final_float_underflow_zero_weight_count": 0,
         "final_saved_moments_vs_independent_all_factor_moments": {
           "quaternion_second_moment": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 1.7064127888488656e-13,
+            "maximum_absolute_finite_difference": 6.994405055138486e-15,
             "nonfinite_difference_count": 0
           },
           "rotation_mean": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 1.7419399256368706e-13,
+            "maximum_absolute_finite_difference": 6.772360450213455e-15,
             "nonfinite_difference_count": 0
           },
           "omega_mean_rad_s": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 1.1834977442504169e-13,
+            "maximum_absolute_finite_difference": 4.884981308350689e-15,
             "nonfinite_difference_count": 0
           },
           "rotation_covariance_colmajor": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 2.310651670001107e-15,
+            "maximum_absolute_finite_difference": 1.0928757898653885e-16,
             "nonfinite_difference_count": 0
           },
           "omega_covariance_rad2_s2": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 6.783039841612437e-18,
+            "maximum_absolute_finite_difference": 3.1170812458958252e-19,
             "nonfinite_difference_count": 0
           },
           "rotation_omega_covariance_colmajor": {
             "shape_matches": true,
-            "maximum_absolute_finite_difference": 1.1308228659023811e-16,
+            "maximum_absolute_finite_difference": 4.87890977618477e-18,
             "nonfinite_difference_count": 0
           }
         },
@@ -644,19 +668,19 @@
         "oracle_or_generated_bias_used": false,
         "expected_mean": "mean_{j included}(y_j-a(t_j))+a(t)",
         "expected_covariance": "R / number_of_included_readings; y0 initializes once",
-        "maximum_all_time_mean_difference_rad_s": 9.547918011776346e-15,
-        "maximum_all_time_mean_difference_deg_s": 5.470554052117249e-13,
+        "maximum_all_time_mean_difference_rad_s": 1.1102230246251565e-14,
+        "maximum_all_time_mean_difference_deg_s": 6.361109362927034e-13,
         "per_component_maximum_mean_difference_deg_s": [
-          3.053332494204976e-13,
-          5.470554052117249e-13,
-          1.8447217152488398e-13
+          1.304027419400042e-13,
+          6.361109362927034e-13,
+          1.335832966214677e-13
         ],
         "maximum_all_time_covariance_difference_rad2_s2": 2.862293735361732e-17,
-        "maximum_relative_covariance_frobenius_difference": 2.948498138036898e-13,
+        "maximum_relative_covariance_frobenius_difference": 1.6626522431499537e-13,
         "final_analytic_mean_rad_s": [
-          0.3542832299419795,
-          -0.6635611763522324,
-          -0.02801401857216467
+          0.344674164339244,
+          -0.6587116058881253,
+          -0.020800058281877122
         ],
         "final_analytic_covariance_rad2_s2": [
           [
@@ -676,25 +700,25 @@
           ]
         ],
         "final_mean_difference_rad_s": [
-          9.43689570931383e-16,
+          -1.1102230246251565e-16,
           -1.1102230246251565e-15,
-          2.8796409701215e-16
+          -2.185751579730777e-16
         ],
         "final_covariance_difference_rad2_s2": [
           [
-            5.1228552649940085e-18,
-            2.7492214625216285e-18,
-            -5.494266726075897e-19
+            4.4655576979246714e-18,
+            -9.150693568578723e-21,
+            -9.300731336897704e-20
           ],
           [
-            2.7492214625216285e-18,
-            1.7232038278941486e-17,
-            3.177445889984935e-18
+            -9.150693568578723e-21,
+            2.927345865710862e-18,
+            6.085470527796641e-19
           ],
           [
-            -5.494266726075897e-19,
-            3.177445889984935e-18,
-            3.90990408452585e-18
+            -9.300731336897704e-20,
+            6.085470527796641e-19,
+            9.486769009248164e-20
           ]
         ],
         "finite_differences_are_reported_without_quality_gate": true
@@ -799,5 +823,5 @@
     "all_files_below_50000000_bytes": true,
     "intermediate_cache_excluded": true
   },
-  "wall_seconds": 2.1865650448016822
+  "wall_seconds": 2.156229766784236
 }

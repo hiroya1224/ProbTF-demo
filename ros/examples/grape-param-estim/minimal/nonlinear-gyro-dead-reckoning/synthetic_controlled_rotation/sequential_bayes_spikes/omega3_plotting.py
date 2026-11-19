@@ -62,13 +62,15 @@ def _main(output, source, acquired, sensor, cases, settings):
         for row, axis in enumerate((top, omega, width)):
             saved._decorate(axis, settings['data_range_seconds'], xlabel=row==2)
             axis.set_ylabel('deg' if row==0 else 'deg/s')
-    fig.suptitle('Body omega x3, unchanged temporal frequencies / Q=0 / two dynamics models',
+    fig.suptitle('Body omega x3 / Q=0 / '
+        f'spike amplitude x{settings["spike_scale"]:g} / two dynamics models',
         fontsize=15, y=.993)
     fig.legend(handles=saved._legends(rate=settings['nominal_rate_hz']), loc='upper center',
         bbox_to_anchor=(.5, .955), ncol=2, frameon=False, fontsize=10)
     fig.text(.035, .014,
         f'All {settings["native_reading_count"]:,} native gyro values are shown; only {settings["selected_acquisition_count"]} selected readings at {settings["nominal_rate_hz"]:g} Hz update each model. Q=0.\n'
         'Body omega(t) is 3x the previous calibrated profile at the SAME times; the new quaternion and torque are computed consistently. RPY angles are not multiplied by 3.\n'
+        f'Spike amplitude x{settings["spike_scale"]:g} relative to the original saved pulses; onset times, rate and widths unchanged. White sigma remains {settings["sensor_white_sigma_deg_s"]:g} deg/s; observation sigma remains {settings["measurement_assumed_sigma_deg_s"]:g} deg/s.\n'
         'The two models use the same new truth, spiky readings, initial law, J and torque. Only omega cross(J omega) is omitted in the red model.\n'
         'Bands are actual saved +/-2sigma; bottom row is the SAME omega half-width. Open/filled markers=prior/posterior. RPY is a local display approximation; no covariance rescaling.',
         fontsize=9)
@@ -140,10 +142,12 @@ def _errors(output, arrays, settings):
             saved._decorate(axis, settings['data_range_seconds'], xlabel=row==1)
     handles=[saved.Line2D([], [], color=COLORS[name], ls=STYLES[name], lw=1.7,
         label=LABELS[name]) for name in MODELS]
-    fig.suptitle('Body omega x3, Q=0: reconstruction errors against the NEW synthetic truth', fontsize=15)
+    fig.suptitle('Body omega x3 / Q=0 / '
+        f'spike amplitude x{settings["spike_scale"]:g}: reconstruction errors', fontsize=15)
     fig.legend(handles=handles, loc='upper center', bbox_to_anchor=(.5, .955), ncol=2, frameon=False)
     fig.text(.04, .025,
         'Top: wrapped component RPY error. Bottom: body angular-rate error. Both models use the same new source truth and same selected noisy measurements.\n'
+        f'Spike amplitude x{settings["spike_scale"]:g}; onset times, rate and widths unchanged. White sigma remains {settings["sensor_white_sigma_deg_s"]:g} deg/s; observation sigma remains {settings["measurement_assumed_sigma_deg_s"]:g} deg/s.\n'
         'Bands use the SAME saved +/-2sigma as the main figure, with every saved prior/posterior row; no estimate smoothing or covariance adjustment.\n'
         'Reference subtraction is evaluation only. RPY bands are local display approximations, not guaranteed 95% regions. Q=0; observation sigma remains 5 deg/s.',
         fontsize=9)
@@ -163,6 +167,14 @@ def render(output, source, acquired, sensor, cases, metadata=None):
     settings['model_process_covariance']='Q=0'
     settings['body_rate_multiplier']=3
     settings['temporal_frequency_change']=False
+    if metadata is None and (output/'config.json').exists():
+        metadata={'config':json.loads((output/'config.json').read_text())}
+    config=(metadata or {}).get('config', {})
+    settings['spike_scale']=float(config.get('spike_scale', 1.))
+    settings['spike_scale_reference']='Amplitude of original saved pulses; original onset times, rate and widths'
+    settings['sensor_white_sigma_deg_s']=float(np.rad2deg(np.sqrt(
+        np.trace(source['generator_gyro_covariance_rad2_s2'])/3.)))
+    settings['measurement_assumed_sigma_deg_s']=float(config.get('assumed_sigma_deg_s', 5.))
     arrays, metrics=_diagnostics(source, cases)
     files=_main(output, source, acquired, sensor, cases, settings)
     files+=_errors(output, arrays, settings)

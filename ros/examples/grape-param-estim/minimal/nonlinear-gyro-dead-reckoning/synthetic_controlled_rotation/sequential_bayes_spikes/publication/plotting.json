@@ -1,0 +1,50 @@
+{
+  "schema": "grape/sequential-bayes-spike-plot/v1",
+  "methods": [
+    "white",
+    "spike"
+  ],
+  "reference": "Synthetic truth; read-only evaluation",
+  "settings": {
+    "rate_hz": 0.5,
+    "regular_acquisition": true,
+    "assumed_sigma_deg_s": 5.0,
+    "rate_label": "0.5 Hz acquired gyro",
+    "noise_label": "assumed sigma = 5 deg/s",
+    "spike_count": 1
+  },
+  "display_operations": [
+    "radian-to-degree conversion",
+    "2*sqrt(saved diagonal covariance)",
+    "SO(3) geodesic error of saved Euler display center",
+    "observed gyro minus saved pre-update rate mean",
+    "Frobenius norm of saved full rotation/rate cross covariance"
+  ],
+  "covariance_adjustment": false,
+  "smoothing": false,
+  "monte_carlo": false,
+  "duplicated_before_after_timestamps_preserved": true,
+  "rpy_bands": "Saved local Euler moment proxy covariance; not guaranteed 95% coverage",
+  "movie": {
+    "file": "sequential_bayes_spike_comparison.mp4",
+    "bytes": 317369,
+    "sha256": "4e37549894482cccf743b99f3a3aa5380c7e827e2436bb2fc551d8cc51fc9e79",
+    "duration_seconds": 23.334,
+    "width": 960,
+    "height": 540,
+    "fps": 12,
+    "frames": 280,
+    "animation": "Saved moments revealed in acquisition order; same-time prior and posterior each paused for about 0.6 s; no interpolation of a filtering update",
+    "event_hold_seconds_per_side": 0.5833333333333334,
+    "narration": false
+  },
+  "files": [
+    "attitude_and_gyro.pdf",
+    "attitude_and_gyro.png",
+    "bayes_diagnostics.pdf",
+    "bayes_diagnostics.png",
+    "sequential_bayes_spike_comparison.mp4",
+    "before_after.pdf",
+    "before_after.png"
+  ]
+}

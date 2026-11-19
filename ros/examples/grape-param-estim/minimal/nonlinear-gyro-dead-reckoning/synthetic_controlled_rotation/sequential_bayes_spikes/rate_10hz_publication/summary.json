@@ -1,0 +1,198 @@
+{
+  "schema": "grape/selected-rate-gyro-dynamics-comparison/v1",
+  "config": {
+    "acquisition_rate_hz": 10.0,
+    "assumed_sigma_deg_s": 5.0,
+    "quadrature_orders": [
+      7,
+      11
+    ],
+    "max_step_seconds": 0.002,
+    "refresh_seconds": 0.1,
+    "reanchor_displacement_sigma": 1.0,
+    "dense_startup_seconds": 0.25
+  },
+  "observation_count": 201,
+  "acquisition_rate_hz": 10.0,
+  "every_selected_sample_used": true,
+  "sensor_native_rate_hz": 200.0,
+  "native_reading_count": 4001,
+  "native_spiked_observation_count": 61,
+  "first_reading_used_as_initial_law_once": true,
+  "update": "causal prefix of the original initial Gaussian times each acquired likelihood exactly once",
+  "numerical_proposal_refresh_is_not_an_observation_update_schedule": true,
+  "compared_models": [
+    "nonlinear",
+    "linear_forced"
+  ],
+  "model_difference": "omega cross(J omega) only; shared quaternion kinematics",
+  "metrics_common_501_times": {
+    "nonlinear": {
+      "so3_proxy_rmse_deg": 18.95616498677245,
+      "so3_proxy_max_deg": 27.85474848446303,
+      "so3_proxy_final_deg": 27.01717745107121,
+      "omega_rmse_deg_s": [
+        2.7188119136026057,
+        2.7767390001134973,
+        1.525525190742097
+      ],
+      "omega_final_error_deg_s": [
+        0.8458567421372514,
+        -0.6517640947660985,
+        -0.8064957002548919
+      ],
+      "final_omega_two_sigma_deg_s": [
+        0.7096145649243958,
+        0.7045151357326328,
+        0.7051088362202348
+      ],
+      "final_rpy_two_sigma_deg": [
+        13.990491696130793,
+        13.951361205475862,
+        14.337198830593561
+      ],
+      "score_count": 501
+    },
+    "linear_forced": {
+      "so3_proxy_rmse_deg": 19.567772666964608,
+      "so3_proxy_max_deg": 29.085853761284348,
+      "so3_proxy_final_deg": 27.483399247428423,
+      "omega_rmse_deg_s": [
+        2.980133321645179,
+        3.228524159091341,
+        1.4846934674379824
+      ],
+      "omega_final_error_deg_s": [
+        2.7454275600803,
+        -1.798124017928542,
+        -0.8635703137277998
+      ],
+      "final_omega_two_sigma_deg_s": [
+        0.7053456158585675,
+        0.7053456158586571,
+        0.7053456158586341
+      ],
+      "final_rpy_two_sigma_deg": [
+        14.377285380822203,
+        14.023188145265468,
+        14.368112474516606
+      ],
+      "score_count": 501
+    }
+  },
+  "metrics_scope": "Same 501 evaluation times as existing 1 Hz report; figure report additionally uses exact shared stored timestamps",
+  "quadrature_refinement": {
+    "7 -> 11": {
+      "nonlinear": {
+        "max_omega_mean_component_difference_deg_s": 1.917138969652412e-11,
+        "max_omega_covariance_component_difference_deg2_s2": 2.6464836814949847e-10,
+        "max_rpy_proxy_component_difference_deg": 3.2179580045175277e-10,
+        "max_rotation_covariance_component_difference": 8.965415215778094e-12,
+        "finite_diagnostic_only": true
+      },
+      "linear_forced": {
+        "max_omega_mean_component_difference_deg_s": 1.4312496066585825e-13,
+        "max_omega_covariance_component_difference_deg2_s2": 8.542141863676662e-14,
+        "max_rpy_proxy_component_difference_deg": 2.2391104957503156e-12,
+        "max_rotation_covariance_component_difference": 4.588343593958655e-15,
+        "finite_diagnostic_only": true
+      }
+    }
+  },
+  "inference_wall_seconds": {
+    "7": 44.40829058899544,
+    "11": 134.58543082606047
+  },
+  "engine_metadata": {
+    "nonlinear": {
+      "schema": "grape/full-rate-causal-bayes-rotation/v1",
+      "mode": "nonlinear",
+      "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 Gaussian gyro likelihoods once",
+      "acquired_observation_count": 201,
+      "likelihood_count": 200,
+      "quadrature_order_per_axis": 11,
+      "quadrature_nodes_per_refresh": 1331,
+      "scheduled_refresh_seconds": 0.1,
+      "initial_dense_seconds": 0.25,
+      "reanchor_displacement_sigma": 1.0,
+      "actual_proposal_refresh_count": 201,
+      "proposal_is_not_posterior_state": true,
+      "proposal_density_divided_out": true,
+      "proposal_selection_uses_only_current_prefix": true,
+      "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+      "previous_online_outputs_rewritten": false,
+      "every_observation_updated": true,
+      "numerical_regridding_is_not_observation_rejection": true,
+      "monte_carlo": false,
+      "node_pruning": false,
+      "covariance_floor": false,
+      "process_noise": false,
+      "full_joint_quaternion_omega_law": true,
+      "native_step_count": 64886554,
+      "maximum_quaternion_norm_correction": 2.6645352591003757e-15,
+      "native_source_sha256": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
+      "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+      "wall_seconds": 134.31875332188793
+    },
+    "linear_forced": {
+      "schema": "grape/full-rate-causal-bayes-rotation/v1",
+      "mode": "linear_forced",
+      "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 Gaussian gyro likelihoods once",
+      "acquired_observation_count": 201,
+      "likelihood_count": 200,
+      "quadrature_order_per_axis": 11,
+      "quadrature_nodes_per_refresh": 1331,
+      "scheduled_refresh_seconds": 0.1,
+      "initial_dense_seconds": 0.25,
+      "reanchor_displacement_sigma": 1.0,
+      "actual_proposal_refresh_count": 201,
+      "proposal_is_not_posterior_state": true,
+      "proposal_density_divided_out": true,
+      "proposal_selection_uses_only_current_prefix": true,
+      "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+      "previous_online_outputs_rewritten": false,
+      "every_observation_updated": true,
+      "numerical_regridding_is_not_observation_rejection": true,
+      "monte_carlo": false,
+      "node_pruning": false,
+      "covariance_floor": false,
+      "process_noise": false,
+      "full_joint_quaternion_omega_law": true,
+      "native_step_count": 34987462,
+      "maximum_quaternion_norm_correction": 2.6645352591003757e-15,
+      "native_source_sha256": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
+      "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+      "wall_seconds": 83.1435868490953
+    }
+  },
+  "input_directory_relative_to_runner": "frequent_publication",
+  "input_file_sha256": {
+    "source_input.npz": "891c694345d9ba5fb5afa6330feca6fcf31125e0ec1999f9e305faca6ee74a22",
+    "sensor_input.npz": "da026b19450d87aec34d81e796f8903f89ce790ccedfe772118d2f10414ffb89",
+    "bayes_nonlinear.npz": "6897c174baef93a889bcb163cf18a167f2ff29ebf29ba534ac040e4fac7cf694",
+    "bayes_linear_forced.npz": "6de0e124e87f7f5fc006e31516e55b4d6d6f023304d749d216ca5c5268212721"
+  },
+  "source_sha256": {
+    "full_rate_engine.py": "b14243e5245c110a86177b7399df73da7a1bea8211336c24b92142d0db6bd07c",
+    "full_rate_flow.cpp": "b8f04e4973c6118005054cde921f0b74f04f107d5cef04f35b33ce23f5630c28",
+    "full_rate_flow.py": "185b4009d83fe53254edaefdc951b2cdddf1305e2e4c71a67753176b75a68145",
+    "rate_comparison_plotting.py": "ed3ced48dd6a45e5360a656c811cbebea45cd2a9f7042e6e5ab125527924347b",
+    "rate_comparison_verify.py": "46b7387bc94420b44d4583781caa278fb981214704716d7faaf08cf78b5e5ae8",
+    "rate_comparison_run.py": "272445548467091e4f6632e4bbb9aa62cd1cd0c621b0defcc84620618f998120"
+  },
+  "original_input_files_unchanged": true,
+  "generated_noise_or_motion_recomputed": false,
+  "monte_carlo_inference": false,
+  "wall_seconds": 184.1139262339566,
+  "publication_storage": {
+    "report": "publication_storage.json",
+    "all_published_moments_unchanged": true,
+    "final_node_weights_keys": [
+      "last_refresh_log_weights",
+      "last_refresh_prior_log_weights"
+    ],
+    "intermediate_refresh_weights_reconstructible": true,
+    "finite_proposal_residuals_report": "proposal_refresh_diagnostics.json",
+    "compact_script_sha256": "bfef7f498090de89911551c352a0c00cf1ea31b995a8bfdbeb89100eedc2fe24"
+  }
+}

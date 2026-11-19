@@ -2,6 +2,8 @@
 
 2026-11-13。実測や機体同定の結果と分け、既知の慣性・既知の入力トルクの下で、Euler式のジャイロ項の違いを比較した。
 
+2026-11-20追加：[10 Hzで取得した別比較](sequential_bayes_spikes/rate_10hz_publication/INDEX.md)。同じ200 Hzの生gyroから0.1秒ごとに201件を選び、非線形／ジャイロ項なしと、元の1 Hz結果を比較する。[方法と再現](sequential_bayes_spikes/RATE_10HZ.md)。
+
 2026-11-20最新：[同じスパイク入りgyroによる非線形／ジャイロ項なしの20秒比較](sequential_bayes_spikes/frequent_publication/INDEX.md)。200 Hz生測定と全ノイズ成分も表示し、15秒間に147回のPoissonスパイク、その後5秒の正常な更新を含む。[方法・再現](sequential_bayes_spikes/FREQUENT_SPIKES.md)を保存した。
 
 現在の合成運動は、実飛行#8の40〜60秒で測った周波数と角速度の強さに合わせている。body角速度の標準偏差は実測運動の約1.5倍、xyzで約4.38・12.46・5.27 deg/s。[実測・旧合成・新合成の比較図と校正手順](sequential_bayes_spikes/flight_motion/README.md)を保存し、現在の比較図と動画を更新した。以下の11月13日の旧例と解説動画は元の運動の記録である。

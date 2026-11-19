@@ -1,5 +1,7 @@
 # スパイク入りgyro：非線形モデルとジャイロ項なしの比較
 
+[10 Hzで取得した追加比較](rate_10hz_publication/INDEX.md)と[再現手順](RATE_10HZ.md)を別保存した。同じ生測定から0.1秒ごとに201件を使い、元の1 Hzとの誤差比較図も載せる。以下の1 Hz結果は保持している。
+
 [現在の図・動画・数値](frequent_publication/INDEX.md) ／ [数式と再現手順](FREQUENT_SPIKES.md)。
 
 両モデルに同じスパイク入りgyro、原時刻、初期候補、慣性、入力トルクを与える。比較の違いは角速度方程式の `omega cross(J omega)` 項だけで、四元数の運動学と時系列Bayes更新は共通である。

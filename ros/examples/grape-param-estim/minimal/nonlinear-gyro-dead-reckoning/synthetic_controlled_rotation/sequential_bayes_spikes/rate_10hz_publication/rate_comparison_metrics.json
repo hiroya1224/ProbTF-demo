@@ -1,0 +1,92 @@
+{
+  "common_saved_timestamp_count": 201,
+  "evaluation_range_seconds": [
+    0.0,
+    20.0
+  ],
+  "evaluation": "Equal-weight RMSE on the identical common saved timestamps; last/posterior row at duplicate times. No estimate interpolation.",
+  "timestamp_matching": "Original elapsed seconds rounded to integer ns for equality matching only",
+  "reference": "Synthetic reference interpolated to shared timestamps for read-only evaluation; never estimator input",
+  "results": {
+    "selected_rate": {
+      "nonlinear": {
+        "so3_proxy_rmse_deg": 18.894823530723365,
+        "so3_proxy_final_deg": 27.01717745107121,
+        "rpy_rmse_deg": [
+          12.867506284459326,
+          8.919644068627418,
+          11.666583998997396
+        ],
+        "omega_rmse_deg_s": [
+          2.7204845416792014,
+          2.7567092067271077,
+          1.5258212514941132
+        ],
+        "final_omega_two_sigma_deg_s": [
+          0.7096145649243958,
+          0.7045151357326328,
+          0.7051088362202348
+        ]
+      },
+      "linear_forced": {
+        "so3_proxy_rmse_deg": 19.46957074246093,
+        "so3_proxy_final_deg": 27.483399247428423,
+        "rpy_rmse_deg": [
+          12.554035497696153,
+          10.667808624618262,
+          11.78098139026458
+        ],
+        "omega_rmse_deg_s": [
+          2.985930519428324,
+          3.2019992583891965,
+          1.4868106820717093
+        ],
+        "final_omega_two_sigma_deg_s": [
+          0.7053456158585675,
+          0.7053456158586571,
+          0.7053456158586341
+        ]
+      }
+    },
+    "one_hz": {
+      "nonlinear": {
+        "so3_proxy_rmse_deg": 31.321166104408515,
+        "so3_proxy_final_deg": 33.064796495191,
+        "rpy_rmse_deg": [
+          22.592903483864312,
+          18.56620656098373,
+          13.90755320995214
+        ],
+        "omega_rmse_deg_s": [
+          1.9807679760096544,
+          2.4781035503735764,
+          1.2562339681269925
+        ],
+        "final_omega_two_sigma_deg_s": [
+          2.2531060863988324,
+          2.2423114479836586,
+          2.237057715024147
+        ]
+      },
+      "linear_forced": {
+        "so3_proxy_rmse_deg": 33.0524094559056,
+        "so3_proxy_final_deg": 37.4376542875392,
+        "rpy_rmse_deg": [
+          25.10269652952653,
+          17.77587020340744,
+          15.132331653543536
+        ],
+        "omega_rmse_deg_s": [
+          2.576181512811077,
+          2.4859470245672743,
+          1.324055833775485
+        ],
+        "final_omega_two_sigma_deg_s": [
+          2.2360679774997996,
+          2.236067977499785,
+          2.236067977499765
+        ]
+      }
+    }
+  }
+}

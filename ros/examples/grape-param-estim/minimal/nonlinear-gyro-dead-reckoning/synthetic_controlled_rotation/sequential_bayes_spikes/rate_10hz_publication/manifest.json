@@ -1,0 +1,106 @@
+{
+  "files": [
+    {
+      "path": "COMPARISON_1HZ_VS_10HZ.md",
+      "bytes": 2548,
+      "sha256": "f2669dd0b61bf9ac6c3fbe0b9ce2aff9754d1ef9cac251ff2dd1478f18468e5c"
+    },
+    {
+      "path": "INDEX.md",
+      "bytes": 2545,
+      "sha256": "0dc27b86c81125720e0dbfe0317a1d5962fbc454f00e4237f649587462888f29"
+    },
+    {
+      "path": "acquisitions.npz",
+      "bytes": 11742,
+      "sha256": "498692eb31a0db79a163b7719929b9c559f1d103c480161db60b8c67d341f269"
+    },
+    {
+      "path": "attitude_and_gyro.pdf",
+      "bytes": 538364,
+      "sha256": "b63dfd0308c83f085a17e8447b1b1463a7ae19fd8e0946559b53bf903fb21822"
+    },
+    {
+      "path": "attitude_and_gyro.png",
+      "bytes": 772662,
+      "sha256": "c453aa1b00c0c5cb6f91323a5b635ab2d3709b5f8b13050e6645d0af043b3d98"
+    },
+    {
+      "path": "bayes_linear_forced.npz",
+      "bytes": 426643,
+      "sha256": "03f04c14897e628b1bbe20ac8e1b4b3883e739b72df97c8f97718722daea15ef"
+    },
+    {
+      "path": "bayes_nonlinear.npz",
+      "bytes": 445503,
+      "sha256": "0c5fc3612c682d45e0657d6da232e5f10d5cd69c23d7ee18fcad7c4af86c583d"
+    },
+    {
+      "path": "config.json",
+      "bytes": 234,
+      "sha256": "48f736243d9267d1198856226a8513d478f613da7a687bcd27525537641384f0"
+    },
+    {
+      "path": "gyro_uncertainty_first_second.pdf",
+      "bytes": 43967,
+      "sha256": "a537060d6e8e7479ae822594ac3e991da09398540dfd403b6c7ac88b00af97ea"
+    },
+    {
+      "path": "gyro_uncertainty_first_second.png",
+      "bytes": 309979,
+      "sha256": "4ec659439bdf0d494cf75f574f710a05916ce92d6703e57350ae48cf82df11b4"
+    },
+    {
+      "path": "proposal_refresh_diagnostics.json",
+      "bytes": 461775,
+      "sha256": "3f29ff0428964081fa75746ea4e7456972de5d0b5b708b874c20ad0a620d4292"
+    },
+    {
+      "path": "publication_storage.json",
+      "bytes": 7632,
+      "sha256": "c86ef8e2052300b2b0528708a9c669e83f55929b5ffbafe3a5b74ace57968189"
+    },
+    {
+      "path": "quadrature_refinement.json",
+      "bytes": 764,
+      "sha256": "34f8f45975dfe7f8322a1fd820f526b7182c2a5f0dec03e50ed7906ac9bf8b57"
+    },
+    {
+      "path": "rate_comparison_errors.pdf",
+      "bytes": 63551,
+      "sha256": "daada761601d6f1cbb947c13021b58789e661b98ab8c7065ef9b70c25e65cefa"
+    },
+    {
+      "path": "rate_comparison_errors.png",
+      "bytes": 436291,
+      "sha256": "29b5dc01c81696f7b64b626f73cf4f4a49d035d5ddcfdbdc75383b321bbc47d5"
+    },
+    {
+      "path": "rate_comparison_metrics.json",
+      "bytes": 2628,
+      "sha256": "7dce4705ba66f06d0f29d72da9f5a1254635cd44e28ac407de978d1e1319d093"
+    },
+    {
+      "path": "rate_comparison_metrics.npz",
+      "bytes": 60898,
+      "sha256": "2159f1eeb2694a127f72903837be351e644f964964649418590af9fb8d9dbfb7"
+    },
+    {
+      "path": "rate_comparison_plotting.json",
+      "bytes": 2491,
+      "sha256": "90eb1b11cfb35f1bdec58202fcca4be779f5c5dc50f504746c6eb03621ed5f87"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 8145,
+      "sha256": "4b7f619e0a51fb2326ea3a0215dbfccb94443b493b6c46064efe37ab599fd71f"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 26608,
+      "sha256": "d0c3b9ebd48c2b610dbd84e930adac8e310ea017dea8fbbfd00d2ad66f2e1f2e"
+    }
+  ],
+  "bytes_excluding_manifest": 3624970,
+  "raw_bag_or_intermediate_cache_included": false
+}

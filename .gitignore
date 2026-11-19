@@ -1,4 +1,5 @@
 __pycache__/
+/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/rate_10hz_publication/cache/
 *.py[cod]
 *.egg-info/
 .pytest_cache/

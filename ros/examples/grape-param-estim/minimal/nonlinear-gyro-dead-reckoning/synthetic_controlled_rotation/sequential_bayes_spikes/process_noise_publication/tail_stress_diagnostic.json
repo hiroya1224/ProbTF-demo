@@ -1,0 +1,72 @@
+{
+  "schema": "grape/process-noise-hard-tail-quadrature-diagnostic/v1",
+  "measurements_deg_s": [
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      100.0,
+      -80.0,
+      60.0
+    ],
+    [
+      -70.0,
+      90.0,
+      -50.0
+    ],
+    [
+      1.0,
+      -2.0,
+      3.0
+    ]
+  ],
+  "acquisition_time_seconds": [
+    0.0,
+    0.1,
+    0.2,
+    0.3
+  ],
+  "process_sigma_rad_s": 0.05235987755982989,
+  "measurement_sigma_deg_s": 5.0,
+  "mode": "linear_forced",
+  "reference": "exact angular-rate Kalman recursion on the same input",
+  "finite_error_is_not_an_observation_acceptance_or_early_stop_rule": true,
+  "limitation": "Finite Gaussian-mixture quadrature is not uniformly accurate in far tails; final-order error is retained explicitly",
+  "orders": [
+    {
+      "order": 5,
+      "observation_count": 4,
+      "final_likelihood_factor_count": 3,
+      "maximum_omega_mean_error_deg_s": 6.642496986380284,
+      "maximum_omega_covariance_error_rad2_s2": 0.0016245774179589464,
+      "maximum_error_time_seconds": 0.3,
+      "maximum_error_event_side": -1,
+      "all_saved_rows_and_likelihood_counts_exact": true,
+      "all_requested_joint_moments_finite": true
+    },
+    {
+      "order": 7,
+      "observation_count": 4,
+      "final_likelihood_factor_count": 3,
+      "maximum_omega_mean_error_deg_s": 7.102177580328559,
+      "maximum_omega_covariance_error_rad2_s2": 0.0007263762016698257,
+      "maximum_error_time_seconds": 0.3,
+      "maximum_error_event_side": -1,
+      "all_saved_rows_and_likelihood_counts_exact": true,
+      "all_requested_joint_moments_finite": true
+    },
+    {
+      "order": 9,
+      "observation_count": 4,
+      "final_likelihood_factor_count": 3,
+      "maximum_omega_mean_error_deg_s": 5.740881600579147,
+      "maximum_omega_covariance_error_rad2_s2": 0.0007489027945048357,
+      "maximum_error_time_seconds": 0.3,
+      "maximum_error_event_side": -1,
+      "all_saved_rows_and_likelihood_counts_exact": true,
+      "all_requested_joint_moments_finite": true
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 2026-11-13。実測や機体同定の結果と分け、既知の慣性・既知の入力トルクの下で、Euler式のジャイロ項の違いを比較した。
 
+2026-11-20追加：[モデル側の角速度プロセスノイズσ=3 deg/sを追加した10 Hz比較](sequential_bayes_spikes/process_noise_publication/INDEX.md)。同じ測定とRで、Q=0との誤差・共分散の差を示す。[モデルと数値精度](sequential_bayes_spikes/PROCESS_NOISE.md)。
+
 2026-11-20追加：[10 Hzで取得した別比較](sequential_bayes_spikes/rate_10hz_publication/INDEX.md)。同じ200 Hzの生gyroから0.1秒ごとに201件を選び、非線形／ジャイロ項なしと、元の1 Hz結果を比較する。[方法と再現](sequential_bayes_spikes/RATE_10HZ.md)。
 
 2026-11-20最新：[同じスパイク入りgyroによる非線形／ジャイロ項なしの20秒比較](sequential_bayes_spikes/frequent_publication/INDEX.md)。200 Hz生測定と全ノイズ成分も表示し、15秒間に147回のPoissonスパイク、その後5秒の正常な更新を含む。[方法・再現](sequential_bayes_spikes/FREQUENT_SPIKES.md)を保存した。

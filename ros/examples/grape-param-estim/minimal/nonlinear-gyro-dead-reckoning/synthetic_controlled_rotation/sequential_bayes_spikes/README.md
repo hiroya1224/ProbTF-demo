@@ -1,5 +1,7 @@
 # スパイク入りgyro：非線形モデルとジャイロ項なしの比較
 
+[角速度プロセスノイズσ=3 deg/sを追加した結果](process_noise_publication/INDEX.md)と[モデル・再現手順](PROCESS_NOISE.md)を別保存した。10 Hzの各予測にQを反映し、観測Rと測定列は維持している。
+
 [10 Hzで取得した追加比較](rate_10hz_publication/INDEX.md)と[再現手順](RATE_10HZ.md)を別保存した。同じ生測定から0.1秒ごとに201件を使い、元の1 Hzとの誤差比較図も載せる。以下の1 Hz結果は保持している。
 
 [現在の図・動画・数値](frequent_publication/INDEX.md) ／ [数式と再現手順](FREQUENT_SPIKES.md)。

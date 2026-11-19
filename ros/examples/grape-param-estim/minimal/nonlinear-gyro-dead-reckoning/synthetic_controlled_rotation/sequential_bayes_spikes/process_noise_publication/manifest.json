@@ -1,0 +1,91 @@
+{
+  "files": [
+    {
+      "path": "INDEX.md",
+      "bytes": 1191,
+      "sha256": "43bed03163bad332999493dc34bcbfca3c254c4bea6466d2cac8488a951a59bd"
+    },
+    {
+      "path": "PROCESS_NOISE_COMPARISON.md",
+      "bytes": 2528,
+      "sha256": "9b024a1b17e096c7c2d23cd5fac5fc75b1e1ac7a3fc8c9815180ac8d7aa016c4"
+    },
+    {
+      "path": "acquisitions.npz",
+      "bytes": 11742,
+      "sha256": "498692eb31a0db79a163b7719929b9c559f1d103c480161db60b8c67d341f269"
+    },
+    {
+      "path": "attitude_and_gyro.pdf",
+      "bytes": 565281,
+      "sha256": "62afa6c42e07b83b64400fc9d36cba3619ede97fe5127640fce460f3613a9eb7"
+    },
+    {
+      "path": "attitude_and_gyro.png",
+      "bytes": 993175,
+      "sha256": "cf081cf59387b1a2c8d6613c544c86d03dc1f2bf8b9d655fcef2293bd31eafec"
+    },
+    {
+      "path": "bayes_linear_forced.npz",
+      "bytes": 1715163,
+      "sha256": "2fec56a61832c5ec64a9fb2177872cae120ae55a7baa311f2ba04f753d642876"
+    },
+    {
+      "path": "bayes_nonlinear.npz",
+      "bytes": 1756262,
+      "sha256": "a786a45bd13d5ca7100a38c5189117b622d1846d5ef8bf255795769e88cfa0ff"
+    },
+    {
+      "path": "config.json",
+      "bytes": 354,
+      "sha256": "3bd08481b87c936724181b90b3484cdf2f9e05ce930963406656c1719234228f"
+    },
+    {
+      "path": "process_noise_comparison.pdf",
+      "bytes": 82643,
+      "sha256": "5a3f544835a080314e7a7eddfad01341f8fb760c6e49fa209b6b36a99e0b5807"
+    },
+    {
+      "path": "process_noise_comparison.png",
+      "bytes": 659476,
+      "sha256": "d0b36a5cfc949c19aeb684d7f014ffbb4c47a42a971087474f4b924cfe07eacd"
+    },
+    {
+      "path": "process_noise_metrics.json",
+      "bytes": 2630,
+      "sha256": "812030093271927388431697c6e7abd65e41741345fdbcdf8f8a22b40cade74d"
+    },
+    {
+      "path": "process_noise_metrics.npz",
+      "bytes": 62418,
+      "sha256": "81fbc4b272cc1b08a4b6ac51c0ebfe6b7a55a1cfcd853e9155d5a10632cd9a58"
+    },
+    {
+      "path": "process_noise_plotting.json",
+      "bytes": 8338,
+      "sha256": "3a06dbf9cfe806a0e0c969821dabec8ff0866b2e7b36f9db375db486f9fdcebe"
+    },
+    {
+      "path": "quadrature_refinement.json",
+      "bytes": 2233,
+      "sha256": "762cf823d07af1fcc39dffbca1f3167ae11e67543e9c5b306dbec35169ecf50b"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 11333,
+      "sha256": "73eb84acc8b1849db974e8366f2e95e8466efed2dd1ed04303d8380e5e7c85d8"
+    },
+    {
+      "path": "tail_stress_diagnostic.json",
+      "bytes": 2031,
+      "sha256": "2c419067345e83dba7c6666b8ab252f21439950c75ae7f21ff49844f06bd50fd"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 14701,
+      "sha256": "64277d58ce3362ddb5e798d4a35c5f3b939eb692647bddef4a9dc5ff12000903"
+    }
+  ],
+  "bytes_excluding_manifest": 5891499,
+  "raw_bag_or_intermediate_cache_included": false
+}

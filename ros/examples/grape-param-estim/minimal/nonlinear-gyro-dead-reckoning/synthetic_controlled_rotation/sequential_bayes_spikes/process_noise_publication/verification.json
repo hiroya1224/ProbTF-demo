@@ -1,0 +1,480 @@
+{
+  "schema": "grape/angular-process-noise-verification/v1",
+  "post_run_only": true,
+  "observations_or_published_moments_modified": false,
+  "verifier_sha256": "356cb557c94108b3a4f8401aaeda012c9d98d2d28d8219f445c9fe5badd919ec",
+  "acquired_input_exact": {
+    "time": true,
+    "stamp_ns": true,
+    "record_ns": true,
+    "source_index": true,
+    "native_array_index": true,
+    "requested_stamp_ns": true,
+    "gyro_spike": true,
+    "spike_mask": true,
+    "spike_vector_rad_s": true
+  },
+  "source_input_files_unchanged": {
+    "source_input.npz": true,
+    "sensor_input.npz": true
+  },
+  "zero_process_files_unchanged": {
+    "nonlinear": true,
+    "linear_forced": true
+  },
+  "process_sigma_rad_s": 0.05235987755982989,
+  "process_covariance_rad2_s2": [
+    [
+      0.0027415567780803775,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0027415567780803775,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0027415567780803775
+    ]
+  ],
+  "measurement_covariance_rad2_s2": [
+    [
+      0.007615435494667714,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.007615435494667714,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.007615435494667714
+    ]
+  ],
+  "applied_once_per_selected_interval": true,
+  "models": {
+    "nonlinear": {
+      "structure": {
+        "selected_observation_count": 201,
+        "expected_selected_count": 201,
+        "requested_selection_count_matches": true,
+        "expected_saved_rows": 401,
+        "actual_saved_rows": 401,
+        "expected_prior_rows": 200,
+        "actual_prior_rows": 200,
+        "expected_posterior_rows": 201,
+        "actual_posterior_rows": 201,
+        "time_rows_exact": true,
+        "event_side_rows_exact": true,
+        "acquisition_indices_exact": true,
+        "likelihood_factor_count_all_rows_exact": true,
+        "first_reading_likelihood_count": 0,
+        "final_likelihood_count": 200,
+        "expected_final_likelihood_count": 200,
+        "event_times_exact": true
+      },
+      "covariance_diagnostics": {
+        "fields": {
+          "quaternion_second_moment": {
+            "shape": [
+              401,
+              4,
+              4
+            ],
+            "expected_shape": [
+              401,
+              4,
+              4
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_mean": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              9
+            ],
+            "expected_shape": [
+              401,
+              9,
+              9
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape": [
+              401,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              3
+            ],
+            "expected_shape": [
+              401,
+              9,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          }
+        },
+        "numerical_eigenvalues_are_diagnostics_not_acceptance_gates": true,
+        "minimum_omega_diagonal_rad2_s2": 0.0033928349148484357,
+        "minimum_omega_eigenvalue_rad2_s2": 0.0033218074745503495,
+        "minimum_joint_rotation_omega_eigenvalue": -5.844419438100085e-47,
+        "maximum_joint_covariance_asymmetry": 0.0,
+        "maximum_quaternion_second_moment_trace_error": 1.2656542480726785e-14,
+        "minimum_quaternion_second_moment_eigenvalue": -2.564259459353147e-22,
+        "final_omega_covariance_rad2_s2": [
+          [
+            0.0033999215687581987,
+            -8.290360808675062e-07,
+            2.1331266084102397e-05
+          ],
+          [
+            -8.290360808675062e-07,
+            0.0033996748800237623,
+            1.9363178790870103e-06
+          ],
+          [
+            2.1331266084102397e-05,
+            1.9363178790870103e-06,
+            0.003399683550219073
+          ]
+        ],
+        "final_omega_two_sigma_deg_s": [
+          6.681701614248067,
+          6.68145920712457,
+          6.681467726986233
+        ]
+      },
+      "process_q_exact": true,
+      "measurement_r_exact": true,
+      "process_application_count": 200,
+      "expected_process_application_count": 200,
+      "final_saved_law": {
+        "mixture_weight_sum": 1.0000000000000004,
+        "minimum_weight": 5.106566854530028e-19,
+        "component_count": 1331,
+        "max_absolute_moment_differences": {
+          "quaternion_second_moment": 4.440892098500626e-16,
+          "rotation_mean": 1.7763568394002505e-15,
+          "omega_mean_rad_s": 2.7755575615628914e-17,
+          "rotation_covariance_colmajor": 5.204170427930421e-18,
+          "omega_covariance_rad2_s2": 8.673617379884035e-19,
+          "rotation_omega_covariance_colmajor": 5.908901840045999e-18
+        },
+        "same_mixture_used_for_published_statistics": true
+      }
+    },
+    "linear_forced": {
+      "structure": {
+        "selected_observation_count": 201,
+        "expected_selected_count": 201,
+        "requested_selection_count_matches": true,
+        "expected_saved_rows": 401,
+        "actual_saved_rows": 401,
+        "expected_prior_rows": 200,
+        "actual_prior_rows": 200,
+        "expected_posterior_rows": 201,
+        "actual_posterior_rows": 201,
+        "time_rows_exact": true,
+        "event_side_rows_exact": true,
+        "acquisition_indices_exact": true,
+        "likelihood_factor_count_all_rows_exact": true,
+        "first_reading_likelihood_count": 0,
+        "final_likelihood_count": 200,
+        "expected_final_likelihood_count": 200,
+        "event_times_exact": true
+      },
+      "covariance_diagnostics": {
+        "fields": {
+          "quaternion_second_moment": {
+            "shape": [
+              401,
+              4,
+              4
+            ],
+            "expected_shape": [
+              401,
+              4,
+              4
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_mean": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              9
+            ],
+            "expected_shape": [
+              401,
+              9,
+              9
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape": [
+              401,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              3
+            ],
+            "expected_shape": [
+              401,
+              9,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          }
+        },
+        "numerical_eigenvalues_are_diagnostics_not_acceptance_gates": true,
+        "minimum_omega_diagonal_rad2_s2": 0.0033952461718562716,
+        "minimum_omega_eigenvalue_rad2_s2": 0.003395246171856272,
+        "minimum_joint_rotation_omega_eigenvalue": -5.844419438100085e-47,
+        "maximum_joint_covariance_asymmetry": 0.0,
+        "maximum_quaternion_second_moment_trace_error": 1.354472090042691e-14,
+        "minimum_quaternion_second_moment_eigenvalue": -2.564259459353147e-22,
+        "final_omega_covariance_rad2_s2": [
+          [
+            0.0033996704058089017,
+            1.1004934023906248e-19,
+            3.162045326060387e-20
+          ],
+          [
+            1.1004934023906248e-19,
+            0.0033996702273014962,
+            -3.619159238360593e-20
+          ],
+          [
+            3.162045326060387e-20,
+            -3.619159238360593e-20,
+            0.003399670151810642
+          ]
+        ],
+        "final_omega_two_sigma_deg_s": [
+          6.681454810484454,
+          6.681454635071983,
+          6.681454560889976
+        ]
+      },
+      "process_q_exact": true,
+      "measurement_r_exact": true,
+      "process_application_count": 200,
+      "expected_process_application_count": 200,
+      "final_saved_law": {
+        "mixture_weight_sum": 1.0,
+        "minimum_weight": 5.357365720732096e-19,
+        "component_count": 1331,
+        "max_absolute_moment_differences": {
+          "quaternion_second_moment": 0.0,
+          "rotation_mean": 1.1102230246251565e-15,
+          "omega_mean_rad_s": 0.0,
+          "rotation_covariance_colmajor": 3.469446951953614e-18,
+          "omega_covariance_rad2_s2": 1.5227968172591512e-20,
+          "rotation_omega_covariance_colmajor": 4.716279450311944e-18
+        },
+        "same_mixture_used_for_published_statistics": true
+      }
+    }
+  },
+  "linear_kalman_actual_input": {
+    "definition": "Exact forced-linear angular Kalman filter: deterministic known-input mean, Q once per selected interval, unchanged R; y0 initializes once",
+    "max_mean_difference_deg_s": 0.002243767775297579,
+    "max_mean_difference_time_seconds": 1.9000000000000001,
+    "max_mean_difference_event_side": 1,
+    "max_covariance_difference_rad2_s2": 4.425838714136078e-06,
+    "final_mean_difference_deg_s": [
+      -3.6464092708292637e-09,
+      -1.6892660621384156e-08,
+      5.5593703160330806e-08
+    ],
+    "final_analytic_omega_two_sigma_deg_s": [
+      6.681454860542224,
+      6.681454860542224,
+      6.681454860542224
+    ],
+    "finite_error_diagnostic_not_a_filter_gate": true
+  },
+  "linear_kalman_actual_input_refinement": {
+    "5": {
+      "definition": "Exact forced-linear angular Kalman filter: deterministic known-input mean, Q once per selected interval, unchanged R; y0 initializes once",
+      "max_mean_difference_deg_s": 0.9358384707991751,
+      "max_mean_difference_time_seconds": 2.0,
+      "max_mean_difference_event_side": -1,
+      "max_covariance_difference_rad2_s2": 0.0003743361121118895,
+      "final_mean_difference_deg_s": [
+        -0.0004054389418197476,
+        0.00020479306515420542,
+        0.0007789133295771122
+      ],
+      "final_analytic_omega_two_sigma_deg_s": [
+        6.681454860542224,
+        6.681454860542224,
+        6.681454860542224
+      ],
+      "finite_error_diagnostic_not_a_filter_gate": true
+    },
+    "7": {
+      "definition": "Exact forced-linear angular Kalman filter: deterministic known-input mean, Q once per selected interval, unchanged R; y0 initializes once",
+      "max_mean_difference_deg_s": 0.24640459230288458,
+      "max_mean_difference_time_seconds": 2.0,
+      "max_mean_difference_event_side": -1,
+      "max_covariance_difference_rad2_s2": 0.00019071178524323988,
+      "final_mean_difference_deg_s": [
+        -1.309223901337984e-05,
+        4.35406736523211e-06,
+        3.545152431810957e-05
+      ],
+      "final_analytic_omega_two_sigma_deg_s": [
+        6.681454860542224,
+        6.681454860542224,
+        6.681454860542224
+      ],
+      "finite_error_diagnostic_not_a_filter_gate": true
+    },
+    "9": {
+      "definition": "Exact forced-linear angular Kalman filter: deterministic known-input mean, Q once per selected interval, unchanged R; y0 initializes once",
+      "max_mean_difference_deg_s": 0.03354106448880114,
+      "max_mean_difference_time_seconds": 2.0,
+      "max_mean_difference_event_side": -1,
+      "max_covariance_difference_rad2_s2": 4.4159443027618275e-05,
+      "final_mean_difference_deg_s": [
+        -3.1962497193023824e-07,
+        -8.781391250553811e-08,
+        1.4464890396058407e-06
+      ],
+      "final_analytic_omega_two_sigma_deg_s": [
+        6.681454860542224,
+        6.681454860542224,
+        6.681454860542224
+      ],
+      "finite_error_diagnostic_not_a_filter_gate": true
+    },
+    "11": {
+      "definition": "Exact forced-linear angular Kalman filter: deterministic known-input mean, Q once per selected interval, unchanged R; y0 initializes once",
+      "max_mean_difference_deg_s": 0.002243767775297579,
+      "max_mean_difference_time_seconds": 1.9000000000000001,
+      "max_mean_difference_event_side": 1,
+      "max_covariance_difference_rad2_s2": 4.425838714136078e-06,
+      "final_mean_difference_deg_s": [
+        -3.6464092708292637e-09,
+        -1.6892660621384156e-08,
+        5.5593703160330806e-08
+      ],
+      "final_analytic_omega_two_sigma_deg_s": [
+        6.681454860542224,
+        6.681454860542224,
+        6.681454860542224
+      ],
+      "finite_error_diagnostic_not_a_filter_gate": true
+    }
+  },
+  "tail_stress_diagnostic": "tail_stress_diagnostic.json; finite far-tail accuracy is nonuniform and not guaranteed",
+  "tests": {
+    "command": "env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -m unittest discover -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/tests -v",
+    "inference_source_does_not_use_test_results_as_gates": true
+  }
+}

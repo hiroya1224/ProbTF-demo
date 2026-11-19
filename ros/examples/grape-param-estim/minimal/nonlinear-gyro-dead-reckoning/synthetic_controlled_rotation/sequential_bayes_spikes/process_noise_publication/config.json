@@ -1,0 +1,14 @@
+{
+  "acquisition_rate_hz": 10.0,
+  "measurement_sigma_deg_s": 5.0,
+  "process_sigma_rad_s": 0.05235987755982989,
+  "process_reference_interval_seconds": 0.1,
+  "process_noise_location": "angular velocity at prediction interval endpoint, before current observation",
+  "quadrature_orders": [
+    5,
+    7,
+    9,
+    11
+  ],
+  "max_step_seconds": 0.002
+}

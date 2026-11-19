@@ -1,0 +1,194 @@
+{
+  "schema": "grape/process-noise-saved-moment-plots/v1",
+  "renderer_sha256": "d4ba51370be44dbbce6dfd63f172b98dd4e1d43f7e6c4ba80345db1af60543e1",
+  "helper_sha256": "ed3ced48dd6a45e5360a656c811cbebea45cd2a9f7042e6e5ab125527924347b",
+  "settings": {
+    "native_reading_count": 4001,
+    "selected_acquisition_count": 201,
+    "selected_readings_match_native_values_times_indices": true,
+    "nominal_rate_hz": 10.000000000000036,
+    "data_range_seconds": [
+      0.0,
+      20.0
+    ],
+    "stored_moment_rows": {
+      "nonlinear": 401,
+      "linear_forced": 401
+    },
+    "stored_prior_rows": {
+      "nonlinear": 200,
+      "linear_forced": 200
+    },
+    "stored_posterior_rows": {
+      "nonlinear": 201,
+      "linear_forced": 201
+    },
+    "final_recorded_likelihood_factor_count": {
+      "nonlinear": 200,
+      "linear_forced": 200
+    },
+    "acquired_spike_readings": 61,
+    "observed_gyro_sha256": "a8ca09125b24b72dc1f283cb58d77badfdc98088196e14d036f1cb3280269a53",
+    "initialization": "First selected reading initializes the initial law once; subsequent selected readings are likelihood updates",
+    "profile": "flight_matched_three_frequency",
+    "process_covariance_rad2_s2": [
+      [
+        0.0027415567780803775,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0027415567780803775,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0027415567780803775
+      ]
+    ],
+    "process_sigma_xyz_deg_s": [
+      3.0000000000000004,
+      3.0000000000000004,
+      3.0000000000000004
+    ],
+    "process_noise_reference_interval_seconds": 0.09999999999999964,
+    "observation_covariance_rad2_s2": [
+      [
+        0.007615435494667714,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.007615435494667714,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.007615435494667714
+      ]
+    ],
+    "observation_sigma_xyz_deg_s": [
+      5.0,
+      5.0,
+      5.0
+    ],
+    "process_noise_scope": "Model angular-velocity transition assumption; not extra noise added to generated sensor data"
+  },
+  "files": [
+    "attitude_and_gyro.pdf",
+    "attitude_and_gyro.png",
+    "process_noise_comparison.pdf",
+    "process_noise_comparison.png",
+    "PROCESS_NOISE_COMPARISON.md",
+    "process_noise_metrics.npz",
+    "process_noise_metrics.json"
+  ],
+  "comparison_groups": [
+    "zero_process",
+    "process_noise"
+  ],
+  "comparison_evaluation": "Equal-weight RMSE on the identical common saved timestamps; last/posterior row at duplicate times. No estimate interpolation.",
+  "all_native_samples_drawn": true,
+  "all_saved_moment_rows_drawn": true,
+  "averaging": false,
+  "downsampling": false,
+  "smoothing": false,
+  "covariance_adjustment": false,
+  "no_estimator_rerun": true,
+  "generated_sensor_data_unchanged": true,
+  "reference": "Read-only synthetic reference; never returned to estimator",
+  "metadata": {
+    "config": {
+      "acquisition_rate_hz": 10.0,
+      "measurement_sigma_deg_s": 5.0,
+      "process_sigma_rad_s": 0.05235987755982989,
+      "process_reference_interval_seconds": 0.1,
+      "process_noise_location": "angular velocity at prediction interval endpoint, before current observation",
+      "quadrature_orders": [
+        5,
+        7,
+        9,
+        11
+      ],
+      "max_step_seconds": 0.002
+    },
+    "engine_metadata": {
+      "nonlinear": {
+        "schema": "grape/conditional-orientation-process-noise/v1",
+        "mode": "nonlinear",
+        "process_sigma_rad_s": 0.05235987755982989,
+        "process_sigma_deg_s": 3.0000000000000004,
+        "process_scope": "independent isotropic body-omega increment at each selected interval END; q unchanged instantaneously",
+        "process_noise_is_continuous_time_psd": false,
+        "process_noise_per_rk4_substep": false,
+        "process_noise_application_count": 200,
+        "measurement_count": 201,
+        "quadrature_order_per_axis": 11,
+        "quadrature_node_count": 1331,
+        "posterior": "Markov transition plus gyro Bayes update at each acquired time; all past information retained recursively",
+        "conditional_statistics": "E[qqT|omega], E[R|omega] and full Cov(vecR|omega); all rotation/omega dependence retained in omega-conditioned functions",
+        "observation_update": "analytic Gaussian component conditioning; mixture weights normalized by exact component evidence",
+        "numerical_approximation": "deterministic Gaussian-importance Nystrom quadrature in current omega only",
+        "finite_mixture_tail_resolution_is_not_guaranteed": true,
+        "numerical_tail_scope": "A finite convolution-mixture quadrature can under-resolve far tails after large or sign-reversing innovations; order refinement and independent linear-Kalman differences must be reported",
+        "analytic_linear_gaussian_limit_has_finite_quadrature_error": true,
+        "finite_numerical_errors_do_not_reject_observations_or_stop_updates": true,
+        "retained_state": "continuous Gaussian mixture in omega with conditional quaternion/rotation moments; not a Dirac omega-node law",
+        "observation_informed_parent_proposal": true,
+        "gaussian_proposal_is_not_posterior": true,
+        "independent_q_omega_assumption": false,
+        "earlier_online_outputs_rewritten": false,
+        "initial_reading_used_once": true,
+        "monte_carlo": false,
+        "covariance_floor": false,
+        "node_pruning": false,
+        "process_samples_drawn": false,
+        "maximum_quaternion_norm_correction": 2.886579864025407e-15,
+        "native_rk4_steps": 308614,
+        "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+        "engine_source_sha256": "a90884a976f76b7e85fb046ac53caff171a913f14b55f315f749ebf09827b2e4",
+        "wall_seconds": 191.06281807809137
+      },
+      "linear_forced": {
+        "schema": "grape/conditional-orientation-process-noise/v1",
+        "mode": "linear_forced",
+        "process_sigma_rad_s": 0.05235987755982989,
+        "process_sigma_deg_s": 3.0000000000000004,
+        "process_scope": "independent isotropic body-omega increment at each selected interval END; q unchanged instantaneously",
+        "process_noise_is_continuous_time_psd": false,
+        "process_noise_per_rk4_substep": false,
+        "process_noise_application_count": 200,
+        "measurement_count": 201,
+        "quadrature_order_per_axis": 11,
+        "quadrature_node_count": 1331,
+        "posterior": "Markov transition plus gyro Bayes update at each acquired time; all past information retained recursively",
+        "conditional_statistics": "E[qqT|omega], E[R|omega] and full Cov(vecR|omega); all rotation/omega dependence retained in omega-conditioned functions",
+        "observation_update": "analytic Gaussian component conditioning; mixture weights normalized by exact component evidence",
+        "numerical_approximation": "deterministic Gaussian-importance Nystrom quadrature in current omega only",
+        "finite_mixture_tail_resolution_is_not_guaranteed": true,
+        "numerical_tail_scope": "A finite convolution-mixture quadrature can under-resolve far tails after large or sign-reversing innovations; order refinement and independent linear-Kalman differences must be reported",
+        "analytic_linear_gaussian_limit_has_finite_quadrature_error": true,
+        "finite_numerical_errors_do_not_reject_observations_or_stop_updates": true,
+        "retained_state": "continuous Gaussian mixture in omega with conditional quaternion/rotation moments; not a Dirac omega-node law",
+        "observation_informed_parent_proposal": true,
+        "gaussian_proposal_is_not_posterior": true,
+        "independent_q_omega_assumption": false,
+        "earlier_online_outputs_rewritten": false,
+        "initial_reading_used_once": true,
+        "monte_carlo": false,
+        "covariance_floor": false,
+        "node_pruning": false,
+        "process_samples_drawn": false,
+        "maximum_quaternion_norm_correction": 2.55351295663786e-15,
+        "native_rk4_steps": 165195,
+        "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+        "engine_source_sha256": "a90884a976f76b7e85fb046ac53caff171a913f14b55f315f749ebf09827b2e4",
+        "wall_seconds": 191.57488098391332
+      }
+    }
+  }
+}

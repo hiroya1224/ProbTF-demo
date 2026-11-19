@@ -17,7 +17,8 @@
       60.0
     ],
     "spike_active_until_seconds": 15.0,
-    "motion_profile": "three_frequency",
+    "motion_profile": "flight_matched_three_frequency",
+    "motion_parameters_file": "flight_motion/flight_motion_profile.json",
     "assumed_sigma_deg_s": 5.0,
     "quadrature_orders": [
       7,
@@ -45,57 +46,57 @@
       ],
       "motion": "prescribed smooth multi-frequency RPY motion; kinematic orientation experiment, not a full six-DoF flight/aircraft simulation",
       "rotation": "Rz(yaw) Ry(pitch) Rx(roll), body-to-world, Hamilton quaternion xyzw",
-      "motion_profile": "three_frequency",
+      "motion_profile": "flight_matched_three_frequency",
       "frequency_components_per_axis": 3,
       "rpy_amplitude_deg": [
         [
-          23.0,
-          15.0,
-          9.0
+          2.5626009811857444,
+          6.13018004662314,
+          0.32452623294190724
         ],
         [
-          17.0,
-          10.0,
-          7.0
+          2.370015635782653,
+          1.7344981044752088,
+          2.5507932711072585
         ],
         [
-          32.0,
-          21.0,
-          12.0
+          3.4427117348542287,
+          1.6838470152874212,
+          0.17954534383670692
         ]
       ],
       "rpy_frequency_hz": [
         [
-          0.29,
-          0.73,
-          1.17
+          0.25,
+          0.1,
+          1.3
         ],
         [
-          0.37,
-          0.83,
-          1.31
+          0.75,
+          0.9,
+          0.6000000000000001
         ],
         [
-          0.23,
-          0.61,
-          1.03
+          0.25,
+          0.45,
+          0.75
         ]
       ],
       "rpy_phase_rad": [
         [
-          0.2,
-          1.1,
-          -0.7
+          -1.4308597431619872,
+          -0.6871079240203412,
+          -2.9480529183246054
         ],
         [
-          -0.4,
-          0.8,
-          1.7
+          -2.729997564341949,
+          -0.23670589083289437,
+          2.604232691212421
         ],
         [
-          0.5,
-          -1.2,
-          0.4
+          -1.9464350396359609,
+          -0.5673090905556315,
+          -2.328169623243522
         ]
       ],
       "kinematics": "analytic first/second derivatives of the prescribed RPY curve; exact body omega and alpha via RzRyRx rate mapping",
@@ -157,6 +158,17 @@
       "later_reference_attitudes_supplied_to_estimator": false,
       "gyro_source_index": "original 200Hz sequence index, never renumbered after sparse selection",
       "realized_measurements_and_noise_saved": true,
+      "rpy_offset_deg": [
+        -3.3925244818167504,
+        -0.2668421782199386,
+        4.210062997193932
+      ],
+      "motion_calibration": {
+        "parameters_file": "flight_motion/flight_motion_profile.json",
+        "parameters_file_sha256": "cdf34d52b448750a0aa8157cddcd43d471b11ba25ddff9ca33776841bbf9d438",
+        "purpose": "actual-flight amplitude/frequency calibration of the synthetic generator only; not an online observation or estimator parameter",
+        "motion_parameters_supplied_to_estimator": false
+      },
       "standardized_white_realization": "same seed and original standardized Gaussian draws; scaled to requested new physical sigma",
       "standardized_white_original_sigma_deg_s": 0.2,
       "old_stored_raw_gyro_unchanged": true
@@ -230,54 +242,54 @@
   },
   "metrics": {
     "nonlinear": {
-      "so3_proxy_rmse_deg": 29.363754287703767,
-      "so3_proxy_max_deg": 49.37480560034589,
-      "so3_proxy_final_deg": 28.91998720901648,
+      "so3_proxy_rmse_deg": 31.413359524184976,
+      "so3_proxy_max_deg": 65.5251184650495,
+      "so3_proxy_final_deg": 33.064796495191,
       "omega_rmse_deg_s": [
-        2.285846317346481,
-        3.0792196196850674,
-        1.8644743683920695
+        1.9809222397998572,
+        2.482367973778855,
+        1.2582024518252544
       ],
       "omega_final_error_deg_s": [
-        1.7734244133110963,
-        -0.44886107851860535,
-        0.39142251947192125
+        1.6461723180867975,
+        -0.12058885931552947,
+        -0.10733009885137022
       ],
       "final_omega_two_sigma_deg_s": [
-        2.2881932491823465,
-        2.4824559129065586,
-        1.9731574952171405
+        2.2531060863988324,
+        2.2423114479836586,
+        2.237057715024147
       ],
       "final_rpy_two_sigma_deg": [
-        30.786662704712885,
-        30.462026138419905,
-        43.789520713421375
+        46.07615841992717,
+        46.63159238536988,
+        47.54915232787189
       ],
       "score_count": 501
     },
     "linear_forced": {
-      "so3_proxy_rmse_deg": 98.5726552840632,
-      "so3_proxy_max_deg": 179.2728139888419,
-      "so3_proxy_final_deg": 101.68741390832362,
+      "so3_proxy_rmse_deg": 33.153550428699425,
+      "so3_proxy_max_deg": 65.23810446720813,
+      "so3_proxy_final_deg": 37.4376542875392,
       "omega_rmse_deg_s": [
-        22.351705200724343,
-        87.67699878198522,
-        12.800073894729646
+        2.578164516906998,
+        2.4889833285126626,
+        1.3263655670140158
       ],
       "omega_final_error_deg_s": [
-        -50.45188850744927,
-        81.1169635500313,
-        -7.392804013214452
+        3.6359226828152083,
+        -1.497995894019805,
+        0.05765254997645647
       ],
       "final_omega_two_sigma_deg_s": [
-        2.236067977499828,
-        2.236067977501938,
-        2.2360679774995393
+        2.2360679774997996,
+        2.236067977499785,
+        2.236067977499765
       ],
       "final_rpy_two_sigma_deg": [
-        19.039297228770845,
-        16.02205262573015,
-        17.5658491293877
+        46.948921031990345,
+        46.12670244028047,
+        46.28665591754606
       ],
       "score_count": 501
     }
@@ -285,43 +297,43 @@
   "quadrature_refinement": {
     "7 → 11": {
       "nonlinear": {
-        "max_omega_mean_component_difference_deg_s": 1.0982906864802761e-05,
-        "max_omega_covariance_component_difference_deg2_s2": 0.00012267739188354923,
-        "max_rpy_proxy_component_difference_deg": 5.875409061009023e-05,
-        "max_rotation_covariance_component_difference": 2.000228842571894e-06,
+        "max_omega_mean_component_difference_deg_s": 1.3822031684009041e-05,
+        "max_omega_covariance_component_difference_deg2_s2": 0.00010907348537477225,
+        "max_rpy_proxy_component_difference_deg": 0.00011920868625573014,
+        "max_rotation_covariance_component_difference": 2.8351277448351864e-06,
         "finite_diagnostic_only": true
       },
       "linear_forced": {
-        "max_omega_mean_component_difference_deg_s": 2.442665995363981e-12,
-        "max_omega_covariance_component_difference_deg2_s2": 6.92625336113116e-13,
-        "max_rpy_proxy_component_difference_deg": 6.900531436903246e-11,
-        "max_rotation_covariance_component_difference": 3.86213370312527e-12,
+        "max_omega_mean_component_difference_deg_s": 1.0177774980683254e-13,
+        "max_omega_covariance_component_difference_deg2_s2": 8.826879925799217e-14,
+        "max_rpy_proxy_component_difference_deg": 3.256887993818641e-12,
+        "max_rotation_covariance_component_difference": 1.3634245225879749e-09,
         "finite_diagnostic_only": true
       }
     },
     "11 → 15": {
       "nonlinear": {
-        "max_omega_mean_component_difference_deg_s": 7.1078654354784895e-09,
-        "max_omega_covariance_component_difference_deg2_s2": 1.0767870744600221e-07,
-        "max_rpy_proxy_component_difference_deg": 4.0476349542803555e-08,
-        "max_rotation_covariance_component_difference": 1.5333741464063078e-09,
+        "max_omega_mean_component_difference_deg_s": 1.823535046592273e-08,
+        "max_omega_covariance_component_difference_deg2_s2": 1.5554095081677085e-07,
+        "max_rpy_proxy_component_difference_deg": 2.5212027960024234e-07,
+        "max_rotation_covariance_component_difference": 5.054477524024659e-09,
         "finite_diagnostic_only": true
       },
       "linear_forced": {
-        "max_omega_mean_component_difference_deg_s": 2.3408882455571482e-12,
-        "max_omega_covariance_component_difference_deg2_s2": 7.307090519220078e-13,
-        "max_rpy_proxy_component_difference_deg": 8.498442108870517e-12,
-        "max_rotation_covariance_component_difference": 1.0061396160665481e-14,
+        "max_omega_mean_component_difference_deg_s": 2.0355549961366507e-13,
+        "max_omega_covariance_component_difference_deg2_s2": 1.6799545665230767e-13,
+        "max_rpy_proxy_component_difference_deg": 4.325554366790383e-13,
+        "max_rotation_covariance_component_difference": 2.1094237467877974e-15,
         "finite_diagnostic_only": true
       }
     }
   },
   "inference_wall_seconds": {
-    "7": 7.662454114994034,
-    "11": 22.918916553026065,
-    "15": 55.49179741810076
+    "7": 7.550423515960574,
+    "11": 23.07699034991674,
+    "15": 55.30630709999241
   },
-  "wall_seconds": 99.18096678401344,
+  "wall_seconds": 104.64914123597555,
   "actual_white_noise_std_deg_s": [
     1.988952535197995,
     2.012883149368159,
@@ -357,7 +369,7 @@
     "linear_forced"
   ],
   "model_difference": "only omega cross(J omega) omitted in linear_forced; identical nonlinear quaternion kinematics",
-  "same_measurement_sha256": "ee2a1f7d20272812cede3291c04651ee1435ec01377c8f0341a2aa13b951e380",
+  "same_measurement_sha256": "510d18ad38c29bed4403b620a40f7240cba21edb6e01520b663aa502c18c39e5",
   "later_truth_or_spike_flags_supplied_to_estimator": false,
   "posterior_moments_and_visualization_use_same_law": true,
   "monte_carlo_estimation": false,
@@ -365,12 +377,16 @@
   "source_sha256": {
     "native_flow.py": "075e227b854d34e0e0017c43fa54b62ec236cd31fdfd66bb7154333d419e410d",
     "plotting.py": "5c3e9e3b447274110ab0d736ac222b7a0d25b3eae32d66b1ee295a0d3e26ac27",
-    "frequent_run.py": "02d0837fa6b137d96c9f9d01678e572c2a7153733dab311486f04f0c090813b2",
-    "frequent_plotting.py": "501d3fd9f42f63702096faeed96dcae7b99afafc0169a1fecc8d4d5f3a355261",
+    "frequent_run.py": "38aea89b774b37dd7f9e1f2ccb3184155ddea107ab28de034822250142c9b24e",
+    "frequent_plotting.py": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
     "adaptive_engine.py": "87a1813d9fe56d2a386a5615ab8425e67e5d293a434af5ce9a322511f75e16bd",
     "run.py": "928266615ad34ea85ccfefd2c7c30d55acb9d94bd1e3e4f863ec740ac1b1ab65",
-    "frequent_spikes_input.py": "79b00211e1fc2e420c6a8cf17fa12483890c2038c8e757844b6885a7934129dd",
+    "frequent_spikes_input.py": "9f90adf5b8c01aace84d99bf78038812f1e3fdc87a6adf3c0ea52d6a4655cc55",
     "engine.py": "5761f7a458b958234b85fef04a9651f452544e3b3f32587acaae06000e3bcda4"
+  },
+  "trajectory_source_sha256": "8ca4588a85b85abe6e62f8d405d91f095d60274807358140516e4466861c77d4",
+  "motion_calibration_source_sha256": {
+    "calibrate.py": "95fb2d2adb680c5df88c751fdf9766112b1f02a6a3e84c258d833db502216bb2"
   },
   "native_source_sha256": {
     "native_flow.cpp": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c"
@@ -403,13 +419,13 @@
       "flow": "native C++ controlled nonlinear Euler/quaternion RK4, identical equations to Python reference",
       "native_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
       "maximum_rk4_step_seconds": 0.002,
-      "native_steps_all_queries": 8470783,
-      "maximum_quaternion_norm_correction": 2.355893258254582e-13,
+      "native_steps_all_queries": 8666790,
+      "maximum_quaternion_norm_correction": 2.6645352591003757e-15,
       "monte_carlo": false,
       "node_pruning": false,
       "covariance_floor": false,
       "earlier_online_outputs_rewritten": false,
-      "wall_seconds": 34.19692002306692
+      "wall_seconds": 33.97965217498131
     },
     "linear_forced": {
       "schema": "grape/adaptive-sequential-joint-bayes-rotation/v1",
@@ -427,23 +443,13 @@
       "flow": "native C++ controlled nonlinear Euler/quaternion RK4, identical equations to Python reference",
       "native_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
       "maximum_rk4_step_seconds": 0.002,
-      "native_steps_all_queries": 3266560,
-      "maximum_quaternion_norm_correction": 2.495781359357352e-13,
+      "native_steps_all_queries": 3059550,
+      "maximum_quaternion_norm_correction": 2.6645352591003757e-15,
       "monte_carlo": false,
       "node_pruning": false,
       "covariance_floor": false,
       "earlier_online_outputs_rewritten": false,
-      "wall_seconds": 21.291813123971224
+      "wall_seconds": 21.322402684018016
     }
-  },
-  "test_source_sha256": {
-    "test_model_comparison.py": "0c77bd811a564c6c397aa15edd84f6e927f670c4c22ec749ed32f116c62744cc",
-    "test_adaptive_engine.py": "dc56f156d69a34fdb37299562d68d19b0978b127b41cad5ff02d577833d59f7e",
-    "test_engine.py": "92f287d888d889bab52a15cec38d293012cd7afc13438df7c515279cf798008f",
-    "test_frequent_input.py": "ca9c1aa0757cbfcc23f2c0c67a2616d4127a8c2138036b82bbc3243e80a71f35"
-  },
-  "state": "(body angular velocity omega, unit Hamilton quaternion q_wxyz); R(q) derived for statistics/display only",
-  "angular_velocity_covariance_display": "same saved full 3x3 covariance, mean +/-2sigma plus boundary curves and independent half-width plots; no rescaling",
-  "replaced_white_noise_comparison": true,
-  "latest_change": "Display-only: attitude_and_gyro has three rows, with strengthened omega +/-2sigma bands and actual half-width panels; inference not rerun."
+  }
 }

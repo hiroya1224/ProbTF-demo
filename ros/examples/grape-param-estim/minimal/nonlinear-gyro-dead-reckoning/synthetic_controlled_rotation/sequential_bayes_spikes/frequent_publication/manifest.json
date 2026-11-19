@@ -2,108 +2,108 @@
   "files": [
     {
       "path": "INDEX.md",
-      "bytes": 5558,
-      "sha256": "a69a0500db56734bf442414b6916872cceff2dbd599169a89839ecb76aed7483"
+      "bytes": 5665,
+      "sha256": "9ae6915b72e901c1295503136218498b85c8c27922a12ec7b5363eb429c3d753"
     },
     {
       "path": "acquisitions.npz",
-      "bytes": 3867,
-      "sha256": "4959da665948a85d28954670288fe8c9f0b267cd2bcbdcd6747ac8e8224e3372"
+      "bytes": 3868,
+      "sha256": "cc429e1898bade604dcee3713825aa36e0245348cded53deba4c88d3432e8e9e"
     },
     {
       "path": "attitude_and_gyro.pdf",
-      "bytes": 867344,
-      "sha256": "ef044b3923d93f3559fdff3491dfc5c4c842945587373c73abd36ec1048e300c"
+      "bytes": 849574,
+      "sha256": "2b47a4d96389701663274d81e597ac8465b203dedc1943ee1dd69e9271e2e65c"
     },
     {
       "path": "attitude_and_gyro.png",
-      "bytes": 985025,
-      "sha256": "6b7bb7f2fd1c6697ed231259301fdaa76001bc6f45be5845368d886dcbfe609d"
+      "bytes": 759024,
+      "sha256": "76254729fd64cb0677a1bcc7d55c2e32723d15ba73de0808f1ad9a297ab563d0"
     },
     {
       "path": "bayes_diagnostics.pdf",
-      "bytes": 116773,
-      "sha256": "4e48d7adcb77929fd288cc2c4e3868a22f3a7ebc68d22bc63df1f3d33e2d4a8f"
+      "bytes": 114427,
+      "sha256": "077d38e9f77f69cf8f428b735c7f154df55531c41ed94398e6128db094a37ecc"
     },
     {
       "path": "bayes_diagnostics.png",
-      "bytes": 361218,
-      "sha256": "2d5694cbee5555bddf708a7fb3f90f0e973396c9ac4076bca628e6be45d2e889"
+      "bytes": 308352,
+      "sha256": "9d69d668134ec9c5d80e45845bc2ffd57d5538397f15de79bb16ad2d066cb1b6"
     },
     {
       "path": "bayes_linear_forced.npz",
-      "bytes": 1799594,
-      "sha256": "202d34b7d08a3bfc287105d7d2598cd83755cad1ecaa2f748981ee100c57ea4a"
+      "bytes": 1808785,
+      "sha256": "6de0e124e87f7f5fc006e31516e55b4d6d6f023304d749d216ca5c5268212721"
     },
     {
       "path": "bayes_nonlinear.npz",
-      "bytes": 2463574,
-      "sha256": "2440efc3ca37f07c834b4c7e93646230119630cd4b7e1c406410d438b208911e"
+      "bytes": 2514738,
+      "sha256": "6897c174baef93a889bcb163cf18a167f2ff29ebf29ba534ac040e4fac7cf694"
     },
     {
       "path": "config.json",
-      "bytes": 514,
-      "sha256": "412acd4d46ae4325e3593411b1937e6dd31a1d3f9eee6ecb1c036ae6ceed40b2"
+      "bytes": 601,
+      "sha256": "1b534f3027b820a1619e353d2b4055f2ddaa94ba345a589ea4dfab7b33532ed8"
     },
     {
       "path": "events.json",
-      "bytes": 144157,
-      "sha256": "fa1f99a7e6376803fc03851bc480beff50fda3ad6ff99817e07fbb23df8480bc"
+      "bytes": 144536,
+      "sha256": "06cbc43928a24c753daacc3679fc8854e97960437067fb6a9f3f8d17f206971d"
     },
     {
       "path": "frequent_plotting.json",
-      "bytes": 4058,
-      "sha256": "c13f66e5af0e691abfe0ad0e155c701eed5d3185c45467296b8560cf4b68eab8"
+      "bytes": 3865,
+      "sha256": "87a70f4e562f935872546880089317fa254869afcf0d08d275e3450891fbd664"
     },
     {
       "path": "frequent_spikes_comparison.mp4",
-      "bytes": 647355,
-      "sha256": "625b9931c488bfd719d3dc5f20b6df272347a0f0e655e2f2535e3623f26f3fbc"
+      "bytes": 539188,
+      "sha256": "da133212f740c8e212a3994630860b08038bbae6542d46eea0f1e270abf7c2af"
     },
     {
       "path": "generation.json",
-      "bytes": 5401,
-      "sha256": "4fab2cb4a4a036016466a7fa0a271d70e7ddf4f1bfa7b61249d91af88c61cd4e"
+      "bytes": 6208,
+      "sha256": "56324049272ab6fdb8bc0f13117ef472045af34f84d101298e3e5ca7567d0b72"
     },
     {
       "path": "gyro_uncertainty.pdf",
-      "bytes": 332380,
-      "sha256": "505689c314ebd55cd283b14b56efc4e539d1fc221a35b0c6bd5108d8251ea2ce"
+      "bytes": 319195,
+      "sha256": "6fe00d497a7620b2f777b537dbe0fe4a79e536f5164f3924e616cb5180592cdc"
     },
     {
       "path": "gyro_uncertainty.png",
-      "bytes": 519908,
-      "sha256": "aca3ef34da41fb7c88bd9a0864c69446fce25889ae1cdc9a217e5b428c3a8bb9"
+      "bytes": 369694,
+      "sha256": "a4d890a5a21353b89e3a81e901831b5f6215ebf3fe695e61b251e38a59564758"
     },
     {
       "path": "metrics.csv",
-      "bytes": 310,
-      "sha256": "abbbc9ce8a3d8265b63860c36f26b2f07790e7fe31d002f11f872e20e5bd5183"
+      "bytes": 308,
+      "sha256": "36e411ee884ba59acf65c3c65bf25387e29d515ce96ee75da556fe0c7c6fb371"
     },
     {
       "path": "native_gyro_full_and_zoom.pdf",
-      "bytes": 293675,
-      "sha256": "7ed67663d5125116908a3be60e2131dbea7a28ed1b0a503e26885fcc1326de6c"
+      "bytes": 288631,
+      "sha256": "7767d941fa4f479ed95d3f569e7dcad04426cd750ed4bce8157f061caafbc40e"
     },
     {
       "path": "native_gyro_full_and_zoom.png",
-      "bytes": 553621,
-      "sha256": "324c355f3c6bef8aee48d5b45c57531d44096e0aec668180faec66f279e3f88d"
+      "bytes": 571522,
+      "sha256": "79be8f56f9209065ef4ddf4397b7c1e2e99112939b70de6c69cd87f2818bb52d"
     },
     {
       "path": "quadrature_refinement.json",
-      "bytes": 1526,
-      "sha256": "fee822b26ce07ed1db1656ffe229f5a3fbb2b98f96eda3371398c2749a2bc7c6"
+      "bytes": 1531,
+      "sha256": "66fab1fed41688acd8285cd48dc3e7c070e360ed82baf7ec5b10d2782e636f4e"
     },
     {
       "path": "sensor_input.npz",
-      "bytes": 252020,
-      "sha256": "f4d8a714fee9186a6cd2676d766f5c27ce754fef3cf38f4389c5a85e0f2b9c0f"
+      "bytes": 250805,
+      "sha256": "da026b19450d87aec34d81e796f8903f89ce790ccedfe772118d2f10414ffb89"
     },
     {
       "path": "source_input.npz",
-      "bytes": 1518822,
-      "sha256": "922fff1e77f8a5e0a3a007a64a6e1c111b7f217ef3129a779152c25930ac85a4"
+      "bytes": 1511166,
+      "sha256": "891c694345d9ba5fb5afa6330feca6fcf31125e0ec1999f9e305faca6ee74a22"
     },
     {
       "path": "spike_events.json",
@@ -112,19 +112,15 @@
     },
     {
       "path": "summary.json",
-      "bytes": 16383,
-      "sha256": "78769fda6f4870f6cc4ccdf36d60976a996efef6154dd5a537d92cd35307d7b9"
+      "bytes": 16637,
+      "sha256": "13efc3e7360bafda310d816aaeb1d4d48443a4df2b16a00a1652fcf857f9b99f"
     },
     {
       "path": "verification.json",
-      "bytes": 3503,
-      "sha256": "b778424c5d166e31ba65750f3265f995e8bccab525a614393359446312ef1766"
+      "bytes": 3064,
+      "sha256": "213d822796a2fc6e66166de82268957c8f69314b7800fcf3499dec99976192bb"
     }
   ],
-  "bytes_excluding_manifest": 11015693,
-  "compared_models": [
-    "nonlinear",
-    "linear_forced"
-  ],
+  "bytes_excluding_manifest": 10510491,
   "compiled_binary_or_intermediate_frames_included": false
 }

@@ -62,6 +62,10 @@ def record_report(output, config, generation, acquisitions, metrics, convergence
         f'{config["duration_seconds"]:g}秒、200 Hzの生データから1 Hzで同じ20件を取得。'
         f'生成白色σ={config["white_sigma_deg_s"]:g} deg/s、推定の観測σ={config["assumed_sigma_deg_s"]:g} deg/s。'
         'J、既知トルク、初期姿勢、初回gyroと初期候補も同じ。', '',
+        ('運動は実飛行#8の40〜60秒から周波数を取り、body角速度標準偏差をその1.5倍に合わせた三周波数の合成軌道。'
+         '実飛行の再生ではない。[実測との振幅・周波数比較と生成係数](../flight_motion/README.md)を参照。'
+         if config['motion_profile']=='flight_matched_three_frequency' else
+         '運動は従来の三周波数合成軌道。'), '',
         f'0〜{active:g}秒はPoisson強度{config["spike_rate_hz"]:g}回/秒で'
         f'{generation["realized_spike_count"]}回のスパイクが発生。取得と重なったのは'
         +', '.join(f'{v:g}' for v in captured)+'秒。'
@@ -178,6 +182,8 @@ def run(args):
         posterior_moments_and_visualization_use_same_law=True,
         monte_carlo_estimation=False,randomness_only_in_sensor_generation=True,
         source_sha256={f.name:sha(f) for f in HERE.glob('*.py')},
+        trajectory_source_sha256=sha(HERE.parent/'trajectory.py'),
+        motion_calibration_source_sha256={f.name:sha(f) for f in (HERE/'flight_motion').glob('*.py')},
         native_source_sha256={f.name:sha(f) for f in HERE.glob('*.cpp')},
         original_numeric_source_sha256=original,
         original_results_unchanged=original=={f.name:sha(f) for f in old_dir.glob('*.npz')},

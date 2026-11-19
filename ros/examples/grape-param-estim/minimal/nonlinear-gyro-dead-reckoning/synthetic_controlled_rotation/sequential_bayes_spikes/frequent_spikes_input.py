@@ -5,7 +5,9 @@ the selected gyro values, not the event process, mask, bias, or truth.  The
 earlier acquired-one-spike stress experiment is kept separate and unchanged.
 """
 from pathlib import Path
+import hashlib
 import importlib.util
+import json
 
 import numpy as np
 
@@ -74,9 +76,21 @@ def generate(config=None):
                     'spike_width_range_seconds', positive=True)
     magnitudes = _range(settings['spike_magnitude_range_deg_s'],
                         'spike_magnitude_range_deg_s', positive=False)
+    parameters_file = settings.get('motion_parameters_file')
+    motion_parameters = None
+    if parameters_file is not None:
+        parameters_path = (HERE/parameters_file).resolve()
+        motion_parameters = json.loads(parameters_path.read_text())
     source, generation = _trajectory.generate_dataset(
         duration=duration, sensor_rate=native_rate,
-        seed=int(settings['white_seed']), motion_profile=settings['motion_profile'])
+        seed=int(settings['white_seed']), motion_profile=settings['motion_profile'],
+        motion_parameters=motion_parameters)
+    if parameters_file is not None:
+        generation['motion_calibration'] = dict(
+            parameters_file=str(parameters_file),
+            parameters_file_sha256=hashlib.sha256(parameters_path.read_bytes()).hexdigest(),
+            purpose='actual-flight amplitude/frequency calibration of the synthetic generator only; not an online observation or estimator parameter',
+            motion_parameters_supplied_to_estimator=False)
     # Reuse the existing seeded standardized Gaussian realization, changing
     # its requested physical sigma only in this new experiment.  The old
     # stored measurements and old generator defaults are not overwritten.

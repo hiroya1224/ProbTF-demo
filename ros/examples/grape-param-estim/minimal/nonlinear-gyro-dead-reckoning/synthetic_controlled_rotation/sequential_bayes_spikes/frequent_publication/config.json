@@ -15,7 +15,8 @@
     60.0
   ],
   "spike_active_until_seconds": 15.0,
-  "motion_profile": "three_frequency",
+  "motion_profile": "flight_matched_three_frequency",
+  "motion_parameters_file": "flight_motion/flight_motion_profile.json",
   "assumed_sigma_deg_s": 5.0,
   "quadrature_orders": [
     7,

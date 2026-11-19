@@ -3,6 +3,8 @@
   "settings": {
     "rate_hz": 1.0,
     "native_rate_hz": 200.00000000000426,
+    "motion_profile": "flight_matched_three_frequency",
+    "motion_caption": "Flight-scaled synthetic motion",
     "assumed_sigma_xyz_deg_s": [
       5.0,
       5.0,
@@ -31,8 +33,8 @@
   },
   "movie": {
     "file": "frequent_spikes_comparison.mp4",
-    "bytes": 647355,
-    "sha256": "625b9931c488bfd719d3dc5f20b6df272347a0f0e655e2f2535e3623f26f3fbc",
+    "bytes": 539188,
+    "sha256": "da133212f740c8e212a3994630860b08038bbae6542d46eea0f1e270abf7c2af",
     "width": 960,
     "height": 540,
     "fps": 12,
@@ -63,7 +65,7 @@
   },
   "observation_series_shared": "sensor.gyro_spike and acquisitions.gyro_spike for both models",
   "model_difference": "linear_forced omits only omega cross (J omega); quaternion kinematics and Bayesian observation model are shared",
-  "renderer_sha256": "501d3fd9f42f63702096faeed96dcae7b99afafc0169a1fecc8d4d5f3a355261",
+  "renderer_sha256": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
   "all_native_samples_drawn": true,
   "matplotlib_path_simplification": false,
   "averaging": false,
@@ -74,19 +76,6 @@
   "raw_zoom": "Fixed a priori 2–4 s, display only",
   "bands": "Saved +/-2sigma from same state moments; local RPY display approximation; not a guaranteed 95% region",
   "before_after_timestamps_preserved": true,
-  "angular_rate_uncertainty": "Unscaled saved covariance: main bounds, dedicated error/half-width panels, movie current XYZ values and endpoint bars",
-  "file_renderer_sha256": {
-    "attitude_and_gyro.pdf": "501d3fd9f42f63702096faeed96dcae7b99afafc0169a1fecc8d4d5f3a355261",
-    "attitude_and_gyro.png": "501d3fd9f42f63702096faeed96dcae7b99afafc0169a1fecc8d4d5f3a355261",
-    "native_gyro_full_and_zoom.pdf": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
-    "native_gyro_full_and_zoom.png": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
-    "bayes_diagnostics.pdf": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
-    "bayes_diagnostics.png": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
-    "gyro_uncertainty.pdf": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
-    "gyro_uncertainty.png": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20",
-    "frequent_spikes_comparison.mp4": "438dccc251b25e38766e81b78201e829c557f7a2400de7009cf70c771cb64b20"
-  },
-  "renderer_versions_note": "Only attitude_and_gyro was redrawn; per-file renderer hashes retain the original renderer for other figures and the movie.",
   "attitude_and_gyro_layout": {
     "rows": [
       "RPY",
@@ -102,5 +91,16 @@
     "omega_band_above_raw": true,
     "half_width_formula": "2 * rad2deg(sqrt(diag(saved omega covariance)))",
     "covariance_rescaled": false
+  },
+  "file_renderer_sha256": {
+    "attitude_and_gyro.pdf": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
+    "attitude_and_gyro.png": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
+    "native_gyro_full_and_zoom.pdf": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
+    "native_gyro_full_and_zoom.png": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
+    "bayes_diagnostics.pdf": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
+    "bayes_diagnostics.png": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
+    "gyro_uncertainty.pdf": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
+    "gyro_uncertainty.png": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e",
+    "frequent_spikes_comparison.mp4": "9c824ae6de2729b5269e6a9c548771b49517ba1b12228d981b2b23c8b8adaf7e"
   }
 }

@@ -4,7 +4,7 @@
 
 ## 今回の入力と時計
 
-20秒の同じ3周波数姿勢運動を使う。ジャイロの生データは200 Hz、Bayes更新に取得する測定は1 Hzの0、1、…、19秒。更新の間は、各モデルの角速度式と共通の四元数式で共同候補を時間発展させる。
+20秒の、実飛行の規模に合わせた3周波数の人工姿勢運動を使う。profile名は`flight_matched_three_frequency`。ジャイロの生データは200 Hz、Bayes更新に取得する測定は1 Hzの0、1、…、19秒。更新の間は、各モデルの角速度式と共通の四元数式で共同候補を時間発展させる。
 
 白色ノイズの生成標準偏差はユーザー指定の **2 deg/s**。各軸独立・等方で、旧σ=0.2の標準Gaussian実現値を同じseedから10倍して生成する。旧保存測定を上書きしない。固定bias `[0.03,-0.02,0.04] deg/s` は従来と同じで、推定には教えず差し引かない。生成する分散と実現した標本標準偏差は別々に保存する。推定の観測モデルは引き続き等方σ=5 deg/sで、生成側のσ=2とは区別する。
 
@@ -13,6 +13,28 @@
 開始時刻、幅、大きさ、方向の乱数ストリームを分離する。開始時刻は1 Hzの取得時計から独立に決め、取得点へ強制配置しない。20秒の固定seed実現値では、15秒間に147回のスパイクが発生し、1 Hzの取得と重なったのは5、8、10、12、13秒の5件。その間にも正常な取得があり、14〜19秒も正常な更新が続く。この個数を得るためのseedの再選択はしていない。
 
 15〜20秒は、あらかじめ定めた回復観察区間としてスパイクの加算を止める。境界をまたぐパルスも15秒で終了させる。白色ノイズσ=2は止めない。これは生成入力の明示的な切替であり、フィルタがスパイクを検出・除去したという意味ではない。推定器には、この切替時刻もスパイクフラグも渡さない。
+
+## 実飛行から定めた運動の規模
+
+校正元は、一日目#8のbagの、既存の独立診断で固定していた40〜60秒区間。mocapのZが初期より約0.60 m高い区間であることを確認したが、飛行全体の漸近安定性まで証明した区間とは扱わない。実gyroは約200 Hz、mocapは約120 Hzで、元のheader・recordのns時刻とsource indexを保持する。
+
+周波数と角速度の強さは、mocap四元数に対する既存の中心0.32秒・3次SG微分から得たbody角速度を参照して定める。四元数の正規化の微分を含み、`omega=2 vec(q^-1 qdot)`を使う。これは人工軌道を設計するためのオフライン校正であり、人工実験のフィルタへ継続的なmocapやSG微分を入力する処理ではない。生gyroは別の参照列として比較図に残す。
+
+全20秒のHann periodogramを、線形detrendと周波数分解能0.05 Hzで計算する。0.05〜3 Hzの範囲から、0.10 Hz以上離れた強い局所極大を各軸3つ選ぶ。スペクトル計算のための等間隔化は校正診断に限り、人工gyroの取得時計や推定入力を変更しない。
+
+固定した周波数のsin/cos 3組と定数項を、測定RPYへ最小二乗で合わせて振幅・位相・offsetを得る。その後、各RPY軸の振幅に正の倍率を掛け、厳密なRPY→body角速度変換で得る各軸標準偏差が、参照body角速度の1.5倍になるよう連成して校正する。
+
+| body軸 | 採用周波数 [Hz] | 実mocap-SGのω標準偏差 [deg/s] | 人工ω標準偏差 [deg/s] |
+|---|---|---:|---:|
+| x | 0.25, 0.10, 1.30 | 2.91985 | 4.37977 |
+| y | 0.75, 0.90, 0.60 | 8.30555 | 12.45833 |
+| z | 0.25, 0.45, 0.75 | 3.51241 | 5.26861 |
+
+これは各軸の角速度標準偏差を1.5倍にする指定であり、各RPYの振幅や角速度の最大値を一律1.5倍にする処理ではない。旧人工運動の標準偏差は約`[75.00,62.19,80.99] deg/s`で、現在のprofileでは約`[4.38,12.46,5.27] deg/s`となる。表示軸だけを縮小せず、新しい姿勢軌道から角速度・角加速度・既知トルクをすべて計算し直す。
+
+3本の全域調波では、実飛行の非定常な時間波形やスペクトルの全成分は再現できない。ここで合わせたのは主要周波数と運動の統計的な強さであり、実飛行の再生とは呼ばない。また、profileの選定へ推定結果、推定共分散、白色ノイズやスパイクの実現値を使わない。センサ白色σ=2、観測モデルσ=5、スパイク過程は運動の校正と独立に維持する。
+
+数値と出自は[校正記録](flight_motion/calibration.json)、生成に使う係数は[profile JSON](flight_motion/flight_motion_profile.json)、実飛行・旧人工運動・現在の人工運動の同じ単位での比較は[PDF](flight_motion/comparison.pdf)にある。元のbagを追加コピーせず、既存の小容量抽出入力とそのhashを記録している。
 
 ## 保持するBayes法則
 
@@ -77,11 +99,20 @@ proposalの局所探索と有限求積は、大域的な積分の厳密解を保
 
 ```bash
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/synthetic-bayes-mpl \
+python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/flight_motion/calibrate.py
+
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/synthetic-bayes-mpl \
 python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/frequent_run.py \
-  --output /tmp/synthetic-spiked-model-comparison-20261120
+  --output /tmp/synthetic-flight-matched-comparison-20261120
+
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/verify_flight_publication.py \
+  /tmp/synthetic-flight-matched-comparison-20261120
 
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -m unittest discover \
   -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/tests -v
 ```
 
-設定は`frequent_config.json`。seedや入力の強さを推定結果によって選び直さず、異なる設定は別出力へ保存する。Gitにはソース・小容量入力／数値・完成図・完成MP4だけを追加し、共有ライブラリ、フレーム、途中の動画は追加しない。
+最初のコマンドは、既存の実測抽出列から`flight_motion/flight_motion_profile.json`と校正図・数値を再生成する。人工実験の設定は`frequent_config.json`で、現在のprofileはこのJSONから読む。seedや入力の強さを推定結果によって選び直さず、異なる設定は別出力へ保存する。Gitにはソース・小容量入力／数値・完成図・完成MP4だけを追加し、共有ライブラリ、フレーム、途中の動画は追加しない。
+
+`verify_flight_publication.py`は保存済み出力に対する独立の事後診断であり、観測の受理判定や更新の早期終了には使わない。同じスパイク測定列、変更していないノイズ成分、全交差共分散、線形側の解析的な事後との一致、生成軌道と動力学の整合、完成動画の全フレームのdecodeを記録する。今回の検証では、この実験の29テストと既存軌道の8テストも通過した。

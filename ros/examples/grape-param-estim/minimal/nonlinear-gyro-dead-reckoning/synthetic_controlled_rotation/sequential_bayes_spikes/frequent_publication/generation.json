@@ -16,57 +16,57 @@
     ],
     "motion": "prescribed smooth multi-frequency RPY motion; kinematic orientation experiment, not a full six-DoF flight/aircraft simulation",
     "rotation": "Rz(yaw) Ry(pitch) Rx(roll), body-to-world, Hamilton quaternion xyzw",
-    "motion_profile": "three_frequency",
+    "motion_profile": "flight_matched_three_frequency",
     "frequency_components_per_axis": 3,
     "rpy_amplitude_deg": [
       [
-        23.0,
-        15.0,
-        9.0
+        2.5626009811857444,
+        6.13018004662314,
+        0.32452623294190724
       ],
       [
-        17.0,
-        10.0,
-        7.0
+        2.370015635782653,
+        1.7344981044752088,
+        2.5507932711072585
       ],
       [
-        32.0,
-        21.0,
-        12.0
+        3.4427117348542287,
+        1.6838470152874212,
+        0.17954534383670692
       ]
     ],
     "rpy_frequency_hz": [
       [
-        0.29,
-        0.73,
-        1.17
+        0.25,
+        0.1,
+        1.3
       ],
       [
-        0.37,
-        0.83,
-        1.31
+        0.75,
+        0.9,
+        0.6000000000000001
       ],
       [
-        0.23,
-        0.61,
-        1.03
+        0.25,
+        0.45,
+        0.75
       ]
     ],
     "rpy_phase_rad": [
       [
-        0.2,
-        1.1,
-        -0.7
+        -1.4308597431619872,
+        -0.6871079240203412,
+        -2.9480529183246054
       ],
       [
-        -0.4,
-        0.8,
-        1.7
+        -2.729997564341949,
+        -0.23670589083289437,
+        2.604232691212421
       ],
       [
-        0.5,
-        -1.2,
-        0.4
+        -1.9464350396359609,
+        -0.5673090905556315,
+        -2.328169623243522
       ]
     ],
     "kinematics": "analytic first/second derivatives of the prescribed RPY curve; exact body omega and alpha via RzRyRx rate mapping",
@@ -128,6 +128,17 @@
     "later_reference_attitudes_supplied_to_estimator": false,
     "gyro_source_index": "original 200Hz sequence index, never renumbered after sparse selection",
     "realized_measurements_and_noise_saved": true,
+    "rpy_offset_deg": [
+      -3.3925244818167504,
+      -0.2668421782199386,
+      4.210062997193932
+    ],
+    "motion_calibration": {
+      "parameters_file": "flight_motion/flight_motion_profile.json",
+      "parameters_file_sha256": "cdf34d52b448750a0aa8157cddcd43d471b11ba25ddff9ca33776841bbf9d438",
+      "purpose": "actual-flight amplitude/frequency calibration of the synthetic generator only; not an online observation or estimator parameter",
+      "motion_parameters_supplied_to_estimator": false
+    },
     "standardized_white_realization": "same seed and original standardized Gaussian draws; scaled to requested new physical sigma",
     "standardized_white_original_sigma_deg_s": 0.2,
     "old_stored_raw_gyro_unchanged": true

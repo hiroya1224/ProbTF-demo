@@ -32,14 +32,29 @@ MOTION_PROFILES = {
 }
 
 
-def _motion_parameters(motion_profile):
+def _motion_parameters(motion_profile, motion_parameters=None):
+    if motion_parameters is not None:
+        parameters = {key: np.asarray(motion_parameters[key], dtype=float)
+                      for key in ('amplitude_deg', 'frequency_hz', 'phase_rad')}
+        shape = parameters['amplitude_deg'].shape
+        if (len(shape) != 2 or shape[0] != 3 or shape[1] == 0
+                or any(value.shape != shape or not np.isfinite(value).all()
+                       for value in parameters.values())
+                or np.any(parameters['frequency_hz'] <= 0.)):
+            raise ValueError('Motion coefficients must be finite matching 3-by-N arrays with positive frequencies')
+        if 'offset_deg' in motion_parameters:
+            offset = np.asarray(motion_parameters['offset_deg'], dtype=float)
+            if offset.shape != (3,) or not np.isfinite(offset).all():
+                raise ValueError('RPY offset must be a finite three-vector')
+            parameters['offset_deg'] = offset
+        return parameters
     try:
         return MOTION_PROFILES[motion_profile]
     except (KeyError, TypeError):
         raise ValueError('Unknown motion profile: '+str(motion_profile)) from None
 
 
-def trajectory(time, motion_profile='two_frequency'):
+def trajectory(time, motion_profile='two_frequency', motion_parameters=None):
     """Evaluate analytic R=Rz(yaw) Ry(pitch) Rx(roll) and body derivatives.
 
     Input may be a scalar or an array.  Every vector-valued result has shape
@@ -52,11 +67,13 @@ def trajectory(time, motion_profile='two_frequency'):
     if not np.isfinite(stamps).all():
         raise ValueError('Synthetic trajectory times must be finite')
     flat = stamps.reshape(-1)
-    parameters = _motion_parameters(motion_profile)
+    parameters = _motion_parameters(motion_profile, motion_parameters)
     amplitude = np.deg2rad(parameters['amplitude_deg'])
     frequency = 2.*np.pi*parameters['frequency_hz']
     phase = flat[:, None, None]*frequency[None, :, :] + parameters['phase_rad'][None, :, :]
     rpy = np.sum(amplitude[None, :, :]*np.sin(phase), axis=-1)
+    if 'offset_deg' in parameters:
+        rpy += np.deg2rad(parameters['offset_deg'])
     velocity = np.sum((amplitude*frequency)[None, :, :]*np.cos(phase), axis=-1)
     acceleration = np.sum(-(amplitude*frequency**2)[None, :, :]*np.sin(phase), axis=-1)
     roll, pitch, _yaw = rpy.T
@@ -92,7 +109,7 @@ def _native_grid(duration, rate):
 
 
 def generate_dataset(duration=5., sensor_rate=200., seed=20261113,
-                     motion_profile='two_frequency'):
+                     motion_profile='two_frequency', motion_parameters=None):
     """Generate one saved realization shared by all acquisition/noise cases.
 
     The fixed 0.2 deg/s isotropic generation noise differs from the assumed
@@ -105,7 +122,7 @@ def generate_dataset(duration=5., sensor_rate=200., seed=20261113,
     if (not np.isfinite(duration) or duration <= 0.
             or not np.isfinite(sensor_rate) or sensor_rate <= 0.):
         raise ValueError('Positive finite duration and sensor rate required')
-    parameters = _motion_parameters(motion_profile)
+    parameters = _motion_parameters(motion_profile, motion_parameters)
     nominal_imu_time = _native_grid(duration, sensor_rate)
     stamps_ns = np.rint(nominal_imu_time*1e9).astype(np.int64)
     imu_time = stamps_ns.astype(float)*1e-9
@@ -113,9 +130,9 @@ def generate_dataset(duration=5., sensor_rate=200., seed=20261113,
         raise ValueError('Generate at least two gyro readings')
     reference_time = np.unique(np.r_[imu_time, duration])
     torque_time = np.unique(np.r_[_native_grid(duration, TORQUE_RATE_HZ), duration])
-    native = trajectory(imu_time, motion_profile)
-    reference = trajectory(reference_time, motion_profile)
-    control = trajectory(torque_time, motion_profile)
+    native = trajectory(imu_time, motion_profile, motion_parameters)
+    reference = trajectory(reference_time, motion_profile, motion_parameters)
+    control = trajectory(torque_time, motion_profile, motion_parameters)
     covariance = np.eye(3)*np.deg2rad(GYRO_NOISE_SIGMA_DEG_S)**2
     bias = np.deg2rad(GYRO_BIAS_DEG_S)
     generator = np.random.default_rng(int(seed))
@@ -123,7 +140,7 @@ def generate_dataset(duration=5., sensor_rate=200., seed=20261113,
                              size=native['omega_body_rad_s'].shape)
     gyro = native['omega_body_rad_s']+bias+noise
     indices = np.arange(len(imu_time), dtype=np.int64)
-    q0 = trajectory(0., motion_profile)['quaternion_xyzw'][[3, 0, 1, 2]]
+    q0 = trajectory(0., motion_profile, motion_parameters)['quaternion_xyzw'][[3, 0, 1, 2]]
     data = dict(time=np.array([0., duration]), imu_time=imu_time,
         motion_profile=np.asarray(motion_profile),
         motion_amplitude_deg=parameters['amplitude_deg'].copy(),
@@ -172,4 +189,7 @@ def generate_dataset(duration=5., sensor_rate=200., seed=20261113,
         later_reference_attitudes_supplied_to_estimator=False,
         gyro_source_index=f'original {sensor_rate:g}Hz sequence index, never renumbered after sparse selection',
         realized_measurements_and_noise_saved=True)
+    if 'offset_deg' in parameters:
+        data['motion_offset_deg'] = parameters['offset_deg'].copy()
+        metadata['rpy_offset_deg'] = parameters['offset_deg'].tolist()
     return data, metadata

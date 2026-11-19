@@ -1,0 +1,301 @@
+{
+  "schema": "grape/flight-motion-calibration/v1",
+  "source_bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+  "source_bag_copied": false,
+  "source_time_origin_ns": 1781254003200111893,
+  "source_time_origin": "first original bag record; gyro/mocap use original header stamps",
+  "requested_window_seconds": [
+    40.0,
+    60.0
+  ],
+  "reason_for_fixed_window": "Existing independent SG diagnostic fixed 40--60 s before current reconstruction results; no best segment selection",
+  "source_files": {
+    "gyro_mocap_sg_check/publication/bag8_50_55s/input.npz": "f39a3c6abdead6def0d709cf6944e5bd8a2a82e66bfc3c2080da28b7c425bc7f",
+    "gyro_mocap_sg_check/publication/bag8_50_55s/input.json": "d88e5b4379d8cc7bd6573143b6d541adfd42e73cad2dc525cd37262a48b1aee8",
+    "gyro_mocap_sg_check/publication/bag8_50_55s/window_320ms_sg.npz": "eb5738451b346deede94823041659f6b6245d143fa9a1b71b6980874ec07493d"
+  },
+  "source_gyro_topic": "/gimbalrotor/imu",
+  "source_mocap_topic": "/gimbalrotor/mocap/pose",
+  "source_gyro_field": "spinal/Imu.gyro, rad/s in body/FC frame; main_body-to-FC rotation verified identity in source extraction",
+  "source_quaternion": "xyzw Hamilton body-to-world quaternion; world frame mocap position",
+  "native_gyro_count": 4000,
+  "native_gyro_mean_rate_hz": 199.98652909943493,
+  "mocap_sg_count": 2400,
+  "mocap_mean_rate_hz": 119.99831058785296,
+  "mocap_z_world_m": {
+    "mean": 0.8472842055559159,
+    "minimum": 0.7657425403594971,
+    "maximum": 0.8808438777923584,
+    "initial_0to8p5s_mean_from_prior_audit": 0.24537,
+    "mean_above_initial": 0.6019142055559159
+  },
+  "flight_evidence": "mocap Z mean ~0.847 m vs initial 0.245 m, ~0.602 m above initial; this confirms sustained height, not full asymptotic flight stability",
+  "smoothing": "Existing offline centered 0.32 s cubic SG quaternion fit on original irregular mocap stamps; differentiated normalization, omega=2 vec(q^-1 qdot); no gyro smoothing used as raw measurement",
+  "spectrum": {
+    "rate_hz": 120.0,
+    "frequency_resolution_hz": 0.05,
+    "method": "Full 20 s Hann periodogram with linear detrend; interpolation to uniform grid for spectral diagnostic only",
+    "choice_band_hz": [
+      0.05,
+      3.0
+    ],
+    "minimum_peak_separation_hz": 0.1,
+    "per_axis": [
+      {
+        "selected_bins": [
+          5,
+          2,
+          26
+        ],
+        "frequency_hz": [
+          0.25,
+          0.1,
+          1.3
+        ],
+        "spectral_density_deg2_s2_per_hz": [
+          28.180163945294385,
+          14.093386476618921,
+          7.43250673060752
+        ],
+        "plus_minus_one_bin_power_fraction": [
+          0.21254848380370103,
+          0.10071445994353857,
+          0.0638746199431094
+        ],
+        "total_psd_integral_deg2_s2": 8.82383314310173,
+        "low_1hz_power_fraction": 0.6058348846395011,
+        "low_3hz_power_fraction": 0.9628106225073512
+      },
+      {
+        "selected_bins": [
+          15,
+          18,
+          12
+        ],
+        "frequency_hz": [
+          0.75,
+          0.9,
+          0.6000000000000001
+        ],
+        "spectral_density_deg2_s2_per_hz": [
+          261.49645188840066,
+          259.098377075974,
+          223.3228096676474
+        ],
+        "plus_minus_one_bin_power_fraction": [
+          0.19927002855435597,
+          0.19252266325265535,
+          0.17173526223030705
+        ],
+        "total_psd_integral_deg2_s2": 96.93486493751723,
+        "low_1hz_power_fraction": 0.9088311303456683,
+        "low_3hz_power_fraction": 0.9872678673531423
+      },
+      {
+        "selected_bins": [
+          5,
+          9,
+          15
+        ],
+        "frequency_hz": [
+          0.25,
+          0.45,
+          0.75
+        ],
+        "spectral_density_deg2_s2_per_hz": [
+          74.17980601866289,
+          14.735694066322747,
+          10.446757459295524
+        ],
+        "plus_minus_one_bin_power_fraction": [
+          0.40339703586045783,
+          0.0750855209206585,
+          0.05274597112887112
+        ],
+        "total_psd_integral_deg2_s2": 14.473369885580698,
+        "low_1hz_power_fraction": 0.9627217530155147,
+        "low_3hz_power_fraction": 0.9874057420901197
+      }
+    ],
+    "scope": "Finite-window spectral maxima, not uniquely identified physical mode frequencies or sensor noise"
+  },
+  "harmonic_fit": "Ordinary least squares measured SG RPY = constant + three sine/cosine pairs at fixed body-omega peaks; no trend or extra component; convert each pair to amplitude/phase",
+  "fit_rpy_rmse_deg": [
+    1.662214141888061,
+    3.493668741709387,
+    2.460372957667716
+  ],
+  "fit_body_omega_rmse_deg_s": [
+    2.583257745219296,
+    6.499153475127425,
+    2.8238353376218783
+  ],
+  "fit_body_omega_variance_explained": [
+    0.21726372575900543,
+    0.38768279746950984,
+    0.353647745626944
+  ],
+  "unrepresented_motion": "Three global harmonics do not reproduce nonstationary real flight or all spectral power; fitted profile is a smooth statistical-scale test, not real-flight replay",
+  "amplitude_calibration": {
+    "target": "1.5 times real SG body-omega per-axis standard deviation",
+    "multiplier": 1.5,
+    "target_std_deg_s": [
+      4.379769640791506,
+      12.458329743682537,
+      5.26860929604695
+    ],
+    "rpy_axis_amplitude_multipliers": [
+      3.198468269347737,
+      2.362076073381627,
+      2.328647375027945
+    ],
+    "residual_log_std_ratio": [
+      -1.1102230246251571e-15,
+      -5.551115123125785e-16,
+      2.2204460492503128e-16
+    ],
+    "least_squares_nfev": 4,
+    "success": true,
+    "parameter_selection_completed_before_filter_run": true,
+    "filters_or_estimated_covariances_used": false
+  },
+  "raw_gyro": {
+    "mean_deg_s": [
+      -0.02384781738363303,
+      0.2197764050791494,
+      -0.17640394485090374
+    ],
+    "std_deg_s": [
+      2.7892609015994667,
+      7.838655510203907,
+      3.4265320580130094
+    ],
+    "rms_deg_s": [
+      2.789362847602553,
+      7.841735896845778,
+      3.4310698471977856
+    ],
+    "absolute_p95_deg_s": [
+      5.186581796962309,
+      17.093547483877753,
+      6.337944693605925
+    ],
+    "absolute_p99_deg_s": [
+      6.895555373836844,
+      24.33526753836576,
+      6.829212166947266
+    ],
+    "absolute_max_deg_s": [
+      7.743419612989306,
+      27.670332591961426,
+      7.263416970009258
+    ]
+  },
+  "mocap_sg_body_omega": {
+    "mean_deg_s": [
+      -0.0313677708097539,
+      0.22914632256792614,
+      -0.18145721674085183
+    ],
+    "std_deg_s": [
+      2.9198464271943405,
+      8.305553162455023,
+      3.512406197364633
+    ],
+    "rms_deg_s": [
+      2.920014913565532,
+      8.308713581025236,
+      3.517090277031973
+    ],
+    "absolute_p95_deg_s": [
+      5.826384336941036,
+      19.46657134933161,
+      6.663301345128988
+    ],
+    "absolute_p99_deg_s": [
+      7.135369079146806,
+      25.22386541129973,
+      7.403939357561259
+    ],
+    "absolute_max_deg_s": [
+      7.787598299898472,
+      27.51853393256001,
+      8.095099075280116
+    ]
+  },
+  "old_synthetic": {
+    "mean_deg_s": [
+      -1.880925506235124,
+      0.6108781164303866,
+      1.3059615512218283
+    ],
+    "std_deg_s": [
+      74.99648389470566,
+      62.19192013825378,
+      80.9883247946728
+    ],
+    "rms_deg_s": [
+      75.0200671642518,
+      62.194920231125515,
+      80.9988536253489
+    ],
+    "absolute_p95_deg_s": [
+      123.4163998402833,
+      122.58747009293393,
+      158.94940567499356
+    ],
+    "absolute_p99_deg_s": [
+      151.01079358340328,
+      144.36716630854565,
+      175.873300227836
+    ],
+    "absolute_max_deg_s": [
+      162.44717817290544,
+      152.51241956145773,
+      183.17742642863487
+    ]
+  },
+  "new_synthetic": {
+    "mean_deg_s": [
+      0.006983527336581257,
+      0.05801286119861258,
+      0.0030294941792436882
+    ],
+    "std_deg_s": [
+      4.379769640791496,
+      12.458329743682537,
+      5.2686092960469475
+    ],
+    "rms_deg_s": [
+      4.379775208392886,
+      12.458464812904893,
+      5.268610167039054
+    ],
+    "absolute_p95_deg_s": [
+      8.429790136918173,
+      25.085860719658132,
+      9.647097499389478
+    ],
+    "absolute_p99_deg_s": [
+      9.900368961789281,
+      27.307551818264315,
+      10.827345105523799
+    ],
+    "absolute_max_deg_s": [
+      10.286659311764192,
+      27.64022489032212,
+      11.538798000274584
+    ]
+  },
+  "new_rpy_range_deg": [
+    17.25613052435215,
+    11.820336837338134,
+    10.495173134634289
+  ],
+  "fitted_profile_sha256": "cdf34d52b448750a0aa8157cddcd43d471b11ba25ddff9ca33776841bbf9d438",
+  "calibrator_sha256": "95fb2d2adb680c5df88c751fdf9766112b1f02a6a3e84c258d833db502216bb2",
+  "inference_changed": false,
+  "random_numbers_used": false,
+  "core_changed": false,
+  "sensor_white_noise_or_spike_parameters_changed": false
+}

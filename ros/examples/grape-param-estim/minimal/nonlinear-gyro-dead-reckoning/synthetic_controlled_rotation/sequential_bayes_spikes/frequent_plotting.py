@@ -64,7 +64,11 @@ def _settings(source, acquisitions, sensor, cases, metadata):
     spike_rate = _find(metadata, 'spike_rate_hz')
     if spike_rate is None:
         spike_rate = _find(metadata, 'spike_expected_arrivals_per_second')
+    motion_profile=str(np.asarray(source.get('motion_profile','')).item())
+    motion_caption=('Flight-scaled synthetic motion'
+                    if motion_profile=='flight_matched_three_frequency' else '')
     return dict(rate_hz=rate, native_rate_hz=native_rate,
+        motion_profile=motion_profile,motion_caption=motion_caption,
         assumed_sigma_xyz_deg_s=assumed.tolist(),
         generated_white_sigma_xyz_deg_s=generated,
         empirical_white_sigma_xyz_deg_s=empirical.tolist(),
@@ -75,6 +79,12 @@ def _settings(source, acquisitions, sensor, cases, metadata):
         spike_rate_hz=spike_rate,
         spike_active_until_seconds=(float(active_until) if active_until is not None else None),
         fixed_raw_zoom_seconds=[2., 4.])
+
+
+def _title(base,settings):
+    """Describe the generated profile without presenting it as flight replay."""
+    caption=settings.get('motion_caption','')
+    return caption+': '+base if caption else base
 
 
 def _native_truth(source, sensor_time):
@@ -204,7 +214,8 @@ def _comparison(output, source, acquisitions, sensor, cases, settings, names, st
         _event_lines(width_axis, acquisitions)
         _recovery(width_axis, settings)
     title = ' / '.join(LABELS[name] for name in names)
-    figure.suptitle(f'{title} — same spiky gyro; {settings["rate_hz"]:g} Hz updates', fontsize=15, y=.993)
+    figure.suptitle(_title(f'{title} — same spiky gyro; {settings["rate_hz"]:g} Hz updates',settings),
+                   fontsize=15, y=.993)
     legend=_mean_legend(names)
     figure.legend(handles=legend, loc='upper center',
                   bbox_to_anchor=(.5,.955), ncol=3, frameon=False, fontsize=10)
@@ -247,7 +258,8 @@ def _raw_sensor(output, source, acquisitions, sensor, settings):
         axes[dimension,1].set_title('Fixed zoom: 2–4 s (not selected by results)',fontsize=12)
     handles,labels=axes[0,0].get_legend_handles_labels()
     figure.legend(handles,labels,loc='upper center',bbox_to_anchor=(.5,.953),ncol=3,frameon=False)
-    figure.suptitle('The same spiky measurements used by both dynamics models',fontsize=16,y=.994)
+    figure.suptitle(_title('The same spiky measurements used by both dynamics models',settings),
+                   fontsize=16,y=.994)
     empirical=', '.join(f'{value:.3f}' for value in settings['empirical_white_sigma_xyz_deg_s'])
     figure.text(.04,.015,
         f'Native rate {settings["native_rate_hz"]:g} Hz; every raw point is drawn without averaging or downsampling. '
@@ -295,7 +307,8 @@ def _diagnostics(output,source,acquisitions,cases,settings):
         axis.set_xlim(float(source['reference_time'][0]),float(source['reference_time'][-1]))
         axis.set_xlabel('Data time [s]');axis.grid(alpha=.22)
         _event_lines(axis,acquisitions);_recovery(axis,settings)
-    figure.suptitle('Same spiky observations: nonlinear Euler versus no gyroscopic term',fontsize=15,y=.994)
+    figure.suptitle(_title('Same spiky observations: nonlinear Euler versus no gyroscopic term',settings),
+                   fontsize=15,y=.994)
     figure.legend(handles=_mean_legend(raw=False)[1:3],loc='upper center',bbox_to_anchor=(.5,.953),
                   ncol=2,frameon=False)
     figure.text(.04,.015,
@@ -336,7 +349,8 @@ def _gyro_uncertainty(output,source,acquisitions,cases,settings):
             axis.set_xlim(float(source['reference_time'][0]),float(source['reference_time'][-1]))
             axis.grid(alpha=.22)
             _event_lines(axis,acquisitions);_recovery(axis,settings)
-    figure.suptitle('Angular velocity is estimated: saved full-covariance marginals',fontsize=15,y=.994)
+    figure.suptitle(_title('Angular velocity is estimated: saved full-covariance marginals',settings),
+                   fontsize=15,y=.994)
     figure.legend(handles=_mean_legend(raw=False)[1:3],loc='upper center',
                   bbox_to_anchor=(.5,.953),ncol=2,frameon=False)
     figure.text(.04,.015,
@@ -375,7 +389,10 @@ def _movie(output,source,acquisitions,sensor,cases,settings,fps=12):
     width,height=960,540
     figure,axes=plt.subplots(2,3,figsize=(width/100,height/100),dpi=100)
     figure.subplots_adjust(left=.066,right=.985,bottom=.18,top=.81,wspace=.28,hspace=.44)
-    figure.suptitle('Same spiky gyro: nonlinear Euler vs no gyroscopic term',fontsize=14,y=.986)
+    movie_title=('Flight-scaled synthetic motion: two dynamics models'
+                 if settings.get('motion_caption') else
+                 'Same spiky gyro: nonlinear Euler vs no gyroscopic term')
+    figure.suptitle(movie_title,fontsize=14,y=.986)
     handles=_mean_legend()
     figure.legend(handles=handles,loc='upper center',bbox_to_anchor=(.5,.945),
                   ncol=3,frameon=False,fontsize=7.8)

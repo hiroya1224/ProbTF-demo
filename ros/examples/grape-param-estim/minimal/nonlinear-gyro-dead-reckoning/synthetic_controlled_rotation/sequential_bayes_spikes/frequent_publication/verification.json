@@ -1,22 +1,36 @@
 {
-  "schema": "grape/shared-spiked-input-model-comparison-verification/v2",
-  "tests_passed": 23,
+  "schema": "grape/flight-scaled-rotation-verification/v1",
+  "scope": "post-run diagnostics only; none are observation acceptance or early-stop criteria",
   "compared_models": [
     "nonlinear",
     "linear_forced"
   ],
-  "shared_spiked_measurement_sha256": "ee2a1f7d20272812cede3291c04651ee1435ec01377c8f0341a2aa13b951e380",
-  "exact_same_measurements_times_inertia_torque_initial_quaternion_and_observation_covariance": true,
+  "shared_spiked_measurement_sha256": "510d18ad38c29bed4403b620a40f7240cba21edb6e01520b663aa502c18c39e5",
   "initial_joint_moments_identical": true,
-  "model_difference": "I^-1(tau-omega cross(I omega)) versus I^-1 tau; qdot=q Hamilton (0,omega)/2 shared",
-  "state": "omega and unit quaternion q_wxyz; rotation matrix is derived",
+  "white_noise_realization_unchanged": true,
+  "white_covariance_and_bias_unchanged": true,
+  "spike_events_unchanged": true,
+  "spike_vectors_masks_and_acquisition_clock_unchanged": true,
+  "physical_motion_std_deg_s": [
+    4.37923568071844,
+    12.457042793881412,
+    5.267923274737448
+  ],
+  "physical_motion_max_abs_deg_s": [
+    10.288491176548437,
+    27.640149264550313,
+    11.539134668378196
+  ],
+  "model_difference": "Only omega cross(J omega); same quaternion kinematics, J, torque, readings and observation covariance",
   "linear_model_analytic_posterior_check": {
-    "analytic_posterior": "omega(t)=w0+A(t); after N readings: mean(w0)=mean(yj-A(tj)), Cov(w0)=R/N",
     "observed_count": 20,
-    "final_mean_max_difference_rad_s": 1.1379786002407855e-14,
-    "final_covariance_max_difference_rad2_s2": 7.315654158845941e-16,
-    "alternate_rk4_output_grid_mean_difference_rad_s": 1.0558634833401914e-06,
-    "control_integration_query": "Same history and final prediction interval clock as final posterior; alternate-grid difference records finite RK4/control interpolation error separately"
+    "final_mean_max_difference_rad_s": 4.440892098500626e-16,
+    "final_covariance_max_difference_rad2_s2": 8.40256683676266e-18
+  },
+  "generation_dynamics_check_reference_only": {
+    "max_body_rate_error_deg_s": 5.8399004824801245e-05,
+    "max_attitude_error_deg": 0.00023604679617198444,
+    "oracle_values_supplied_to_bayesian_filters": false
   },
   "numeric_diagnostics": {
     "nonlinear": {
@@ -31,18 +45,18 @@
         3
       ],
       "all_joint_moments_finite": true,
-      "minimum_joint_covariance_eigenvalue_diagnostic": -1.071393875380295e-18,
+      "minimum_joint_covariance_eigenvalue_diagnostic": -7.122195238810044e-19,
       "initial_omega_two_sigma_halfwidth_deg_s": [
-        10.000000000000002,
-        10.000000000000009,
-        9.999999999999993
+        10.000000000000005,
+        10.000000000000005,
+        10.000000000000005
       ],
       "final_omega_two_sigma_halfwidth_deg_s": [
-        2.2881932491823465,
-        2.4824559129065586,
-        1.9731574952171405
+        2.2531060863988324,
+        2.2423114479836586,
+        2.237057715024147
       ],
-      "maximum_core_vs_direct_rotation_mean_difference": 6.772360450213455e-15
+      "maximum_core_vs_direct_rotation_mean_difference": 4.6629367034256575e-15
     },
     "linear_forced": {
       "omega_covariance_shape": [
@@ -56,51 +70,29 @@
         3
       ],
       "all_joint_moments_finite": true,
-      "minimum_joint_covariance_eigenvalue_diagnostic": -1.071393875380295e-18,
+      "minimum_joint_covariance_eigenvalue_diagnostic": -7.122195238810044e-19,
       "initial_omega_two_sigma_halfwidth_deg_s": [
-        10.000000000000002,
-        10.000000000000009,
-        9.999999999999993
+        10.000000000000005,
+        10.000000000000005,
+        10.000000000000005
       ],
       "final_omega_two_sigma_halfwidth_deg_s": [
-        2.236067977499828,
-        2.236067977501938,
-        2.2360679774995393
+        2.2360679774997996,
+        2.236067977499785,
+        2.236067977499765
       ],
-      "maximum_core_vs_direct_rotation_mean_difference": 7.216449660063518e-15
+      "maximum_core_vs_direct_rotation_mean_difference": 5.88418203051333e-15
     }
   },
   "omega_uncertainty_plotted_without_rescaling": true,
   "no_white_only_comparison_output": true,
   "movie": {
     "file": "frequent_spikes_comparison.mp4",
-    "sha256": "625b9931c488bfd719d3dc5f20b6df272347a0f0e655e2f2535e3623f26f3fbc",
-    "bytes": 647355,
+    "sha256": "da133212f740c8e212a3994630860b08038bbae6542d46eea0f1e270abf7c2af",
+    "bytes": 539188,
     "width": 960,
     "height": 540,
     "duration_seconds": 40.5,
     "complete_decode": true
-  },
-  "attitude_and_gyro_main_covariance_visibility": {
-    "layout": {
-      "rows": [
-        "RPY",
-        "omega mean +/-2sigma",
-        "omega 2sigma half-width"
-      ],
-      "columns": [
-        "x / roll",
-        "y / pitch",
-        "z / yaw"
-      ],
-      "omega_band_alpha": 0.34,
-      "omega_band_above_raw": true,
-      "half_width_formula": "2 * rad2deg(sqrt(diag(saved omega covariance)))",
-      "covariance_rescaled": false
-    },
-    "original_npz_files_unchanged": true,
-    "inference_rerun": false,
-    "half_width_values_unchanged": true,
-    "visually_reviewed": true
   }
 }

@@ -1,33 +1,33 @@
 {
   "7 → 11": {
     "nonlinear": {
-      "max_omega_mean_component_difference_deg_s": 1.0982906864802761e-05,
-      "max_omega_covariance_component_difference_deg2_s2": 0.00012267739188354923,
-      "max_rpy_proxy_component_difference_deg": 5.875409061009023e-05,
-      "max_rotation_covariance_component_difference": 2.000228842571894e-06,
+      "max_omega_mean_component_difference_deg_s": 1.3822031684009041e-05,
+      "max_omega_covariance_component_difference_deg2_s2": 0.00010907348537477225,
+      "max_rpy_proxy_component_difference_deg": 0.00011920868625573014,
+      "max_rotation_covariance_component_difference": 2.8351277448351864e-06,
       "finite_diagnostic_only": true
     },
     "linear_forced": {
-      "max_omega_mean_component_difference_deg_s": 2.442665995363981e-12,
-      "max_omega_covariance_component_difference_deg2_s2": 6.92625336113116e-13,
-      "max_rpy_proxy_component_difference_deg": 6.900531436903246e-11,
-      "max_rotation_covariance_component_difference": 3.86213370312527e-12,
+      "max_omega_mean_component_difference_deg_s": 1.0177774980683254e-13,
+      "max_omega_covariance_component_difference_deg2_s2": 8.826879925799217e-14,
+      "max_rpy_proxy_component_difference_deg": 3.256887993818641e-12,
+      "max_rotation_covariance_component_difference": 1.3634245225879749e-09,
       "finite_diagnostic_only": true
     }
   },
   "11 → 15": {
     "nonlinear": {
-      "max_omega_mean_component_difference_deg_s": 7.1078654354784895e-09,
-      "max_omega_covariance_component_difference_deg2_s2": 1.0767870744600221e-07,
-      "max_rpy_proxy_component_difference_deg": 4.0476349542803555e-08,
-      "max_rotation_covariance_component_difference": 1.5333741464063078e-09,
+      "max_omega_mean_component_difference_deg_s": 1.823535046592273e-08,
+      "max_omega_covariance_component_difference_deg2_s2": 1.5554095081677085e-07,
+      "max_rpy_proxy_component_difference_deg": 2.5212027960024234e-07,
+      "max_rotation_covariance_component_difference": 5.054477524024659e-09,
       "finite_diagnostic_only": true
     },
     "linear_forced": {
-      "max_omega_mean_component_difference_deg_s": 2.3408882455571482e-12,
-      "max_omega_covariance_component_difference_deg2_s2": 7.307090519220078e-13,
-      "max_rpy_proxy_component_difference_deg": 8.498442108870517e-12,
-      "max_rotation_covariance_component_difference": 1.0061396160665481e-14,
+      "max_omega_mean_component_difference_deg_s": 2.0355549961366507e-13,
+      "max_omega_covariance_component_difference_deg2_s2": 1.6799545665230767e-13,
+      "max_rpy_proxy_component_difference_deg": 4.325554366790383e-13,
+      "max_rotation_covariance_component_difference": 2.1094237467877974e-15,
       "finite_diagnostic_only": true
     }
   }

@@ -1,5 +1,7 @@
 # 実ドローンのStudent-t再試行
 
+[追加：全原gyro＋角速度プロセスσ=1 deg/s](publication/bag8_full_gyro_q1/INDEX.md)。最新指定のQ>0比較は、同じ原1001件と凍結モデルで現在の姿勢・角速度候補を逐次更新する。観測Rは維持し、以下のQ=0結果とは別保存する。
+
 [追加：原gyro全1001件・約200 Hzの比較](publication/bag8_full_gyro/INDEX.md)。取得頻度の指定値から選び直さず、同じ5秒区間に含まれる原記録をすべて使う。`full_run.py` と `full_config.json` が再現入口で、ν・Q・R・慣性・トルクは以下の疎取得比較から変更しない。
 
 [全8条件の図・数値](publication/bag8_50_55s/INDEX.md) ／ [主図：5 Hz・σ=2.5 deg/s](publication/bag8_50_55s/rate_5_hz/sigma_2p5_deg_s/attitude_and_gyro.pdf) ／ [結果と原因の整理](publication/bag8_50_55s/RESULTS.md)。
@@ -92,3 +94,14 @@ env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-full-mpl p
 env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-full-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/full_quadrature_audit.py --output ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/publication/bag8_full_gyro/quadrature_audit.json
 env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-full-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/full_report.py
 ```
+
+### 角速度プロセスσ=1 deg/sを加える比較
+
+```bash
+env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-process-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/process_run.py
+env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-process-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/process_verify.py
+```
+
+設定は `process_config.json`。$Q_\omega=(\pi/180)^2I_3$ [rad²/s²] を各原取得の観測直前へ一度加える。不等間隔でも一取得あたり同じQとし、連続時間PSDにはしない。初回と最後の観測後の短い尾部には追加しない。密な表示時刻はQの適用回数を変えない。
+
+`student_t_process_engine.py` は既存のQ>0実装の条件付き四元数・回転モーメント輸送を再利用する。現在角速度のGaussian遷移混合へStudent-t尤度を掛けた連続密度を積分対象とし、時刻間は決定論的Nyström求積の重みと条件付き姿勢モーメントで持ち越す。連続密度関数そのものの全履歴厳密保持ではない。Gaussian proposalで割った重みを使い、事後分布をGaussianへ置換しない。過去の情報は前回の共同候補を通じて継承する。元のQ=0の初期角速度だけの候補族とは異なるMarkov過程であり、共分散帯だけを増やしたものではない。求積の有限誤差とRPY表示近似は保存数値とともに明記する。

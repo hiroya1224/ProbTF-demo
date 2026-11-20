@@ -1,0 +1,12 @@
+{
+  "acquisition_mode": "full_native",
+  "sigmas_deg_s": [2.5, 5.0],
+  "student_df": 4.0,
+  "process_sigma_deg_s": 1.0,
+  "process_noise_scope": "one independent isotropic omega increment at each native acquisition after the first, before observing",
+  "process_covariance_units": "rad^2/s^2 per native acquisition interval; not a continuous-time PSD",
+  "quadrature_orders": [5, 7],
+  "max_step_seconds": 0.002,
+  "output_dt_seconds": 0.01,
+  "primary_sigma_deg_s": 2.5
+}

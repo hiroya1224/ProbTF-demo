@@ -1,0 +1,294 @@
+{
+  "schema": "grape/real-full-native-student-process/v1",
+  "config": {
+    "acquisition_mode": "full_native",
+    "sigmas_deg_s": [
+      2.5,
+      5.0
+    ],
+    "student_df": 4.0,
+    "process_sigma_deg_s": 1.0,
+    "process_noise_scope": "one independent isotropic omega increment at each native acquisition after the first, before observing",
+    "process_covariance_units": "rad^2/s^2 per native acquisition interval; not a continuous-time PSD",
+    "quadrature_orders": [
+      5,
+      7
+    ],
+    "max_step_seconds": 0.002,
+    "output_dt_seconds": 0.01,
+    "primary_sigma_deg_s": 2.5,
+    "process_covariance_rad2_s2": [
+      [
+        0.00030461741978670857,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.00030461741978670857,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.00030461741978670857
+      ]
+    ]
+  },
+  "records": [
+    {
+      "sigma_deg_s": 2.5,
+      "rate_hz": 199.99999999989768,
+      "observation_count": 1001,
+      "directory": "rate_full_native/sigma_2p5_deg_s",
+      "metrics": {
+        "evaluation_count": 501,
+        "evaluation_range_bag_seconds": [
+          50.000988619000005,
+          55.000988619000005
+        ],
+        "evaluation": "Same 501 fixed times for every acquisition rate; exact saved grid rows, posterior at duplicate clock; no estimate interpolation",
+        "timestamp_matching": "Rounded integer ns for equality matching only",
+        "attitude_reference": "Recorded mocap quaternion SLERP, read-only evaluation reference",
+        "omega_reference": "Linearly interpolated recorded raw gyro for evaluation only; a noisy measurement, not angular-velocity truth",
+        "results": {
+          "nonlinear": {
+            "so3_proxy_rmse_deg": 0.5691325866497536,
+            "so3_proxy_final_deg": 1.20599706837204,
+            "rpy_rmse_deg": [
+              0.3983518147406911,
+              0.3530988176319325,
+              0.21034477894575843
+            ],
+            "omega_vs_raw_gyro_rmse_deg_s": [
+              0.19139104306718804,
+              0.4019170317404715,
+              0.13050507397729083
+            ],
+            "final_omega_two_sigma_deg_s": [
+              2.154086195135905,
+              2.1583066184177286,
+              2.1547867959041884
+            ],
+            "final_rpy_two_sigma_deg": [
+              0.47798391052524064,
+              0.4785550968628141,
+              0.47736890411785005
+            ]
+          },
+          "linear_forced": {
+            "so3_proxy_rmse_deg": 0.5679510885863298,
+            "so3_proxy_final_deg": 1.2046172836797269,
+            "rpy_rmse_deg": [
+              0.39787498904251195,
+              0.35285600487380964,
+              0.20834063706371567
+            ],
+            "omega_vs_raw_gyro_rmse_deg_s": [
+              0.19110295841650213,
+              0.401766394881728,
+              0.12935681741096888
+            ],
+            "final_omega_two_sigma_deg_s": [
+              2.15405981499497,
+              2.1583685278472933,
+              2.154725689357968
+            ],
+            "final_rpy_two_sigma_deg": [
+              0.47798228225347583,
+              0.4785567823659257,
+              0.4773646735596651
+            ]
+          }
+        }
+      }
+    },
+    {
+      "sigma_deg_s": 5.0,
+      "rate_hz": 199.99999999989768,
+      "observation_count": 1001,
+      "directory": "rate_full_native/sigma_5_deg_s",
+      "metrics": {
+        "evaluation_count": 501,
+        "evaluation_range_bag_seconds": [
+          50.000988619000005,
+          55.000988619000005
+        ],
+        "evaluation": "Same 501 fixed times for every acquisition rate; exact saved grid rows, posterior at duplicate clock; no estimate interpolation",
+        "timestamp_matching": "Rounded integer ns for equality matching only",
+        "attitude_reference": "Recorded mocap quaternion SLERP, read-only evaluation reference",
+        "omega_reference": "Linearly interpolated recorded raw gyro for evaluation only; a noisy measurement, not angular-velocity truth",
+        "results": {
+          "nonlinear": {
+            "so3_proxy_rmse_deg": 0.5747618387779064,
+            "so3_proxy_final_deg": 1.211867781427888,
+            "rpy_rmse_deg": [
+              0.4037066171369261,
+              0.3541025446120077,
+              0.21397559022452842
+            ],
+            "omega_vs_raw_gyro_rmse_deg_s": [
+              0.33574471913643483,
+              0.7319735766383745,
+              0.24869441770574569
+            ],
+            "final_omega_two_sigma_deg_s": [
+              3.084244379081803,
+              3.102978275795204,
+              3.089867303187766
+            ],
+            "final_rpy_two_sigma_deg": [
+              0.8997818073462043,
+              0.9047531708579329,
+              0.8976638355164546
+            ]
+          },
+          "linear_forced": {
+            "so3_proxy_rmse_deg": 0.5738182917525275,
+            "so3_proxy_final_deg": 1.2108680189283916,
+            "rpy_rmse_deg": [
+              0.4037332574928265,
+              0.3538592893298924,
+              0.2116677793953483
+            ],
+            "omega_vs_raw_gyro_rmse_deg_s": [
+              0.33511613841768556,
+              0.7315757381591057,
+              0.24629428137560683
+            ],
+            "final_omega_two_sigma_deg_s": [
+              3.084165503893242,
+              3.1031551620426545,
+              3.0896698115859853
+            ],
+            "final_rpy_two_sigma_deg": [
+              0.8997503579814252,
+              0.9047601093858789,
+              0.8975704348907744
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "input": {
+    "schema": "grape/real-student-full-native-input/v1",
+    "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+    "time_origin_ns": 1781254003200111893,
+    "requested_window_seconds": [
+      50.0,
+      55.0
+    ],
+    "actual_window_seconds": [
+      50.000988619000005,
+      55.000988619000005
+    ],
+    "requested_acquisition_rate_hz": null,
+    "observation_count": 1001,
+    "last_observation_seconds": 55.00089973,
+    "prediction_tail_seconds": 8.888900000414424e-05,
+    "initial_pose": "Saved one-time mocap SLERP alignment at the first actual gyro sample",
+    "body_to_gyro_sensor_rotation": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "training_window_seconds": [
+      40.0,
+      45.0
+    ],
+    "refit_performed": false,
+    "torque": "Frozen refined actuator torque plus strictly past residual mean once; torque_applied_body is diagnostic only",
+    "fixed_residual_mean_body_nm": [
+      2.3311204524360048e-05,
+      -5.633487546296481e-05,
+      0.0006742527681490941
+    ],
+    "inertia_body_kg_m2": [
+      [
+        0.10255160272242744,
+        -0.012757295205688543,
+        0.00010843231890875164
+      ],
+      [
+        -0.012757295205688543,
+        0.029269707293920436,
+        -0.014818869564709177
+      ],
+      [
+        0.00010843231890875164,
+        -0.014818869564709177,
+        0.12712351847156012
+      ]
+    ],
+    "estimator_data_fields": [
+      "time",
+      "initial_quaternion_wxyz",
+      "sparse_gyro_time",
+      "sparse_gyro"
+    ],
+    "physical_fields": [
+      "inertia",
+      "torque"
+    ],
+    "evaluation_mocap_or_unacquired_gyro_supplied_to_estimator": false,
+    "generated_noise_or_spikes_added": false,
+    "gyro_bias_or_time_shift_corrected": false,
+    "model_parameter_uncertainty_propagated": false,
+    "source_file_sha256": {
+      "publication/bag8_50_55s/input.npz": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a",
+      "publication/bag8_50_55s/input.json": "937682c0cf53e20de07a6a26a7a148924e9e6a86910d90b3717f25e75d400195",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.npz": "2afb7230fc3e42a599a47c82b2836b6fd6ef836270a70b991d842e4e68254822",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.json": "0e04f05166744ddaf73bf6ffdf67dc4d7595040ef2f731772fb069b4271ae874",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/fit.json": "6fd2f8a323fa049089d44ce8ba5869075e529775f69aea8abb8f42db52734294",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/heldout_dynamics_check.npz": "c4ba8fa3628835453dff65ac8cbc39180fdda209376ad2cedd3afc11501e6483"
+    },
+    "reference_semantics": "Mocap pose and SG-derived omega are read-only; raw gyro is a noisy measured reference, not angular-velocity truth",
+    "acquisition_mode": "full_native",
+    "native_median_rate_hz": 199.99999999989768,
+    "native_interval_range_seconds": [
+      0.004938097999996671,
+      0.005000000000002558
+    ],
+    "full_window_native_record_count": 1001,
+    "every_window_native_record_used": true,
+    "resampling_or_decimation": false,
+    "requested_time_semantics": "Native times copied verbatim; no requested periodic grid",
+    "initial_reading_role": "Initial N(W0;y0,R) once; each later native reading one likelihood"
+  },
+  "observation_count": 1001,
+  "process_increment_count": 1000,
+  "preservation": true,
+  "monte_carlo": false,
+  "model_refitted": false,
+  "sensor_values_noise_bias_or_clock_changed": false,
+  "source_sha256": {
+    "student_t_real_drone/dense_engine.py": "b850a0c75b2a18452d5b60a85a84f4db5cee473808cad79bb31a58cfd703228c",
+    "student_t_real_drone/full_dense_engine.py": "474737e94f6ed1674306cc649839917b61edfd67b805bcd19373c0469fa46b4f",
+    "student_t_real_drone/full_quadrature_audit.py": "b678ec8cbd6dc0a052510aeb824b18a984c2409d1509026a5a6905f516738ae6",
+    "student_t_real_drone/full_report.py": "a905c97795f8ddca0473891befebfaae10da0ffb0f37e10ee1065408c76b441e",
+    "student_t_real_drone/full_run.py": "3878d9c01e41ffbbe8abba833ef3123682ad8fae70596260a3f4e785e567fd0c",
+    "student_t_real_drone/full_verify.py": "f1da93a9280ca51398f83eb2cefc1e887a63dc64581084be2636b732c42de9ce",
+    "student_t_real_drone/input.py": "f42c4250dc16196b3e79f206d83c3c57229b5ebd66bb6199a63ad3e16d29baec",
+    "student_t_real_drone/physics_audit.py": "65f0129b6cb0c4911578568e569754edcab898281a68f2aea53683c26dc9c158",
+    "student_t_real_drone/plotting.py": "71b0b6f7927a735f6be92547b714a076b35c8056f5faaeb1943c6334c1d79238",
+    "student_t_real_drone/process_run.py": "f65281c93b3c674fe3b27c5d9e37408e7a4c5ea31e7940765bba4913e744ebf1",
+    "student_t_real_drone/process_verify.py": "d89053ed40304e7c0f4681cedb720498327509ac75007ae9c5aa5ab9662930c8",
+    "student_t_real_drone/run.py": "27fb04c9db87a8fc868096dd2d9a65cff060e539e62bf91a853110b62cc3643d",
+    "student_t_real_drone/student_t_process_engine.py": "e8592a110e0116358ad4b2a5b8ddba4ffbb466a646a4ca787ee778734071c6da",
+    "student_t_real_drone/verify.py": "68e91d02a16abee27f900f857b7432cf5e404dd507ba502d67d451693d9718fb"
+  },
+  "wall_seconds": 101.7751077809371
+}

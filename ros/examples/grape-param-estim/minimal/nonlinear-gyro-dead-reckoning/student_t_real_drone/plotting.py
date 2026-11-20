@@ -120,6 +120,12 @@ def _diagnostics(source, cases):
 def _settings(source, acquired, cases, metadata):
     config = dict((metadata or {}).get('config', metadata or {}))
     start, end = np.asarray(source['time'], float)
+    process = cases['nonlinear'].get('process_covariance_rad2_s2')
+    if process is None:
+        process = config.get('process_covariance_rad2_s2')
+    if process is None:
+        process = np.eye(3)*np.deg2rad(float(config.get('process_sigma_deg_s', 0.)))**2
+    process = np.asarray(process, float)
     return dict(start_bag_seconds=float(start), end_bag_seconds=float(end),
         duration_seconds=float(end-start),
         acquisition_rate_hz=float(config.get('rate_hz', config.get('acquisition_rate_hz',
@@ -128,12 +134,26 @@ def _settings(source, acquired, cases, metadata):
         student_df=float(config.get('student_df', 4.)),
         native_reading_count=len(source['gyro_time']),
         acquired_reading_count=len(acquired['time']),
+        process_covariance_rad2_s2=process.tolist(),
+        process_sigma_xyz_deg_s=np.rad2deg(np.sqrt(np.diag(process))).tolist(),
+        process_noise_enabled=bool(np.any(process != 0.)),
+        process_noise_interval_median_seconds=float(np.median(np.diff(acquired['time']))),
+        process_noise_scope='Independent body angular-velocity increment at each native acquisition endpoint, before its observation; not per RK4 step or sensor noise',
         stored_rows={name: len(cases[name]['time']) for name in MODELS},
         stored_event_rows={name: {str(side): int(np.count_nonzero(cases[name]['event_side']==side))
             for side in (-1, 0, 1)} for name in MODELS},
         initial_law='N(W0;y0,R), initialized from first acquired gyro once',
         observation_distribution='Multivariate Student-t for each acquired j>=1 factor',
         gaussian_observation_comparator_included=False)
+
+
+def _process_label(settings):
+    if not settings['process_noise_enabled']:
+        return 'Q=0'
+    sigma = settings['process_sigma_xyz_deg_s']
+    label = f'{sigma[0]:g}' if sigma[0] == sigma[1] == sigma[2] else '('+', '.join(f'{value:g}' for value in sigma)+')'
+    return (f'Q omega sigma={label} deg/s per native interval '
+        f'(~{settings["process_noise_interval_median_seconds"]:g} s)')
 
 
 def _main(output, source, acquired, cases, settings):
@@ -189,14 +209,21 @@ def _main(output, source, acquired, cases, settings):
             label='Mocap SG angular rate: offline reference'))
     handles.extend(Line2D([], [], color=COLORS[name], ls=STYLES[name], lw=1.7,
         label=LABELS[name]) for name in MODELS)
+    reading_label = (f'All {settings["acquired_reading_count"]} native gyro readings'
+        if settings['process_noise_enabled'] and settings['acquired_reading_count'] == settings['native_reading_count']
+        else f'Selected {settings["acquisition_rate_hz"]:g} Hz readings')
     handles.append(Line2D([], [], color='.2', marker='o', mfc='white', ls='', markersize=4,
-        label=f'Selected {settings["acquisition_rate_hz"]:g} Hz readings'))
-    fig.suptitle(f'Real flight bag #8 / Student-t nu={settings["student_df"]:g} / '
-        f'{settings["acquisition_rate_hz"]:g} Hz / marginal sigma={settings["sigma_deg_s"]:g} deg/s', fontsize=15, y=.993)
+        label=reading_label))
+    title = (f'Real flight bag #8 / Student-t nu={settings["student_df"]:g} / '
+        f'{settings["acquisition_rate_hz"]:g} Hz / marginal sigma={settings["sigma_deg_s"]:g} deg/s')
+    if settings['process_noise_enabled']:
+        title = (f'Real flight bag #8 / Student-t nu={settings["student_df"]:g} / {reading_label}\n'
+            f'R marginal sigma={settings["sigma_deg_s"]:g} deg/s / {_process_label(settings)}')
+    fig.suptitle(title, fontsize=15, y=.993)
     fig.legend(handles=handles, loc='upper center', bbox_to_anchor=(.5, .955),
         ncol=2, frameon=False, fontsize=10)
     fig.text(.035, .012,
-        f'Bag time {start:.9f}--{settings["end_bag_seconds"]:.9f} s. Both models use the SAME {settings["acquired_reading_count"]} acquired raw readings, J, known torque and initial attitude; Q=0.\n'
+        f'Bag time {start:.9f}--{settings["end_bag_seconds"]:.9f} s. Both models use the SAME {settings["acquired_reading_count"]} acquired raw readings, J, known torque and initial attitude; {_process_label(settings)}.\n'
         'Frozen dynamics were fitted on bag time 40--45 s, with the frozen past residual-torque mean. No held-out mocap or unacquired gyro enters the predictor.\n'
         f'Student-t nu={settings["student_df"]:g}; R is marginal covariance, Sigma=(nu-2)/nu R is its scale. Initial N(W0;y0,R) is used once. Only the gyroscopic term differs.\n'
         'Dense curves and the final post-observation tail are propagated candidates, not held measurements. Bands are the SAME saved +/-2sigma; no covariance adjustment.\n'
@@ -227,14 +254,18 @@ def _errors(output, arrays, settings):
             _decorate(panel, settings['duration_seconds'], xlabel=row==1)
     handles = [Line2D([], [], color=COLORS[name], ls=STYLES[name], lw=1.7,
         label=LABELS[name]) for name in MODELS]
-    fig.suptitle(f'Real flight Student-t / {settings["acquisition_rate_hz"]:g} Hz / '
-        f'marginal sigma={settings["sigma_deg_s"]:g} deg/s', fontsize=15)
-    fig.legend(handles=handles, loc='upper center', bbox_to_anchor=(.5, .955), ncol=2, frameon=False)
+    title = (f'Real flight Student-t / {settings["acquisition_rate_hz"]:g} Hz / '
+        f'marginal sigma={settings["sigma_deg_s"]:g} deg/s')
+    if settings['process_noise_enabled']:
+        title += '\n'+_process_label(settings)
+    fig.suptitle(title, fontsize=15)
+    fig.legend(handles=handles, loc='upper center',
+        bbox_to_anchor=(.5, .92 if settings['process_noise_enabled'] else .955), ncol=2, frameon=False)
     fig.text(.04, .025,
         'Top: wrapped RPY component error against recorded mocap quaternion SLERP. Bottom: difference against interpolated raw gyro, NOT angular-velocity truth.\n'
         'Reference interpolation is read-only evaluation. Saved estimates are not interpolated; all dense, prior, posterior and terminal-tail moments are plotted.\n'
         'Bands are the SAME saved +/-2sigma as in the main figure; RPY bands are local display approximations, not guaranteed 95% regions.\n'
-        'Both curves use Student-t observations and Q=0. Frozen model, residual torque, source clocks and first-reading initialization are shared.', fontsize=9)
+        f'Both curves use Student-t observations and {_process_label(settings)}. Frozen model, residual torque, source clocks and first-reading initialization are shared.', fontsize=9)
     fig.tight_layout(rect=(0, .11, 1, .86))
     return _save(fig, output, 'reconstruction_errors')
 

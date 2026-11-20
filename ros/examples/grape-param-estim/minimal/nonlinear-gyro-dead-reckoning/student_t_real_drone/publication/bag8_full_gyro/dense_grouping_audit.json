@@ -1,0 +1,144 @@
+{
+  "schema": "grape/grouped-dense-real-audit/v1",
+  "case_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/publication/bag8_full_gyro/rate_full_native/sigma_2p5_deg_s/cache/order7_nonlinear.npz",
+  "case_sha256": "13a4d482ae449ae00527a1fff85223e5bdb9d727559c46f6026e83a4cfdcc8af",
+  "order": 7,
+  "sigma_deg_s": 2.5,
+  "mode": "nonlinear",
+  "student_df": 4.0,
+  "observation_count": 1001,
+  "original_observation_row_count": 2001,
+  "dense_prediction_count": 354,
+  "native_interval_range_seconds": [
+    0.004938097999996671,
+    0.005000000000002558
+  ],
+  "original_observation_time_exact": true,
+  "original_observation_side_exact": true,
+  "original_observation_index_exact": true,
+  "all_dense_indices_are_latest_causal_index": true,
+  "all_nonprior_likelihood_counts_match_latest_index": true,
+  "original_row_bitwise_guarantee": "Wrapper concatenates original row fields verbatim and stable-permutes them; independently tested with every row field against a direct original-engine call on irregular fixtures. Here the actual 2001 original row clock/side/index structure is also checked without an expensive repeat of full inference.",
+  "checks": [
+    {
+      "time": 50.02098861900001,
+      "relative_seconds": 0.020000000000003126,
+      "last_included_acquisition_index": 4,
+      "likelihood_factor_count": 4,
+      "refresh_acquisition_index": 4,
+      "grouped_vs_interval_max_abs": {
+        "quaternion_second_moment": 0.0,
+        "rotation_mean": 0.0,
+        "rotation_covariance_colmajor": 0.0,
+        "omega_mean_rad_s": 0.0,
+        "omega_covariance_rad2_s2": 0.0,
+        "rotation_omega_covariance_colmajor": 0.0,
+        "initial_omega_mean_rad_s": 0.0,
+        "initial_omega_covariance_rad2_s2": 0.0
+      }
+    },
+    {
+      "time": 50.31098861900001,
+      "relative_seconds": 0.3100000000000023,
+      "last_included_acquisition_index": 62,
+      "likelihood_factor_count": 62,
+      "refresh_acquisition_index": 61,
+      "grouped_vs_interval_max_abs": {
+        "quaternion_second_moment": 2.220446049250313e-16,
+        "rotation_mean": 5.551115123125783e-17,
+        "rotation_covariance_colmajor": 4.870439446712227e-21,
+        "omega_mean_rad_s": 1.3877787807814457e-17,
+        "omega_covariance_rad2_s2": 4.573977915173222e-20,
+        "rotation_omega_covariance_colmajor": 1.7787691892340307e-20,
+        "initial_omega_mean_rad_s": 2.7755575615628914e-17,
+        "initial_omega_covariance_rad2_s2": 6.268043809681823e-20
+      }
+    },
+    {
+      "time": 51.52098861900001,
+      "relative_seconds": 1.5200000000000031,
+      "last_included_acquisition_index": 304,
+      "likelihood_factor_count": 304,
+      "refresh_acquisition_index": 301,
+      "grouped_vs_interval_max_abs": {
+        "quaternion_second_moment": 5.551115123125783e-16,
+        "rotation_mean": 3.3306690738754696e-16,
+        "rotation_covariance_colmajor": 3.6591823321385775e-19,
+        "omega_mean_rad_s": 4.996003610813204e-16,
+        "omega_covariance_rad2_s2": 2.0328790734103208e-19,
+        "rotation_omega_covariance_colmajor": 3.1170812458958252e-19,
+        "initial_omega_mean_rad_s": 2.7755575615628914e-17,
+        "initial_omega_covariance_rad2_s2": 1.2874900798265365e-19
+      }
+    },
+    {
+      "time": 53.000988619000005,
+      "relative_seconds": 3.0,
+      "last_included_acquisition_index": 600,
+      "likelihood_factor_count": 600,
+      "refresh_acquisition_index": 597,
+      "grouped_vs_interval_max_abs": {
+        "quaternion_second_moment": 2.2092883078528303e-11,
+        "rotation_mean": 4.446742973840401e-11,
+        "rotation_covariance_colmajor": 3.2529019625485156e-14,
+        "omega_mean_rad_s": 5.848390993712371e-09,
+        "omega_covariance_rad2_s2": 5.29091337799284e-15,
+        "rotation_omega_covariance_colmajor": 1.5286857608758087e-14,
+        "initial_omega_mean_rad_s": 3.673950033089568e-12,
+        "initial_omega_covariance_rad2_s2": 2.2341747592594108e-15
+      }
+    },
+    {
+      "time": 54.500988619000005,
+      "relative_seconds": 4.5,
+      "last_included_acquisition_index": 900,
+      "likelihood_factor_count": 900,
+      "refresh_acquisition_index": 897,
+      "grouped_vs_interval_max_abs": {
+        "quaternion_second_moment": 3.5055375269266165e-11,
+        "rotation_mean": 8.889644576015598e-11,
+        "rotation_covariance_colmajor": 5.720244156820486e-13,
+        "omega_mean_rad_s": 2.8302284488246343e-08,
+        "omega_covariance_rad2_s2": 4.30479558792031e-14,
+        "rotation_omega_covariance_colmajor": 1.6210191283901054e-13,
+        "initial_omega_mean_rad_s": 9.305639592227521e-11,
+        "initial_omega_covariance_rad2_s2": 1.0252219808781077e-13
+      }
+    },
+    {
+      "time": 55.000988619000005,
+      "relative_seconds": 5.0,
+      "last_included_acquisition_index": 1000,
+      "likelihood_factor_count": 1000,
+      "refresh_acquisition_index": 997,
+      "grouped_vs_interval_max_abs": {
+        "quaternion_second_moment": 1.8929272038725742e-10,
+        "rotation_mean": 3.883715571362245e-10,
+        "rotation_covariance_colmajor": 9.94329618642098e-13,
+        "omega_mean_rad_s": 9.479356244401771e-08,
+        "omega_covariance_rad2_s2": 6.149519166998886e-14,
+        "rotation_omega_covariance_colmajor": 2.836772564898324e-13,
+        "initial_omega_mean_rad_s": 1.1458622939386487e-10,
+        "initial_omega_covariance_rad2_s2": 6.90561296297007e-14
+      }
+    }
+  ],
+  "maximum_absolute_differences": {
+    "quaternion_second_moment": 1.8929272038725742e-10,
+    "rotation_mean": 3.883715571362245e-10,
+    "rotation_covariance_colmajor": 9.94329618642098e-13,
+    "omega_mean_rad_s": 9.479356244401771e-08,
+    "omega_covariance_rad2_s2": 6.149519166998886e-14,
+    "rotation_omega_covariance_colmajor": 2.836772564898324e-13,
+    "initial_omega_mean_rad_s": 1.1458622939386487e-10,
+    "initial_omega_covariance_rad2_s2": 1.0252219808781077e-13
+  },
+  "prediction_tail_seconds": 8.888900000414424e-05,
+  "final_time": 55.000988619000005,
+  "final_index": 1000,
+  "final_factor_count": 1000,
+  "extra_old_method_native_steps": 8616,
+  "wall_seconds": 0.4257742129266262,
+  "finite_difference_status": "Numerical RK4/query segmentation diagnostic only; no rejection, posterior replacement, covariance change or threshold-based stop.",
+  "full_engine_rerun": false
+}

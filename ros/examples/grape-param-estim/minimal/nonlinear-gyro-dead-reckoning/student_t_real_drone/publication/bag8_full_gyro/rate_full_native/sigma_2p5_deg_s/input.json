@@ -1,0 +1,97 @@
+{
+  "schema": "grape/real-student-full-native-input/v1",
+  "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+  "time_origin_ns": 1781254003200111893,
+  "requested_window_seconds": [
+    50.0,
+    55.0
+  ],
+  "actual_window_seconds": [
+    50.000988619000005,
+    55.000988619000005
+  ],
+  "requested_acquisition_rate_hz": null,
+  "observation_count": 1001,
+  "last_observation_seconds": 55.00089973,
+  "prediction_tail_seconds": 8.888900000414424e-05,
+  "initial_pose": "Saved one-time mocap SLERP alignment at the first actual gyro sample",
+  "body_to_gyro_sensor_rotation": [
+    [
+      1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "training_window_seconds": [
+    40.0,
+    45.0
+  ],
+  "refit_performed": false,
+  "torque": "Frozen refined actuator torque plus strictly past residual mean once; torque_applied_body is diagnostic only",
+  "fixed_residual_mean_body_nm": [
+    2.3311204524360048e-05,
+    -5.633487546296481e-05,
+    0.0006742527681490941
+  ],
+  "inertia_body_kg_m2": [
+    [
+      0.10255160272242744,
+      -0.012757295205688543,
+      0.00010843231890875164
+    ],
+    [
+      -0.012757295205688543,
+      0.029269707293920436,
+      -0.014818869564709177
+    ],
+    [
+      0.00010843231890875164,
+      -0.014818869564709177,
+      0.12712351847156012
+    ]
+  ],
+  "estimator_data_fields": [
+    "time",
+    "initial_quaternion_wxyz",
+    "sparse_gyro_time",
+    "sparse_gyro"
+  ],
+  "physical_fields": [
+    "inertia",
+    "torque"
+  ],
+  "evaluation_mocap_or_unacquired_gyro_supplied_to_estimator": false,
+  "generated_noise_or_spikes_added": false,
+  "gyro_bias_or_time_shift_corrected": false,
+  "model_parameter_uncertainty_propagated": false,
+  "source_file_sha256": {
+    "publication/bag8_50_55s/input.npz": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a",
+    "publication/bag8_50_55s/input.json": "937682c0cf53e20de07a6a26a7a148924e9e6a86910d90b3717f25e75d400195",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.npz": "2afb7230fc3e42a599a47c82b2836b6fd6ef836270a70b991d842e4e68254822",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.json": "0e04f05166744ddaf73bf6ffdf67dc4d7595040ef2f731772fb069b4271ae874",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/fit.json": "6fd2f8a323fa049089d44ce8ba5869075e529775f69aea8abb8f42db52734294",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/heldout_dynamics_check.npz": "c4ba8fa3628835453dff65ac8cbc39180fdda209376ad2cedd3afc11501e6483"
+  },
+  "reference_semantics": "Mocap pose and SG-derived omega are read-only; raw gyro is a noisy measured reference, not angular-velocity truth",
+  "acquisition_mode": "full_native",
+  "native_median_rate_hz": 199.99999999989768,
+  "native_interval_range_seconds": [
+    0.004938097999996671,
+    0.005000000000002558
+  ],
+  "full_window_native_record_count": 1001,
+  "every_window_native_record_used": true,
+  "resampling_or_decimation": false,
+  "requested_time_semantics": "Native times copied verbatim; no requested periodic grid",
+  "initial_reading_role": "Initial N(W0;y0,R) once; each later native reading one likelihood"
+}

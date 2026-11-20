@@ -51,6 +51,27 @@ def prepare_prediction_inputs(data, metadata, profile_arrays, rate_hz):
     return selected, acquired, physical
 
 
+def prepare_full_prediction_inputs(data, metadata, profile_arrays):
+    """Use every original gyro record in the fixed window, without resampling."""
+    start, end = np.asarray(data['time'])
+    index = np.flatnonzero((data['imu_time'] >= start)&(data['imu_time'] <= end))
+    actual_time = np.asarray(data['imu_time'])[index].copy()
+    acquired = dict(requested_time=actual_time.copy(), time=actual_time.copy(),
+        gyro=np.asarray(data['gyro'])[index].copy(), source_index=index.copy(),
+        native_array_index=index.copy(),
+        original_source_index=np.asarray(data['imu_source_index'])[index].copy(),
+        header_stamp_ns=np.asarray(data['imu_stamp_ns'])[index].copy(),
+        record_stamp_ns=np.asarray(data['imu_record_ns'])[index].copy(),
+        requested_bag_stamp_ns=np.rint(actual_time*1e9).astype(np.int64))
+    selected = dict(time=np.asarray(data['time']).copy(),
+        initial_quaternion_wxyz=np.asarray(data['initial_quaternion_wxyz']).copy(),
+        sparse_gyro_time=actual_time.copy(), sparse_gyro=acquired['gyro'].copy())
+    physical = dict(inertia=np.asarray(profile_arrays['inertia_body']).copy(),
+        torque=TorqueProfile(profile_arrays['torque_profile_time'],
+            profile_arrays['torque_actuator_body'], profile_arrays['residual_mean_body']))
+    return selected, acquired, physical
+
+
 def load_inputs(rate_hz):
     """Return plot source, acquisitions, restricted data, physics, provenance."""
     data = dict(np.load(ARCHIVE/'input.npz', allow_pickle=False))
@@ -101,4 +122,26 @@ def load_inputs(rate_hz):
             (ARCHIVE/'input.npz', ARCHIVE/'input.json', REFINED/'refined_torque_profile.npz',
              REFINED/'refined_torque_profile.json', REFINED/'fit.json', REFINED/'heldout_dynamics_check.npz')},
         reference_semantics='Mocap pose and SG-derived omega are read-only; raw gyro is a noisy measured reference, not angular-velocity truth')
+    return source, acquired, selected, physical, provenance
+
+
+def load_full_inputs():
+    """Reuse frozen references/physics, replacing sparse selection by all records."""
+    source, _, _, _, provenance = load_inputs(5.)
+    data = dict(np.load(ARCHIVE/'input.npz', allow_pickle=False))
+    metadata = json.loads((ARCHIVE/'input.json').read_text())
+    model = dict(np.load(REFINED/'refined_torque_profile.npz', allow_pickle=False))
+    selected, acquired, physical = prepare_full_prediction_inputs(data, metadata, model)
+    intervals = np.diff(acquired['time'])
+    provenance.update(schema='grape/real-student-full-native-input/v1',
+        acquisition_mode='full_native', requested_acquisition_rate_hz=None,
+        native_median_rate_hz=float(1/np.median(intervals)),
+        native_interval_range_seconds=[float(intervals.min()),float(intervals.max())],
+        observation_count=len(acquired['time']),
+        last_observation_seconds=float(acquired['time'][-1]),
+        prediction_tail_seconds=float(selected['time'][-1]-acquired['time'][-1]),
+        full_window_native_record_count=len(acquired['time']),
+        every_window_native_record_used=True, resampling_or_decimation=False,
+        requested_time_semantics='Native times copied verbatim; no requested periodic grid',
+        initial_reading_role='Initial N(W0;y0,R) once; each later native reading one likelihood')
     return source, acquired, selected, physical, provenance

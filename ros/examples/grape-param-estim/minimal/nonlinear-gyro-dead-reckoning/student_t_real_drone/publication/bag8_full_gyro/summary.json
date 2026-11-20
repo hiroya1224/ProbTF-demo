@@ -1,0 +1,213 @@
+{
+  "schema": "grape/real-flight-student-dynamics-comparison/v1",
+  "config": {
+    "acquisition_mode": "full_native",
+    "sigmas_deg_s": [
+      2.5,
+      5.0
+    ],
+    "student_df": 4.0,
+    "process_covariance_rad2_s2": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "quadrature_orders": [
+      7,
+      11
+    ],
+    "max_step_seconds": 0.002,
+    "refresh_seconds": 0.02,
+    "output_dt_seconds": 0.01,
+    "reanchor_displacement_sigma": 1.0,
+    "dense_startup_seconds": 0.25,
+    "primary_sigma_deg_s": 2.5
+  },
+  "original_source_sha256": {
+    "publication/bag8_50_55s/input.npz": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a",
+    "publication/bag8_50_55s/input.json": "937682c0cf53e20de07a6a26a7a148924e9e6a86910d90b3717f25e75d400195",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.npz": "2afb7230fc3e42a599a47c82b2836b6fd6ef836270a70b991d842e4e68254822",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.json": "0e04f05166744ddaf73bf6ffdf67dc4d7595040ef2f731772fb069b4271ae874",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/fit.json": "6fd2f8a323fa049089d44ce8ba5869075e529775f69aea8abb8f42db52734294",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/heldout_dynamics_check.npz": "c4ba8fa3628835453dff65ac8cbc39180fdda209376ad2cedd3afc11501e6483"
+  },
+  "records": [
+    {
+      "rate_hz": 199.99999999989768,
+      "sigma_deg_s": 2.5,
+      "observation_count": 1001,
+      "directory": "rate_full_native/sigma_2p5_deg_s",
+      "metrics": {
+        "evaluation_count": 501,
+        "evaluation_range_bag_seconds": [
+          50.000988619000005,
+          55.000988619000005
+        ],
+        "evaluation": "Same 501 fixed times for every acquisition rate; exact saved grid rows, posterior at duplicate clock; no estimate interpolation",
+        "timestamp_matching": "Rounded integer ns for equality matching only",
+        "attitude_reference": "Recorded mocap quaternion SLERP, read-only evaluation reference",
+        "omega_reference": "Linearly interpolated recorded raw gyro for evaluation only; a noisy measurement, not angular-velocity truth",
+        "results": {
+          "nonlinear": {
+            "so3_proxy_rmse_deg": 38.51455196687661,
+            "so3_proxy_final_deg": 48.15814602005305,
+            "rpy_rmse_deg": [
+              12.803344877225934,
+              19.097789350333148,
+              32.1536816574101
+            ],
+            "omega_vs_raw_gyro_rmse_deg_s": [
+              19.35843082347016,
+              15.854006606244646,
+              27.739915612812784
+            ],
+            "final_omega_two_sigma_deg_s": [
+              0.5397551711129883,
+              0.8817893507026229,
+              0.9647167663295693
+            ],
+            "final_rpy_two_sigma_deg": [
+              2.058255997550506,
+              3.773608384248387,
+              2.6910776264515395
+            ]
+          },
+          "linear_forced": {
+            "so3_proxy_rmse_deg": 37.03346675974093,
+            "so3_proxy_final_deg": 63.24593371104465,
+            "rpy_rmse_deg": [
+              15.241697241268414,
+              18.97378832021,
+              27.263532128774116
+            ],
+            "omega_vs_raw_gyro_rmse_deg_s": [
+              21.957431928509575,
+              15.431121555007747,
+              26.05397511614997
+            ],
+            "final_omega_two_sigma_deg_s": [
+              0.6176726377354659,
+              0.9561408288422968,
+              1.0448002349649435
+            ],
+            "final_rpy_two_sigma_deg": [
+              4.178361834567597,
+              5.75890290917248,
+              2.3836530389871236
+            ]
+          }
+        }
+      },
+      "prediction_tail_seconds": 8.888900000414424e-05
+    },
+    {
+      "rate_hz": 199.99999999989768,
+      "sigma_deg_s": 5.0,
+      "observation_count": 1001,
+      "directory": "rate_full_native/sigma_5_deg_s",
+      "metrics": {
+        "evaluation_count": 501,
+        "evaluation_range_bag_seconds": [
+          50.000988619000005,
+          55.000988619000005
+        ],
+        "evaluation": "Same 501 fixed times for every acquisition rate; exact saved grid rows, posterior at duplicate clock; no estimate interpolation",
+        "timestamp_matching": "Rounded integer ns for equality matching only",
+        "attitude_reference": "Recorded mocap quaternion SLERP, read-only evaluation reference",
+        "omega_reference": "Linearly interpolated recorded raw gyro for evaluation only; a noisy measurement, not angular-velocity truth",
+        "results": {
+          "nonlinear": {
+            "so3_proxy_rmse_deg": 34.06437531840212,
+            "so3_proxy_final_deg": 49.74588203566284,
+            "rpy_rmse_deg": [
+              9.519144986390312,
+              15.330449145155834,
+              28.856176424810258
+            ],
+            "omega_vs_raw_gyro_rmse_deg_s": [
+              19.005733159189663,
+              14.363930662073548,
+              23.700832360904897
+            ],
+            "final_omega_two_sigma_deg_s": [
+              0.6706010469461341,
+              1.2291408013259006,
+              1.3837578607822139
+            ],
+            "final_rpy_two_sigma_deg": [
+              2.6876687077879207,
+              5.245646387538904,
+              4.062032731479936
+            ]
+          },
+          "linear_forced": {
+            "so3_proxy_rmse_deg": 32.02678641709532,
+            "so3_proxy_final_deg": 55.7382917811773,
+            "rpy_rmse_deg": [
+              12.760111595991091,
+              12.840585238904119,
+              25.946222898479252
+            ],
+            "omega_vs_raw_gyro_rmse_deg_s": [
+              20.107285184649555,
+              15.218646527319807,
+              22.292581100393658
+            ],
+            "final_omega_two_sigma_deg_s": [
+              0.6357318931539785,
+              0.9202009444098822,
+              1.0568815110864216
+            ],
+            "final_rpy_two_sigma_deg": [
+              3.6508560316966063,
+              5.570301790009204,
+              3.1165479209221685
+            ]
+          }
+        }
+      },
+      "prediction_tail_seconds": 8.888900000414424e-05
+    }
+  ],
+  "preservation": true,
+  "initial_mocap_only_for_inference": true,
+  "refit_performed": false,
+  "additional_noise_spikes_bias_or_time_shift_correction": false,
+  "process_noise": false,
+  "variational_gaussian_state_replacement": false,
+  "monte_carlo": false,
+  "source_sha256": {
+    "student_t_real_drone/dense_engine.py": "b850a0c75b2a18452d5b60a85a84f4db5cee473808cad79bb31a58cfd703228c",
+    "student_t_real_drone/full_dense_engine.py": "474737e94f6ed1674306cc649839917b61edfd67b805bcd19373c0469fa46b4f",
+    "student_t_real_drone/full_quadrature_audit.py": "23d906c126488d9a9f3c29084b20d1f6e4caa116db3bbbac2c5996616ee1eb29",
+    "student_t_real_drone/full_report.py": "7f3548a9c6bea17bd34a1bd382f9d01d4543afc0ed301e39345b64542d0541d1",
+    "student_t_real_drone/full_run.py": "3878d9c01e41ffbbe8abba833ef3123682ad8fae70596260a3f4e785e567fd0c",
+    "student_t_real_drone/full_verify.py": "f1da93a9280ca51398f83eb2cefc1e887a63dc64581084be2636b732c42de9ce",
+    "student_t_real_drone/input.py": "f42c4250dc16196b3e79f206d83c3c57229b5ebd66bb6199a63ad3e16d29baec",
+    "student_t_real_drone/physics_audit.py": "65f0129b6cb0c4911578568e569754edcab898281a68f2aea53683c26dc9c158",
+    "student_t_real_drone/plotting.py": "a1d2d5befc609e245a619daca8482799c593d81d86d627fec0ba7c54e1e54bbd",
+    "student_t_real_drone/run.py": "27fb04c9db87a8fc868096dd2d9a65cff060e539e62bf91a853110b62cc3643d",
+    "student_t_real_drone/verify.py": "68e91d02a16abee27f900f857b7432cf5e404dd507ba502d67d451693d9718fb"
+  },
+  "shared_source_sha256": {
+    "synthetic_controlled_rotation/sequential_bayes_spikes/full_rate_engine.py": "4a403daf54b7cd79688de32e6b668feedf331e8a83a633fd12a479395542d208",
+    "synthetic_controlled_rotation/sequential_bayes_spikes/full_rate_flow.py": "96de8b46897763e395f57e6e4c1e614067b9dc2f5bd7ee804ecd31848d35889c",
+    "synthetic_controlled_rotation/sequential_bayes_spikes/full_rate_flow.cpp": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
+    "synthetic_controlled_rotation/sequential_bayes_spikes/student_t_observation.py": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a",
+    "synthetic_controlled_rotation/sequential_bayes_spikes/native_flow.py": "075e227b854d34e0e0017c43fa54b62ec236cd31fdfd66bb7154333d419e410d",
+    "synthetic_controlled_rotation/sequential_bayes_spikes/native_flow.cpp": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c"
+  },
+  "wall_seconds": 432.5483872878831
+}

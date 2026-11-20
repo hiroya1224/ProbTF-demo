@@ -1,0 +1,13 @@
+{
+  "schema": "grape/full-native-result-report/v1",
+  "inference_rerun": false,
+  "candidate_or_covariance_changed": false,
+  "source_sha256": {
+    "ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/full_report.py": "a905c97795f8ddca0473891befebfaae10da0ffb0f37e10ee1065408c76b441e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/publication/bag8_full_gyro/summary.json": "a164efcbf8d94390cf8e9bf4d92ccda6e2e6bd192ee7c83b2372f67ff9a97922",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/publication/bag8_50_55s/summary.json": "2608ebbd148f6ba5f78a76129f2aea8432c35906ac779dcb4d4fc6b45b00171b",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/publication/bag8_full_gyro/quadrature_audit.json": "1e7f9699c0148954c8362411079213cf1fb66071a0fb92b4cd72a4c671f72a2c"
+  },
+  "result_sha256": "c73d675de16a0d3ab83e8526e9fa1b2e42c691a7ec7386912b10610f43c44e4e",
+  "semantics": "Postprocessing/report code hashes supplement the source snapshot recorded at the end of the primary inference run"
+}

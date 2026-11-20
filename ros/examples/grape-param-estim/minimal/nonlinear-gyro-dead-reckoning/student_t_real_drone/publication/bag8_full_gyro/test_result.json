@@ -1,0 +1,11 @@
+{
+  "command": "env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-full-tests python3 -m unittest discover -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/tests -v",
+  "tests_run": 17,
+  "failures": 0,
+  "errors": 0,
+  "reported_test_seconds": 0.567,
+  "exit_code": 0,
+  "result": "OK",
+  "recorded_at_utc": "2026-11-20T01:06:21.048442+00:00",
+  "evidence": "Captured actual unittest command output in the active session; no test re-execution for this record"
+}

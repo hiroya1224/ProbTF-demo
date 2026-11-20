@@ -1,5 +1,7 @@
 # 実ドローンのStudent-t再試行
 
+[追加：原gyro全1001件・約200 Hzの比較](publication/bag8_full_gyro/INDEX.md)。取得頻度の指定値から選び直さず、同じ5秒区間に含まれる原記録をすべて使う。`full_run.py` と `full_config.json` が再現入口で、ν・Q・R・慣性・トルクは以下の疎取得比較から変更しない。
+
 [全8条件の図・数値](publication/bag8_50_55s/INDEX.md) ／ [主図：5 Hz・σ=2.5 deg/s](publication/bag8_50_55s/rate_5_hz/sigma_2p5_deg_s/attitude_and_gyro.pdf) ／ [結果と原因の整理](publication/bag8_50_55s/RESULTS.md)。
 
 合成例で用いたStudent-t観測の時系列Bayes更新を、以前の実飛行#8へ適用する。比較はジャイロ項あり／なしの二つだけ。合成の全振幅Student-t結果と以前の実測refine結果は変更せず、全181ファイルの保存hashを照合した。合成結果の凍結commitは `5bdd9072` である。
@@ -72,3 +74,21 @@ env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-real-stude
 ```
 
 `publication/**/cache/` はGitへ追加しない。最終モーメントと図・設定・必要な小容量入力・検証数値だけを保存する。
+
+### 原gyro全件を使う追加実験
+
+```bash
+env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-full-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/full_run.py
+env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-full-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/full_verify.py
+```
+
+取得時刻は原header時計で不等間隔のまま保持する。最初の一件は初期候補へ一度、残り1000件は取得順に各一度のStudent-t観測更新へ使う。`requested_time` には原時刻を複写し、人工的な要求周期を意味しない。観測直前／直後の2001行をそのまま保存し、同じ0.01秒格子と約89 μsの最後の尾部も物理伝播する。共通の因果的な数値proposalを使う区間では追加予測をまとめて積分し、すでに到着した尤度だけを時刻順に加える。元の観測行は変更しない。
+
+計算共有で追加点がRK4の区間分割を変える有限差は診断する。分布のリセット、尤度の削除、Gaussian事後への置換、未来観測の遡及利用、推定値の表示補間ではない。全件化で固定モデルのずれが必ず解消するとは仮定しない。
+
+跳び付近の求積診断は、生成済みのcacheがある状態で以下を実行する。公開推定値は変更せず、同じ保存proposal・過去尤度を7／11／17／25点で積分する。cacheをGitへ入れる必要はなく、`full_run.py` で再生成できる。
+
+```bash
+env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-full-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/full_quadrature_audit.py --output ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/publication/bag8_full_gyro/quadrature_audit.json
+env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-full-mpl python3 ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/full_report.py
+```

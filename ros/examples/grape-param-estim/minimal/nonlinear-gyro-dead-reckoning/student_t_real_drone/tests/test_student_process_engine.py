@@ -113,6 +113,44 @@ class StudentProcessTests(unittest.TestCase):
         np.testing.assert_array_equal(rule['nodes'],case['final_quadrature_nodes_rad_s'])
         np.testing.assert_array_equal(rule['weights'],case['final_quadrature_posterior_weights'])
 
+    def test_sparse_five_second_clock_has_two_q_increments_for_501_outputs(self):
+        stamps = np.array([0.,2.003,4.007])
+        observations = np.array([[.01,-.02,.03],[.015,-.01,.02],[-.01,.01,.025]])
+        data = dict(time=np.array([0.,5.]),sparse_gyro_time=stamps,
+            sparse_gyro=observations,initial_quaternion_wxyz=np.array([1.,0.,0.,0.]))
+        # A read-only constant torque law provides no observation information.
+        torque_value = np.array([.00002,-.00001,.00003])
+        class ConstantTorque:
+            def __call__(self,query):
+                return np.broadcast_to(torque_value,np.asarray(query).shape+(3,)).copy()
+        physical = dict(inertia=.05*np.eye(3),torque=ConstantTorque())
+        original_observations = observations.copy()
+        case = self.predict(data,physical,output_dt=.01,mode='linear_forced')
+        prior = np.flatnonzero(case['event_side']==-1)
+        posterior = np.flatnonzero(case['event_side']==1)
+        self.assertEqual(len(case['dense_output_grid_time']),501)
+        self.assertEqual(len(prior),2)
+        self.assertEqual(len(posterior),3)
+        self.assertEqual(int(case['process_noise_application_count']),2)
+        np.testing.assert_array_equal(case['process_increment_times'],stamps[1:])
+        np.testing.assert_array_equal(case['time'][posterior],stamps)
+        np.testing.assert_array_equal(case['time'][prior],stamps[1:])
+        q = np.eye(3)*np.deg2rad(1.)**2
+        for before,previous_after in zip(prior,posterior[:-1]):
+            np.testing.assert_allclose(case['omega_covariance_rad2_s2'][before],
+                case['omega_covariance_rad2_s2'][previous_after]+q,atol=3e-16,rtol=0.)
+        dense = case['event_side']==0
+        np.testing.assert_array_equal(case['process_application_count'][dense],
+            np.searchsorted(stamps,case['time'][dense],side='right')-1)
+        tail = (case['time']>stamps[-1])&dense
+        self.assertGreater(np.count_nonzero(tail),90)
+        np.testing.assert_allclose(case['omega_covariance_rad2_s2'][tail],
+            np.broadcast_to(case['omega_covariance_rad2_s2'][posterior[-1]],
+                case['omega_covariance_rad2_s2'][tail].shape),atol=3e-16,rtol=0.)
+        self.assertEqual(case['time'][-1],5.)
+        np.testing.assert_array_equal(observations,original_observations)
+        np.testing.assert_array_equal(torque_value,np.array([.00002,-.00001,.00003]))
+
 
 if __name__ == '__main__':
     unittest.main()

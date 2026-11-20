@@ -1,0 +1,60 @@
+[
+  {
+    "acquisition_index": 1,
+    "time": 52.000961632000006,
+    "log_predictive_evidence": -7.514250193226207,
+    "numerical_prior_log_integral": -0.04017435548889026,
+    "numerical_prior_integral_minus_one": -0.03937806515698858,
+    "numerical_weight_effective_count": 40.070268184384084,
+    "zero_posterior_weight_count": 0,
+    "maximum_responsibility_sum_error": 6.217248937900877e-15,
+    "finite_diagnostic_only": true,
+    "observation_rejected": false,
+    "gaussian_proposal_is_not_posterior": true,
+    "proposal": {
+      "placement": "Moment-Gaussian prior and multivariate Student-t fit for integration placement only; actual mixture times Student-t divided by proposal",
+      "cost": 13.147185633373354,
+      "optimality": 0.00018517049497646099,
+      "nfev": 9,
+      "success": true,
+      "status": 2,
+      "target_replaced_by_proposal": false,
+      "finite_unconverged_proposal_does_not_reject_observation": true
+    },
+    "prior_quadrature_maximum_omega_mean_rad_s_difference": 0.009218285815430716,
+    "prior_quadrature_maximum_omega_covariance_rad2_s2_difference": 0.0010060036556514326,
+    "prior_quadrature_maximum_quaternion_second_moment_difference": 0.006589731793226829,
+    "prior_quadrature_maximum_rotation_mean_difference": 0.016528338687456637,
+    "prior_quadrature_maximum_rotation_covariance_colmajor_difference": 0.0028432881641785694,
+    "prior_quadrature_maximum_rotation_omega_covariance_colmajor_difference": 0.0016864745339541798
+  },
+  {
+    "acquisition_index": 2,
+    "time": 54.000961632000006,
+    "log_predictive_evidence": -11.50439545885845,
+    "numerical_prior_log_integral": -0.49316786479874386,
+    "numerical_prior_integral_minus_one": -0.38931125268243494,
+    "numerical_weight_effective_count": 24.91553357749846,
+    "zero_posterior_weight_count": 0,
+    "maximum_responsibility_sum_error": 1.4099832412739488e-14,
+    "finite_diagnostic_only": true,
+    "observation_rejected": false,
+    "gaussian_proposal_is_not_posterior": true,
+    "proposal": {
+      "placement": "Moment-Gaussian prior and multivariate Student-t fit for integration placement only; actual mixture times Student-t divided by proposal",
+      "cost": 16.756602985009536,
+      "optimality": 0.00035349137105811224,
+      "nfev": 11,
+      "success": true,
+      "status": 2,
+      "target_replaced_by_proposal": false,
+      "finite_unconverged_proposal_does_not_reject_observation": true
+    },
+    "prior_quadrature_maximum_omega_mean_rad_s_difference": 0.052089531692405544,
+    "prior_quadrature_maximum_omega_covariance_rad2_s2_difference": 0.00970787621238714,
+    "prior_quadrature_maximum_quaternion_second_moment_difference": 0.019880339958469766,
+    "prior_quadrature_maximum_rotation_mean_difference": 0.05294643944416188,
+    "prior_quadrature_maximum_rotation_covariance_colmajor_difference": 0.049001765561733454,
+    "prior_quadrature_maximum_rotation_omega_covariance_colmajor_difference": 0.017815701061403635
+  }
+]

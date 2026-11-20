@@ -1,0 +1,61 @@
+{
+  "evaluation_count": 501,
+  "evaluation_range_bag_seconds": [
+    50.000988619000005,
+    55.000988619000005
+  ],
+  "evaluation": "Same 501 fixed times for every acquisition rate; exact saved grid rows, posterior at duplicate clock; no estimate interpolation",
+  "timestamp_matching": "Rounded integer ns for equality matching only",
+  "attitude_reference": "Recorded mocap quaternion SLERP, read-only evaluation reference",
+  "omega_reference": "Linearly interpolated recorded raw gyro for evaluation only; a noisy measurement, not angular-velocity truth",
+  "results": {
+    "nonlinear": {
+      "so3_proxy_rmse_deg": 98.7061146164459,
+      "so3_proxy_final_deg": 119.23732899940698,
+      "rpy_rmse_deg": [
+        23.666143886008253,
+        17.345418758227595,
+        93.47482004900806
+      ],
+      "omega_vs_raw_gyro_rmse_deg_s": [
+        22.059551973315582,
+        23.158790986245904,
+        52.44055566119741
+      ],
+      "final_omega_two_sigma_deg_s": [
+        6.417174485580982,
+        16.296592223586227,
+        2.8388553495048554
+      ],
+      "final_rpy_two_sigma_deg": [
+        11.88921727001076,
+        14.315550811492217,
+        19.498960969092927
+      ]
+    },
+    "linear_forced": {
+      "so3_proxy_rmse_deg": 95.81326766277368,
+      "so3_proxy_final_deg": 93.20230294671833,
+      "rpy_rmse_deg": [
+        31.766176356485268,
+        41.51392823091795,
+        77.6692428970175
+      ],
+      "omega_vs_raw_gyro_rmse_deg_s": [
+        42.01555456439532,
+        18.5730573522413,
+        45.02681152896224
+      ],
+      "final_omega_two_sigma_deg_s": [
+        5.733874801761663,
+        5.65822042281391,
+        5.751657036475383
+      ],
+      "final_rpy_two_sigma_deg": [
+        16.04916409831474,
+        13.375503063276488,
+        16.835749530847703
+      ]
+    }
+  }
+}

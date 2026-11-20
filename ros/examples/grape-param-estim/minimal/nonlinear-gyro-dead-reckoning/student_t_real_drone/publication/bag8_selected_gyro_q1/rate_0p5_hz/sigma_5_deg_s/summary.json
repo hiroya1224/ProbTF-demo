@@ -1,0 +1,299 @@
+{
+  "config": {
+    "acquisition_mode": "selected_rate",
+    "rates_hz": [
+      0.5,
+      2.0,
+      5.0,
+      10.0
+    ],
+    "sigmas_deg_s": [
+      2.5,
+      5.0
+    ],
+    "student_df": 4.0,
+    "process_sigma_deg_s": 1.0,
+    "process_noise_scope": "one independent isotropic omega increment at each selected gyro acquisition after the first, before observing",
+    "process_covariance_units": "rad^2/s^2 per selected acquisition interval; not a continuous-time PSD; no dt rescaling",
+    "quadrature_orders": [
+      7,
+      11
+    ],
+    "max_step_seconds": 0.002,
+    "output_dt_seconds": 0.01,
+    "primary_rate_hz": 5.0,
+    "primary_sigma_deg_s": 2.5,
+    "process_covariance_rad2_s2": [
+      [
+        0.00030461741978670857,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.00030461741978670857,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.00030461741978670857
+      ]
+    ],
+    "sigma_deg_s": 5.0,
+    "rate_hz": 0.5,
+    "process_reference_interval_seconds": 1.9999865065000009
+  },
+  "input": {
+    "schema": "grape/real-student-frozen-input/v1",
+    "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+    "time_origin_ns": 1781254003200111893,
+    "requested_window_seconds": [
+      50.0,
+      55.0
+    ],
+    "actual_window_seconds": [
+      50.000988619000005,
+      55.000988619000005
+    ],
+    "requested_acquisition_rate_hz": 0.5,
+    "observation_count": 3,
+    "last_observation_seconds": 54.000961632000006,
+    "prediction_tail_seconds": 1.0000269869999983,
+    "initial_pose": "Saved one-time mocap SLERP alignment at the first actual gyro sample",
+    "body_to_gyro_sensor_rotation": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "training_window_seconds": [
+      40.0,
+      45.0
+    ],
+    "refit_performed": false,
+    "torque": "Frozen refined actuator torque plus strictly past residual mean once; torque_applied_body is diagnostic only",
+    "fixed_residual_mean_body_nm": [
+      2.3311204524360048e-05,
+      -5.633487546296481e-05,
+      0.0006742527681490941
+    ],
+    "inertia_body_kg_m2": [
+      [
+        0.10255160272242744,
+        -0.012757295205688543,
+        0.00010843231890875164
+      ],
+      [
+        -0.012757295205688543,
+        0.029269707293920436,
+        -0.014818869564709177
+      ],
+      [
+        0.00010843231890875164,
+        -0.014818869564709177,
+        0.12712351847156012
+      ]
+    ],
+    "estimator_data_fields": [
+      "time",
+      "initial_quaternion_wxyz",
+      "sparse_gyro_time",
+      "sparse_gyro"
+    ],
+    "physical_fields": [
+      "inertia",
+      "torque"
+    ],
+    "evaluation_mocap_or_unacquired_gyro_supplied_to_estimator": false,
+    "generated_noise_or_spikes_added": false,
+    "gyro_bias_or_time_shift_corrected": false,
+    "model_parameter_uncertainty_propagated": false,
+    "source_file_sha256": {
+      "publication/bag8_50_55s/input.npz": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a",
+      "publication/bag8_50_55s/input.json": "937682c0cf53e20de07a6a26a7a148924e9e6a86910d90b3717f25e75d400195",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.npz": "2afb7230fc3e42a599a47c82b2836b6fd6ef836270a70b991d842e4e68254822",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.json": "0e04f05166744ddaf73bf6ffdf67dc4d7595040ef2f731772fb069b4271ae874",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/fit.json": "6fd2f8a323fa049089d44ce8ba5869075e529775f69aea8abb8f42db52734294",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/heldout_dynamics_check.npz": "c4ba8fa3628835453dff65ac8cbc39180fdda209376ad2cedd3afc11501e6483"
+    },
+    "reference_semantics": "Mocap pose and SG-derived omega are read-only; raw gyro is a noisy measured reference, not angular-velocity truth",
+    "acquisition_mode": "selected_rate",
+    "full_window_native_record_count": 1001,
+    "process_interval_semantics": "Same angular-velocity increment covariance per selected acquisition; no time rescaling"
+  },
+  "engine_metadata": {
+    "nonlinear": {
+      "schema": "grape/real-student-markov-process-moments/v1",
+      "model": "nonlinear",
+      "observation_count": 3,
+      "likelihood_count": 2,
+      "process_increment_count": 2,
+      "process_sigma_deg_s": 1.0,
+      "process_covariance_rad2_s2": [
+        [
+          0.00030461741978670857,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.00030461741978670857,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.00030461741978670857
+        ]
+      ],
+      "student_df": 4.0,
+      "quadrature_order_per_axis": 11,
+      "quadrature_nodes_per_step": 1331,
+      "measurement_covariance_rad2_s2": [
+        [
+          0.007615435494667714,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.007615435494667714,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.007615435494667714
+        ]
+      ],
+      "process_time_convention": "Independent endpoint omega increment per acquired interval, before its likelihood; same Q without elapsed-time scaling for full-rate or selected observations; no increment at RK4 substeps/dense queries/final tail; not a continuous-time PSD",
+      "posterior": "Continuous Gaussian omega transition mixture times current multivariate Student-t likelihood; prior information retained by Markov density integration",
+      "finite_representation": "Deterministic tensor-GH Nystrom integration of current omega density; conditional quaternion second moments and full rotation covariance retained; posterior is not Gaussian",
+      "initial_reading_used_once": true,
+      "gaussian_proposal_is_not_posterior": true,
+      "future_observations_used": false,
+      "monte_carlo": false,
+      "covariance_floor_or_jitter": false,
+      "finite_diagnostics_reject_observations": false,
+      "core_changed": false,
+      "dense_output": {
+        "grid_count": 501,
+        "output_dt_seconds": 0.01,
+        "final_acquisition_time": 54.000961632000006,
+        "final_unobserved_prediction_seconds": 1.0000269869999983,
+        "process_increments_at_dense_queries": false,
+        "interpolation_or_flat_tail_hold": false
+      },
+      "native_step_count": 2642,
+      "maximum_quaternion_norm_correction": 4.218847493575595e-15,
+      "wall_seconds": 2.5287964770104736,
+      "source_sha256": "c7771cf8154dbeabba0ea96d819b8347aa4b16d0541bda14a11373ff98c00622"
+    },
+    "linear_forced": {
+      "schema": "grape/real-student-markov-process-moments/v1",
+      "model": "linear_forced",
+      "observation_count": 3,
+      "likelihood_count": 2,
+      "process_increment_count": 2,
+      "process_sigma_deg_s": 1.0,
+      "process_covariance_rad2_s2": [
+        [
+          0.00030461741978670857,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.00030461741978670857,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.00030461741978670857
+        ]
+      ],
+      "student_df": 4.0,
+      "quadrature_order_per_axis": 11,
+      "quadrature_nodes_per_step": 1331,
+      "measurement_covariance_rad2_s2": [
+        [
+          0.007615435494667714,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.007615435494667714,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.007615435494667714
+        ]
+      ],
+      "process_time_convention": "Independent endpoint omega increment per acquired interval, before its likelihood; same Q without elapsed-time scaling for full-rate or selected observations; no increment at RK4 substeps/dense queries/final tail; not a continuous-time PSD",
+      "posterior": "Continuous Gaussian omega transition mixture times current multivariate Student-t likelihood; prior information retained by Markov density integration",
+      "finite_representation": "Deterministic tensor-GH Nystrom integration of current omega density; conditional quaternion second moments and full rotation covariance retained; posterior is not Gaussian",
+      "initial_reading_used_once": true,
+      "gaussian_proposal_is_not_posterior": true,
+      "future_observations_used": false,
+      "monte_carlo": false,
+      "covariance_floor_or_jitter": false,
+      "finite_diagnostics_reject_observations": false,
+      "core_changed": false,
+      "dense_output": {
+        "grid_count": 501,
+        "output_dt_seconds": 0.01,
+        "final_acquisition_time": 54.000961632000006,
+        "final_unobserved_prediction_seconds": 1.0000269869999983,
+        "process_increments_at_dense_queries": false,
+        "interpolation_or_flat_tail_hold": false
+      },
+      "native_step_count": 2642,
+      "maximum_quaternion_norm_correction": 3.9968028886505635e-15,
+      "wall_seconds": 2.4379033751320094,
+      "source_sha256": "c7771cf8154dbeabba0ea96d819b8347aa4b16d0541bda14a11373ff98c00622"
+    }
+  },
+  "quadrature_refinement": {
+    "7 -> 11": {
+      "nonlinear": {
+        "max_omega_mean_component_difference_deg_s": 4.69367884621072,
+        "max_omega_covariance_component_difference_deg2_s2": 307.22387669432857,
+        "max_rpy_proxy_component_difference_deg": 17.800841674529114,
+        "max_rotation_covariance_component_difference": 0.06061563216615364,
+        "finite_diagnostic_only": true
+      },
+      "linear_forced": {
+        "max_omega_mean_component_difference_deg_s": 2.1745572064787306,
+        "max_omega_covariance_component_difference_deg2_s2": 47.11329089037868,
+        "max_rpy_proxy_component_difference_deg": 23.109921494739815,
+        "max_rotation_covariance_component_difference": 0.0809341280659887,
+        "finite_diagnostic_only": true
+      }
+    }
+  },
+  "inference_wall_seconds": {
+    "7": 0.784135612193495,
+    "11": 2.599854649975896
+  },
+  "initial_reading_used_once": true,
+  "observation_count": 3,
+  "process_increment_count": 2,
+  "shared_state": "Sequential deterministic quadrature of current joint density with conditional quaternion and full rotation moments",
+  "finite_numerical_differences_are_diagnostics_not_gates": true
+}

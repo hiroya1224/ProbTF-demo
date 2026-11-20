@@ -126,6 +126,8 @@ def _settings(source, acquired, cases, metadata):
     if process is None:
         process = np.eye(3)*np.deg2rad(float(config.get('process_sigma_deg_s', 0.)))**2
     process = np.asarray(process, float)
+    interval_kind = ('selected' if config.get('acquisition_mode') == 'selected_rate'
+        or len(acquired['time']) < len(source['gyro_time']) else 'native')
     return dict(start_bag_seconds=float(start), end_bag_seconds=float(end),
         duration_seconds=float(end-start),
         acquisition_rate_hz=float(config.get('rate_hz', config.get('acquisition_rate_hz',
@@ -137,8 +139,9 @@ def _settings(source, acquired, cases, metadata):
         process_covariance_rad2_s2=process.tolist(),
         process_sigma_xyz_deg_s=np.rad2deg(np.sqrt(np.diag(process))).tolist(),
         process_noise_enabled=bool(np.any(process != 0.)),
+        process_noise_interval_kind=interval_kind,
         process_noise_interval_median_seconds=float(np.median(np.diff(acquired['time']))),
-        process_noise_scope='Independent body angular-velocity increment at each native acquisition endpoint, before its observation; not per RK4 step or sensor noise',
+        process_noise_scope=f'Independent body angular-velocity increment at each {interval_kind} acquisition endpoint, before its observation; not per RK4 step or sensor noise',
         stored_rows={name: len(cases[name]['time']) for name in MODELS},
         stored_event_rows={name: {str(side): int(np.count_nonzero(cases[name]['event_side']==side))
             for side in (-1, 0, 1)} for name in MODELS},
@@ -152,7 +155,7 @@ def _process_label(settings):
         return 'Q=0'
     sigma = settings['process_sigma_xyz_deg_s']
     label = f'{sigma[0]:g}' if sigma[0] == sigma[1] == sigma[2] else '('+', '.join(f'{value:g}' for value in sigma)+')'
-    return (f'Q omega sigma={label} deg/s per native interval '
+    return (f'Q omega sigma={label} deg/s per {settings.get("process_noise_interval_kind", "native")} interval '
         f'(~{settings["process_noise_interval_median_seconds"]:g} s)')
 
 

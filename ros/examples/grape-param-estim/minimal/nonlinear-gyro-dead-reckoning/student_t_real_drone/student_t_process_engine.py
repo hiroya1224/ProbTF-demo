@@ -134,7 +134,11 @@ def density_quadrature(weights, omega_means, omega_covariance,
 
 def predict_process_student(data,physical,sigma_deg_s=5.,process_sigma_deg_s=1.,
         student_df=4.,order=7,max_step=.002,mode='nonlinear',output_dt=.01):
-    """Add Q once before each native gyro likelihood; keep dense physical law."""
+    """Add Q once before each acquired gyro likelihood; keep dense physical law.
+
+    Acquisition may use every original record or a selected subset. The same
+    declared Q is applied per acquired interval, without elapsed-time scaling.
+    """
     begun = time.monotonic()
     stamps = np.asarray(data['sparse_gyro_time'],float)
     observations = np.asarray(data['sparse_gyro'],float)
@@ -145,7 +149,7 @@ def predict_process_student(data,physical,sigma_deg_s=5.,process_sigma_deg_s=1.,
             or np.any(np.diff(stamps)<=0.) or stamps[0]!=start or stamps[-1]>end
             or not np.isfinite([sigma,process_sigma,nu,output_dt]).all()
             or sigma<=0. or process_sigma<=0. or nu<=2. or output_dt<=0.):
-        raise ValueError('Finite native clock and positive noise scales / Student-t df>2 required')
+        raise ValueError('Finite acquisition clock and positive noise scales / Student-t df>2 required')
     q0 = np.asarray(data['initial_quaternion_wxyz'],float)
     if q0.shape!=(4,) or not np.isfinite(q0).all() or np.linalg.norm(q0)==0.:
         raise ValueError('Finite nonzero initial quaternion required')
@@ -239,7 +243,7 @@ def predict_process_student(data,physical,sigma_deg_s=5.,process_sigma_deg_s=1.,
             process_covariance_rad2_s2=q.tolist(),student_df=nu,
             quadrature_order_per_axis=int(order),quadrature_nodes_per_step=int(order)**3,
             measurement_covariance_rad2_s2=r.tolist(),
-            process_time_convention='Independent endpoint omega increment per native acquisition interval, before its likelihood; no increment at RK4 substeps/dense queries/final tail; not a continuous-time PSD',
+            process_time_convention='Independent endpoint omega increment per acquired interval, before its likelihood; same Q without elapsed-time scaling for full-rate or selected observations; no increment at RK4 substeps/dense queries/final tail; not a continuous-time PSD',
             posterior='Continuous Gaussian omega transition mixture times current multivariate Student-t likelihood; prior information retained by Markov density integration',
             finite_representation='Deterministic tensor-GH Nystrom integration of current omega density; conditional quaternion second moments and full rotation covariance retained; posterior is not Gaussian',
             initial_reading_used_once=True,gaussian_proposal_is_not_posterior=True,

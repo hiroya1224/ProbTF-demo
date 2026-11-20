@@ -1,0 +1,14 @@
+{
+  "acquisition_mode": "selected_rate",
+  "rates_hz": [0.5, 2.0, 5.0, 10.0],
+  "sigmas_deg_s": [2.5, 5.0],
+  "student_df": 4.0,
+  "process_sigma_deg_s": 1.0,
+  "process_noise_scope": "one independent isotropic omega increment at each selected gyro acquisition after the first, before observing",
+  "process_covariance_units": "rad^2/s^2 per selected acquisition interval; not a continuous-time PSD; no dt rescaling",
+  "quadrature_orders": [7, 11],
+  "max_step_seconds": 0.002,
+  "output_dt_seconds": 0.01,
+  "primary_rate_hz": 5.0,
+  "primary_sigma_deg_s": 2.5
+}

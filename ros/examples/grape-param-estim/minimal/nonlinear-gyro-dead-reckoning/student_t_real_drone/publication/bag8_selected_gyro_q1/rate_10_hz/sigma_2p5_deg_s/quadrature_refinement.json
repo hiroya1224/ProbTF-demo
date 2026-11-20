@@ -1,0 +1,18 @@
+{
+  "7 -> 11": {
+    "nonlinear": {
+      "max_omega_mean_component_difference_deg_s": 2.9999880090327893,
+      "max_omega_covariance_component_difference_deg2_s2": 6.421006715208948,
+      "max_rpy_proxy_component_difference_deg": 2.4331530072315135,
+      "max_rotation_covariance_component_difference": 0.0011251211834173006,
+      "finite_diagnostic_only": true
+    },
+    "linear_forced": {
+      "max_omega_mean_component_difference_deg_s": 3.0466397629748476,
+      "max_omega_covariance_component_difference_deg2_s2": 7.623908093320469,
+      "max_rpy_proxy_component_difference_deg": 1.8195035248795683,
+      "max_rotation_covariance_component_difference": 0.0013511187957644822,
+      "finite_diagnostic_only": true
+    }
+  }
+}

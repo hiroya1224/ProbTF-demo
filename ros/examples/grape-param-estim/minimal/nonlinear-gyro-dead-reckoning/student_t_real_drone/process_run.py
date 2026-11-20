@@ -16,17 +16,24 @@ HERE = Path(__file__).resolve().parent
 MODELS = ('nonlinear', 'linear_forced')
 
 
-def protected_hashes():
+def protected_hashes(include_full_q1=False):
     result = old.preserved_hashes(include_sparse_real=True)
     root = HERE/'publication/bag8_full_gyro'
     result.update({str(path.relative_to(old.BASE)):old.shared.sha(path)
         for path in sorted(root.rglob('*')) if path.is_file()
         and 'cache' not in path.relative_to(root).parts})
+    if include_full_q1:
+        root = HERE/'publication/bag8_full_gyro_q1'
+        result.update({str(path.relative_to(old.BASE)):old.shared.sha(path)
+            for path in sorted(root.rglob('*')) if path.is_file()
+            and 'cache' not in path.relative_to(root).parts})
     return result
 
 
 def write_report(output):
     summary = json.loads((output/'summary.json').read_text())
+    if summary['config'].get('acquisition_mode') == 'selected_rate':
+        return write_rate_report(output, summary)
     baseline = json.loads((HERE/'publication/bag8_full_gyro/summary.json').read_text())
     lines = ['# 実ドローン：全原gyro＋角速度プロセスσ=1 deg/s', '',
         '同じ#8の50.000988619〜55.000988619秒・原gyro全1001件（約200 Hz）を使用。'
@@ -97,14 +104,81 @@ def write_report(output):
     manifest.refresh_manifest(output)
 
 
+def write_rate_report(output, summary):
+    sparse_zero = json.loads((HERE/'publication/bag8_50_55s/summary.json').read_text())
+    full_zero = json.loads((HERE/'publication/bag8_full_gyro/summary.json').read_text())
+    full_q1 = json.loads((HERE/'publication/bag8_full_gyro_q1/summary.json').read_text())
+    lines = ['# 原gyroを間引いたStudent-t＋Qσ=1 deg/s比較', '',
+        '以前と同じ原gyroの0.5／2／5／10 Hz取得で、非線形Euler／ジャイロ項なしを比較した。'
+        '同じbag #8の50.000988619〜55.000988619秒、同じ初期姿勢・J・実指令／gimbal由来トルク・'
+        '過去余剰トルク平均を使用。ν=4、観測Rの周辺σ=2.5／5 deg/sを維持した。', '',
+        r'角速度プロセス増分は、取得した観測間隔ごとに $Q_\omega=(\pi/180)^2I_3$ [rad²/s²] を一度加える。',
+        '間引いて使わない原gyro時刻にはQも観測因子も追加しない。初回と最後の観測後の尾部にはQを追加しない。'
+        '取得頻度に応じたdt倍率は掛けていない。したがって一秒あたりの累積過程分散は取得頻度によって異なり、'
+        '同一の連続時間拡散モデルで観測数だけを変えた比較とは区別する。', '',
+        '## 同じ501時刻での姿勢RMSE [deg]', '',
+        '| 観測σ [deg/s] | 取得 | 観測数 | Q1：非線形 | Q1：項なし | Q0：非線形 | Q0：項なし |',
+        '|---:|---|---:|---:|---:|---:|---:|']
+    for sigma in summary['config']['sigmas_deg_s']:
+        rows = sorted((r for r in summary['records'] if r['sigma_deg_s']==sigma),key=lambda r:r['rate_hz'])
+        rows += [next(r for r in full_q1['records'] if r['sigma_deg_s']==sigma)]
+        for row in rows:
+            native = row not in summary['records']
+            references = full_zero['records'] if native else sparse_zero['records']
+            zero = next(r for r in references if r['sigma_deg_s']==sigma and (native or r['rate_hz']==row['rate_hz']))
+            q_values = row['metrics']['results']
+            z_values = zero['metrics']['results']
+            frequency = '全原レート（約200 Hz）' if native else f'{row["rate_hz"]:g} Hz'
+            lines.append(f'| {sigma:g} | {frequency} | {row["observation_count"]} | '
+                f'{q_values["nonlinear"]["so3_proxy_rmse_deg"]:.6f} | '
+                f'{q_values["linear_forced"]["so3_proxy_rmse_deg"]:.6f} | '
+                f'{z_values["nonlinear"]["so3_proxy_rmse_deg"]:.6f} | '
+                f'{z_values["linear_forced"]["so3_proxy_rmse_deg"]:.6f} |')
+    lines.extend(['', '**間引き条件では7→11点でも大きな求積差が残る箇所がある。以下の結果は有限求積の'
+        '実行結果として保存し、収束済みの復元精度や非線形モデルの優位とは主張しない。** '
+        '各条件の差は末尾の表とquadrature_refinement.jsonへ記録する。', '',
+        'Q1はσ=1 deg/sを意味し、単位行列Qそのものではない。Q0と全原レートの旧保存値は'
+        '変更せず併記した。Q0には以前記録した未収束箇所があるため、収束済みの真値とは扱わない。'
+        '途中mocapは同じ501時刻での評価・表示専用。角速度の誤差は雑音を含む生gyroとの差である。', '',
+        '## 図と検証', ''])
+    for row in sorted(summary['records'],key=lambda r:(r['sigma_deg_s'],r['rate_hz'])):
+        directory = row['directory']
+        lines.append(f'- {row["rate_hz"]:g} Hz、観測σ={row["sigma_deg_s"]:g} deg/s：'
+            f'[姿勢・gyro・±2σ]({directory}/attitude_and_gyro.pdf) ／ [誤差]({directory}/reconstruction_errors.pdf)')
+    lines.extend(['', '[全原レートQ1の図と更新式](../bag8_full_gyro_q1/INDEX.md)。今回も現在の共同候補を'
+        'Markov予測・Student-t条件付けで持ち越す同じengineを使い、初期角速度候補だけのQ0法則へ'
+        '共分散を加算する処理や、毎回独立Gaussianへ置換する処理は行わない。', '',
+        '時刻間は連続ターゲットに対する決定論的Nyström求積と、角速度を条件にした四元数二次モーメント・'
+        '回転の全共分散を保持する有限近似。Gaussian proposalは配置用で密度比を重みに残す。'
+        'Monte Carlo、共分散floor、外れ値棄却、有限診断による更新停止は使わない。', '',
+        '| 観測σ | Hz | モデル | 求積変更 | 最大ω平均差 [deg/s] | 最大RPY中心差 [deg] |',
+        '|---:|---:|---|---|---:|---:|'])
+    for row in sorted(summary['records'],key=lambda r:(r['sigma_deg_s'],r['rate_hz'])):
+        detail = json.loads((output/row['directory']/'summary.json').read_text())
+        for refinement, modes in detail['quadrature_refinement'].items():
+            for mode, item in modes.items():
+                lines.append(f'| {row["sigma_deg_s"]:g} | {row["rate_hz"]:g} | {mode} | {refinement} | '
+                    f'{item["max_omega_mean_component_difference_deg_s"]:.6g} | '
+                    f'{item["max_rpy_proxy_component_difference_deg"]:.6g} |')
+    lines.extend(['', '図の帯は同じ保存共同モーメントの±2σで、RPYは局所表示近似。'
+        '推定値の補間・平滑化や表示用の分散変更はしない。有限求積差は診断であり精度保証ではない。'
+        '原値・header/record ns・元indexを保持し、未来の観測・未取得gyroを予測へ入れない。', '',
+        '[条件・数値](summary.json) ／ [独立検証](verification.json) ／ '
+        '[全原レートと旧結果の保存hash](preserved_sources.json)', ''])
+    (output/'INDEX.md').write_text('\n'.join(lines))
+    manifest = old.load('_real_student_selected_process_manifest', old.SHARED/'rate_comparison_verify.py')
+    manifest.refresh_manifest(output)
+
+
 def run(args):
     begun = time.monotonic()
     config = json.loads(args.config.read_text())
+    selected_rate = config.get('acquisition_mode') == 'selected_rate'
     q = np.eye(3)*np.deg2rad(config['process_sigma_deg_s'])**2
     config['process_covariance_rad2_s2'] = q.tolist()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    before = protected_hashes()
+    before = protected_hashes(include_full_q1=selected_rate)
     old.shared.write_json(output/'config.json', config)
     engine = old.load('_real_student_process_engine', HERE/'student_t_process_engine.py')
     plotter = old.load('_real_student_process_plots', HERE/'plotting.py')
@@ -114,15 +188,27 @@ def run(args):
     np.savez_compressed(output/'frozen_physical_input.npz', inertia=original['inertia_body'],
         torque_time=original['torque_profile_time'], torque_actuator_body=original['torque_actuator_body'],
         torque_applied_body=original['torque_applied_body'], residual_mean_body=original['residual_mean_body'])
-    rate_directory = output/'rate_full_native'
-    rate_directory.mkdir(exist_ok=True)
-    np.savez_compressed(rate_directory/'acquisitions.npz', **acquired)
     records = []
-    for sigma in config['sigmas_deg_s']:
+    rates = config['rates_hz'] if selected_rate else [None]
+    jobs = [(rate,sigma) for sigma in config['sigmas_deg_s'] for rate in rates]
+    primary = (config.get('primary_rate_hz'),config['primary_sigma_deg_s'])
+    if primary in jobs:
+        jobs = [primary]+[job for job in jobs if job != primary]
+    for rate, sigma in jobs:
+        source, acquired, selected, physical, provenance = (old.inputs.load_inputs(rate)
+            if selected_rate else old.inputs.load_full_inputs())
+        if selected_rate:
+            provenance.update(acquisition_mode='selected_rate',
+                full_window_native_record_count=len(source['gyro_time']),
+                process_interval_semantics='Same angular-velocity increment covariance per selected acquisition; no time rescaling')
+        rate_directory = output/(f'rate_{old.label(rate)}_hz' if selected_rate else 'rate_full_native')
+        rate_directory.mkdir(exist_ok=True)
+        np.savez_compressed(rate_directory/'acquisitions.npz', **acquired)
         directory = rate_directory/f'sigma_{old.label(sigma)}_deg_s'
         cache = directory/'cache'
         cache.mkdir(parents=True, exist_ok=True)
-        case_config = dict(config, sigma_deg_s=sigma, rate_hz=provenance['native_median_rate_hz'],
+        rate_value = rate if selected_rate else provenance['native_median_rate_hz']
+        case_config = dict(config, sigma_deg_s=sigma, rate_hz=rate_value,
             process_reference_interval_seconds=float(np.median(np.diff(acquired['time']))))
         old.shared.write_json(directory/'config.json', case_config)
         old.shared.write_json(directory/'input.json', provenance)
@@ -132,7 +218,7 @@ def run(args):
         for order in config['quadrature_orders']:
             started = time.monotonic()
             def predict(mode):
-                print(f'Real full-native Student-t / Q sigma 1 / R sigma {sigma:g}: {mode} GH {order}', flush=True)
+                print(f'Real {rate_value:g} Hz Student-t / Q sigma 1 / R sigma {sigma:g}: {mode} GH {order}', flush=True)
                 case = engine.predict_process_student(selected, physical, sigma_deg_s=sigma,
                     process_sigma_deg_s=config['process_sigma_deg_s'], student_df=config['student_df'],
                     order=order, mode=mode, max_step=config['max_step_seconds'],
@@ -163,26 +249,28 @@ def run(args):
             shared_state='Sequential deterministic quadrature of current joint density with conditional quaternion and full rotation moments',
             finite_numerical_differences_are_diagnostics_not_gates=True))
         old.shared.write_json(directory/'quadrature_refinement.json', refinement)
-        records.append(dict(sigma_deg_s=sigma,rate_hz=provenance['native_median_rate_hz'],
+        records.append(dict(sigma_deg_s=sigma,rate_hz=rate_value,
             observation_count=len(acquired['time']),directory=str(directory.relative_to(output)),metrics=metrics))
         print('PUBLISHED '+str(directory), flush=True)
-    after = protected_hashes()
+    after = protected_hashes(include_full_q1=selected_rate)
     old.shared.write_json(output/'preserved_sources.json', dict(before_sha256=before,after_sha256=after,
         every_preserved_file_unchanged=before==after,
-        note='Original synthetic, refined, sparse real and full-native Q=0 publications are read only; caches excluded'))
+        note='Original synthetic, refined, sparse real and full-native Q=0 (and Q=1 for selected_rate) publications are read only; caches excluded'))
     old.shared.write_json(output/'summary.json', dict(schema='grape/real-full-native-student-process/v1',
-        config=config,records=records,input=provenance,observation_count=len(acquired['time']),
-        process_increment_count=len(acquired['time'])-1,
+        config=config,records=records,input=provenance,
+        observation_count=None if selected_rate else len(acquired['time']),
+        process_increment_count=None if selected_rate else len(acquired['time'])-1,
+        observation_count_by_rate_hz={format(record['rate_hz'],'g'):record['observation_count'] for record in records},
         preservation=before==after,monte_carlo=False,model_refitted=False,
         sensor_values_noise_bias_or_clock_changed=False,
         source_sha256={str(path.relative_to(old.BASE)):old.shared.sha(path) for path in sorted(HERE.glob('*.py'))},
         wall_seconds=time.monotonic()-begun))
     with (output/'comparison_table.csv').open('w', newline='') as stream:
         writer=csv.writer(stream,lineterminator='\n')
-        writer.writerow(['sigma_deg_s','process_sigma_deg_s','model','observation_count','so3_rmse_deg','so3_final_deg'])
+        writer.writerow(['rate_hz','sigma_deg_s','process_sigma_deg_s','model','observation_count','so3_rmse_deg','so3_final_deg'])
         for record in records:
             for mode, metric in record['metrics']['results'].items():
-                writer.writerow([record['sigma_deg_s'],config['process_sigma_deg_s'],mode,
+                writer.writerow([record['rate_hz'],record['sigma_deg_s'],config['process_sigma_deg_s'],mode,
                     record['observation_count'],metric['so3_proxy_rmse_deg'],metric['so3_proxy_final_deg']])
     write_report(output)
     print('Completed '+str(output), flush=True)

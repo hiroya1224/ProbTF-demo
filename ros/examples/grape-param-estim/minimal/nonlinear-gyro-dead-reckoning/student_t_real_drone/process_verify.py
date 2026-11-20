@@ -36,6 +36,7 @@ def load(name, path):
 
 
 full = load('_real_process_verifier_full_helpers', HERE/'full_verify.py')
+inputs = load('_real_process_verifier_saved_inputs', HERE/'input.py')
 sparse = full.sparse
 helpers = full.helpers
 sha, load_npz, write_json = helpers.sha, helpers.load_npz, helpers.write_json
@@ -112,12 +113,51 @@ def independent_density_rule(component_weights, component_means, component_covar
         responsibility_sum_error=float(np.max(np.abs(responsibilities.sum(axis=1)-1.))))
 
 
-def protected_files_against_head():
+def selected_acquisition_checks(acquired, rate_hz, raw, metadata):
+    """Original first-at/after native reading for each legacy requested time."""
+    start,end = metadata['requested_window_seconds']
+    requested = start+np.arange(0.,end-start,1./float(rate_hz))
+    index = np.searchsorted(raw['imu_time'],requested,side='left')
+    expected = dict(requested_time=requested,time=raw['imu_time'][index],gyro=raw['gyro'][index],
+        header_stamp_ns=raw['imu_stamp_ns'][index],record_stamp_ns=raw['imu_record_ns'][index],
+        original_source_index=raw['imu_source_index'][index],
+        requested_bag_stamp_ns=np.rint(requested*1e9).astype(np.int64))
+    for alias in ('source_index','archive_array_index','native_array_index'):
+        if alias in acquired:
+            expected[alias] = index
+    checks = {key:bool(np.array_equal(acquired[key],value)) for key,value in expected.items()}
+    _,historical = inputs.historical.acquisitions(raw,metadata,float(rate_hz))
+    legacy = {key:bool(np.array_equal(acquired[key],value)) for key,value in historical.items()}
+    native = (raw['imu_time']>=raw['time'][0])&(raw['imu_time']<=raw['time'][1])
+    return dict(selection='First original native gyro at or after each legacy requested bag time; no value interpolation',
+        acquisition_mode='selected_rate',requested_acquisition_rate_hz=float(rate_hz),
+        expected_count=len(index),actual_count=len(acquired['time']),
+        all_selected_native_readings_exact=all(checks.values()) and all(legacy.values()),
+        original_values_indices_and_clocks_exact=checks,historical_selector_evidence_exact=legacy,
+        requested_bag_times=requested,selected_archive_array_indices=index,
+        original_window_native_record_count=int(np.count_nonzero(native)),
+        physical_interval_seconds=raw['time'],
+        selected_readings_inside_fixed_window=bool(np.all((raw['imu_time'][index]>=raw['time'][0])
+            &(raw['imu_time'][index]<=raw['time'][1]))),
+        gyro_values_resampled_or_interpolated=False,
+        final_prediction_tail_seconds=float(raw['time'][1]-acquired['time'][-1]),
+        artificial_sensor_noise_or_spikes_added=False,bias_scale_or_clock_correction_added=False)
+
+
+def acquisition_checks(acquired,config,raw,metadata):
+    if config.get('acquisition_mode','full_native')=='selected_rate':
+        return selected_acquisition_checks(acquired,float(config['rate_hz']),raw,metadata)
+    return full.native_acquisition_checks(acquired,raw)
+
+
+def protected_files_against_head(current_output=None):
     root = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip())
     protected = (SEQ/'student_t_publication', HERE/'publication/bag8_50_55s',
-        HERE/'publication/bag8_full_gyro', sparse.REFINED)
+        HERE/'publication/bag8_full_gyro', HERE/'publication/bag8_full_gyro_q1', sparse.REFINED)
     records = {}
     for folder in protected:
+        if current_output is not None and folder.resolve()==Path(current_output).resolve():
+            continue
         relative = folder.relative_to(root)
         names = subprocess.check_output(['git','ls-files','--',str(relative)],text=True).splitlines()
         files = {}
@@ -129,6 +169,8 @@ def protected_files_against_head():
         records[str(relative)] = dict(tracked_file_count=len(files),
             all_tracked_files_unchanged=all(item['unchanged'] for item in files.values()), files=files)
     return dict(reference_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+        current_verification_output_excluded_from_protected_roots=(str(current_output)
+            if current_output is not None else None),
         all_protected_publications_unchanged=all(row['all_tracked_files_unchanged'] for row in records.values()),
         publications=records)
 
@@ -141,6 +183,8 @@ def process_application_checks(case, acquired, config):
         actual_process_increment_count=int(case['process_noise_application_count']),
         expected_sigma_deg_s=float(config['process_sigma_deg_s']),
         process_is_per_interval_not_continuous_psd=True,
+        process_sigma_is_not_rescaled_by_acquisition_period=bool(np.array_equal(
+            case['process_covariance_rad2_s2'],expected_q)),
         check_scope='Declared transition model plus saved increment/row ledger; RK4-step invariance also checked by the engine unit tests')
     if 'process_application_count' in case:
         expected = np.asarray(case['acquisition_index'], int)
@@ -226,6 +270,7 @@ def run(args):
     begun = time.monotonic()
     output = args.output.resolve()
     raw = load_npz(sparse.ARCHIVE/'input.npz')
+    raw_metadata = json.loads((sparse.ARCHIVE/'input.json').read_text())
     source = load_npz(output/'reference_input.npz')
     original = load_npz(sparse.REFINED/'refined_torque_profile.npz')
     frozen = load_npz(output/'frozen_physical_input.npz')
@@ -244,13 +289,13 @@ def run(args):
             actuator_torque_vs_archived=difference(frozen['torque_actuator_body'],original['torque_actuator_body']),
             applied_torque_vs_archived=difference(frozen['torque_applied_body'],original['torque_applied_body']),
             residual_mean_vs_archived=difference(frozen['residual_mean_body'],original['residual_mean_body'])),
-        protected_publications=protected_files_against_head(), cases={})
-    for directory in sorted(output.glob('rate_full_native/sigma_*_deg_s')):
+        protected_publications=protected_files_against_head(output), cases={})
+    for directory in sorted(output.glob('rate_*/sigma_*_deg_s')):
         key = str(directory.relative_to(output))
         config = sparse.case_config(directory,root_config)
         acquired = load_npz(directory/'acquisitions.npz')
         cases = {mode:load_npz(directory/f'bayes_{mode}.npz') for mode in MODELS}
-        item = dict(acquisitions=full.native_acquisition_checks(acquired,raw), models={})
+        item = dict(acquisitions=acquisition_checks(acquired,config,raw,raw_metadata), models={})
         for mode, case in cases.items():
             nu = float(config['student_df'])
             covariance = np.eye(3)*np.deg2rad(float(config['sigma_deg_s']))**2

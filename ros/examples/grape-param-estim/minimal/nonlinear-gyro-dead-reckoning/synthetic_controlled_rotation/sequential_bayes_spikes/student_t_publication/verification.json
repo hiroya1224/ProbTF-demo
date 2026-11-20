@@ -1,0 +1,688 @@
+{
+  "schema": "grape/student-t-independent-verification/v1",
+  "created_utc": "2026-11-20T00:16:45.740906+00:00",
+  "post_run_only": true,
+  "observations_or_filter_state_changed": false,
+  "finite_differences_are_diagnostics_not_observation_gates": true,
+  "verifier_sha256": "d460eefa2c2283201f4bf203f3be57baea800707e1a22977c46b64df88e638c6",
+  "inputs_bitwise_equal_to_preserved_half_spike_input": {
+    "source_input.npz": true,
+    "sensor_input.npz": true,
+    "acquisitions.npz": true
+  },
+  "input_sha256": {
+    "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
+    "sensor_input.npz": "ab8a275c877d51102cb9e5fad146a6296ca9617fa52cee89afc28df0aa02aa2a",
+    "acquisitions.npz": "d203558820e599cda1f38464986fe51eb9e71b7f783bb1a6b93db5f0910261e8"
+  },
+  "degrees_of_freedom": 4.0,
+  "declared_process_covariance_exactly_zero": true,
+  "numerical_test_provenance": {
+    "tests_run_by_this_verifier": false,
+    "supplied_evidence": {
+      "command": "env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -m unittest discover -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/tests -v",
+      "passed": 61,
+      "exit_code": 0,
+      "wall_seconds": 6.637,
+      "execution_session_id": 9611,
+      "source_sha256": {
+        "test_adaptive_engine.py": "dc56f156d69a34fdb37299562d68d19b0978b127b41cad5ff02d577833d59f7e",
+        "test_engine.py": "92f287d888d889bab52a15cec38d293012cd7afc13438df7c515279cf798008f",
+        "test_flight_motion.py": "2131cb37a20ef4e1466450a894b0bf3502f091e6d7a66e254c18ad462f1a4638",
+        "test_frequent_input.py": "ca9c1aa0757cbfcc23f2c0c67a2616d4127a8c2138036b82bbc3243e80a71f35",
+        "test_full_rate.py": "21ac41e3974dfcaa53144cfbdc9a60ca337e59b6be947f00f6f11be33b5eeb26",
+        "test_model_comparison.py": "0c77bd811a564c6c397aa15edd84f6e927f670c4c22ec749ed32f116c62744cc",
+        "test_omega3.py": "8646da8c9496388fc1a77c49d16e20f39e9bd0c8f7a45111bc689fea56df5e56",
+        "test_process_noise.py": "e46da90124b2c02dbf490020048a15a5937d44d970c954771b8759b70bdf52c4",
+        "test_student_engine.py": "6b3495b060dada4c09fc905f3bf38088770eaae43c3381cee372f30b1b807a1a",
+        "test_student_native.py": "83a78f0e0458089967ef5fe289236f9d0852c70b60d01101eea31259abc55cc0"
+      }
+    },
+    "supplied_evidence_sha256": "89748e14f72399a7c20814efd9cf1bfe0c85e4dfafe9ab69bbb3f7d4197fd0fa"
+  },
+  "code_sha256": {
+    "student_t_observation.py": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a",
+    "student_t_plotting.py": "7d3ca3ce53861fa3701d897308b625145a1d61c72654d8add67e6b2f255614fe",
+    "student_t_run.py": "18caa926590a6e9c7aa25c1fc4737ef81e8525a9a2e57b45642b4d9699d43b2b",
+    "student_t_verify.py": "d460eefa2c2283201f4bf203f3be57baea800707e1a22977c46b64df88e638c6",
+    "full_rate_engine.py": "4a403daf54b7cd79688de32e6b668feedf331e8a83a633fd12a479395542d208",
+    "full_rate_flow.py": "96de8b46897763e395f57e6e4c1e614067b9dc2f5bd7ee804ecd31848d35889c",
+    "full_rate_flow.cpp": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c"
+  },
+  "models": {
+    "nonlinear": {
+      "structure": {
+        "selected_observation_count": 201,
+        "expected_selected_count": 201,
+        "requested_selection_count_matches": true,
+        "expected_saved_rows": 401,
+        "actual_saved_rows": 401,
+        "expected_prior_rows": 200,
+        "actual_prior_rows": 200,
+        "expected_posterior_rows": 201,
+        "actual_posterior_rows": 201,
+        "time_rows_exact": true,
+        "event_side_rows_exact": true,
+        "acquisition_indices_exact": true,
+        "likelihood_factor_count_all_rows_exact": true,
+        "first_reading_likelihood_count": 0,
+        "final_likelihood_count": 200,
+        "expected_final_likelihood_count": 200,
+        "event_times_exact": true
+      },
+      "covariance": {
+        "fields": {
+          "quaternion_second_moment": {
+            "shape": [
+              401,
+              4,
+              4
+            ],
+            "expected_shape": [
+              401,
+              4,
+              4
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_mean": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              9
+            ],
+            "expected_shape": [
+              401,
+              9,
+              9
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape": [
+              401,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              3
+            ],
+            "expected_shape": [
+              401,
+              9,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          }
+        },
+        "numerical_eigenvalues_are_diagnostics_not_acceptance_gates": true,
+        "minimum_omega_diagonal_rad2_s2": 1.983262173024342e-05,
+        "minimum_omega_eigenvalue_rad2_s2": 1.5333201711649073e-05,
+        "minimum_joint_rotation_omega_eigenvalue": -8.971115629558552e-19,
+        "maximum_joint_covariance_asymmetry": 0.0,
+        "maximum_quaternion_second_moment_trace_error": 3.219646771412954e-15,
+        "minimum_quaternion_second_moment_eigenvalue": -2.2862651596334284e-20,
+        "final_omega_covariance_rad2_s2": [
+          [
+            2.083350595726346e-05,
+            -3.4347336042052603e-07,
+            -1.3802173973433747e-06
+          ],
+          [
+            -3.4347336042052603e-07,
+            2.183881816655393e-05,
+            -3.217655636420838e-06
+          ],
+          [
+            -1.3802173973433747e-06,
+            -3.217655636420838e-06,
+            1.983262173024342e-05
+          ]
+        ],
+        "final_omega_two_sigma_deg_s": [
+          0.5230386817416547,
+          0.5355095179505779,
+          0.510320121309846
+        ]
+      },
+      "recorded_engine_metadata": {
+        "schema": "grape/full-rate-causal-bayes-rotation/v1",
+        "mode": "nonlinear",
+        "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 multivariate Student-t gyro likelihoods once",
+        "acquired_observation_count": 201,
+        "likelihood_count": 200,
+        "quadrature_order_per_axis": 11,
+        "quadrature_nodes_per_refresh": 1331,
+        "scheduled_refresh_seconds": 0.1,
+        "initial_dense_seconds": 0.25,
+        "reanchor_displacement_sigma": 1.0,
+        "actual_proposal_refresh_count": 201,
+        "proposal_is_not_posterior_state": true,
+        "proposal_density_divided_out": true,
+        "proposal_selection_uses_only_current_prefix": true,
+        "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+        "previous_online_outputs_rewritten": false,
+        "every_observation_updated": true,
+        "numerical_regridding_is_not_observation_rejection": true,
+        "monte_carlo": false,
+        "node_pruning": false,
+        "covariance_floor": false,
+        "process_noise": false,
+        "full_joint_quaternion_omega_law": true,
+        "native_step_count": 104752940,
+        "maximum_quaternion_norm_correction": 2.1094237467877974e-14,
+        "native_source_sha256": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
+        "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+        "wall_seconds": 141.00909680919722,
+        "observation_distribution": "multivariate Student-t",
+        "student_df": 4.0,
+        "initial_law": "Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
+        "marginalization": "Gamma observation precision integrated analytically in every Student-t factor",
+        "variational_bayes_state_factorization": false,
+        "observation_covariance_meaning": "R is marginal covariance; Student-t scale Sigma=(nu-2)/nu R",
+        "student_observation_source_sha256": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a"
+      },
+      "observation_covariance_vs_config": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "saved_student_degrees_vs_config": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "saved_student_scale_vs_declared_marginal_covariance": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "independent_original_prior_and_all_student_factors": {
+        "reference": "scipy.stats.multivariate_t.logpdf; independently accumulated original prior times every acquired j>=1 likelihood divided by proposal",
+        "degrees_of_freedom": 4.0,
+        "observation_marginal_covariance_rad2_s2": [
+          [
+            0.007615435494667714,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.007615435494667714,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667714
+          ]
+        ],
+        "student_scale_rad2_s2": [
+          [
+            0.003807717747333857,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.003807717747333857,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.003807717747333857
+          ]
+        ],
+        "initial_law": "N(W0;y0,R), first reading once",
+        "final_student_likelihood_count": 200,
+        "saved_refresh_acquisition_index": 200,
+        "oracle_or_spike_labels_used": false,
+        "final_normalized_weight_sum": 0.9999999999999796,
+        "initial_gaussian_prior_used_once": true,
+        "gaussian_observation_likelihoods_after_initialization": 0,
+        "last_refresh_prior_log_weight_difference": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 3.410605131648481e-13,
+          "nonfinite_difference_count": 0
+        },
+        "last_refresh_posterior_log_weight_difference": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 4.547473508864641e-13,
+          "nonfinite_difference_count": 0
+        },
+        "final_joint_moment_differences": {
+          "quaternion_second_moment": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 1.9206858326015208e-14,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_mean": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 2.1316282072803006e-14,
+            "nonfinite_difference_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 9.880984919163893e-15,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 2.688821387764051e-16,
+            "nonfinite_difference_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 5.963111948670274e-19,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 1.2739375526704677e-17,
+            "nonfinite_difference_count": 0
+          }
+        },
+        "finite_differences_are_diagnostics_not_filter_gates": true
+      }
+    },
+    "linear_forced": {
+      "structure": {
+        "selected_observation_count": 201,
+        "expected_selected_count": 201,
+        "requested_selection_count_matches": true,
+        "expected_saved_rows": 401,
+        "actual_saved_rows": 401,
+        "expected_prior_rows": 200,
+        "actual_prior_rows": 200,
+        "expected_posterior_rows": 201,
+        "actual_posterior_rows": 201,
+        "time_rows_exact": true,
+        "event_side_rows_exact": true,
+        "acquisition_indices_exact": true,
+        "likelihood_factor_count_all_rows_exact": true,
+        "first_reading_likelihood_count": 0,
+        "final_likelihood_count": 200,
+        "expected_final_likelihood_count": 200,
+        "event_times_exact": true
+      },
+      "covariance": {
+        "fields": {
+          "quaternion_second_moment": {
+            "shape": [
+              401,
+              4,
+              4
+            ],
+            "expected_shape": [
+              401,
+              4,
+              4
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_mean": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              9
+            ],
+            "expected_shape": [
+              401,
+              9,
+              9
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape": [
+              401,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape": [
+              401,
+              3,
+              3
+            ],
+            "expected_shape": [
+              401,
+              3,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape": [
+              401,
+              9,
+              3
+            ],
+            "expected_shape": [
+              401,
+              9,
+              3
+            ],
+            "shape_matches": true,
+            "finite": true,
+            "nonfinite_count": 0
+          }
+        },
+        "numerical_eigenvalues_are_diagnostics_not_acceptance_gates": true,
+        "minimum_omega_diagonal_rad2_s2": 3.936346735076102e-05,
+        "minimum_omega_eigenvalue_rad2_s2": 3.913980646829716e-05,
+        "minimum_joint_rotation_omega_eigenvalue": -8.971115629558552e-19,
+        "maximum_joint_covariance_asymmetry": 0.0,
+        "maximum_quaternion_second_moment_trace_error": 2.6645352591003757e-15,
+        "minimum_quaternion_second_moment_eigenvalue": -2.2862651596334284e-20,
+        "final_omega_covariance_rad2_s2": [
+          [
+            7.54450137898752e-05,
+            -3.342643033621508e-05,
+            -2.7812371982516774e-06
+          ],
+          [
+            -3.342643033621508e-05,
+            7.709071717685779e-05,
+            2.284943715349949e-06
+          ],
+          [
+            -2.7812371982516774e-06,
+            2.284943715349949e-06,
+            3.936346735076102e-05
+          ]
+        ],
+        "final_omega_two_sigma_deg_s": [
+          0.9953318448560277,
+          1.006129009372353,
+          0.7189510152369443
+        ]
+      },
+      "recorded_engine_metadata": {
+        "schema": "grape/full-rate-causal-bayes-rotation/v1",
+        "mode": "linear_forced",
+        "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 multivariate Student-t gyro likelihoods once",
+        "acquired_observation_count": 201,
+        "likelihood_count": 200,
+        "quadrature_order_per_axis": 11,
+        "quadrature_nodes_per_refresh": 1331,
+        "scheduled_refresh_seconds": 0.1,
+        "initial_dense_seconds": 0.25,
+        "reanchor_displacement_sigma": 1.0,
+        "actual_proposal_refresh_count": 201,
+        "proposal_is_not_posterior_state": true,
+        "proposal_density_divided_out": true,
+        "proposal_selection_uses_only_current_prefix": true,
+        "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+        "previous_online_outputs_rewritten": false,
+        "every_observation_updated": true,
+        "numerical_regridding_is_not_observation_rejection": true,
+        "monte_carlo": false,
+        "node_pruning": false,
+        "covariance_floor": false,
+        "process_noise": false,
+        "full_joint_quaternion_omega_law": true,
+        "native_step_count": 198064515,
+        "maximum_quaternion_norm_correction": 2.1316282072803006e-14,
+        "native_source_sha256": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
+        "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+        "wall_seconds": 108.23890220210887,
+        "observation_distribution": "multivariate Student-t",
+        "student_df": 4.0,
+        "initial_law": "Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
+        "marginalization": "Gamma observation precision integrated analytically in every Student-t factor",
+        "variational_bayes_state_factorization": false,
+        "observation_covariance_meaning": "R is marginal covariance; Student-t scale Sigma=(nu-2)/nu R",
+        "student_observation_source_sha256": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a"
+      },
+      "observation_covariance_vs_config": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "saved_student_degrees_vs_config": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "saved_student_scale_vs_declared_marginal_covariance": {
+        "shape_matches": true,
+        "maximum_absolute_finite_difference": 0.0,
+        "nonfinite_difference_count": 0
+      },
+      "independent_original_prior_and_all_student_factors": {
+        "reference": "scipy.stats.multivariate_t.logpdf; independently accumulated original prior times every acquired j>=1 likelihood divided by proposal",
+        "degrees_of_freedom": 4.0,
+        "observation_marginal_covariance_rad2_s2": [
+          [
+            0.007615435494667714,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.007615435494667714,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.007615435494667714
+          ]
+        ],
+        "student_scale_rad2_s2": [
+          [
+            0.003807717747333857,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.003807717747333857,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.003807717747333857
+          ]
+        ],
+        "initial_law": "N(W0;y0,R), first reading once",
+        "final_student_likelihood_count": 200,
+        "saved_refresh_acquisition_index": 200,
+        "oracle_or_spike_labels_used": false,
+        "final_normalized_weight_sum": 1.0000000000000024,
+        "initial_gaussian_prior_used_once": true,
+        "gaussian_observation_likelihoods_after_initialization": 0,
+        "last_refresh_prior_log_weight_difference": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 2.7000623958883807e-13,
+          "nonfinite_difference_count": 0
+        },
+        "last_refresh_posterior_log_weight_difference": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 2.7000623958883807e-13,
+          "nonfinite_difference_count": 0
+        },
+        "final_joint_moment_differences": {
+          "quaternion_second_moment": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 2.1094237467877974e-15,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_mean": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 2.55351295663786e-15,
+            "nonfinite_difference_count": 0
+          },
+          "omega_mean_rad_s": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 2.220446049250313e-15,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_covariance_colmajor": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 6.591949208711867e-17,
+            "nonfinite_difference_count": 0
+          },
+          "omega_covariance_rad2_s2": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 1.7618285302889447e-19,
+            "nonfinite_difference_count": 0
+          },
+          "rotation_omega_covariance_colmajor": {
+            "shape_matches": true,
+            "maximum_absolute_finite_difference": 3.957337929572091e-18,
+            "nonfinite_difference_count": 0
+          }
+        },
+        "finite_differences_are_diagnostics_not_filter_gates": true
+      }
+    }
+  },
+  "plotted_saved_numeric_identity": {
+    "available": true,
+    "models": {
+      "nonlinear": {
+        "saved_time_exact": true,
+        "rpy_two_sigma_vs_saved_covariance": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "omega_two_sigma_vs_saved_covariance": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_rpy_error": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_omega_error": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_so3_error": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        }
+      },
+      "linear_forced": {
+        "saved_time_exact": true,
+        "rpy_two_sigma_vs_saved_covariance": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "omega_two_sigma_vs_saved_covariance": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_rpy_error": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_omega_error": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        },
+        "plotted_so3_error": {
+          "shape_matches": true,
+          "maximum_absolute_finite_difference": 0.0,
+          "nonfinite_difference_count": 0
+        }
+      }
+    },
+    "renderer_sha256_matches_current_source": true,
+    "comparison_contains_only_student_t_models": true,
+    "gaussian_observation_case_drawn": false
+  },
+  "publication_files": {
+    "maximum_bytes": 1329408,
+    "all_files_below_50000000_bytes": true,
+    "cache_excluded": true
+  },
+  "wall_seconds": 2.1008279870729893
+}

@@ -1,6 +1,7 @@
 """Every-reading Bayesian updates with causal numerical proposal refreshes.
 
-The target remains the original W0 Gaussian times ALL acquired likelihoods.
+The target remains the original W0 Gaussian times ALL acquired likelihoods
+(Gaussian by default, or multivariate Student-t when explicitly requested).
 Only integration-node placement is refreshed; a proposal is never substituted
 for a posterior state. Prefix likelihoods are accumulated in native memory
 without retaining the complete history-by-node tensor.
@@ -29,16 +30,21 @@ gaussian_tensor_points=_adaptive.gaussian_tensor_points
 summarize_joint=_adaptive.summarize_joint
 gaussian_log_density=_adaptive.gaussian_log_density
 FullRateFlow=_native.FullRateFlow
+_student=_load('_full_rate_student_observation','student_t_observation.py')
+student_t_log_density=_student.student_t_log_density
 
 
 def predict_full_rate(data,torque_profile,sigma_deg_s=5.,order=11,max_step=.002,
         mode='nonlinear',refresh_seconds=.1,proposal_max_nfev=24,
-        initial_dense_seconds=.25,reanchor_displacement_sigma=1.,dense_startup_seconds=None):
+        initial_dense_seconds=.25,reanchor_displacement_sigma=1.,dense_startup_seconds=None,
+        student_df=None):
     """Return one saved-moment case, with pre/post at EVERY acquired time.
 
     Both scheduled and displacement-triggered proposal refreshes evaluate
     the same causal target. A finite numerical discrepancy cannot reject an
     observation. Earlier published endpoints are never rewritten.
+    ``student_df > 2`` changes every j>=1 observation factor; the initial
+    Gaussian law remains unchanged and ``sigma_deg_s`` is marginal sigma.
     """
     begun=time.monotonic();bounds=np.asarray(data['time'],float)
     acquired=np.asarray(data['sparse_gyro_time'],float)
@@ -58,6 +64,12 @@ def predict_full_rate(data,torque_profile,sigma_deg_s=5.,order=11,max_step=.002,
         if not np.isfinite(reanchor_displacement_sigma) or reanchor_displacement_sigma<=0.:
             raise ValueError('Positive finite proposal-displacement threshold, or None, required')
     covariance=np.eye(3)*np.deg2rad(sigma)**2
+    if student_df is not None:
+        student_df=float(student_df)
+        student_scale=_student.student_t_scale(covariance,student_df)
+        observation_log_density=lambda values,mean:student_t_log_density(values,mean,covariance,student_df)
+    else:
+        observation_log_density=lambda values,mean:gaussian_log_density(values,mean,covariance)
     prior_mean=observed[0].copy();q0=np.asarray(data['initial_quaternion_wxyz'],float)
     flow=FullRateFlow(torque_profile,q0,*bounds,max_step=max_step,mode=mode)
     # Every sample in the early interval is cheap to reanchor. Subsequently
@@ -91,11 +103,19 @@ def predict_full_rate(data,torque_profile,sigma_deg_s=5.,order=11,max_step=.002,
             center=prior_mean.copy();proposal_covariance=covariance.copy()
             placement=dict(initialization=True,first_reading_used_once=True)
         else:
-            center,proposal_covariance,placement=_adaptive._fit_proposal(flow,prior_mean,covariance,
-                acquired[:anchor+1],observed[:anchor+1],last_center,int(proposal_max_nfev))
+            if student_df is None:
+                center,proposal_covariance,placement=_adaptive._fit_proposal(flow,prior_mean,covariance,
+                    acquired[:anchor+1],observed[:anchor+1],last_center,int(proposal_max_nfev))
+            else:
+                center,proposal_covariance,placement=_student.fit_proposal(flow,prior_mean,covariance,
+                    acquired[:anchor+1],observed[:anchor+1],last_center,int(proposal_max_nfev),student_df)
         last_center=center.copy();root_proposal=np.linalg.cholesky(proposal_covariance)
         nodes,quadrature=gaussian_tensor_points(center,proposal_covariance,order)
-        past_likelihood,states=flow.prefix_and_block(nodes,acquired,observed,anchor,finish,covariance)
+        if student_df is None:
+            past_likelihood,states=flow.prefix_and_block(nodes,acquired,observed,anchor,finish,covariance)
+        else:
+            past_likelihood,states=flow.prefix_and_block(nodes,acquired,observed,anchor,finish,covariance,
+                                                       student_df=student_df)
         raw=np.log(quadrature)+gaussian_log_density(nodes,prior_mean,covariance)
         raw-=gaussian_log_density(nodes,center,proposal_covariance)
         raw+=past_likelihood
@@ -107,7 +127,7 @@ def predict_full_rate(data,torque_profile,sigma_deg_s=5.,order=11,max_step=.002,
             regridded=summarize_joint(current[:,3:],current[:,:3],np.exp(prior_logs),initial_nodes=nodes)
             prior_mean_difference=float(np.max(abs(regridded['omega_mean_rad_s']-published_prior['omega_mean_rad_s'])))
             prior_covariance_difference=float(np.max(abs(regridded['omega_covariance_rad2_s2']-published_prior['omega_covariance_rad2_s2'])))
-            raw+=gaussian_log_density(current[:,:3],observed[anchor],covariance)
+            raw+=observation_log_density(current[:,:3],observed[anchor])
         else:prior_mean_difference=prior_covariance_difference=0.
         posterior_normalizer=float(logsumexp(raw))
         if not np.isfinite(posterior_normalizer):raise FloatingPointError('Undefined full-rate posterior normalizer')
@@ -127,7 +147,7 @@ def predict_full_rate(data,torque_profile,sigma_deg_s=5.,order=11,max_step=.002,
             current=states[index-anchor]
             published_prior=append(index,-1,current,mass,nodes)
             if index==finish and finish_is_refresh:break
-            likelihood=gaussian_log_density(current[:,:3],observed[index],covariance)
+            likelihood=observation_log_density(current[:,:3],observed[index])
             update=logs+likelihood;log_normalizer=float(logsumexp(update))
             if not np.isfinite(log_normalizer):raise FloatingPointError('Undefined full-rate reading normalizer')
             updated_logs=update-log_normalizer;updated_mass=np.exp(updated_logs)
@@ -182,4 +202,14 @@ def predict_full_rate(data,torque_profile,sigma_deg_s=5.,order=11,max_step=.002,
             native_source_sha256=hashlib.sha256((HERE/'full_rate_flow.cpp').read_bytes()).hexdigest(),
             included_physical_source_sha256=hashlib.sha256((HERE/'native_flow.cpp').read_bytes()).hexdigest(),
             wall_seconds=time.monotonic()-begun))
+    if student_df is not None:
+        arrays['observation_student_df']=np.asarray(student_df)
+        arrays['observation_student_scale_rad2_s2']=student_scale.copy()
+        arrays['metadata'].update(observation_distribution='multivariate Student-t',student_df=student_df,
+            posterior='initial N(W0;y0,R) times ALL acquired j>=1 multivariate Student-t gyro likelihoods once',
+            initial_law='Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once',
+            marginalization='Gamma observation precision integrated analytically in every Student-t factor',
+            variational_bayes_state_factorization=False,
+            observation_covariance_meaning='R is marginal covariance; Student-t scale Sigma=(nu-2)/nu R',
+            student_observation_source_sha256=hashlib.sha256((HERE/'student_t_observation.py').read_bytes()).hexdigest())
     return arrays

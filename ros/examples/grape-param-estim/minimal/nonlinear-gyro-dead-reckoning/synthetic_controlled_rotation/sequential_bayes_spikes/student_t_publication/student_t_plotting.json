@@ -1,0 +1,105 @@
+{
+  "schema": "grape/student-t-q0-saved-moment-plots/v1",
+  "renderer_sha256": "7d3ca3ce53861fa3701d897308b625145a1d61c72654d8add67e6b2f255614fe",
+  "helper_sha256": "ed3ced48dd6a45e5360a656c811cbebea45cd2a9f7042e6e5ab125527924347b",
+  "settings": {
+    "native_reading_count": 4001,
+    "selected_acquisition_count": 201,
+    "selected_readings_match_native_values_times_indices": true,
+    "nominal_rate_hz": 10.000000000000036,
+    "data_range_seconds": [
+      0.0,
+      20.0
+    ],
+    "stored_moment_rows": {
+      "nonlinear": 401,
+      "linear_forced": 401
+    },
+    "stored_prior_rows": {
+      "nonlinear": 200,
+      "linear_forced": 200
+    },
+    "stored_posterior_rows": {
+      "nonlinear": 201,
+      "linear_forced": 201
+    },
+    "final_recorded_likelihood_factor_count": {
+      "nonlinear": 200,
+      "linear_forced": 200
+    },
+    "acquired_spike_readings": 61,
+    "observed_gyro_sha256": "80c55aea416071e128345f742280bef2b51f1bf6b9a1a78372c969ff0d82c9fd",
+    "initialization": "First selected reading initializes the initial law once; subsequent selected readings are likelihood updates",
+    "profile": "body_omega_scaled",
+    "model_process_covariance": "Q=0",
+    "body_rate_multiplier": 3,
+    "temporal_frequency_change": false,
+    "spike_scale": 0.5,
+    "spike_scale_reference": "Amplitude of original saved pulses; original onset times, rate and widths",
+    "sensor_white_sigma_deg_s": 2.0,
+    "measurement_assumed_sigma_deg_s": 5.0,
+    "student_df": 4.0,
+    "measurement_distribution": "multivariate Student-t for every j>=1 observation",
+    "student_scale_to_marginal_covariance_ratio": 0.5,
+    "initial_candidate_law": "Unchanged N(W0;y0,R), first reading used once",
+    "state_distribution_is_not_student_t_fit": true,
+    "compared_measurement_models": [
+      "Student-t"
+    ],
+    "model_labels": {
+      "nonlinear": "Student-t / nonlinear Euler",
+      "linear_forced": "Student-t / no gyroscopic term"
+    }
+  },
+  "files": [
+    "attitude_and_gyro.pdf",
+    "attitude_and_gyro.png",
+    "reconstruction_errors.pdf",
+    "reconstruction_errors.png",
+    "student_t_plotted_data.npz",
+    "student_t_metrics.json"
+  ],
+  "metrics_evaluation": "Equal-weight errors on identical saved timestamps; last/posterior row at duplicate times. No estimate interpolation.",
+  "all_native_samples_drawn": true,
+  "all_saved_moment_rows_drawn": true,
+  "averaging": false,
+  "downsampling": false,
+  "smoothing": false,
+  "covariance_adjustment": false,
+  "no_estimator_rerun": true,
+  "reference": "New omega-x3 truth only; not earlier motion",
+  "metadata": {
+    "config": {
+      "student_df": 4.0,
+      "body_omega_scale": 3.0,
+      "spike_scale": 0.5,
+      "process_covariance_rad2_s2": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "acquisition_rate_hz": 10.0,
+      "assumed_sigma_deg_s": 5.0,
+      "quadrature_orders": [
+        7,
+        11
+      ],
+      "max_step_seconds": 0.002,
+      "refresh_seconds": 0.1,
+      "reanchor_displacement_sigma": 1.0,
+      "dense_startup_seconds": 0.25
+    }
+  }
+}

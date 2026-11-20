@@ -1,0 +1,50 @@
+{
+  "evaluation_count": 201,
+  "evaluation_range_seconds": [
+    0.0,
+    20.0
+  ],
+  "evaluation": "Equal-weight errors on identical saved timestamps; last/posterior row at duplicate times. No estimate interpolation.",
+  "timestamp_matching": "Elapsed seconds rounded to integer ns for equality matching only",
+  "reference": "NEW omega-x3 synthetic truth only; read-only diagnostic, never fed to either estimator",
+  "results": {
+    "nonlinear": {
+      "so3_proxy_rmse_deg": 4.970453823753254,
+      "so3_proxy_final_deg": 5.897187338596826,
+      "rpy_rmse_deg": [
+        1.2032366929070848,
+        3.93640745281832,
+        2.852734333773961
+      ],
+      "omega_rmse_deg_s": [
+        0.541280267446573,
+        1.0139031794304318,
+        0.29835075569519004
+      ],
+      "final_omega_two_sigma_deg_s": [
+        0.5230386817416547,
+        0.5355095179505779,
+        0.510320121309846
+      ]
+    },
+    "linear_forced": {
+      "so3_proxy_rmse_deg": 9.460660767713234,
+      "so3_proxy_final_deg": 25.961528011414444,
+      "rpy_rmse_deg": [
+        5.0476917808143575,
+        6.830732110391476,
+        4.465764292999981
+      ],
+      "omega_rmse_deg_s": [
+        7.801798184253193,
+        6.9068589252449915,
+        0.6428857708149736
+      ],
+      "final_omega_two_sigma_deg_s": [
+        0.9953318448560277,
+        1.006129009372353,
+        0.7189510152369443
+      ]
+    }
+  }
+}

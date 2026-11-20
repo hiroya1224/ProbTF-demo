@@ -1,0 +1,239 @@
+{
+  "schema": "grape/student-t-only-rotation-comparison/v1",
+  "config": {
+    "student_df": 4.0,
+    "body_omega_scale": 3.0,
+    "spike_scale": 0.5,
+    "process_covariance_rad2_s2": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "acquisition_rate_hz": 10.0,
+    "assumed_sigma_deg_s": 5.0,
+    "quadrature_orders": [
+      7,
+      11
+    ],
+    "max_step_seconds": 0.002,
+    "refresh_seconds": 0.1,
+    "reanchor_displacement_sigma": 1.0,
+    "dense_startup_seconds": 0.25
+  },
+  "observation_distribution": "multivariate Student-t for every acquired j>=1 factor",
+  "initial_law": "Same initial Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
+  "student_scale_rad2_s2": [
+    [
+      0.003807717747333857,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.003807717747333857,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.003807717747333857
+    ]
+  ],
+  "observation_covariance_rad2_s2": [
+    [
+      0.007615435494667714,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.007615435494667714,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.007615435494667714
+    ]
+  ],
+  "marginal_observation_covariance_preserved": true,
+  "input_directory_relative_to_runner": "omega3_q0_publication",
+  "input_file_sha256": {
+    "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
+    "sensor_input.npz": "ab8a275c877d51102cb9e5fad146a6296ca9617fa52cee89afc28df0aa02aa2a",
+    "acquisitions.npz": "d203558820e599cda1f38464986fe51eb9e71b7f783bb1a6b93db5f0910261e8"
+  },
+  "saved_input_file_sha256": {
+    "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
+    "sensor_input.npz": "ab8a275c877d51102cb9e5fad146a6296ca9617fa52cee89afc28df0aa02aa2a",
+    "acquisitions.npz": "d203558820e599cda1f38464986fe51eb9e71b7f783bb1a6b93db5f0910261e8"
+  },
+  "copied_input_files_bitwise_identical": true,
+  "input_files_unchanged_after_inference": true,
+  "native_reading_count": 4001,
+  "observation_count": 201,
+  "selected_spiked_reading_count": 61,
+  "every_selected_sample_used": true,
+  "process_covariance_rad2_s2": [
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "model_difference": "omega cross(J omega) only; identical Hamilton quaternion kinematics",
+  "compared_models": [
+    "nonlinear",
+    "linear_forced"
+  ],
+  "gaussian_observation_comparator_included": false,
+  "inference": "Direct analytically marginalized Student-t likelihood; deterministic importance quadrature over initial W0",
+  "variational_gaussian_state_replacement": false,
+  "monte_carlo_inference": false,
+  "source_sha256": {
+    "student_t_run.py": "18caa926590a6e9c7aa25c1fc4737ef81e8525a9a2e57b45642b4d9699d43b2b",
+    "student_t_verify.py": "d460eefa2c2283201f4bf203f3be57baea800707e1a22977c46b64df88e638c6",
+    "student_t_plotting.py": "7d3ca3ce53861fa3701d897308b625145a1d61c72654d8add67e6b2f255614fe",
+    "student_t_config.json": "3b01d87cd9839ffc0cc86f2ca60942fe203e0452a7b9669fc7e5190298400bad",
+    "student_t_observation.py": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a",
+    "full_rate_engine.py": "4a403daf54b7cd79688de32e6b668feedf331e8a83a633fd12a479395542d208",
+    "full_rate_flow.cpp": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
+    "full_rate_flow.py": "96de8b46897763e395f57e6e4c1e614067b9dc2f5bd7ee804ecd31848d35889c",
+    "native_flow.py": "075e227b854d34e0e0017c43fa54b62ec236cd31fdfd66bb7154333d419e410d",
+    "native_flow.cpp": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+    "run.py": "928266615ad34ea85ccfefd2c7c30d55acb9d94bd1e3e4f863ec740ac1b1ab65",
+    "omega3_plotting.py": "afb6cc4b71b7817a6544c99914ac0b0901a8e88d08ac64b9f02ad4743a6eb046"
+  },
+  "engine_metadata": {
+    "nonlinear": {
+      "schema": "grape/full-rate-causal-bayes-rotation/v1",
+      "mode": "nonlinear",
+      "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 multivariate Student-t gyro likelihoods once",
+      "acquired_observation_count": 201,
+      "likelihood_count": 200,
+      "quadrature_order_per_axis": 11,
+      "quadrature_nodes_per_refresh": 1331,
+      "scheduled_refresh_seconds": 0.1,
+      "initial_dense_seconds": 0.25,
+      "reanchor_displacement_sigma": 1.0,
+      "actual_proposal_refresh_count": 201,
+      "proposal_is_not_posterior_state": true,
+      "proposal_density_divided_out": true,
+      "proposal_selection_uses_only_current_prefix": true,
+      "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+      "previous_online_outputs_rewritten": false,
+      "every_observation_updated": true,
+      "numerical_regridding_is_not_observation_rejection": true,
+      "monte_carlo": false,
+      "node_pruning": false,
+      "covariance_floor": false,
+      "process_noise": false,
+      "full_joint_quaternion_omega_law": true,
+      "native_step_count": 104752940,
+      "maximum_quaternion_norm_correction": 2.1094237467877974e-14,
+      "native_source_sha256": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
+      "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+      "wall_seconds": 141.00909680919722,
+      "observation_distribution": "multivariate Student-t",
+      "student_df": 4.0,
+      "initial_law": "Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
+      "marginalization": "Gamma observation precision integrated analytically in every Student-t factor",
+      "variational_bayes_state_factorization": false,
+      "observation_covariance_meaning": "R is marginal covariance; Student-t scale Sigma=(nu-2)/nu R",
+      "student_observation_source_sha256": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a"
+    },
+    "linear_forced": {
+      "schema": "grape/full-rate-causal-bayes-rotation/v1",
+      "mode": "linear_forced",
+      "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 multivariate Student-t gyro likelihoods once",
+      "acquired_observation_count": 201,
+      "likelihood_count": 200,
+      "quadrature_order_per_axis": 11,
+      "quadrature_nodes_per_refresh": 1331,
+      "scheduled_refresh_seconds": 0.1,
+      "initial_dense_seconds": 0.25,
+      "reanchor_displacement_sigma": 1.0,
+      "actual_proposal_refresh_count": 201,
+      "proposal_is_not_posterior_state": true,
+      "proposal_density_divided_out": true,
+      "proposal_selection_uses_only_current_prefix": true,
+      "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+      "previous_online_outputs_rewritten": false,
+      "every_observation_updated": true,
+      "numerical_regridding_is_not_observation_rejection": true,
+      "monte_carlo": false,
+      "node_pruning": false,
+      "covariance_floor": false,
+      "process_noise": false,
+      "full_joint_quaternion_omega_law": true,
+      "native_step_count": 198064515,
+      "maximum_quaternion_norm_correction": 2.1316282072803006e-14,
+      "native_source_sha256": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
+      "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+      "wall_seconds": 108.23890220210887,
+      "observation_distribution": "multivariate Student-t",
+      "student_df": 4.0,
+      "initial_law": "Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
+      "marginalization": "Gamma observation precision integrated analytically in every Student-t factor",
+      "variational_bayes_state_factorization": false,
+      "observation_covariance_meaning": "R is marginal covariance; Student-t scale Sigma=(nu-2)/nu R",
+      "student_observation_source_sha256": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a"
+    }
+  },
+  "quadrature_refinement": {
+    "7 -> 11": {
+      "nonlinear": {
+        "max_omega_mean_component_difference_deg_s": 0.09636716831149829,
+        "max_omega_covariance_component_difference_deg2_s2": 1.0507857629448554,
+        "max_rpy_proxy_component_difference_deg": 0.031036747713162994,
+        "max_rotation_covariance_component_difference": 4.428783205702718e-05,
+        "finite_diagnostic_only": true
+      },
+      "linear_forced": {
+        "max_omega_mean_component_difference_deg_s": 0.09504225001344672,
+        "max_omega_covariance_component_difference_deg2_s2": 1.0374905704824795,
+        "max_rpy_proxy_component_difference_deg": 0.043145977470624444,
+        "max_rotation_covariance_component_difference": 0.000723475289931573,
+        "finite_diagnostic_only": true
+      }
+    }
+  },
+  "inference_wall_seconds": {
+    "7": 53.11806474789046,
+    "11": 141.21314019407146
+  },
+  "wall_seconds": 197.09771733894013,
+  "publication_storage": {
+    "report": "publication_storage.json",
+    "all_published_moments_unchanged": true,
+    "final_node_weights_keys": [
+      "last_refresh_log_weights",
+      "last_refresh_prior_log_weights"
+    ],
+    "intermediate_refresh_weights_reconstructible": true,
+    "finite_proposal_residuals_report": "proposal_refresh_diagnostics.json",
+    "compact_script_sha256": "bfef7f498090de89911551c352a0c00cf1ea31b995a8bfdbeb89100eedc2fe24"
+  }
+}

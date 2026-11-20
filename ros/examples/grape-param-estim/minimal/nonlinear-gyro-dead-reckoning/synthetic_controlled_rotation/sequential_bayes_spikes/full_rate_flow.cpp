@@ -6,10 +6,11 @@ extern "C" int probtf_full_rate_prefix(int nodes,const double* omega0,const doub
     int count,const double* times,const double* observations,int prefix,
     int torque_count,const double* torque_times,const double* torques,
     const double* tensor,const double* inverse,const double* precision,
-    double likelihood_constant,double max_step,int nonlinear,
+    double likelihood_constant,double student_df,double max_step,int nonlinear,
     double* past_log_likelihood,double* block_output,
     double* max_norm_correction,long long* step_count) {
-    if(nodes<1 || count<1 || prefix<0 || prefix>=count || torque_count<2 || !(max_step>0.)) return 1;
+    if(nodes<1 || count<1 || prefix<0 || prefix>=count || torque_count<2 || !(max_step>0.)
+        || !std::isfinite(student_df) || (student_df!=0. && !(student_df>2.))) return 1;
     std::vector<double> state(size_t(nodes)*7);
     for(int n=0;n<nodes;++n) {
         for(int d=0;d<3;++d) state[size_t(n)*7+d]=omega0[size_t(n)*3+d];
@@ -56,8 +57,15 @@ extern "C" int probtf_full_rate_prefix(int nodes,const double* omega0,const doub
                 double difference[3],whitened[3];
                 for(int d=0;d<3;++d) difference[d]=s[d]-observations[size_t(row)*3+d];
                 multiply3(precision,difference,whitened);
-                past_log_likelihood[n]+=likelihood_constant-.5*(difference[0]*whitened[0]
-                    +difference[1]*whitened[1]+difference[2]*whitened[2]);
+                if(student_df>0.) {
+                    const double mahalanobis=difference[0]*whitened[0]
+                        +difference[1]*whitened[1]+difference[2]*whitened[2];
+                    past_log_likelihood[n]+=likelihood_constant
+                        -.5*(student_df+3.)*std::log1p(mahalanobis/student_df);
+                } else {
+                    past_log_likelihood[n]+=likelihood_constant-.5*(difference[0]*whitened[0]
+                        +difference[1]*whitened[1]+difference[2]*whitened[2]);
+                }
             }
         }
         if(row>=prefix) std::copy(state.begin(),state.end(),block_output+size_t(row-prefix)*nodes*7);

@@ -1,0 +1,746 @@
+{
+  "schema": "grape/real-student-case/v1",
+  "config": {
+    "rates_hz": [
+      0.5,
+      2.0,
+      5.0,
+      10.0
+    ],
+    "sigmas_deg_s": [
+      2.5,
+      5.0
+    ],
+    "student_df": 4.0,
+    "process_covariance_rad2_s2": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "quadrature_orders": [
+      7,
+      11
+    ],
+    "max_step_seconds": 0.002,
+    "refresh_seconds": 0.02,
+    "output_dt_seconds": 0.01,
+    "reanchor_displacement_sigma": 1.0,
+    "dense_startup_seconds": 0.25,
+    "primary_rate_hz": 5.0,
+    "primary_sigma_deg_s": 2.5,
+    "rate_hz": 5.0,
+    "sigma_deg_s": 5.0
+  },
+  "input": {
+    "schema": "grape/real-student-frozen-input/v1",
+    "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+    "time_origin_ns": 1781254003200111893,
+    "requested_window_seconds": [
+      50.0,
+      55.0
+    ],
+    "actual_window_seconds": [
+      50.000988619000005,
+      55.000988619000005
+    ],
+    "requested_acquisition_rate_hz": 5.0,
+    "observation_count": 25,
+    "last_observation_seconds": 54.800899730000005,
+    "prediction_tail_seconds": 0.20008888899999988,
+    "initial_pose": "Saved one-time mocap SLERP alignment at the first actual gyro sample",
+    "body_to_gyro_sensor_rotation": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "training_window_seconds": [
+      40.0,
+      45.0
+    ],
+    "refit_performed": false,
+    "torque": "Frozen refined actuator torque plus strictly past residual mean once; torque_applied_body is diagnostic only",
+    "fixed_residual_mean_body_nm": [
+      2.3311204524360048e-05,
+      -5.633487546296481e-05,
+      0.0006742527681490941
+    ],
+    "inertia_body_kg_m2": [
+      [
+        0.10255160272242744,
+        -0.012757295205688543,
+        0.00010843231890875164
+      ],
+      [
+        -0.012757295205688543,
+        0.029269707293920436,
+        -0.014818869564709177
+      ],
+      [
+        0.00010843231890875164,
+        -0.014818869564709177,
+        0.12712351847156012
+      ]
+    ],
+    "estimator_data_fields": [
+      "time",
+      "initial_quaternion_wxyz",
+      "sparse_gyro_time",
+      "sparse_gyro"
+    ],
+    "physical_fields": [
+      "inertia",
+      "torque"
+    ],
+    "evaluation_mocap_or_unacquired_gyro_supplied_to_estimator": false,
+    "generated_noise_or_spikes_added": false,
+    "gyro_bias_or_time_shift_corrected": false,
+    "model_parameter_uncertainty_propagated": false,
+    "source_file_sha256": {
+      "publication/bag8_50_55s/input.npz": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a",
+      "publication/bag8_50_55s/input.json": "937682c0cf53e20de07a6a26a7a148924e9e6a86910d90b3717f25e75d400195",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.npz": "2afb7230fc3e42a599a47c82b2836b6fd6ef836270a70b991d842e4e68254822",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.json": "0e04f05166744ddaf73bf6ffdf67dc4d7595040ef2f731772fb069b4271ae874",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/fit.json": "6fd2f8a323fa049089d44ce8ba5869075e529775f69aea8abb8f42db52734294",
+      "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/heldout_dynamics_check.npz": "c4ba8fa3628835453dff65ac8cbc39180fdda209376ad2cedd3afc11501e6483"
+    },
+    "reference_semantics": "Mocap pose and SG-derived omega are read-only; raw gyro is a noisy measured reference, not angular-velocity truth"
+  },
+  "engine_metadata": {
+    "nonlinear": {
+      "schema": "grape/full-rate-causal-bayes-rotation/v1",
+      "mode": "nonlinear",
+      "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 multivariate Student-t gyro likelihoods once",
+      "acquired_observation_count": 25,
+      "likelihood_count": 24,
+      "quadrature_order_per_axis": 11,
+      "quadrature_nodes_per_refresh": 1331,
+      "scheduled_refresh_seconds": 0.02,
+      "initial_dense_seconds": 0.25,
+      "reanchor_displacement_sigma": 1.0,
+      "actual_proposal_refresh_count": 25,
+      "proposal_is_not_posterior_state": true,
+      "proposal_density_divided_out": true,
+      "proposal_selection_uses_only_current_prefix": true,
+      "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+      "previous_online_outputs_rewritten": false,
+      "every_observation_updated": true,
+      "numerical_regridding_is_not_observation_rejection": true,
+      "monte_carlo": false,
+      "node_pruning": false,
+      "covariance_floor": false,
+      "process_noise": false,
+      "full_joint_quaternion_omega_law": true,
+      "native_step_count": 9414820,
+      "maximum_quaternion_norm_correction": 4.3298697960381105e-15,
+      "native_source_sha256": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
+      "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+      "wall_seconds": 6.168139321031049,
+      "observation_distribution": "multivariate Student-t",
+      "student_df": 4.0,
+      "initial_law": "Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
+      "marginalization": "Gamma observation precision integrated analytically in every Student-t factor",
+      "variational_bayes_state_factorization": false,
+      "observation_covariance_meaning": "R is marginal covariance; Student-t scale Sigma=(nu-2)/nu R",
+      "student_observation_source_sha256": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a",
+      "dense_output": {
+        "output_dt_seconds": 0.01,
+        "physical_start_time": 50.000988619000005,
+        "physical_end_time": 55.000988619000005,
+        "grid_count": 501,
+        "added_prediction_count": 493,
+        "original_observation_row_count": 49,
+        "original_observation_rows_retained_exactly": true,
+        "event_side_meaning": {
+          "-1": "original observation prior",
+          "0": "physical prediction without a new observation",
+          "1": "original observation posterior"
+        },
+        "final_acquisition_time": 54.800899730000005,
+        "final_unobserved_prediction_seconds": 0.20008888899999988,
+        "posterior_target": "original N(W0;y0,R) times every likelihood through last included acquisition, divided by the same causal numerical proposal",
+        "future_observations_used": false,
+        "interpolation_or_flat_tail_hold": false,
+        "native_step_count": 32683,
+        "maximum_quaternion_norm_correction": 4.3298697960381105e-15
+      },
+      "dense_wrapper_wall_seconds": 10.169203598983586
+    },
+    "linear_forced": {
+      "schema": "grape/full-rate-causal-bayes-rotation/v1",
+      "mode": "linear_forced",
+      "posterior": "initial N(W0;y0,R) times ALL acquired j>=1 multivariate Student-t gyro likelihoods once",
+      "acquired_observation_count": 25,
+      "likelihood_count": 24,
+      "quadrature_order_per_axis": 11,
+      "quadrature_nodes_per_refresh": 1331,
+      "scheduled_refresh_seconds": 0.02,
+      "initial_dense_seconds": 0.25,
+      "reanchor_displacement_sigma": 1.0,
+      "actual_proposal_refresh_count": 25,
+      "proposal_is_not_posterior_state": true,
+      "proposal_density_divided_out": true,
+      "proposal_selection_uses_only_current_prefix": true,
+      "refresh_nodes_reconstruction": "existing gaussian_tensor_points(refresh mean, covariance, order); no redundant per-observation node tensor",
+      "previous_online_outputs_rewritten": false,
+      "every_observation_updated": true,
+      "numerical_regridding_is_not_observation_rejection": true,
+      "monte_carlo": false,
+      "node_pruning": false,
+      "covariance_floor": false,
+      "process_noise": false,
+      "full_joint_quaternion_omega_law": true,
+      "native_step_count": 9163611,
+      "maximum_quaternion_norm_correction": 4.440892098500626e-15,
+      "native_source_sha256": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
+      "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+      "wall_seconds": 4.467037152033299,
+      "observation_distribution": "multivariate Student-t",
+      "student_df": 4.0,
+      "initial_law": "Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
+      "marginalization": "Gamma observation precision integrated analytically in every Student-t factor",
+      "variational_bayes_state_factorization": false,
+      "observation_covariance_meaning": "R is marginal covariance; Student-t scale Sigma=(nu-2)/nu R",
+      "student_observation_source_sha256": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a",
+      "dense_output": {
+        "output_dt_seconds": 0.01,
+        "physical_start_time": 50.000988619000005,
+        "physical_end_time": 55.000988619000005,
+        "grid_count": 501,
+        "added_prediction_count": 493,
+        "original_observation_row_count": 49,
+        "original_observation_rows_retained_exactly": true,
+        "event_side_meaning": {
+          "-1": "original observation prior",
+          "0": "physical prediction without a new observation",
+          "1": "original observation posterior"
+        },
+        "final_acquisition_time": 54.800899730000005,
+        "final_unobserved_prediction_seconds": 0.20008888899999988,
+        "posterior_target": "original N(W0;y0,R) times every likelihood through last included acquisition, divided by the same causal numerical proposal",
+        "future_observations_used": false,
+        "interpolation_or_flat_tail_hold": false,
+        "native_step_count": 32683,
+        "maximum_quaternion_norm_correction": 4.440892098500626e-15
+      },
+      "dense_wrapper_wall_seconds": 7.155432599131018
+    }
+  },
+  "quadrature_refinement": {
+    "7 -> 11": {
+      "nonlinear": {
+        "max_omega_mean_component_difference_deg_s": 1.0508804533329665,
+        "max_omega_covariance_component_difference_deg2_s2": 14.19616107873773,
+        "max_rpy_proxy_component_difference_deg": 2.573597666743003,
+        "max_rotation_covariance_component_difference": 0.03203471076690777,
+        "finite_diagnostic_only": true
+      },
+      "linear_forced": {
+        "max_omega_mean_component_difference_deg_s": 0.4382297120339244,
+        "max_omega_covariance_component_difference_deg2_s2": 3.2666101161334904,
+        "max_rpy_proxy_component_difference_deg": 1.7868505815499234,
+        "max_rotation_covariance_component_difference": 0.020758470351474476,
+        "finite_diagnostic_only": true
+      }
+    }
+  },
+  "inference_wall_seconds": {
+    "7": 4.71775007690303,
+    "11": 10.209764289902523
+  },
+  "dense_interval_records": {
+    "nonlinear": [
+      {
+        "last_included_acquisition_index": 0,
+        "last_included_acquisition_time": 50.000988619000005,
+        "reused_refresh_acquisition_index": 0,
+        "first_prediction_time": 50.010988619,
+        "last_prediction_time": 50.190988619,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 0
+      },
+      {
+        "last_included_acquisition_index": 1,
+        "last_included_acquisition_time": 50.200988619,
+        "reused_refresh_acquisition_index": 1,
+        "first_prediction_time": 50.20098861900001,
+        "last_prediction_time": 50.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 1
+      },
+      {
+        "last_included_acquisition_index": 2,
+        "last_included_acquisition_time": 50.400988619,
+        "reused_refresh_acquisition_index": 2,
+        "first_prediction_time": 50.410988619,
+        "last_prediction_time": 50.59098861900001,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 2
+      },
+      {
+        "last_included_acquisition_index": 3,
+        "last_included_acquisition_time": 50.600988619000006,
+        "reused_refresh_acquisition_index": 3,
+        "first_prediction_time": 50.610988619000004,
+        "last_prediction_time": 50.790988619000004,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 3
+      },
+      {
+        "last_included_acquisition_index": 4,
+        "last_included_acquisition_time": 50.800988619,
+        "reused_refresh_acquisition_index": 4,
+        "first_prediction_time": 50.81098861900001,
+        "last_prediction_time": 50.99098861900001,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 4
+      },
+      {
+        "last_included_acquisition_index": 5,
+        "last_included_acquisition_time": 51.000988619000005,
+        "reused_refresh_acquisition_index": 5,
+        "first_prediction_time": 51.010988619,
+        "last_prediction_time": 51.190988619,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 5
+      },
+      {
+        "last_included_acquisition_index": 6,
+        "last_included_acquisition_time": 51.200988619,
+        "reused_refresh_acquisition_index": 6,
+        "first_prediction_time": 51.20098861900001,
+        "last_prediction_time": 51.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 6
+      },
+      {
+        "last_included_acquisition_index": 7,
+        "last_included_acquisition_time": 51.400988619,
+        "reused_refresh_acquisition_index": 7,
+        "first_prediction_time": 51.410988619,
+        "last_prediction_time": 51.59098861900001,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 7
+      },
+      {
+        "last_included_acquisition_index": 8,
+        "last_included_acquisition_time": 51.600988619000006,
+        "reused_refresh_acquisition_index": 8,
+        "first_prediction_time": 51.610988619000004,
+        "last_prediction_time": 51.790988619000004,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 8
+      },
+      {
+        "last_included_acquisition_index": 9,
+        "last_included_acquisition_time": 51.800988619,
+        "reused_refresh_acquisition_index": 9,
+        "first_prediction_time": 51.81098861900001,
+        "last_prediction_time": 51.99098861900001,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 9
+      },
+      {
+        "last_included_acquisition_index": 10,
+        "last_included_acquisition_time": 52.000961632000006,
+        "reused_refresh_acquisition_index": 10,
+        "first_prediction_time": 52.000988619000005,
+        "last_prediction_time": 52.190988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 10
+      },
+      {
+        "last_included_acquisition_index": 11,
+        "last_included_acquisition_time": 52.200961632,
+        "reused_refresh_acquisition_index": 11,
+        "first_prediction_time": 52.20098861900001,
+        "last_prediction_time": 52.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 11
+      },
+      {
+        "last_included_acquisition_index": 12,
+        "last_included_acquisition_time": 52.400961632000005,
+        "reused_refresh_acquisition_index": 12,
+        "first_prediction_time": 52.400988619,
+        "last_prediction_time": 52.590988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 12
+      },
+      {
+        "last_included_acquisition_index": 13,
+        "last_included_acquisition_time": 52.600961632,
+        "reused_refresh_acquisition_index": 13,
+        "first_prediction_time": 52.600988619000006,
+        "last_prediction_time": 52.790988619000004,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 13
+      },
+      {
+        "last_included_acquisition_index": 14,
+        "last_included_acquisition_time": 52.800961632,
+        "reused_refresh_acquisition_index": 14,
+        "first_prediction_time": 52.800988619,
+        "last_prediction_time": 52.99098861900001,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 14
+      },
+      {
+        "last_included_acquisition_index": 15,
+        "last_included_acquisition_time": 53.000961632000006,
+        "reused_refresh_acquisition_index": 15,
+        "first_prediction_time": 53.000988619000005,
+        "last_prediction_time": 53.190988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 15
+      },
+      {
+        "last_included_acquisition_index": 16,
+        "last_included_acquisition_time": 53.200961632,
+        "reused_refresh_acquisition_index": 16,
+        "first_prediction_time": 53.20098861900001,
+        "last_prediction_time": 53.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 16
+      },
+      {
+        "last_included_acquisition_index": 17,
+        "last_included_acquisition_time": 53.400961632000005,
+        "reused_refresh_acquisition_index": 17,
+        "first_prediction_time": 53.400988619,
+        "last_prediction_time": 53.590988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 17
+      },
+      {
+        "last_included_acquisition_index": 18,
+        "last_included_acquisition_time": 53.600961632,
+        "reused_refresh_acquisition_index": 18,
+        "first_prediction_time": 53.600988619000006,
+        "last_prediction_time": 53.790988619000004,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 18
+      },
+      {
+        "last_included_acquisition_index": 19,
+        "last_included_acquisition_time": 53.800961632,
+        "reused_refresh_acquisition_index": 19,
+        "first_prediction_time": 53.800988619,
+        "last_prediction_time": 53.99098861900001,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 19
+      },
+      {
+        "last_included_acquisition_index": 20,
+        "last_included_acquisition_time": 54.000961632000006,
+        "reused_refresh_acquisition_index": 20,
+        "first_prediction_time": 54.000988619000005,
+        "last_prediction_time": 54.190988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 20
+      },
+      {
+        "last_included_acquisition_index": 21,
+        "last_included_acquisition_time": 54.200961632,
+        "reused_refresh_acquisition_index": 21,
+        "first_prediction_time": 54.20098861900001,
+        "last_prediction_time": 54.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 21
+      },
+      {
+        "last_included_acquisition_index": 22,
+        "last_included_acquisition_time": 54.400899730000006,
+        "reused_refresh_acquisition_index": 22,
+        "first_prediction_time": 54.400988619,
+        "last_prediction_time": 54.590988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 22
+      },
+      {
+        "last_included_acquisition_index": 23,
+        "last_included_acquisition_time": 54.60089973,
+        "reused_refresh_acquisition_index": 23,
+        "first_prediction_time": 54.600988619000006,
+        "last_prediction_time": 54.790988619000004,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 23
+      },
+      {
+        "last_included_acquisition_index": 24,
+        "last_included_acquisition_time": 54.800899730000005,
+        "reused_refresh_acquisition_index": 24,
+        "first_prediction_time": 54.800988619,
+        "last_prediction_time": 55.000988619000005,
+        "prediction_count": 21,
+        "included_noninitial_likelihood_count": 24
+      }
+    ],
+    "linear_forced": [
+      {
+        "last_included_acquisition_index": 0,
+        "last_included_acquisition_time": 50.000988619000005,
+        "reused_refresh_acquisition_index": 0,
+        "first_prediction_time": 50.010988619,
+        "last_prediction_time": 50.190988619,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 0
+      },
+      {
+        "last_included_acquisition_index": 1,
+        "last_included_acquisition_time": 50.200988619,
+        "reused_refresh_acquisition_index": 1,
+        "first_prediction_time": 50.20098861900001,
+        "last_prediction_time": 50.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 1
+      },
+      {
+        "last_included_acquisition_index": 2,
+        "last_included_acquisition_time": 50.400988619,
+        "reused_refresh_acquisition_index": 2,
+        "first_prediction_time": 50.410988619,
+        "last_prediction_time": 50.59098861900001,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 2
+      },
+      {
+        "last_included_acquisition_index": 3,
+        "last_included_acquisition_time": 50.600988619000006,
+        "reused_refresh_acquisition_index": 3,
+        "first_prediction_time": 50.610988619000004,
+        "last_prediction_time": 50.790988619000004,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 3
+      },
+      {
+        "last_included_acquisition_index": 4,
+        "last_included_acquisition_time": 50.800988619,
+        "reused_refresh_acquisition_index": 4,
+        "first_prediction_time": 50.81098861900001,
+        "last_prediction_time": 50.99098861900001,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 4
+      },
+      {
+        "last_included_acquisition_index": 5,
+        "last_included_acquisition_time": 51.000988619000005,
+        "reused_refresh_acquisition_index": 5,
+        "first_prediction_time": 51.010988619,
+        "last_prediction_time": 51.190988619,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 5
+      },
+      {
+        "last_included_acquisition_index": 6,
+        "last_included_acquisition_time": 51.200988619,
+        "reused_refresh_acquisition_index": 6,
+        "first_prediction_time": 51.20098861900001,
+        "last_prediction_time": 51.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 6
+      },
+      {
+        "last_included_acquisition_index": 7,
+        "last_included_acquisition_time": 51.400988619,
+        "reused_refresh_acquisition_index": 7,
+        "first_prediction_time": 51.410988619,
+        "last_prediction_time": 51.59098861900001,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 7
+      },
+      {
+        "last_included_acquisition_index": 8,
+        "last_included_acquisition_time": 51.600988619000006,
+        "reused_refresh_acquisition_index": 8,
+        "first_prediction_time": 51.610988619000004,
+        "last_prediction_time": 51.790988619000004,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 8
+      },
+      {
+        "last_included_acquisition_index": 9,
+        "last_included_acquisition_time": 51.800988619,
+        "reused_refresh_acquisition_index": 9,
+        "first_prediction_time": 51.81098861900001,
+        "last_prediction_time": 51.99098861900001,
+        "prediction_count": 19,
+        "included_noninitial_likelihood_count": 9
+      },
+      {
+        "last_included_acquisition_index": 10,
+        "last_included_acquisition_time": 52.000961632000006,
+        "reused_refresh_acquisition_index": 10,
+        "first_prediction_time": 52.000988619000005,
+        "last_prediction_time": 52.190988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 10
+      },
+      {
+        "last_included_acquisition_index": 11,
+        "last_included_acquisition_time": 52.200961632,
+        "reused_refresh_acquisition_index": 11,
+        "first_prediction_time": 52.20098861900001,
+        "last_prediction_time": 52.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 11
+      },
+      {
+        "last_included_acquisition_index": 12,
+        "last_included_acquisition_time": 52.400961632000005,
+        "reused_refresh_acquisition_index": 12,
+        "first_prediction_time": 52.400988619,
+        "last_prediction_time": 52.590988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 12
+      },
+      {
+        "last_included_acquisition_index": 13,
+        "last_included_acquisition_time": 52.600961632,
+        "reused_refresh_acquisition_index": 13,
+        "first_prediction_time": 52.600988619000006,
+        "last_prediction_time": 52.790988619000004,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 13
+      },
+      {
+        "last_included_acquisition_index": 14,
+        "last_included_acquisition_time": 52.800961632,
+        "reused_refresh_acquisition_index": 14,
+        "first_prediction_time": 52.800988619,
+        "last_prediction_time": 52.99098861900001,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 14
+      },
+      {
+        "last_included_acquisition_index": 15,
+        "last_included_acquisition_time": 53.000961632000006,
+        "reused_refresh_acquisition_index": 15,
+        "first_prediction_time": 53.000988619000005,
+        "last_prediction_time": 53.190988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 15
+      },
+      {
+        "last_included_acquisition_index": 16,
+        "last_included_acquisition_time": 53.200961632,
+        "reused_refresh_acquisition_index": 16,
+        "first_prediction_time": 53.20098861900001,
+        "last_prediction_time": 53.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 16
+      },
+      {
+        "last_included_acquisition_index": 17,
+        "last_included_acquisition_time": 53.400961632000005,
+        "reused_refresh_acquisition_index": 17,
+        "first_prediction_time": 53.400988619,
+        "last_prediction_time": 53.590988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 17
+      },
+      {
+        "last_included_acquisition_index": 18,
+        "last_included_acquisition_time": 53.600961632,
+        "reused_refresh_acquisition_index": 18,
+        "first_prediction_time": 53.600988619000006,
+        "last_prediction_time": 53.790988619000004,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 18
+      },
+      {
+        "last_included_acquisition_index": 19,
+        "last_included_acquisition_time": 53.800961632,
+        "reused_refresh_acquisition_index": 19,
+        "first_prediction_time": 53.800988619,
+        "last_prediction_time": 53.99098861900001,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 19
+      },
+      {
+        "last_included_acquisition_index": 20,
+        "last_included_acquisition_time": 54.000961632000006,
+        "reused_refresh_acquisition_index": 20,
+        "first_prediction_time": 54.000988619000005,
+        "last_prediction_time": 54.190988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 20
+      },
+      {
+        "last_included_acquisition_index": 21,
+        "last_included_acquisition_time": 54.200961632,
+        "reused_refresh_acquisition_index": 21,
+        "first_prediction_time": 54.20098861900001,
+        "last_prediction_time": 54.390988619000005,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 21
+      },
+      {
+        "last_included_acquisition_index": 22,
+        "last_included_acquisition_time": 54.400899730000006,
+        "reused_refresh_acquisition_index": 22,
+        "first_prediction_time": 54.400988619,
+        "last_prediction_time": 54.590988619,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 22
+      },
+      {
+        "last_included_acquisition_index": 23,
+        "last_included_acquisition_time": 54.60089973,
+        "reused_refresh_acquisition_index": 23,
+        "first_prediction_time": 54.600988619000006,
+        "last_prediction_time": 54.790988619000004,
+        "prediction_count": 20,
+        "included_noninitial_likelihood_count": 23
+      },
+      {
+        "last_included_acquisition_index": 24,
+        "last_included_acquisition_time": 54.800899730000005,
+        "reused_refresh_acquisition_index": 24,
+        "first_prediction_time": 54.800988619,
+        "last_prediction_time": 55.000988619000005,
+        "prediction_count": 21,
+        "included_noninitial_likelihood_count": 24
+      }
+    ]
+  },
+  "model_difference": "omega cross(J omega) only; same refined inertia, frozen torque and quaternion kinematics",
+  "state_model": "Q=0, initial N(W0;y0,R) times all acquired Student-t likelihoods once",
+  "initial_reading_used_once": true,
+  "gaussian_observation_comparator_included": false,
+  "finite_numerical_differences_are_diagnostics_not_gates": true,
+  "publication_storage": {
+    "report": "publication_storage.json",
+    "all_published_moments_unchanged": true,
+    "final_node_weights_keys": [
+      "last_refresh_log_weights",
+      "last_refresh_prior_log_weights"
+    ],
+    "intermediate_refresh_weights_reconstructible": true,
+    "finite_proposal_residuals_report": "proposal_refresh_diagnostics.json",
+    "compact_script_sha256": "bfef7f498090de89911551c352a0c00cf1ea31b995a8bfdbeb89100eedc2fe24"
+  }
+}

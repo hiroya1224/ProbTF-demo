@@ -1,0 +1,86 @@
+{
+  "files": [
+    {
+      "path": "acquisitions.npz",
+      "bytes": 2347,
+      "sha256": "f1a34ea837d77f38bad7996e37edbeee708a8de82fecccf38d7cbdd872e30460"
+    },
+    {
+      "path": "attitude_and_gyro.pdf",
+      "bytes": 319026,
+      "sha256": "38b7f61cba90bb147db24b97ef978a20745c8d7c99787fd97843abfdbb05d3ef"
+    },
+    {
+      "path": "attitude_and_gyro.png",
+      "bytes": 653368,
+      "sha256": "fa1bab9f1f1280a235ed8f99e9c2bb4190db91203784ed625c498940e4cbf931"
+    },
+    {
+      "path": "bayes_linear_forced.npz",
+      "bytes": 490212,
+      "sha256": "4b648fa4f139eebe1d27ba375cdf45b86f70cad66d261e8a19778b1be30f4980"
+    },
+    {
+      "path": "bayes_nonlinear.npz",
+      "bytes": 506953,
+      "sha256": "997d2f0d8a1f140fb564b91184ca7b8756ff6bcb0ad850611e00c9a3b64aa78d"
+    },
+    {
+      "path": "config.json",
+      "bytes": 574,
+      "sha256": "ff3c0259c02dbdb16b34ad1f876ac911a3f2a44dd1303506ff252c99bda4b51b"
+    },
+    {
+      "path": "input.json",
+      "bytes": 2861,
+      "sha256": "7fdbaf2f0748c717cf06f9ff282fb6d5bd58b506142d661a653d92e5bc56c366"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 1824,
+      "sha256": "0aea773ab124505eca5017d7f62764a3bf01d471e14384e579f20bb0b8d10233"
+    },
+    {
+      "path": "plotted_data.npz",
+      "bytes": 101620,
+      "sha256": "8b664863f2afea2dd44cbd8a0923950c4c292e8f6886d34965b063c06b2fc0da"
+    },
+    {
+      "path": "plotting.json",
+      "bytes": 2206,
+      "sha256": "e924845851a4179c0537343deaddf17220a8098663614bec6fe4bc1fc46de8d0"
+    },
+    {
+      "path": "proposal_refresh_diagnostics.json",
+      "bytes": 22575,
+      "sha256": "3d0d19fcb022b9f56fd9037e67b5579c17cd3386045de512453015601ac3a3b7"
+    },
+    {
+      "path": "publication_storage.json",
+      "bytes": 7900,
+      "sha256": "ef64e3cf1bb780e30d145601cc5512c76a089e2fc89575a7235a074c0860553c"
+    },
+    {
+      "path": "quadrature_refinement.json",
+      "bytes": 745,
+      "sha256": "0ca0e6e0c396d7920948c1102297518fc3858f01d4a85435b2fd4f2577165e35"
+    },
+    {
+      "path": "reconstruction_errors.pdf",
+      "bytes": 174584,
+      "sha256": "51d5c6b11f9469322153db2e270e50b319c8a8126ad22c1fe408269923eed091"
+    },
+    {
+      "path": "reconstruction_errors.png",
+      "bytes": 394942,
+      "sha256": "0218bf954474dd0748664e6588c2f33099407ac3cd5f4f06c59fcc3ce9ead5db"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 18959,
+      "sha256": "d87efdc70dd9f8282c591118368de0ab884d17a39f958ecec5ec3548bc6b71a4"
+    }
+  ],
+  "bytes_excluding_manifest": 2700696,
+  "raw_bag_or_intermediate_cache_included": false
+}

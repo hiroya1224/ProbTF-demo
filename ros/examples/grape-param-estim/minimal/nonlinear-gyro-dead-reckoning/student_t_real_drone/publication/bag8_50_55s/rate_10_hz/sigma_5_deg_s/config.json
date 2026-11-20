@@ -1,0 +1,43 @@
+{
+  "rates_hz": [
+    0.5,
+    2.0,
+    5.0,
+    10.0
+  ],
+  "sigmas_deg_s": [
+    2.5,
+    5.0
+  ],
+  "student_df": 4.0,
+  "process_covariance_rad2_s2": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ]
+  ],
+  "quadrature_orders": [
+    7,
+    11
+  ],
+  "max_step_seconds": 0.002,
+  "refresh_seconds": 0.02,
+  "output_dt_seconds": 0.01,
+  "reanchor_displacement_sigma": 1.0,
+  "dense_startup_seconds": 0.25,
+  "primary_rate_hz": 5.0,
+  "primary_sigma_deg_s": 2.5,
+  "rate_hz": 10.0,
+  "sigma_deg_s": 5.0
+}

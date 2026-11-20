@@ -1,0 +1,1470 @@
+{
+  "nonlinear": [
+    {
+      "acquisition_index": 0,
+      "time": 50.000988619000005,
+      "reason": "initial",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "initialization": true,
+        "first_reading_used_once": true
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.0,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.0
+    },
+    {
+      "acquisition_index": 1,
+      "time": 50.200988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 1.7998893741639082,
+        "chosen_optimality": 0.00015820454801485084,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 8,
+        "starts_cost": [
+          1.7998893741639082,
+          1.7998893741639082
+        ],
+        "starts_nfev": [
+          8,
+          8
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.0054478066259713055,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.00042168888131567683
+    },
+    {
+      "acquisition_index": 2,
+      "time": 50.400988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 6.251830480852908,
+        "chosen_optimality": 0.0003482475000825582,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 9,
+        "starts_cost": [
+          6.251830480852908,
+          6.251830481205975
+        ],
+        "starts_nfev": [
+          9,
+          8
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.0008138077226931516,
+      "regridded_prior_covariance_max_difference_rad2_s2": 7.134864146632954e-05
+    },
+    {
+      "acquisition_index": 3,
+      "time": 50.600988619000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 16.509885428556128,
+        "chosen_optimality": 0.001351378369699674,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 9,
+        "starts_cost": [
+          16.509885429630142,
+          16.509885428556128
+        ],
+        "starts_nfev": [
+          10,
+          9
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 4.3336944295278845e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.0814320517943694e-06
+    },
+    {
+      "acquisition_index": 4,
+      "time": 50.800988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 28.313623031920066,
+        "chosen_optimality": 0.004093773119699051,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 12,
+        "starts_cost": [
+          28.31362303294661,
+          28.313623031920066
+        ],
+        "starts_nfev": [
+          13,
+          12
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.1468682548004816e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.0857229574330217e-06
+    },
+    {
+      "acquisition_index": 5,
+      "time": 51.000988619000005,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 39.95210601725824,
+        "chosen_optimality": 0.005503400390221458,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 18,
+        "starts_cost": [
+          39.952106020177105,
+          39.95210601725824
+        ],
+        "starts_nfev": [
+          17,
+          18
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 5.4111806720713584e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.916373557868874e-07
+    },
+    {
+      "acquisition_index": 6,
+      "time": 51.200988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 55.06754949295845,
+        "chosen_optimality": 0.005522826220583634,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 18,
+        "starts_cost": [
+          55.067549499567846,
+          55.06754949295845
+        ],
+        "starts_nfev": [
+          14,
+          18
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 2.1494131752508583e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.8174851976166624e-07
+    },
+    {
+      "acquisition_index": 7,
+      "time": 51.400988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 71.89543696085622,
+        "chosen_optimality": 0.006112173496994444,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 13,
+        "starts_cost": [
+          71.89543696085622,
+          71.89543697305517
+        ],
+        "starts_nfev": [
+          13,
+          17
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.5768700968865623e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.0248171279116352e-07
+    },
+    {
+      "acquisition_index": 8,
+      "time": 51.600988619000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 87.76975955466024,
+        "chosen_optimality": 0.004720964474112854,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 17,
+        "starts_cost": [
+          87.76975955705008,
+          87.76975955466024
+        ],
+        "starts_nfev": [
+          13,
+          17
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 2.2197565540671427e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.16345704884082e-07
+    },
+    {
+      "acquisition_index": 9,
+      "time": 51.800988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 104.0046419404949,
+        "chosen_optimality": 0.004844542682430841,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 16,
+        "starts_cost": [
+          104.00464194096374,
+          104.0046419404949
+        ],
+        "starts_nfev": [
+          12,
+          16
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 4.179893567046733e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.2734184121077544e-07
+    },
+    {
+      "acquisition_index": 10,
+      "time": 52.000961632000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 121.1460444947476,
+        "chosen_optimality": 0.005927459037451508,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 15,
+        "starts_cost": [
+          121.14604451602996,
+          121.1460444947476
+        ],
+        "starts_nfev": [
+          10,
+          15
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 3.503967593965207e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 3.6554472135699734e-07
+    },
+    {
+      "acquisition_index": 11,
+      "time": 52.200961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 139.2123609574026,
+        "chosen_optimality": 0.005279132357851601,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 10,
+        "starts_cost": [
+          139.2123609574026,
+          139.2123609771714
+        ],
+        "starts_nfev": [
+          10,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 3.772773481902636e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 2.760227520501443e-07
+    },
+    {
+      "acquisition_index": 12,
+      "time": 52.400961632000005,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 157.93799098293323,
+        "chosen_optimality": 0.006920455766459277,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          157.93799098574084,
+          157.93799098293323
+        ],
+        "starts_nfev": [
+          9,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 3.3343228771354205e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.520812260505925e-07
+    },
+    {
+      "acquisition_index": 13,
+      "time": 52.600961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 177.3229483266581,
+        "chosen_optimality": 0.005783110454297358,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 9,
+        "starts_cost": [
+          177.3229483266581,
+          177.3229483283491
+        ],
+        "starts_nfev": [
+          9,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 6.272424181053005e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.889737738998255e-07
+    },
+    {
+      "acquisition_index": 14,
+      "time": 52.800961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 197.75784860134192,
+        "chosen_optimality": 0.005722285354627984,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          197.75784860361205,
+          197.75784860134192
+        ],
+        "starts_nfev": [
+          9,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.1831417969676572e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.104468002973433e-06
+    },
+    {
+      "acquisition_index": 15,
+      "time": 53.000961632000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 218.78346438190766,
+        "chosen_optimality": 0.0057876562455962954,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          218.783464399696,
+          218.78346438190766
+        ],
+        "starts_nfev": [
+          9,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.9418513895308465e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.9619094267101303e-06
+    },
+    {
+      "acquisition_index": 16,
+      "time": 53.200961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 240.60456498598876,
+        "chosen_optimality": 0.006341697917989109,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          240.6045649926934,
+          240.60456498598876
+        ],
+        "starts_nfev": [
+          10,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 3.357535425174696e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 3.5270778330261793e-06
+    },
+    {
+      "acquisition_index": 17,
+      "time": 53.400961632000005,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 262.7483504903977,
+        "chosen_optimality": 0.007896715607741633,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          262.74835055184917,
+          262.7483504903977
+        ],
+        "starts_nfev": [
+          10,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 5.2885898290000455e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 6.6428629306876895e-06
+    },
+    {
+      "acquisition_index": 18,
+      "time": 53.600961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 285.14086298507715,
+        "chosen_optimality": 0.01281729374918055,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 11,
+        "starts_cost": [
+          285.14086298507715,
+          285.1408629851498
+        ],
+        "starts_nfev": [
+          11,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 9.524389736258188e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.3813521583660483e-05
+    },
+    {
+      "acquisition_index": 19,
+      "time": 53.800961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 307.19867692194373,
+        "chosen_optimality": 0.012008304553088323,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 16,
+        "starts_cost": [
+          307.1986769896268,
+          307.19867692194373
+        ],
+        "starts_nfev": [
+          11,
+          16
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.00011445718357228074,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.650861424222494e-05
+    },
+    {
+      "acquisition_index": 20,
+      "time": 54.000961632000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 328.54456985390806,
+        "chosen_optimality": 0.013539033983077875,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 12,
+        "starts_cost": [
+          328.54456985390806,
+          328.54456997203255
+        ],
+        "starts_nfev": [
+          12,
+          17
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 8.58913347490664e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 9.176055532147953e-06
+    },
+    {
+      "acquisition_index": 21,
+      "time": 54.200961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 349.22796955942863,
+        "chosen_optimality": 0.021355542224018365,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 19,
+        "starts_cost": [
+          349.22796956350595,
+          349.22796955942863
+        ],
+        "starts_nfev": [
+          12,
+          19
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 7.55687806737737e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 6.867427912112889e-06
+    },
+    {
+      "acquisition_index": 22,
+      "time": 54.400899730000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 369.69887349657245,
+        "chosen_optimality": 0.019881712176778032,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 21,
+        "starts_cost": [
+          369.69887353384723,
+          369.69887349657245
+        ],
+        "starts_nfev": [
+          12,
+          21
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 8.142336776230386e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.4673631536873347e-05
+    },
+    {
+      "acquisition_index": 23,
+      "time": 54.60089973,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 390.117309276811,
+        "chosen_optimality": 0.018016151324726337,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 10,
+        "starts_cost": [
+          390.117309276811,
+          390.1173092959596
+        ],
+        "starts_nfev": [
+          10,
+          22
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.00020587577560145752,
+      "regridded_prior_covariance_max_difference_rad2_s2": 2.980934558063312e-05
+    },
+    {
+      "acquisition_index": 24,
+      "time": 54.800899730000005,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 410.55607979267955,
+        "chosen_optimality": 0.02072432834767879,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          410.55607979267955,
+          410.55607994168537
+        ],
+        "starts_nfev": [
+          14,
+          23
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 4.0348158800246336e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 9.217269212016127e-06
+    }
+  ],
+  "linear_forced": [
+    {
+      "acquisition_index": 0,
+      "time": 50.000988619000005,
+      "reason": "initial",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "initialization": true,
+        "first_reading_used_once": true
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.0,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.0
+    },
+    {
+      "acquisition_index": 1,
+      "time": 50.200988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 1.7956896496360109,
+        "chosen_optimality": 0.00015162399967039164,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 8,
+        "starts_cost": [
+          1.7956896496360109,
+          1.7956896496360109
+        ],
+        "starts_nfev": [
+          8,
+          8
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.005497044996868726,
+      "regridded_prior_covariance_max_difference_rad2_s2": 0.00042444275475122346
+    },
+    {
+      "acquisition_index": 2,
+      "time": 50.400988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 6.258518742550724,
+        "chosen_optimality": 0.000317161596541719,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 9,
+        "starts_cost": [
+          6.258518742550724,
+          6.258518742760564
+        ],
+        "starts_nfev": [
+          9,
+          8
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.0008229558734366982,
+      "regridded_prior_covariance_max_difference_rad2_s2": 7.234419445456173e-05
+    },
+    {
+      "acquisition_index": 3,
+      "time": 50.600988619000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 16.551267125399754,
+        "chosen_optimality": 0.0011455347618927192,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 7,
+        "starts_cost": [
+          16.551267126727325,
+          16.551267125399754
+        ],
+        "starts_nfev": [
+          10,
+          7
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 4.4115320627181875e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.177097847270607e-06
+    },
+    {
+      "acquisition_index": 4,
+      "time": 50.800988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 28.418858184114654,
+        "chosen_optimality": 0.004095026767410914,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 11,
+        "starts_cost": [
+          28.418858184943844,
+          28.418858184114654
+        ],
+        "starts_nfev": [
+          13,
+          11
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.218605809097384e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.1525206456381798e-06
+    },
+    {
+      "acquisition_index": 5,
+      "time": 51.000988619000005,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 39.97456274039216,
+        "chosen_optimality": 0.004379410950802409,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 18,
+        "starts_cost": [
+          39.974562745143594,
+          39.97456274039216
+        ],
+        "starts_nfev": [
+          17,
+          18
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 5.3380662218549535e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.597945353966397e-07
+    },
+    {
+      "acquisition_index": 6,
+      "time": 51.200988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 54.830138870241,
+        "chosen_optimality": 0.004616200373230813,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          54.830138870241,
+          54.830138872087126
+        ],
+        "starts_nfev": [
+          14,
+          18
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.6793601269327052e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.4296922301988918e-07
+    },
+    {
+      "acquisition_index": 7,
+      "time": 51.400988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 71.37208930893077,
+        "chosen_optimality": 0.0048364045673245926,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 13,
+        "starts_cost": [
+          71.37208930893077,
+          71.37208931216009
+        ],
+        "starts_nfev": [
+          13,
+          18
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.3193942441092066e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.1685349061009258e-07
+    },
+    {
+      "acquisition_index": 8,
+      "time": 51.600988619000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 87.01839938340014,
+        "chosen_optimality": 0.005969174929139953,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 13,
+        "starts_cost": [
+          87.01839938340014,
+          87.01839938411212
+        ],
+        "starts_nfev": [
+          13,
+          17
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.9325390894775474e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.0805729902985291e-07
+    },
+    {
+      "acquisition_index": 9,
+      "time": 51.800988619,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 103.47334717096977,
+        "chosen_optimality": 0.0047206367369110325,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 16,
+        "starts_cost": [
+          103.47334717844758,
+          103.47334717096977
+        ],
+        "starts_nfev": [
+          12,
+          16
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 8.374458999760304e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 7.37732517802495e-07
+    },
+    {
+      "acquisition_index": 10,
+      "time": 52.000961632000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 121.02867993621194,
+        "chosen_optimality": 0.004728365266434033,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 15,
+        "starts_cost": [
+          121.02867993654355,
+          121.02867993621194
+        ],
+        "starts_nfev": [
+          11,
+          15
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 7.195566603696024e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 6.230947933298127e-07
+    },
+    {
+      "acquisition_index": 11,
+      "time": 52.200961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 139.64111024209376,
+        "chosen_optimality": 0.005085338621189095,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 10,
+        "starts_cost": [
+          139.64111024209376,
+          139.64111024807534
+        ],
+        "starts_nfev": [
+          10,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 5.629545734964214e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.766843377555308e-07
+    },
+    {
+      "acquisition_index": 12,
+      "time": 52.400961632000005,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 158.67826352131397,
+        "chosen_optimality": 0.004436990535433338,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          158.67826353425107,
+          158.67826352131397
+        ],
+        "starts_nfev": [
+          9,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 3.865590582463607e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 3.1710499488247536e-07
+    },
+    {
+      "acquisition_index": 13,
+      "time": 52.600961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 177.7553146921953,
+        "chosen_optimality": 0.005148525465038745,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 9,
+        "starts_cost": [
+          177.7553146921953,
+          177.75531471317197
+        ],
+        "starts_nfev": [
+          9,
+          13
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 3.977681346412076e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 2.584039379583281e-07
+    },
+    {
+      "acquisition_index": 14,
+      "time": 52.800961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 197.42948387253782,
+        "chosen_optimality": 0.008389223277618273,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 13,
+        "starts_cost": [
+          197.42948387879397,
+          197.42948387253782
+        ],
+        "starts_nfev": [
+          8,
+          13
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 5.498044547080916e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 4.1233986014532504e-07
+    },
+    {
+      "acquisition_index": 15,
+      "time": 53.000961632000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 217.64367971368867,
+        "chosen_optimality": 0.008620764002060355,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 13,
+        "starts_cost": [
+          217.64367971938526,
+          217.64367971368867
+        ],
+        "starts_nfev": [
+          8,
+          13
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 7.844033537041106e-06,
+      "regridded_prior_covariance_max_difference_rad2_s2": 6.290581773373341e-07
+    },
+    {
+      "acquisition_index": 16,
+      "time": 53.200961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 238.25082777855891,
+        "chosen_optimality": 0.009551283152857692,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 13,
+        "starts_cost": [
+          238.25082778058416,
+          238.25082777855891
+        ],
+        "starts_nfev": [
+          8,
+          13
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.041416304925491e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 8.433432257836694e-07
+    },
+    {
+      "acquisition_index": 17,
+      "time": 53.400961632000005,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 259.01866642732,
+        "chosen_optimality": 0.011153402330988271,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 13,
+        "starts_cost": [
+          259.018666436886,
+          259.01866642732
+        ],
+        "starts_nfev": [
+          8,
+          13
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 1.4226674645567705e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.150883239928245e-06
+    },
+    {
+      "acquisition_index": 18,
+      "time": 53.600961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 280.0691628038432,
+        "chosen_optimality": 0.006926032651677248,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 9,
+        "starts_cost": [
+          280.0691628038432,
+          280.0691628508085
+        ],
+        "starts_nfev": [
+          9,
+          13
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 2.035028667790595e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.6430840736009027e-06
+    },
+    {
+      "acquisition_index": 19,
+      "time": 53.800961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 301.49237280844864,
+        "chosen_optimality": 0.00824106829624327,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          301.49237282479913,
+          301.49237280844864
+        ],
+        "starts_nfev": [
+          9,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 3.066716640709455e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 2.4960439328082897e-06
+    },
+    {
+      "acquisition_index": 20,
+      "time": 54.000961632000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 323.1602173026156,
+        "chosen_optimality": 0.011730712376591068,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 14,
+        "starts_cost": [
+          323.1602173371213,
+          323.1602173026156
+        ],
+        "starts_nfev": [
+          9,
+          14
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 4.537154894679318e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 3.705859926368942e-06
+    },
+    {
+      "acquisition_index": 21,
+      "time": 54.200961632,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 344.9425924543792,
+        "chosen_optimality": 0.00921367480640889,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 15,
+        "starts_cost": [
+          344.9425924703824,
+          344.9425924543792
+        ],
+        "starts_nfev": [
+          10,
+          15
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 6.550364646462636e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 5.326157416672629e-06
+    },
+    {
+      "acquisition_index": 22,
+      "time": 54.400899730000006,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 367.1151404425502,
+        "chosen_optimality": 0.015486132685422435,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 15,
+        "starts_cost": [
+          367.1151404507302,
+          367.1151404425502
+        ],
+        "starts_nfev": [
+          10,
+          15
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 9.073267388703954e-05,
+      "regridded_prior_covariance_max_difference_rad2_s2": 7.290602132191946e-06
+    },
+    {
+      "acquisition_index": 23,
+      "time": 54.60089973,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 389.8027969950301,
+        "chosen_optimality": 0.01308798015354995,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 11,
+        "starts_cost": [
+          389.8027969950301,
+          389.80279702706264
+        ],
+        "starts_nfev": [
+          11,
+          16
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.00012228268417069366,
+      "regridded_prior_covariance_max_difference_rad2_s2": 9.691972258268726e-06
+    },
+    {
+      "acquisition_index": 24,
+      "time": 54.800899730000005,
+      "reason": "scheduled",
+      "trigger_displacement_sigma": 0.0,
+      "proposal": {
+        "placement": "Gaussian numerical importance proposal fitted to initial Gaussian times all acquired multivariate Student-t factors",
+        "target_replaced_by_proposal": false,
+        "student_df": 4.0,
+        "scale_matrix_rule": "Sigma=(nu-2)/nu * marginal R",
+        "chosen_cost": 413.0349320467575,
+        "chosen_optimality": 0.011583160777857593,
+        "chosen_status": 2,
+        "chosen_success": true,
+        "chosen_nfev": 12,
+        "starts_cost": [
+          413.0349320467575,
+          413.0349321355503
+        ],
+        "starts_nfev": [
+          12,
+          17
+        ],
+        "maximum_function_evaluations_per_start": 24,
+        "finite_unconverged_proposal_does_not_reject_observation": true,
+        "covariance": "Inverse Gauss-Newton matrix of grouped transformed Student-t residuals plus original prior; integration proposal only"
+      },
+      "regridded_prior_mean_max_difference_rad_s": 0.00015391223231642215,
+      "regridded_prior_covariance_max_difference_rad2_s2": 1.203999586940846e-05
+    }
+  ]
+}

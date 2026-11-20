@@ -1,0 +1,122 @@
+{
+  "initial_omega_rad_s": [
+    0.03197864815592766,
+    0.09834782034158707,
+    0.05591071769595146
+  ],
+  "initial_quaternion_wxyz": [
+    -0.998089556111638,
+    0.03700441485659291,
+    -0.018172060709166094,
+    -0.04601833842694841
+  ],
+  "time_bounds": [
+    50.000988619000005,
+    55.000988619000005
+  ],
+  "residual_mean_nm": [
+    2.3311204524360048e-05,
+    -5.633487546296481e-05,
+    0.0006742527681490941
+  ],
+  "modes": {
+    "nonlinear": {
+      "scipy_success": true,
+      "native_vs_original_python_max_omega_rad_s": 3.3306690738754696e-16,
+      "native_vs_original_python_max_pose_deg": 2.807385688739644e-13,
+      "native_vs_dop853_max_omega_rad_s": 1.871065764769142e-06,
+      "native_vs_dop853_max_pose_deg": 4.706113495920573e-05,
+      "native_vs_dop853_final_pose_deg": 4.2032186088475047e-05,
+      "free_prediction_mocap_pose_rmse_deg": 98.90046196126954,
+      "free_prediction_mocap_final_pose_deg": 116.50365248886295,
+      "final_predicted_omega_rad_s": [
+        -0.2310179158067323,
+        0.3356887728286242,
+        -1.2466052835547696
+      ],
+      "wall_seconds": 16.66840315097943
+    },
+    "linear_forced": {
+      "scipy_success": true,
+      "native_vs_original_python_max_omega_rad_s": 2.220446049250313e-16,
+      "native_vs_original_python_max_pose_deg": 3.364135538938463e-13,
+      "native_vs_dop853_max_omega_rad_s": 1.5001891826571523e-06,
+      "native_vs_dop853_max_pose_deg": 4.4926155528394244e-05,
+      "native_vs_dop853_final_pose_deg": 3.219218949214197e-05,
+      "free_prediction_mocap_pose_rmse_deg": 95.62927261325142,
+      "free_prediction_mocap_final_pose_deg": 87.53599458217252,
+      "final_predicted_omega_rad_s": [
+        1.411778170575815,
+        0.6573893447812417,
+        -1.1678630435139827
+      ],
+      "wall_seconds": 14.095089772948995
+    }
+  },
+  "schema": "grape/real-student-independent-physics-audit/v1",
+  "scope": "One point trajectory from raw initial gyro; no observation updates, no parameter refit",
+  "filter_or_measurements_modified": false,
+  "reference_is_read_only": true,
+  "future_gyro_or_mocap_supplied_to_prediction": false,
+  "coordinate_convention": "Hamilton wxyz body-to-world quaternion; body angular velocity and body-CoG torque; original bag clock",
+  "residual_torque": "Frozen past residual mean added once to stored actuator torque",
+  "native_and_original_python_rk4_max_step_seconds": 0.002,
+  "independent_integrator": {
+    "method": "scipy solve_ivp DOP853",
+    "max_step_seconds": 0.0005,
+    "rtol": 1e-10,
+    "atol": 1e-12
+  },
+  "comparison_grid_count": 501,
+  "original_python_covariance": [
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "original_python_six_points": "Six coincident zero-covariance initial conditions required by the old API; no random draws",
+  "finite_differences_are_diagnostics_not_filter_gates": true,
+  "source_sha256": {
+    "student_t_real_drone/physics_audit.py": "65f0129b6cb0c4911578568e569754edcab898281a68f2aea53683c26dc9c158",
+    "student_t_real_drone/input.py": "ab3734b739dcaa63408f67a5e8e8391ffe78fa3963a422f1c4be733c74ded492",
+    "synthetic_controlled_rotation/sequential_bayes_spikes/native_flow.py": "075e227b854d34e0e0017c43fa54b62ec236cd31fdfd66bb7154333d419e410d",
+    "synthetic_controlled_rotation/sequential_bayes_spikes/native_flow.cpp": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
+    "propagation.py": "92887c1cd732a5467bd5ea8f39a52c71b93661c1a1399c1a69f4c567168e8060",
+    "torque.py": "12db46a446f3e52599d45fe649863260363e4b346ec78d5a97e91aae0fd2b304"
+  },
+  "inertia_body_kg_m2": [
+    [
+      0.10255160272242744,
+      -0.012757295205688543,
+      0.00010843231890875164
+    ],
+    [
+      -0.012757295205688543,
+      0.029269707293920436,
+      -0.014818869564709177
+    ],
+    [
+      0.00010843231890875164,
+      -0.014818869564709177,
+      0.12712351847156012
+    ]
+  ],
+  "result_provenance": "Numerical values from the independently executed equivalent script in exec session13612; this faithful reproducible module was saved afterwards; only provenance metadata was appended without rerunning inference or the physical trajectories",
+  "frozen_input_source_sha256": {
+    "publication/bag8_50_55s/input.npz": "1cb2fc65a58f55494edc49605998f4b41e913f2839aa22720db0f2db0512325a",
+    "publication/bag8_50_55s/input.json": "937682c0cf53e20de07a6a26a7a148924e9e6a86910d90b3717f25e75d400195",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.npz": "2afb7230fc3e42a599a47c82b2836b6fd6ef836270a70b991d842e4e68254822",
+    "mocap_refined_dynamics/publication/bag8_40_45_fit_50_55_predict/refined_torque_profile.json": "0e04f05166744ddaf73bf6ffdf67dc4d7595040ef2f731772fb069b4271ae874"
+  }
+}

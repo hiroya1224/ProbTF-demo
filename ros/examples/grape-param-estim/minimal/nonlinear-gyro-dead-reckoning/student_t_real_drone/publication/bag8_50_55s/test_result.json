@@ -1,0 +1,11 @@
+{
+  "command": "env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/probtf-real-student-mpl python3 -m unittest discover -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/student_t_real_drone/tests -v",
+  "passed": 8,
+  "exit_code": 0,
+  "wall_seconds": 0.325,
+  "execution_chunk_id": "b244da",
+  "source_sha256": {
+    "test_dense_engine.py": "741ff667346b9714b4ec25f67c406785bcb128c8a83e14c5a964aa19ffccc05b",
+    "test_input.py": "ccfc0852cd688cd3244726a669d15684fe183fa9a1706bbf0fba0187f9ef442e"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "schema": "grape/real-flight-student-t-saved-moment-plots/v1",
+  "renderer_sha256": "a1d2d5befc609e245a619daca8482799c593d81d86d627fec0ba7c54e1e54bbd",
+  "settings": {
+    "start_bag_seconds": 50.000988619000005,
+    "end_bag_seconds": 55.000988619000005,
+    "duration_seconds": 5.0,
+    "acquisition_rate_hz": 5.0,
+    "sigma_deg_s": 5.0,
+    "student_df": 4.0,
+    "native_reading_count": 1001,
+    "acquired_reading_count": 25,
+    "stored_rows": {
+      "nonlinear": 542,
+      "linear_forced": 542
+    },
+    "stored_event_rows": {
+      "nonlinear": {
+        "-1": 24,
+        "0": 493,
+        "1": 25
+      },
+      "linear_forced": {
+        "-1": 24,
+        "0": 493,
+        "1": 25
+      }
+    },
+    "initial_law": "N(W0;y0,R), initialized from first acquired gyro once",
+    "observation_distribution": "Multivariate Student-t for each acquired j>=1 factor",
+    "gaussian_observation_comparator_included": false
+  },
+  "files": [
+    "attitude_and_gyro.pdf",
+    "attitude_and_gyro.png",
+    "reconstruction_errors.pdf",
+    "reconstruction_errors.png"
+  ],
+  "metrics_evaluation": "Same 501 fixed times for every acquisition rate; exact saved grid rows, posterior at duplicate clock; no estimate interpolation",
+  "all_saved_moment_rows_drawn": true,
+  "every_native_gyro_drawn": true,
+  "averaging": false,
+  "estimate_interpolation": false,
+  "covariance_adjustment": false,
+  "no_estimator_rerun": true,
+  "metadata": {
+    "config": {
+      "rates_hz": [
+        0.5,
+        2.0,
+        5.0,
+        10.0
+      ],
+      "sigmas_deg_s": [
+        2.5,
+        5.0
+      ],
+      "student_df": 4.0,
+      "process_covariance_rad2_s2": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quadrature_orders": [
+        7,
+        11
+      ],
+      "max_step_seconds": 0.002,
+      "refresh_seconds": 0.02,
+      "output_dt_seconds": 0.01,
+      "reanchor_displacement_sigma": 1.0,
+      "dense_startup_seconds": 0.25,
+      "primary_rate_hz": 5.0,
+      "primary_sigma_deg_s": 2.5,
+      "rate_hz": 5.0,
+      "sigma_deg_s": 5.0
+    }
+  }
+}

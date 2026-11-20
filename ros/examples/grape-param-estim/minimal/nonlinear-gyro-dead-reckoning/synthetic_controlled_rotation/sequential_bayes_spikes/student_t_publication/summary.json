@@ -3,7 +3,7 @@
   "config": {
     "student_df": 4.0,
     "body_omega_scale": 3.0,
-    "spike_scale": 0.5,
+    "spike_scale": 1.0,
     "process_covariance_rad2_s2": [
       [
         0,
@@ -77,10 +77,25 @@
   },
   "saved_input_file_sha256": {
     "source_input.npz": "ac130bdc2cac6c3500a7663f045baa74d3cdbdf6468f811667d6d9226c0ce11e",
-    "sensor_input.npz": "ab8a275c877d51102cb9e5fad146a6296ca9617fa52cee89afc28df0aa02aa2a",
-    "acquisitions.npz": "d203558820e599cda1f38464986fe51eb9e71b7f783bb1a6b93db5f0910261e8"
+    "sensor_input.npz": "ef05a742a8d52c7daa1d28ae656c1b7f79f4a78f58c187e6df5fe8d16562e040",
+    "acquisitions.npz": "db359631c9877b45e9ea564f1c1761ae6a11d3d5236ddcd8ef2429b4e0a10aa4"
   },
-  "copied_input_files_bitwise_identical": true,
+  "copied_input_files_bitwise_identical": false,
+  "source_input_bitwise_identical": true,
+  "input_transformation": {
+    "baseline_spike_scale": 0.5,
+    "target_spike_scale": 1.0,
+    "applied_amplitude_multiplier": 2.0,
+    "scaled_sensor_fields": [
+      "spike_vector_rad_s",
+      "event_vector_body_rad_s",
+      "event_magnitude_deg_s"
+    ],
+    "measured_gyro_rule": "unchanged gyro_white + scaled saved spike_vector_rad_s",
+    "event_times_rate_widths_directions_masks_and_counts_changed": false,
+    "motion_torque_white_noise_bias_or_clocks_changed": false,
+    "new_random_draws": false
+  },
   "input_files_unchanged_after_inference": true,
   "native_reading_count": 4001,
   "observation_count": 201,
@@ -113,10 +128,10 @@
   "variational_gaussian_state_replacement": false,
   "monte_carlo_inference": false,
   "source_sha256": {
-    "student_t_run.py": "18caa926590a6e9c7aa25c1fc4737ef81e8525a9a2e57b45642b4d9699d43b2b",
-    "student_t_verify.py": "d460eefa2c2283201f4bf203f3be57baea800707e1a22977c46b64df88e638c6",
+    "student_t_run.py": "f18d962b9ad4625257950b52521d6dce3ad61c04b518d712c150add7923abb6d",
+    "student_t_verify.py": "23e66c1c114819c1a07b1600e5cfb19953dfd07a4bb39e3a166f9b129414ccd5",
     "student_t_plotting.py": "7d3ca3ce53861fa3701d897308b625145a1d61c72654d8add67e6b2f255614fe",
-    "student_t_config.json": "3b01d87cd9839ffc0cc86f2ca60942fe203e0452a7b9669fc7e5190298400bad",
+    "student_t_config.json": "be3fa258476f671f60e94bc9e9fe01c223ca8dd460feb0a6778c47826702db4c",
     "student_t_observation.py": "da6dd4a2f0714da6df4f67c077ab381d7a7c9891d0728e356b4f2527f0dedc8a",
     "full_rate_engine.py": "4a403daf54b7cd79688de32e6b668feedf331e8a83a633fd12a479395542d208",
     "full_rate_flow.cpp": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
@@ -151,11 +166,11 @@
       "covariance_floor": false,
       "process_noise": false,
       "full_joint_quaternion_omega_law": true,
-      "native_step_count": 104752940,
+      "native_step_count": 94300666,
       "maximum_quaternion_norm_correction": 2.1094237467877974e-14,
       "native_source_sha256": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
       "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
-      "wall_seconds": 141.00909680919722,
+      "wall_seconds": 140.3131667119451,
       "observation_distribution": "multivariate Student-t",
       "student_df": 4.0,
       "initial_law": "Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
@@ -188,11 +203,11 @@
       "covariance_floor": false,
       "process_noise": false,
       "full_joint_quaternion_omega_law": true,
-      "native_step_count": 198064515,
+      "native_step_count": 185031005,
       "maximum_quaternion_norm_correction": 2.1316282072803006e-14,
       "native_source_sha256": "76efa6957294377d7ce81d85745ef84686f032b43036b7a96267aedd2b426f6c",
       "included_physical_source_sha256": "10c2e1024169a28319ff01f135d6a64cc597c97e000e5d4ffd7e73bfa8c31c4c",
-      "wall_seconds": 108.23890220210887,
+      "wall_seconds": 106.50758436508477,
       "observation_distribution": "multivariate Student-t",
       "student_df": 4.0,
       "initial_law": "Same Gaussian N(W0;y0,R) as the previous experiment; y0 initializes once",
@@ -205,26 +220,26 @@
   "quadrature_refinement": {
     "7 -> 11": {
       "nonlinear": {
-        "max_omega_mean_component_difference_deg_s": 0.09636716831149829,
-        "max_omega_covariance_component_difference_deg2_s2": 1.0507857629448554,
-        "max_rpy_proxy_component_difference_deg": 0.031036747713162994,
-        "max_rotation_covariance_component_difference": 4.428783205702718e-05,
+        "max_omega_mean_component_difference_deg_s": 0.2189272997470417,
+        "max_omega_covariance_component_difference_deg2_s2": 2.2621749703401584,
+        "max_rpy_proxy_component_difference_deg": 0.10783492073010174,
+        "max_rotation_covariance_component_difference": 0.00016250058443701147,
         "finite_diagnostic_only": true
       },
       "linear_forced": {
-        "max_omega_mean_component_difference_deg_s": 0.09504225001344672,
-        "max_omega_covariance_component_difference_deg2_s2": 1.0374905704824795,
-        "max_rpy_proxy_component_difference_deg": 0.043145977470624444,
-        "max_rotation_covariance_component_difference": 0.000723475289931573,
+        "max_omega_mean_component_difference_deg_s": 0.21911009499676354,
+        "max_omega_covariance_component_difference_deg2_s2": 2.1991239312909077,
+        "max_rpy_proxy_component_difference_deg": 0.10982001525370513,
+        "max_rotation_covariance_component_difference": 0.0006574560254826514,
         "finite_diagnostic_only": true
       }
     }
   },
   "inference_wall_seconds": {
-    "7": 53.11806474789046,
-    "11": 141.21314019407146
+    "7": 50.8014564209152,
+    "11": 140.49982194812037
   },
-  "wall_seconds": 197.09771733894013,
+  "wall_seconds": 194.04519636998884,
   "publication_storage": {
     "report": "publication_storage.json",
     "all_published_moments_unchanged": true,

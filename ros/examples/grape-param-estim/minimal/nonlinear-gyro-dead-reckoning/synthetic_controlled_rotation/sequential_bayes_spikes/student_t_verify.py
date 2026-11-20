@@ -116,6 +116,52 @@ def plot_checks(output, source, sensor, acquired, cases):
     return result
 
 
+def input_checks(output, baseline, source, sensor, acquired, config):
+    """Independently verify an amplitude-only change of saved measurements."""
+    previous_source = load_npz(baseline/'source_input.npz')
+    previous_sensor = load_npz(baseline/'sensor_input.npz')
+    previous_acquired = load_npz(baseline/'acquisitions.npz')
+    previous_config = json.loads((baseline/'config.json').read_text())
+    previous_scale = float(previous_config.get('spike_scale', 1.))
+    target_scale = float(config.get('spike_scale', previous_scale))
+    ratio = target_scale/previous_scale
+    amplitude_keys = ('spike_vector_rad_s', 'event_vector_body_rad_s',
+                      'event_magnitude_deg_s')
+    index = np.asarray(acquired['native_array_index'], int)
+    pulse_sum = np.zeros_like(sensor['spike_vector_rad_s'])
+    pulse_count = np.zeros(len(pulse_sum), dtype=np.int64)
+    for first, last, vector in zip(sensor['event_native_start_array_index'],
+            sensor['event_native_stop_array_index_exclusive'], sensor['event_vector_body_rad_s']):
+        pulse_sum[int(first):int(last)] += vector
+        pulse_count[int(first):int(last)] += 1
+    full_path = HERE/'frequent_publication/sensor_input.npz'
+    full_sensor = load_npz(full_path)
+    return dict(reference='Preserved body-omega3 input plus original saved full-amplitude pulse realization; post-run diagnostics only',
+        source_file_bitwise_equal_to_preserved_motion=sha(output/'source_input.npz')==sha(baseline/'source_input.npz'),
+        source_arrays_exact={name:bool(np.array_equal(value,previous_source[name]))
+                             for name,value in source.items()},
+        previous_spike_scale=previous_scale, target_spike_scale=target_scale,
+        amplitude_ratio_from_preserved_input=ratio,
+        scaled_pulse_fields={name:difference(sensor[name],ratio*previous_sensor[name])
+                             for name in amplitude_keys},
+        original_full_pulse_fields={name:difference(sensor[name],target_scale*full_sensor[name])
+                                    for name in amplitude_keys},
+        unchanged_sensor_arrays={name:bool(np.array_equal(value,previous_sensor[name]))
+            for name,value in sensor.items() if name not in (*amplitude_keys,'gyro_spike')},
+        measured_gyro_equals_white_plus_scaled_pulse=difference(sensor['gyro_spike'],
+            previous_sensor['gyro_white']+ratio*previous_sensor['spike_vector_rad_s']),
+        pulse_sum_matches_native_spike=difference(sensor['spike_vector_rad_s'],pulse_sum),
+        pulse_count_exact=bool(np.array_equal(sensor['active_spike_count'],pulse_count)),
+        pulse_mask_exact=bool(np.array_equal(sensor['spike_mask'],pulse_count>0)),
+        original_pulse_file_sha256=sha(full_path),
+        acquisition_native_indices_unchanged=bool(np.array_equal(index,previous_acquired['native_array_index'])),
+        acquisition_clock_and_labels_unchanged={name:bool(np.array_equal(value,previous_acquired[name]))
+            for name,value in acquired.items() if name not in ('gyro_spike','spike_vector_rad_s')},
+        acquisitions_equal_selected_native={name:bool(np.array_equal(acquired[name],sensor[name][index]))
+            for name in ('time','stamp_ns','record_ns','source_index','gyro_spike','spike_mask','spike_vector_rad_s')},
+        new_random_realization_used=False, estimator_or_observations_modified_by_verifier=False)
+
+
 def run(args):
     begun = time.monotonic()
     output, baseline = args.output.resolve(), args.baseline.resolve()
@@ -134,8 +180,7 @@ def run(args):
         observations_or_filter_state_changed=False,
         finite_differences_are_diagnostics_not_observation_gates=True,
         verifier_sha256=sha(__file__),
-        inputs_bitwise_equal_to_preserved_half_spike_input={
-            name:sha(output/name)==sha(baseline/name) for name in names},
+        input_amplitude_transformation=input_checks(output,baseline,source,sensor,acquired,config),
         input_sha256={name:sha(output/name) for name in names},
         degrees_of_freedom=config['student_df'],
         declared_process_covariance_exactly_zero=bool(np.array_equal(

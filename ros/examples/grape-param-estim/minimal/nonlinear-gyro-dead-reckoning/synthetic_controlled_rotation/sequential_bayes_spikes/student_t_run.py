@@ -5,6 +5,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import importlib.util
 import json
+import os
 import shutil
 import sys
 import time
@@ -26,6 +27,36 @@ def load(name, filename):
 shared = load('_student_run_shared', 'run.py')
 
 
+def prepare_inputs(directory, config):
+    """Change only saved spike amplitudes; preserve motion/noise/clocks."""
+    directory = Path(directory)
+    selection = load('_student_input_selection', 'rate_comparison_run.py')
+    source, sensor, acquired, selected, physical = selection.saved_inputs(
+        directory, config['acquisition_rate_hz'])
+    baseline_config = json.loads((directory/'config.json').read_text())
+    baseline_scale = float(baseline_config.get('spike_scale', 1.))
+    target_scale = float(config['spike_scale'])
+    if (not np.isfinite(baseline_scale) or baseline_scale <= 0.
+            or not np.isfinite(target_scale) or target_scale <= 0.):
+        raise ValueError('Finite positive source and target spike-amplitude scales required')
+    ratio = target_scale/baseline_scale
+    amplitude_fields = ('spike_vector_rad_s', 'event_vector_body_rad_s', 'event_magnitude_deg_s')
+    if ratio != 1.:
+        for name in amplitude_fields:
+            sensor[name] = ratio*sensor[name]
+        sensor['gyro_spike'] = sensor['gyro_white']+sensor['spike_vector_rad_s']
+        indices = acquired['native_array_index']
+        acquired['gyro_spike'] = sensor['gyro_spike'][indices].copy()
+        acquired['spike_vector_rad_s'] = sensor['spike_vector_rad_s'][indices].copy()
+        selected['sparse_gyro'] = acquired['gyro_spike'].copy()
+    transformation = dict(baseline_spike_scale=baseline_scale, target_spike_scale=target_scale,
+        applied_amplitude_multiplier=ratio, scaled_sensor_fields=list(amplitude_fields),
+        measured_gyro_rule='unchanged gyro_white + scaled saved spike_vector_rad_s',
+        event_times_rate_widths_directions_masks_and_counts_changed=False,
+        motion_torque_white_noise_bias_or_clocks_changed=False, new_random_draws=False)
+    return source, sensor, acquired, selected, physical, transformation
+
+
 def write_report(output):
     metrics = json.loads((output/'student_t_metrics.json').read_text())
     config = json.loads((output/'config.json').read_text())
@@ -35,7 +66,9 @@ def write_report(output):
         '[定式化と再現手順](../STUDENT_T.md)', '',
         f'両方の観測尤度を3変量Student-t、自由度ν={config["student_df"]:g}とした。'
         'Student-tを使わない方式は今回の図に含めない。'
-        '元のQ=0・body角速度3倍・スパイク振幅0.5倍・20秒・10 Hzの測定列を保存値のまま使い、'
+        f'Q=0・body角速度3倍・スパイク振幅{config["spike_scale"]:g}倍・20秒・10 Hzとし、'
+        '保存済みのスパイクを元の振幅（単独パルス20〜60 deg/s）へ戻した。'
+        '発生時刻・頻度・幅・方向・白色noise・真値運動・トルクは保持し、'
         '途中の真値・スパイクフラグ・生成biasを推定へ渡さない。', '',
         '観測の周辺共分散は $R=(5\\pi/180)^2I_3$ のまま。'
         'Student-tの尺度行列は $\\Sigma=(\\nu-2)R/\\nu$ とし、ν=4ではR/2。'
@@ -72,13 +105,12 @@ def run(args):
         raise ValueError('This comparison keeps Q=0')
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    selection = load('_student_input_selection', 'rate_comparison_run.py')
-    source, sensor, acquired, selected, physical = selection.saved_inputs(
-        args.input, config['acquisition_rate_hz'])
+    source, sensor, acquired, selected, physical, transformation = prepare_inputs(args.input, config)
     input_names = ('source_input.npz', 'sensor_input.npz', 'acquisitions.npz')
     input_hashes = {name: shared.sha(args.input/name) for name in input_names}
-    for name in input_names:
-        shutil.copyfile(args.input/name, output/name)
+    shutil.copyfile(args.input/'source_input.npz', output/'source_input.npz')
+    np.savez_compressed(output/'sensor_input.npz', **sensor)
+    np.savez_compressed(output/'acquisitions.npz', **acquired)
     shared.write_json(output/'config.json', config)
     if not np.array_equal(acquired['gyro_spike'], np.load(output/'acquisitions.npz')['gyro_spike']):
         raise ValueError('Saved acquisitions must match the unchanged input clock')
@@ -124,10 +156,12 @@ def run(args):
         student_scale_rad2_s2=cases['nonlinear']['observation_student_scale_rad2_s2'],
         observation_covariance_rad2_s2=cases['nonlinear']['measurement_covariance_rad2_s2'],
         marginal_observation_covariance_preserved=True,
-        input_directory_relative_to_runner=str(args.input.resolve().relative_to(HERE)),
+        input_directory_relative_to_runner=os.path.relpath(args.input.resolve(), HERE),
         input_file_sha256=input_hashes,
         saved_input_file_sha256={name: shared.sha(output/name) for name in input_names},
         copied_input_files_bitwise_identical=all(shared.sha(output/name)==input_hashes[name] for name in input_names),
+        source_input_bitwise_identical=shared.sha(output/'source_input.npz')==input_hashes['source_input.npz'],
+        input_transformation=transformation,
         input_files_unchanged_after_inference=all(shared.sha(args.input/name)==input_hashes[name] for name in input_names),
         native_reading_count=len(sensor['time']), observation_count=len(acquired['time']),
         selected_spiked_reading_count=int(np.count_nonzero(acquired['spike_mask'])),

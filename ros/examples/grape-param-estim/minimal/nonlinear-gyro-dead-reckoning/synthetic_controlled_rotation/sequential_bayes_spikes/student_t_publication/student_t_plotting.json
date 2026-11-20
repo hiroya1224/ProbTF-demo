@@ -28,13 +28,13 @@
       "linear_forced": 200
     },
     "acquired_spike_readings": 61,
-    "observed_gyro_sha256": "80c55aea416071e128345f742280bef2b51f1bf6b9a1a78372c969ff0d82c9fd",
+    "observed_gyro_sha256": "123a59c8b148efd14d526574221e1bc230b4054f8345df611e1e9538b629e5af",
     "initialization": "First selected reading initializes the initial law once; subsequent selected readings are likelihood updates",
     "profile": "body_omega_scaled",
     "model_process_covariance": "Q=0",
     "body_rate_multiplier": 3,
     "temporal_frequency_change": false,
-    "spike_scale": 0.5,
+    "spike_scale": 1.0,
     "spike_scale_reference": "Amplitude of original saved pulses; original onset times, rate and widths",
     "sensor_white_sigma_deg_s": 2.0,
     "measurement_assumed_sigma_deg_s": 5.0,
@@ -72,7 +72,7 @@
     "config": {
       "student_df": 4.0,
       "body_omega_scale": 3.0,
-      "spike_scale": 0.5,
+      "spike_scale": 1.0,
       "process_covariance_rad2_s2": [
         [
           0,

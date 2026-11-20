@@ -4,7 +4,9 @@
 
 ## 固定した入力
 
-`omega3_q0_publication` の `source_input.npz`、`sensor_input.npz`、`acquisitions.npz` を再生成せず、同じ値・原時計・indexで使う。Q=0、body角速度3倍、スパイク振幅0.5倍、20秒、生gyro200 Hz、取得10 Hz、201観測。白色生成σ=2 deg/s、固定biasとスパイクの実現値、慣性、初期姿勢、保存1 kHzトルクもそのままである。
+`omega3_q0_publication` の保存入力を基に、最新指定でスパイク振幅を0.5倍から元の1倍へ戻す。`source_input.npz` はbyte単位で同一に保ち、センサ入力のパルス加算ベクトル・単独振幅だけを2倍にして、生gyroを「同じgyro_white＋復元したスパイク」とする。復元後のパルスは `frequent_publication` に保存された元の全振幅と一致する。乱数を引き直さず、発生時刻・頻度・幅・方向・重なり・原時計・取得indexも維持する。
+
+Q=0、body角速度3倍、スパイク振幅1倍（単独パルス20〜60 deg/s）、20秒、生gyro200 Hz、取得10 Hz、201観測。白色生成σ=2 deg/s、固定bias、慣性、初期姿勢、真値運動、保存1 kHzトルクは変更しない。従来の半振幅Student-tの図・数値は同じ `student_t_publication` へ上書きする。
 
 推定へ渡すものは、初期姿勢、初回を含む取得gyro、取得時刻、既知慣性と入力トルクだけである。途中の真値、生成bias、実現noise、スパイクフラグを使わない。
 

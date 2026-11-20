@@ -1,7 +1,7 @@
 {
   "student_df": 4.0,
   "body_omega_scale": 3.0,
-  "spike_scale": 0.5,
+  "spike_scale": 1.0,
   "process_covariance_rad2_s2": [
     [
       0,

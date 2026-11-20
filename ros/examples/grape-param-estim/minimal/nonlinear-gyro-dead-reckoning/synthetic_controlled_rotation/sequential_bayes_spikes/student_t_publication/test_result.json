@@ -1,9 +1,9 @@
 {
   "command": "env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -m unittest discover -s ros/examples/grape-param-estim/minimal/nonlinear-gyro-dead-reckoning/synthetic_controlled_rotation/sequential_bayes_spikes/tests -v",
-  "passed": 61,
+  "passed": 65,
   "exit_code": 0,
-  "wall_seconds": 6.637,
-  "execution_session_id": 9611,
+  "wall_seconds": 6.643,
+  "execution_session_id": 88376,
   "source_sha256": {
     "test_adaptive_engine.py": "dc56f156d69a34fdb37299562d68d19b0978b127b41cad5ff02d577833d59f7e",
     "test_engine.py": "92f287d888d889bab52a15cec38d293012cd7afc13438df7c515279cf798008f",
@@ -14,6 +14,7 @@
     "test_omega3.py": "8646da8c9496388fc1a77c49d16e20f39e9bd0c8f7a45111bc689fea56df5e56",
     "test_process_noise.py": "e46da90124b2c02dbf490020048a15a5937d44d970c954771b8759b70bdf52c4",
     "test_student_engine.py": "6b3495b060dada4c09fc905f3bf38088770eaae43c3381cee372f30b1b807a1a",
+    "test_student_input.py": "dce63db9e68e072080f94169137cd5a4c0289c949e963c8c3cacefc6b42c6551",
     "test_student_native.py": "83a78f0e0458089967ef5fe289236f9d0852c70b60d01101eea31259abc55cc0"
   }
 }

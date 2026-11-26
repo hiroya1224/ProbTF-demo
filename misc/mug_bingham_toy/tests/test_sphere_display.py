@@ -68,6 +68,48 @@ class LatitudeLongitudeDisplayTests(unittest.TestCase):
         self.assertFalse(mesh["diagnostics"]["monte_carlo"])
         self.assertFalse(mesh["vertices"].flags.writeable)
 
+    def test_wire_depth_is_preserved_until_hemisphere_assignment(self):
+        segments = display.latitude_longitude_graticule_segments()
+        self.assertEqual(len(segments["far"])+len(segments["near"]), 17*180)
+        self.assertTrue((segments["far"][:, :, 2].mean(axis=1) > 0.).all())
+        self.assertTrue((segments["near"][:, :, 2].mean(axis=1) <= 0.).all())
+        # The XY equator is retained as a visible near-side outline.
+        equator = segments["near"][np.all(segments["near"][:, :, 2] == 0., axis=1)]
+        self.assertEqual(len(equator), 180)
+        np.testing.assert_allclose(np.linalg.norm(equator[:, :, :2], axis=2), 1., atol=4e-16)
+
+    def test_painter_keeps_raw_colors_and_places_far_wire_and_ray_behind_near_faces(self):
+        from matplotlib.figure import Figure
+
+        figure = Figure()
+        ax = figure.subplots()
+        A = np.diag([3., 1., -1., -3.])
+        mesh = display.latitude_longitude_density_mesh(A, 8, 16)
+        original_rgb = mesh["face_rgb"].copy()
+        artists = display.draw_latitude_longitude_sphere(ax, mesh, np.eye(3), ("red", "green", "blue"))
+        np.testing.assert_array_equal(mesh["face_rgb"], original_rgb)
+        order = np.argsort(mesh["face_depth"])[::-1]
+        for side, far, fade in (("far", True, .25), ("near", False, 1.)):
+            indices = order[(mesh["face_depth"][order] > 0.) == far]
+            facecolors = artists[side+"_density"].get_facecolors()
+            np.testing.assert_array_equal(facecolors[:, :3], original_rgb[indices])
+            np.testing.assert_allclose(facecolors[:, 3], .9*original_rgb[indices].max(axis=1)*fade, atol=0)
+            self.assertEqual(artists[side+"_wire"].get_alpha(), display.GRID_ALPHA*fade)
+            np.testing.assert_array_equal(artists[side+"_wire"].get_linewidths(), [display.GRID_LINEWIDTH])
+            support = artists[side+"_support"]
+            self.assertEqual(support.radius, 1.)
+            np.testing.assert_array_equal(support.center, [0., 0.])
+            np.testing.assert_array_equal(support.get_facecolor(), [.89, .89, .89, .14*fade])
+        self.assertEqual(len(ax.patches), 2)
+        self.assertEqual(len(ax.collections), 4)
+        self.assertLess(artists["far_wire"].get_zorder(), artists["near_support"].get_zorder())
+        self.assertLess(artists["far_wire"].get_zorder(), artists["near_density"].get_zorder())
+        self.assertGreater(artists["near_wire"].get_zorder(), artists["near_density"].get_zorder())
+        self.assertEqual(len(artists["far_axes"]), 1)
+        self.assertEqual(artists["far_axes"][0].get_alpha(), .25)
+        self.assertLess(artists["far_axes"][0].get_zorder(), artists["near_density"].get_zorder())
+        self.assertTrue(all(line.get_alpha() == 1. for line in artists["near_axes"]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -195,12 +195,9 @@ class TrainingViewer:
             ax.imshow(image[y0:y1, x0:x1], interpolation="none")
 
     def _draw_spheres(self, current):
-        from matplotlib.collections import PolyCollection
         from figure_geometry import mode_quaternion, quaternion_matrix
-        from sphere_display import (latitude_longitude_density_mesh, latitude_longitude_graticule,
-                                    GRID_COLOR, GRID_ALPHA, GRID_LINEWIDTH)
+        from sphere_display import latitude_longitude_density_mesh, draw_latitude_longitude_sphere
 
-        graticule = latitude_longitude_graticule()
         latitude_steps = 3*2**self.subdivisions
         for index, (ax, A) in enumerate(zip(self.sphere_axes, current["A_camera"])):
             ax.clear()
@@ -209,27 +206,10 @@ class TrainingViewer:
             mesh = latitude_longitude_density_mesh(np.asarray(A), latitude_steps=latitude_steps,
                                                     longitude_steps=2*latitude_steps,
                                                     log_normalizer=None)
-            order = np.argsort(mesh["face_depth"])[::-1]
-            polygons = mesh["camera_xy"][mesh["faces"]][order]
-            depth_fade = np.where(mesh["face_depth"][order] > 0., .25, 1.)
-            support = np.tile([.89, .89, .89, .14], (len(polygons), 1))
-            support[:, 3] *= depth_fade
-            ax.add_collection(PolyCollection(polygons, facecolors=support,
-                                             edgecolors="none", antialiaseds=False, zorder=1))
-            rgb = mesh["face_rgb"][order]
-            rgba = np.column_stack((rgb, .9*rgb.max(axis=1)*depth_fade))
-            ax.add_collection(PolyCollection(polygons, facecolors=rgba, edgecolors="none",
-                                             antialiaseds=False, zorder=2))
-            for line in graticule:
-                ax.plot(line[:, 0], line[:, 1], color=GRID_COLOR, alpha=GRID_ALPHA,
-                        lw=GRID_LINEWIDTH, zorder=3)
             eigenvalues = np.linalg.eigvalsh(A)
-            if eigenvalues[-1] > eigenvalues[-2]:
-                rotation = quaternion_matrix(mode_quaternion(np.asarray(A)))
-                peak = rotation[:2]
-                for k, color in enumerate(COLORS):
-                    ax.plot([0, peak[0, k]], [0, peak[1, k]], lw=1.1, color=color,
-                            alpha=.25 if rotation[2, k] > 0. else 1., zorder=4)
+            rotation = (quaternion_matrix(mode_quaternion(np.asarray(A)))
+                        if eigenvalues[-1] > eigenvalues[-2] else None)
+            draw_latitude_longitude_sphere(ax, mesh, rotation, COLORS)
             label = f"X σ [deg] {sigma_label(current['X'][index])}\nZ σ [deg] {sigma_label(current['Z'][index])}"
             self.sigma_text[index] = ax.text(.5, -.08, label, transform=ax.transAxes,
                                               ha="center", va="top", fontsize=8.5)

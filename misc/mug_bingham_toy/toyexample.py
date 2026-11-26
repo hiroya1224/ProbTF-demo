@@ -144,9 +144,8 @@ def plot(args):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
-    from matplotlib.collections import PolyCollection
     from figure_geometry import yaw_half_width,quaternion_matrix
-    from sphere_display import (latitude_longitude_density_mesh,latitude_longitude_graticule,
+    from sphere_display import (latitude_longitude_density_mesh,draw_latitude_longitude_sphere,
         GRID_COLOR,GRID_ALPHA,GRID_LINEWIDTH)
 
     output=args.output.resolve()
@@ -172,7 +171,6 @@ def plot(args):
         fig.text(.109,y,rf'$\theta_{{{component+1}}}$',ha='right',va='center',fontsize=10)
     camera_projection=np.array([[1.,0.,0.],[0.,1.,0.]])
     yaw_axis_camera=data['R_camera_world']@np.array([0.,0.,1.])
-    graticule=latitude_longitude_graticule()
     geometry={}
     panels=[]
     x0,y0,x1,y1=CROP
@@ -188,26 +186,14 @@ def plot(args):
         sphere.axis('off')
         mesh=latitude_longitude_density_mesh(A,latitude_steps=96,longitude_steps=192,
             log_normalizer=float(data['log_Z_s3'][j]))
-        order=np.argsort(mesh['face_depth'])[::-1]
-        polygons=mesh['camera_xy'][mesh['faces']][order]
-        depth_opacity=np.where(mesh['face_depth'][order]>0.,.25,1.)
-        # Both hemispheres are filled. Transparency retains far-side density
-        # and separates the full spherical support from the density colors.
-        support=np.tile([.89,.89,.89,1.],(len(order),1))
-        support[:,3]=.14*depth_opacity
-        sphere.add_collection(PolyCollection(polygons,facecolors=support,
-            edgecolors='none',antialiaseds=False,rasterized=True,zorder=1))
-        rgb=mesh['face_rgb'][order]
-        rgba=np.column_stack((rgb,.9*rgb.max(axis=1)*depth_opacity))
-        sphere.add_collection(PolyCollection(polygons,facecolors=rgba,edgecolors='none',
-            antialiaseds=False,rasterized=True,zorder=2))
-        for line in graticule:
-            sphere.plot(line[:,0],line[:,1],color=GRID_COLOR,alpha=GRID_ALPHA,lw=GRID_LINEWIDTH,zorder=3)
         mode_rotation=quaternion_matrix(mode)
+        eigenvalues=np.linalg.eigvalsh(A)
+        artists=draw_latitude_longitude_sphere(sphere,mesh,
+            mode_rotation if eigenvalues[-1]>eigenvalues[-2] else None,COLORS,mode_linewidth=1.05)
+        for name,artist in artists.items():
+            if name.endswith(('_support','_density')):
+                artist.set_rasterized(True)
         peak=camera_projection@mode_rotation
-        for k,color in enumerate(COLORS):
-            sphere.plot([0,peak[0,k]],[0,peak[1,k]],lw=1.05,color=color,
-                alpha=.25 if mode_rotation[2,k]>0. else 1.,zorder=4)
         half_width=yaw_half_width(A,mode=mode,axis=yaw_axis_camera)
         width=half_width['width_deg']
         fig.text(cx,.283,f'{width:.1f}' if width is not None else '—',ha='center',va='center',fontsize=10)
@@ -239,7 +225,7 @@ def plot(args):
         color_axis_mapping=dict(x=COLORS[0],y=COLORS[1],z=COLORS[2]),
         surface_meaning='Analytic quaternion-Bingham push-forward densities for object X/Y/Z on the complete camera-frame unit sphere',
         display_alpha='gray support .14; density .9 times max(R,G,B); far camera-Z-positive hemisphere and axis rays use one-quarter opacity',
-        display_grid='Latitude/longitude, camera-Z poles; pale gray .88, alpha .30, width .30',
+        display_grid=f'Latitude/longitude wireframe, camera-Z poles; gray {GRID_COLOR}, alpha {GRID_ALPHA}, width {GRID_LINEWIDTH}; far wires use one-quarter opacity',
         network_rerun_by_plot=False,distribution_modified_by_plot=False,monte_carlo=False))
     print('Saved '+str(output/'toyexample.pdf'),flush=True)
 

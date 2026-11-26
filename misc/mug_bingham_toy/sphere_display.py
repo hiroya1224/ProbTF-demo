@@ -14,9 +14,9 @@ import numpy as np
 from figure_geometry import axis_direction_log_density, SPHERICAL_DENSITY_PROVENANCE
 
 
-GRID_COLOR = ".88"
-GRID_ALPHA = .30
-GRID_LINEWIDTH = .30
+GRID_COLOR = ".70"
+GRID_ALPHA = .70
+GRID_LINEWIDTH = .65
 
 
 def _positive_integer(value, minimum, name):
@@ -176,3 +176,66 @@ def latitude_longitude_density_mesh(matrix_camera: np.ndarray, latitude_steps: i
         },
     })
     return mesh
+
+
+def latitude_longitude_graticule_segments() -> dict[str, np.ndarray]:
+    """Keep the wire depth while splitting each polyline into short segments.
+
+    Camera Z>0 is the far hemisphere. Equatorial segments belong to the near
+    layer. Front and back curves are not merged after their XY projection.
+    """
+    curves = latitude_longitude_graticule(return_xyz=True)
+    segments = np.concatenate([np.stack((line[:-1], line[1:]), axis=1) for line in curves])
+    far = segments[:, :, 2].mean(axis=1) > 0.
+    return {"far": segments[far], "near": segments[~far]}
+
+
+def draw_latitude_longitude_sphere(ax, mesh: dict, rotation: np.ndarray | None,
+                                    colors, mode_linewidth: float = 1.1) -> dict:
+    """Paint far support/density/wire/rays, then the corresponding near layer.
+
+    Both hemispheres use the mesh's unmodified RGB density colors. The far
+    layer's opacity is uniformly one quarter of the near layer's opacity.
+    Graticule segments retain camera Z until they are assigned to a layer,
+    so the far wire and far mode rays stay behind the near sphere surface.
+    The returned artists expose their alpha and zorder for display tests.
+    """
+    from matplotlib.collections import LineCollection, PolyCollection
+    from matplotlib.patches import Circle
+
+    face_depth = np.asarray(mesh["face_depth"])
+    order = np.argsort(face_depth)[::-1]
+    vertices = np.asarray(mesh["camera_xy"])
+    faces = np.asarray(mesh["faces"])
+    rgb = np.asarray(mesh["face_rgb"])
+    segments = latitude_longitude_graticule_segments()
+    if rotation is not None:
+        rotation = np.asarray(rotation, dtype=float)
+        if rotation.shape != (3, 3) or not np.isfinite(rotation).all():
+            raise ValueError("Mode rotation must be a finite 3 by 3 matrix")
+    artists = {}
+    for side, far, fade, zorder in (("far", True, .25, 1.), ("near", False, 1., 2.)):
+        indices = order[(face_depth[order] > 0.) == far]
+        polygons = vertices[faces[indices]]
+        # An orthographic hemisphere projects to one exact unit disc. Painting
+        # its neutral support once avoids translucent triangle edge overlaps.
+        artists[side+"_support"] = Circle(
+            (0., 0.), 1., facecolor=(.89, .89, .89, .14*fade), edgecolor="none", zorder=zorder)
+        density_rgba = np.column_stack((rgb[indices], .9*rgb[indices].max(axis=1)*fade))
+        artists[side+"_density"] = PolyCollection(
+            polygons, facecolors=density_rgba, edgecolors="none", antialiaseds=False, zorder=zorder+.1)
+        artists[side+"_wire"] = LineCollection(
+            segments[side][:, :, :2], colors=GRID_COLOR, alpha=GRID_ALPHA*fade,
+            linewidths=GRID_LINEWIDTH, antialiaseds=True, zorder=zorder+.2)
+        ax.add_patch(artists[side+"_support"])
+        for component in ("_density", "_wire"):
+            ax.add_collection(artists[side+component])
+        rays = []
+        if rotation is not None:
+            for axis, color in enumerate(colors):
+                if (rotation[2, axis] > 0.) == far:
+                    line, = ax.plot([0., rotation[0, axis]], [0., rotation[1, axis]],
+                                    color=color, linewidth=mode_linewidth, alpha=fade, zorder=zorder+.3)
+                    rays.append(line)
+        artists[side+"_axes"] = rays
+    return artists

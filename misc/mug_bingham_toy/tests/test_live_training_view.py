@@ -95,7 +95,7 @@ class LiveTrainingViewTests(unittest.TestCase):
             self.assertTrue(all(len(ax.collections) == 0 for ax in window.sphere_axes))
             plt.close(window.figure)
 
-    def test_saved_epoch_updates_real_density_mesh_and_variance_lines_without_inference(self):
+    def test_saved_epoch_displays_shared_quaternion_samples_and_saved_standard_deviations(self):
         import matplotlib
         matplotlib.use("Agg", force=True)
         import matplotlib.pyplot as plt
@@ -109,22 +109,36 @@ class LiveTrainingViewTests(unittest.TestCase):
             window.poll()
             window.figure.canvas.draw()
             self.assertIn("epoch 1", window.status.get_text())
-            self.assertTrue(all(len(ax.collections) == 2 and len(ax.patches) == 2 and len(ax.images) == 2
-                                for ax in window.sphere_axes))
-            from sphere_display import GRID_ALPHA, GRID_LINEWIDTH
-            from sphere_display import camera_sphere_density_raster
-            raster = camera_sphere_density_raster(np.diag([3., 1., -1., -3.]))
-            for ax in window.sphere_axes:
-                for patch, side, fade in ((0, "far", .5), (1, "near", 1.)):
-                    np.testing.assert_array_equal(ax.patches[patch].get_facecolor(), [.89, .89, .89, .14*fade])
-                    np.testing.assert_array_equal(ax.images[patch].get_array(), raster[side+"_rgba"])
-                    self.assertEqual(ax.collections[patch].get_alpha(), GRID_ALPHA*fade)
-                    np.testing.assert_array_equal(ax.collections[patch].get_linewidths(), [GRID_LINEWIDTH])
-                self.assertLess(ax.collections[0].get_zorder(), ax.patches[1].get_zorder())
-                rays = {line.get_color(): line for line in ax.lines}
-                self.assertEqual(rays[viewer.COLORS[0]].get_alpha(), 1.)
-                self.assertEqual(rays[viewer.COLORS[1]].get_alpha(), 1.)
-                self.assertEqual(rays[viewer.COLORS[2]].get_alpha(), 1.)
+            self.assertTrue(all(len(ax.images) == 0 for ax in window.sphere_axes))
+            self.assertEqual(len(window.sample_packets), 5)
+            for index, (packet, artists) in enumerate(zip(window.sample_packets, window.sample_artists)):
+                np.testing.assert_array_equal(packet["A_camera"], record["tangent_xz"]["A_camera"][index])
+                self.assertEqual(packet["seed"], window.sample_seed+index)
+                self.assertEqual(packet["quaternions"].shape, (1000, 4))
+                for axis in range(3):
+                    near = packet["tips"][:, 2, axis] <= 0.
+                    far = ~near
+                    near_points = artists["near_points"][axis]
+                    far_points = artists["far_points"][axis]
+                    near_tips, far_tips = packet["tips"][near, :, axis], packet["tips"][far, :, axis]
+                    near_tips = near_tips[np.argsort(near_tips[:, 2])[::-1]]
+                    far_tips = far_tips[np.argsort(far_tips[:, 2])[::-1]]
+                    np.testing.assert_array_equal(near_points.get_offsets(), near_tips[:, :2])
+                    np.testing.assert_array_equal(far_points.get_offsets(), far_tips[:, :2])
+                    self.assertEqual(len(near_points.get_offsets())+len(far_points.get_offsets()), 1000)
+                    self.assertEqual(near_points.get_alpha(), .7)
+                    self.assertEqual(far_points.get_alpha(), .35)
+                self.assertTrue(all(line.get_alpha() == 1. and line.get_linewidth() == 1.8
+                                    for line in artists["mode_axes"]))
+            originals = [packet["quaternions"].copy() for packet in window.sample_packets]
+            random_state = np.random.get_state()
+            window._draw_spheres(record["tangent_xz"])
+            for original, packet in zip(originals, window.sample_packets):
+                np.testing.assert_array_equal(original, packet["quaternions"])
+            after_state = np.random.get_state()
+            self.assertEqual(random_state[0], after_state[0])
+            np.testing.assert_array_equal(random_state[1], after_state[1])
+            self.assertEqual(random_state[2:], after_state[2:])
             self.assertEqual(window.history_lines["X"][0].get_ydata()[0], np.rad2deg(np.sqrt(1e-50)))
             self.assertEqual(window.history_axes["X"].get_ylabel(), "接空間の主標準偏差 [deg]")
             self.assertEqual(window.history_axes["X"].get_yscale(), "log")

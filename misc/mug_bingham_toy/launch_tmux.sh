@@ -25,7 +25,7 @@ case "${1:-launch}" in
         export DISPLAY="${DISPLAY:-:1}"
         export QT_QPA_PLATFORM=xcb
         exec /usr/bin/python3 live_training_view.py --run "${TOY_MUG_RUN}" \
-            --inputs "${TOY_MUG_DIR}/examples/cylinder_pointlight_preview/inputs.npz" --subdivisions 5
+            --inputs "${TOY_MUG_DIR}/examples/cylinder_pointlight_preview/inputs.npz" --samples 1000
         ;;
     launch)
         if tmux has-session -t mug-bingham-toy 2>/dev/null; then

@@ -3,8 +3,9 @@
 
 The training process evaluates the five frozen preview images once per epoch.
 This viewer reads those measurements; it never imports Torch, loads weights,
-runs inference, or changes a distribution. The filled spheres use the saved
-camera-frame A. Their RGB channels are relative axis densities for display.
+runs inference, or changes a distribution. Display-only BACG samples use the
+saved camera-frame A and a separate local random stream. The tangent graphs
+continue to use the saved chapter-4 covariance measurements, not the samples.
 """
 from __future__ import annotations
 
@@ -132,11 +133,21 @@ def sigma_label(component: dict | None) -> str:
 
 
 class TrainingViewer:
-    def __init__(self, run: Path, inputs: Path, *, subdivisions: int = 4):
+    def __init__(self, run: Path, inputs: Path, *, samples: int = 1000,
+                 sample_seed: int = 20261127, subdivisions: int = 4):
         import matplotlib.pyplot as plt
 
+        if isinstance(samples, bool) or not isinstance(samples, (int, np.integer)) or samples < 1:
+            raise ValueError("samples must be a positive integer")
+        if (isinstance(sample_seed, bool) or not isinstance(sample_seed, (int, np.integer))
+                or not 0 <= sample_seed < 1 << 64):
+            raise ValueError("sample_seed must be an unsigned 64-bit integer")
         self.run, self.inputs = Path(run), Path(inputs)
+        self.samples, self.sample_seed = int(samples), int(sample_seed)
+        # Retain the previous launch/constructor argument for compatibility;
+        # sample points no longer have a density-surface subdivision setting.
         self.subdivisions = subdivisions
+        self.sample_packets, self.sample_artists = [], []
         self.preview = None
         self._signature = None
         self._last_plot_key = None
@@ -169,7 +180,7 @@ class TrainingViewer:
                                                ha="center", va="top", fontsize=8.5))
         top = self.sphere_axes[0].get_position().y1
         self.figure.text(.5, top+.018,
-                         "同じカメラから見た球面密度 · 赤 X / 緑 Y / 青 Z · 表示格子上の最大値に対する相対色 · 球面の奥側 1/2 · モード軸は不透明",
+                         f"同じカメラから見た Bingham {self.samples} 方位の標本 · 赤 X / 緑 Y / 青 Z (各{self.samples}点) · 奥側の不透明度 1/2 · モード軸は不透明",
                          ha="center", va="bottom", fontsize=9)
         self.history_axes, self.history_lines = {}, {}
         for column, axis in enumerate(("X", "Z")):
@@ -202,20 +213,23 @@ class TrainingViewer:
 
     def _draw_spheres(self, current):
         from figure_geometry import mode_quaternion, quaternion_matrix
-        from sphere_display import latitude_longitude_density_mesh, draw_latitude_longitude_sphere
+        from sample_display import sample_camera_axes, draw_sample_sphere
 
-        latitude_steps = 3*2**self.subdivisions
+        self.sample_packets, self.sample_artists = [], []
         for index, (ax, A) in enumerate(zip(self.sphere_axes, current["A_camera"])):
             ax.clear()
             ax.set(aspect="equal", xlim=(-1.08, 1.08), ylim=(1.08, -1.08))
             ax.axis("off")
-            mesh = latitude_longitude_density_mesh(np.asarray(A), latitude_steps=latitude_steps,
-                                                    longitude_steps=2*latitude_steps,
-                                                    log_normalizer=None)
+            # Reuse a panel's display stream across epochs to reduce random
+            # flicker, independently of every training and measurement RNG.
+            packet = sample_camera_axes(np.asarray(A), count=self.samples,
+                                        seed=(self.sample_seed+index) % (1 << 64))
             eigenvalues = np.linalg.eigvalsh(A)
             rotation = (quaternion_matrix(mode_quaternion(np.asarray(A)))
                         if eigenvalues[-1] > eigenvalues[-2] else None)
-            draw_latitude_longitude_sphere(ax, mesh, rotation, COLORS)
+            artists = draw_sample_sphere(ax, packet, rotation, COLORS)
+            self.sample_packets.append(packet)
+            self.sample_artists.append(artists)
             label = f"X σ [deg] {sigma_label(current['X'][index])}\nZ σ [deg] {sigma_label(current['Z'][index])}"
             self.sigma_text[index] = ax.text(.5, -.08, label, transform=ax.transAxes,
                                               ha="center", va="top", fontsize=8.5)
@@ -310,11 +324,17 @@ def main():
     parser.add_argument("--run", type=Path, default=DEFAULT_RUN)
     parser.add_argument("--inputs", type=Path, default=DEFAULT_INPUTS)
     parser.add_argument("--interval", type=float, default=2.)
-    parser.add_argument("--subdivisions", type=int, default=4, choices=range(2, 7))
+    parser.add_argument("--samples", type=int, default=1000)
+    parser.add_argument("--sample-seed", type=int, default=20261127)
+    parser.add_argument("--subdivisions", type=int, default=4, choices=range(2, 7), help=argparse.SUPPRESS)
     parser.add_argument("--snapshot", type=Path, help="Write one diagnostic PNG under /tmp without opening a window")
     args = parser.parse_args()
     if args.interval <= 0 or not np.isfinite(args.interval):
         parser.error("--interval must be finite and positive")
+    if args.samples < 1:
+        parser.error("--samples must be positive")
+    if not 0 <= args.sample_seed < 1 << 64:
+        parser.error("--sample-seed must be an unsigned 64-bit integer")
     if args.snapshot is not None:
         try:
             args.snapshot.resolve().relative_to("/tmp")
@@ -326,7 +346,8 @@ def main():
     else:
         os.environ.setdefault("QT_API", "pyqt5")
         matplotlib.use("Qt5Agg")
-    viewer = TrainingViewer(args.run.resolve(), args.inputs.resolve(), subdivisions=args.subdivisions)
+    viewer = TrainingViewer(args.run.resolve(), args.inputs.resolve(), samples=args.samples,
+                            sample_seed=args.sample_seed, subdivisions=args.subdivisions)
     if args.snapshot is not None:
         viewer.figure.savefig(args.snapshot, dpi=100)
         print(str(args.snapshot.resolve()), flush=True)

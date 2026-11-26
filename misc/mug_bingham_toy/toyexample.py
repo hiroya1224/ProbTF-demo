@@ -145,8 +145,8 @@ def plot(args):
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
     from figure_geometry import yaw_half_width,quaternion_matrix
-    from sphere_display import (latitude_longitude_density_mesh,draw_latitude_longitude_sphere,
-        GRID_COLOR,GRID_ALPHA,GRID_LINEWIDTH)
+    from sphere_display import GRID_COLOR,GRID_ALPHA,GRID_LINEWIDTH
+    from sample_display import sample_camera_axes,draw_sample_sphere
 
     output=args.output.resolve()
     data=dict(np.load(output/'figure_data.npz',allow_pickle=False))
@@ -184,34 +184,30 @@ def plot(args):
         sphere=fig.add_axes([cx-step*.49,.330,step*.98,.268])
         sphere.set(aspect='equal',xlim=(-1.07,1.07),ylim=(1.07,-1.07))
         sphere.axis('off')
-        mesh=latitude_longitude_density_mesh(A,latitude_steps=96,longitude_steps=192,
-            log_normalizer=float(data['log_Z_s3'][j]))
+        samples=sample_camera_axes(A,count=args.samples,seed=(args.sample_seed+j) % (1 << 64))
         mode_rotation=quaternion_matrix(mode)
         eigenvalues=np.linalg.eigvalsh(A)
-        artists=draw_latitude_longitude_sphere(sphere,mesh,
+        artists=draw_sample_sphere(sphere,samples,
             mode_rotation if eigenvalues[-1]>eigenvalues[-2] else None,COLORS,mode_linewidth=1.8)
         for name,artist in artists.items():
-            if name.endswith(('_support','_density')):
+            if name.endswith('_support'):
                 artist.set_rasterized(True)
+            elif name.endswith('_points'):
+                for collection in artist:
+                    collection.set_rasterized(True)
         peak=camera_projection@mode_rotation
         half_width=yaw_half_width(A,mode=mode,axis=yaw_axis_camera)
         width=half_width['width_deg']
         fig.text(cx,.283,f'{width:.1f}' if width is not None else '—',ha='center',va='center',fontsize=10)
         for component,y in parameter_rows:
             fig.text(cx,y,f'{parameters[component]:.1f}'.replace('-','−'),ha='center',va='center',fontsize=10)
-        if j==0:
-            geometry['mesh_vertices_camera']=mesh['vertices']
-            geometry['mesh_faces']=mesh['faces']
-            geometry['mesh_camera_xy']=mesh['camera_xy']
-            geometry['mesh_face_depth']=mesh['face_depth']
-        geometry[f'face_log_density_{int(angle):03d}']=mesh['face_log_density']
-        raster=artists['raster_metadata']
-        geometry[f'raster_color_log_offsets_{int(angle):03d}']=np.asarray(raster['color_log_offsets'])
-        geometry[f'raster_pixel_size_{int(angle):03d}']=np.asarray(raster['pixel_size'])
+        geometry[f'quaternions_camera_wxyz_{int(angle):03d}']=samples['quaternions']
+        geometry[f'axis_tips_camera_{int(angle):03d}']=samples['tips']
+        geometry[f'sample_seed_{int(angle):03d}']=np.asarray(samples['seed'],dtype=np.uint64)
         geometry[f'peak_{int(angle):03d}']=peak
         panels.append(dict(angle_deg=float(angle),parameters_9=parameters.tolist(),
             A_camera=A.tolist(),mode_camera_wxyz=mode.tolist(),
-            sphere_density=mesh['diagnostics'],density_raster=raster,half_height=half_width))
+            sphere_samples=samples['metadata'],sample_display=artists['display_metadata'],half_height=half_width))
     fig.savefig(output/'toyexample.pdf',dpi=280,metadata={'CreationDate':None,'ModDate':None})
     fig.savefig(output/'toyexample.png',dpi=200)
     plt.close(fig)
@@ -220,14 +216,15 @@ def plot(args):
         reference_sha256=reference['reference_sha256'],
         reference_source_sha256=reference['reference_source_sha256'],
         input_packet_sha256=sha(output/'figure_data.npz'),geometry_sha256=sha(output/'geometry.npz'),
-        source_sha256={name:sha(HERE/name) for name in ('figure_geometry.py','sphere_display.py','toyexample.py')},
+        source_sha256={name:sha(HERE/name) for name in ('figure_geometry.py','sphere_display.py','sample_display.py','toyexample.py')},
         display_projection=camera_projection.tolist(),camera_image_y_down=True,
         shared_display_crop_xyxy=list(CROP),
         color_axis_mapping=dict(x=COLORS[0],y=COLORS[1],z=COLORS[2]),
-        surface_meaning='Analytic quaternion-Bingham push-forward densities for object X/Y/Z on the complete camera-frame unit sphere',
-        display_alpha='one analytic RGBA image per hemisphere; gray support .14; density .9 times max(R,G,B); far hemisphere and wires use one-half opacity; mode axes fully opaque at 1.8pt',
+        sample_meaning='Shared BACG quaternion samples from saved A_camera; each sample rotates object X/Y/Z, giving the displayed camera-frame axis tips',
+        display_alpha='near axis-tip points .7; far camera Z>0 points .35; far wires use one-half opacity; mode axes fully opaque at 1.8pt',
         display_grid=f'Latitude/longitude wireframe, camera-Z poles; gray {GRID_COLOR}, alpha {GRID_ALPHA}, width {GRID_LINEWIDTH}; far wires use one-half opacity',
-        network_rerun_by_plot=False,distribution_modified_by_plot=False,monte_carlo=False))
+        network_rerun_by_plot=False,distribution_modified_by_plot=False,
+        random_sampling_for_visualization_only=True,covariance_estimated_from_samples=False))
     print('Saved '+str(output/'toyexample.pdf'),flush=True)
 
 
@@ -237,7 +234,13 @@ if __name__=='__main__':
     parser.add_argument('--output',type=Path)
     parser.add_argument('--run',type=Path,default=DEFAULT_RUN)
     parser.add_argument('--device',default='cuda')
+    parser.add_argument('--samples',type=int,default=1000,help='Display quaternion samples per panel; does not affect inference')
+    parser.add_argument('--sample-seed',type=int,default=20261127,help='Local display seed; panel index is added')
     args=parser.parse_args()
+    if args.samples < 1:
+        parser.error('--samples must be positive')
+    if not 0 <= args.sample_seed < 1 << 64:
+        parser.error('--sample-seed must be an unsigned 64-bit integer')
     if args.output is None:
         args.output=HERE/'examples/cylinder_pointlight_preview' if args.command=='preview' else DEFAULT_OUTPUT
     {'render':render_inputs,'preview':preview,'infer':infer,'plot':plot}[args.command](args)

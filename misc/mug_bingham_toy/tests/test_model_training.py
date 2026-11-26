@@ -5,7 +5,9 @@ from pathlib import Path
 import random
 import sys
 import tempfile
+import types
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 from PIL import Image
@@ -14,7 +16,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from bingham import BinghamNLL
 from model import VGG16Bingham, parameter_counts
-from train import (PoseDataset, index_sha256, normalize_images, parse_args,
+from train import (PoseDataset, TangentObserver, index_sha256, normalize_images, parse_args,
                    restore_rng, rng_state, seed_everything)
 
 
@@ -99,11 +101,113 @@ class ModelTrainingTests(unittest.TestCase):
         args = parse_args([])
         self.assertEqual((args.epochs, args.batch_size, args.seed, args.workers), (50, 8, 20261126, 4))
         self.assertFalse(args.preload)
+        self.assertIsNone(args.monitor_inputs)
         with tempfile.TemporaryDirectory() as temporary:
             config = Path(temporary) / "config.json"
             config.write_text(json.dumps({"batch_size": 16, "workers": 0, "device": "cpu"}))
             args = parse_args(["--config", str(config), "--batch-size", "8"])
             self.assertEqual((args.batch_size, args.workers, args.device), (8, 0, "cpu"))
+
+    def test_tangent_observer_reuses_raw_matrices_and_preserves_training_state(self):
+        class SmallModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.head = torch.nn.Linear(1, 9)
+                self.dropout = torch.nn.Dropout(.5)
+                self.calls = []
+
+            def forward(self, images):
+                self.calls.append((torch.is_grad_enabled(), self.training))
+                # Deliberately consume all three streams: the observer must
+                # isolate even a future forward/helper that uses randomness.
+                random.random()
+                np.random.rand()
+                torch.rand(1)
+                return self.head(self.dropout(images.mean((1, 2, 3))[:, None]))
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "inputs.npz"
+            pixels = np.zeros((5, 360, 640, 3), dtype=np.uint8)
+            pixels[:] = np.arange(5, dtype=np.uint8)[:, None, None, None] * 40
+            np.savez_compressed(path, rgb=pixels, angles_deg=[0, 60, 90, 120, 180],
+                                q_camera_object_wxyz=np.tile([1., 0., 0., 0.], (5, 1)))
+            observer = TangentObserver(path)
+            frozen_hash = observer.input_sha256
+            # Replacing the source packet after construction must not alter
+            # the frozen RGB or the hash accompanying the measured matrices.
+            path.write_bytes(b"later unrelated preview replacement")
+            self.assertEqual(observer.input_sha256, frozen_hash)
+            np.testing.assert_array_equal(observer.pixels, pixels)
+            seed_everything(20261126, 4)
+            model = SmallModel()
+            model.train()
+            model.dropout.eval()
+            for parameter in model.parameters():
+                parameter.grad = torch.full_like(parameter, .25)
+            modes = [module.training for module in model.modules()]
+            weights = [parameter.detach().clone() for parameter in model.parameters()]
+            gradients = [parameter.grad.clone() for parameter in model.parameters()]
+            torch_rng, python_rng, numpy_rng = torch.get_rng_state(), random.getstate(), np.random.get_state()
+            seen = []
+
+            def covariance(matrix, v):
+                seen.append((matrix.copy(), tuple(v)))
+                return {"status": "structurally_undefined", "covariance_defined": False,
+                        "principal_sigma_deg": None, "covariance_2x2_rad2": None}
+
+            helper = types.SimpleNamespace(direction_tangent_covariance=covariance)
+            with patch.dict(sys.modules, {"tangent_audit_math": helper}):
+                result = observer.evaluate(model, torch.device("cpu"), epoch=3, optimizer_step=1875)
+            self.assertEqual(result["status"], "observed")
+            self.assertEqual((result["epoch"], result["optimizer_step"]), (3, 1875))
+            self.assertEqual(model.calls, [(False, False)])
+            self.assertEqual([module.training for module in model.modules()], modes)
+            self.assertTrue(torch.equal(torch.get_rng_state(), torch_rng))
+            self.assertEqual(random.getstate(), python_rng)
+            after = np.random.get_state()
+            self.assertEqual(after[0], numpy_rng[0])
+            np.testing.assert_array_equal(after[1], numpy_rng[1])
+            self.assertEqual(after[2:], numpy_rng[2:])
+            for parameter, weight, gradient in zip(model.parameters(), weights, gradients):
+                self.assertTrue(torch.equal(parameter, weight))
+                self.assertTrue(torch.equal(parameter.grad, gradient))
+            from bingham import symmetric_matrix
+            expected = symmetric_matrix(torch.tensor(result["parameters_9"], dtype=torch.float64)).numpy()
+            np.testing.assert_array_equal(result["A_camera"], expected)
+            self.assertEqual(len(seen), 10)
+            for index in range(5):
+                np.testing.assert_array_equal(seen[index][0], expected[index])
+                np.testing.assert_array_equal(seen[index + 5][0], expected[index])
+                self.assertEqual(seen[index][1], (1., 0., 0.))
+                self.assertEqual(seen[index + 5][1], (0., 0., 1.))
+                self.assertIsNone(result["X"][index]["principal_sigma_deg"])
+            json.dumps(result, allow_nan=False)
+
+    def test_tangent_observer_failure_is_passive_and_restores_rng(self):
+        class FailingModel(torch.nn.Module):
+            def forward(self, images):
+                torch.rand(1)
+                random.random()
+                np.random.rand()
+                raise RuntimeError("observer-only forward failure")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "inputs.npz"
+            np.savez_compressed(path, rgb=np.zeros((5, 360, 640, 3), dtype=np.uint8),
+                                angles_deg=[0, 60, 90, 120, 180])
+            observer = TangentObserver(path)
+            model = FailingModel().train()
+            helper = types.SimpleNamespace(direction_tangent_covariance=lambda matrix, v: {})
+            seed_everything(42, 4)
+            torch_rng, python_rng, numpy_rng = torch.get_rng_state(), random.getstate(), np.random.get_state()
+            with patch.dict(sys.modules, {"tangent_audit_math": helper}):
+                result = observer.evaluate(model, torch.device("cpu"), epoch=1, optimizer_step=625)
+            self.assertEqual(result["status"], "observer_error")
+            self.assertIn("observer-only forward failure", result["error"])
+            self.assertTrue(model.training)
+            self.assertTrue(torch.equal(torch.get_rng_state(), torch_rng))
+            self.assertEqual(random.getstate(), python_rng)
+            np.testing.assert_array_equal(np.random.get_state()[1], numpy_rng[1])
 
 
 if __name__ == "__main__":

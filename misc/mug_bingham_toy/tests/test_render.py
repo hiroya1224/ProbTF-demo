@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image
 from scipy.spatial.transform import Rotation
 import trimesh
 
@@ -118,18 +118,15 @@ class RenderingTests(unittest.TestCase):
         self.assertEqual(metadata['material_roughness'],.4)
         self.assertEqual(metadata['point_light_position_world'],[0.,.8,2.7])
 
-    def test_fixed_blur_is_applied_to_rgb_before_saving(self):
+    def test_no_blur_rgb_is_the_exact_rasterizer_output(self):
         renderer=self.renderer
         q=render.uniform_quaternions(1,381)[0]
         renderer.scene.set_pose(renderer.object_node,renderer.world_object_pose(q))
         raw,depth=renderer.offscreen.render(renderer.scene,flags=renderer.pyrender.RenderFlags.NONE)
-        expected=np.asarray(Image.fromarray(raw,'RGB').filter(
-            ImageFilter.GaussianBlur(radius=1.2*renderer.height/360)))
         rgb,actual_depth=renderer.render(q)
-        np.testing.assert_array_equal(rgb,expected)
+        np.testing.assert_array_equal(rgb,raw)
         np.testing.assert_array_equal(actual_depth,depth)
-        self.assertTrue(np.any(rgb != raw))
-        self.assertEqual(renderer.metadata()['image_blur_sigma_pixels'],1.2*renderer.height/360)
+        self.assertEqual(renderer.metadata()['image_blur_sigma_pixels'],0.)
 
     def test_actual_camera_composition_and_image_projection(self):
         for q in render.uniform_quaternions(5, 1234):

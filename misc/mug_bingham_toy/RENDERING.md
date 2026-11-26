@@ -32,11 +32,10 @@ the camera. Shadow maps are disabled; ambient fill and moderate surface
 roughness soften the contrast. A camera view directed at the
 bottom of an opaque mug naturally cannot show its interior.
 
-Before saving or passing RGB to the network, a fixed Gaussian blur is applied:
-sigma=1.2 pixels at 640x360, proportional to image height at other resolutions.
-This reduces small STL faceting/reflection artifacts. Train, validation, test,
-and preview use this identical process. The depth buffer and pose labels are
-not blurred or changed. There is no random blur or extra online augmentation.
+No blur or other spatial postprocessing is applied. Train, validation, test,
+and preview use the rasterizer's RGB directly. Pose labels and the depth
+buffer retain the same geometry. The metadata records blur sigma 0.0, and the
+rendering test checks exact equality with the raw rasterizer output.
 
 `q_wxyz[i]` is the active object-to-OpenCV-camera rotation, with Hamilton
 quaternions in scalar-first order. OpenCV camera axes are x right, y down,
@@ -67,7 +66,7 @@ fixed before training:
 Each split has `images/000000.png`, etc., and `poses.npz` with float64
 `q_wxyz[N,4]`, int64 `index[N]`, float64 `t_camera[N,3]`, and an int64 scalar
 `seed`. `metadata.json` records count, label hash, concatenated image-file hash,
-and generation time. `data/cylinder_center_20261127/render_metadata.json` records geometry, camera,
+and generation time. `data/cylinder_center_no_blur_20261127/render_metadata.json` records geometry, camera,
 material, rendering stack, driver selection, coordinate conventions, and code
 hash. Pixel reproducibility is guaranteed only on the same rendering stack;
 GPU drivers can change rasterization rounding.
@@ -83,7 +82,7 @@ pyrender, and Pillow:
 
 ```bash
 /usr/bin/python3 misc/mug_bingham_toy/render.py \
-  --output misc/mug_bingham_toy/data/cylinder_center_20261127
+  --output misc/mug_bingham_toy/data/cylinder_center_no_blur_20261127
 ```
 
 The asset preparation command, needed only when reconstructing the local

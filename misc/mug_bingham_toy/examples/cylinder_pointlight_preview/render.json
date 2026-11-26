@@ -6,8 +6,8 @@
     ],
     "image_size_order": "width,height",
     "channels": "RGB uint8",
-    "image_postprocess": "fixed Gaussian blur of RGB before saving or network input; depth unchanged",
-    "image_blur_sigma_pixels": 1.2,
+    "image_postprocess": "none; raw rasterizer RGB before saving or network input",
+    "image_blur_sigma_pixels": 0.0,
     "K": [
       [
         590.625,
@@ -171,15 +171,15 @@
     "trimesh_version": "4.12.2",
     "randomness": "PCG64 standard_normal 4-vectors normalized onto S³; independent split seeds; no image/light randomization",
     "pixel_reproducibility": "Exact on the same software/driver stack; other GPU drivers may change rasterization rounding",
-    "source_code_sha256": "18c0a1eebc454e09b464f89caf9559613b348c8ff002f280836ee33e2b7ea3bb"
+    "source_code_sha256": "4c1a7ed8b2bbea9bee38188aeba1eee14788ad52ddfae8800f612f9e67e5001f"
   },
   "reference_pdf": "/home/leus/dthesis/figs/symaware-bingham/toyexample.pdf",
   "reference_sha256": "2dc8392bd3eda03143112df26611af0efd33ea388d3a584f11d3948f67b1b7b5",
   "reference_source_sha256": "460a854bb54d49b00ae14e8c3e7a8c1a47cb083126798977af9e2d6992bf1b2e",
   "source_sha256": {
-    "render.py": "18c0a1eebc454e09b464f89caf9559613b348c8ff002f280836ee33e2b7ea3bb",
+    "render.py": "4c1a7ed8b2bbea9bee38188aeba1eee14788ad52ddfae8800f612f9e67e5001f",
     "figure_geometry.py": "7ab4d92000faf597fd61537ed414127c3764e6e61e53f00a05682c6d50ec8225",
-    "toyexample.py": "2909144c3b9fe24cce5dda63f2a1f878930281b8d7ed308d35eadc1581b0b6a0"
+    "toyexample.py": "ab843850569f4c9e76d09eb5379bbbe7d2a4eeec1f461a0f56ca9695f269bd7e"
   },
   "poses": {
     "angles_deg": [

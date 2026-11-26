@@ -33,7 +33,8 @@ class FreshLaunchTests(unittest.TestCase):
                    'original_sha256':status.sha256(self.assets/'mug_original.stl')}
         self.write_json(self.assets/status.MESH_METADATA,self.mesh)
         self.data.mkdir()
-        self.write_json(self.data/'render_metadata.json',{'image_size':[640,360],'mesh':self.mesh})
+        self.write_json(self.data/'render_metadata.json',{'image_size':[640,360],'mesh':self.mesh,
+                                                        'image_blur_sigma_pixels':0.0})
         # Small fixtures exercise the same count/seed guard without creating
         # 12,000 files or invoking rendering/training during this test.
         self.splits=(('train',2,1234),('val',1,1235),('test',1,1236))
@@ -60,14 +61,22 @@ class FreshLaunchTests(unittest.TestCase):
         result=self.validate()
         self.assertEqual(result['center_native'],[40.,40.,45.])
         self.assertEqual((result['epochs'],result['batch_size'],result['training_seed']),(50,16,20261126))
-        self.assertEqual(status.DEFAULT_DATA,ROOT/'data/cylinder_center_20261127')
-        self.assertEqual(status.DEFAULT_RUN,ROOT/'runs/vgg16_10000_cylinder_center_20261127')
+        self.assertEqual(status.DEFAULT_DATA,ROOT/'data/cylinder_center_no_blur_20261127')
+        self.assertEqual(status.DEFAULT_RUN,ROOT/'runs/vgg16_10000_cylinder_center_no_blur_20261127')
 
     def test_wrong_bounding_box_center_is_rejected(self):
         wrong=deepcopy(self.mesh)
         wrong['center_native']=[56.056610107421875,40.,45.]
         self.write_json(self.assets/status.MESH_METADATA,wrong)
         with self.assertRaisesRegex(ValueError,'cylindrical center'):
+            self.validate()
+
+    def test_blurred_input_is_rejected(self):
+        path=self.data/'render_metadata.json'
+        metadata=json.loads(path.read_text())
+        metadata['image_blur_sigma_pixels']=1.2
+        self.write_json(path,metadata)
+        with self.assertRaisesRegex(ValueError,'without blur'):
             self.validate()
 
     def test_old_split_cannot_hide_behind_new_global_metadata(self):

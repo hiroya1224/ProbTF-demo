@@ -11,7 +11,7 @@
 - 元STL：[assets/mug_original.stl](assets/mug_original.stl)。ユーザー指定ファイルと同一bytes。
 - 修正した着色メッシュ：[assets/mug_cylinder_centered_colored.ply](assets/mug_cylinder_centered_colored.ply)。すべての頂点はRGBA `[188,21,67,255]`。
 - 中心と変換の記録：[assets/mug_cylinder_center_metadata.json](assets/mug_cylinder_center_metadata.json)。元の軸を維持し、一様scaleは`1/112.11322021484375`のまま。
-- カメラ距離2.5、画像全体640×360、白背景、ambientとカメラ後方上側の点光源。roughnessは0.4。固定Gaussianブラーσ=1.2pxを全画像へ適用する。[描画規約](RENDERING.md)。
+- カメラ距離2.5、画像全体640×360、白背景、ambientとカメラ後方上側の点光源。roughnessは0.4。ブラーは適用せず、レンダラのRGBをそのまま使う。[描画規約](RENDERING.md)。
 
 最新の[レンダリング一覧](examples/cylinder_pointlight_preview/render_preview.png)は、次で元画像・設定と一緒に上書きする。
 
@@ -23,9 +23,9 @@
 
 標準VGG16 configuration D、13畳み込み層、adaptive average pooling 7×7、4096→4096→9の全結合部を全体学習する。事前学習重みは使わない。全134,297,417パラメータを乱数初期化し、50 epoch、batch 16、AdamW、初期学習率1e-4、weight decay 1e-4、cosine scheduleで学習する。各epochは10,000枚をすべて一度ずつ使用する。検証NLLで重みを選び、全epoch完了後に独立テストを実行する。画像のcrop・resize・augmentationはしない。
 
-データは`data/cylinder_center_20261127/`、重みとログは`runs/vgg16_10000_cylinder_center_20261127/`へ保存する。学習・検証・テストの枚数は10,000／1,000／1,000、四元数生成のPCG64 seedは1234／1235／1236。4次元標準Gaussianを単位長へ正規化してHaar一様回転を生成する。教師は物体からOpenCVカメラへのHamilton四元数wxyzで、画像の実際の回転と一致する。
+データは`data/cylinder_center_no_blur_20261127/`、重みとログは`runs/vgg16_10000_cylinder_center_no_blur_20261127/`へ保存する。学習・検証・テストの枚数は10,000／1,000／1,000、四元数生成のPCG64 seedは1234／1235／1236。4次元標準Gaussianを単位長へ正規化してHaar一様回転を生成する。教師は物体からOpenCVカメラへのHamilton四元数wxyzで、画像の実際の回転と一致する。
 
-全12,000枚の再生成を終え、新規学習のGPU更新を確認した。[開始記録](verification/cylinder_center_training_launch.json)は途中の状態であり、50epochの完了記録ではない。[修正検証](verification/cylinder_center_correction.json)には、描画・幾何・起動の35件の検査と設定を保存した。
+ブラーありの学習はユーザー指定で停止し、その生成物を削除した。ブラーなしで全画像を再生成し、乱数初期値から新しく学習する。学習中は各epochの検証後、固定5画像に対する同じ予測Aから物体X/Z方向の接空間共分散を計算する。既存の`metrics.jsonl`に生Aと評価値を一緒に記録し、別の報告書は作らない。
 
 長時間処理用の専用セッションに接続する。
 
@@ -39,12 +39,12 @@ tmux a -t mug-bingham-toy
 /usr/bin/python3 misc/mug_bingham_toy/status.py
 ```
 
-専用セッションを新規に立てるコマンドは`bash misc/mug_bingham_toy/launch_tmux.sh`。画像生成、画像の完了を待つ新規学習、進行表示の3ウィンドウを作る。全学習と独立テストが完了したら、同じ新しい重みで5方向図も自動生成する。
+専用セッションを新規に立てるコマンドは`bash misc/mug_bingham_toy/launch_tmux.sh`。画像生成、画像の完了を待つ新規学習、進行表示、ライブ画面の4ウィンドウを作る。全学習と独立テストが完了したら、同じ新しい重みで5方向図も自動生成する。ライブ画面は5入力画像と同じAの球面密度、X/Z方向の接空間の主分散[rad²]を表示する。
 
 リポジトリrootからの再生成・新規学習は次の順序。`run.sh`はデータが揃い、円筒中心のメッシュで生成されたことを確認してから、空の新規runで開始する。
 
 ```bash
-/usr/bin/python3 misc/mug_bingham_toy/render.py --output misc/mug_bingham_toy/data/cylinder_center_20261127
+/usr/bin/python3 misc/mug_bingham_toy/render.py --output misc/mug_bingham_toy/data/cylinder_center_no_blur_20261127
 bash misc/mug_bingham_toy/run.sh
 ```
 

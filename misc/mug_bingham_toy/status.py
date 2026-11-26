@@ -9,8 +9,8 @@ import time
 
 
 HERE=Path(__file__).resolve().parent
-DEFAULT_DATA=HERE/'data/cylinder_center_20261127'
-DEFAULT_RUN=HERE/'runs/vgg16_10000_cylinder_center_20261127'
+DEFAULT_DATA=HERE/'data/cylinder_center_no_blur_20261127'
+DEFAULT_RUN=HERE/'runs/vgg16_10000_cylinder_center_no_blur_20261127'
 SPLITS=(('train',10000,1234),('val',1000,1235),('test',1000,1236))
 MESH_METADATA='mug_cylinder_center_metadata.json'
 COLORED_MESH='mug_cylinder_centered_colored.ply'
@@ -44,6 +44,8 @@ def validate_launch(data,run,assets=None):
     rendered=json.loads((data/'render_metadata.json').read_text())
     if rendered.get('image_size') != [640,360]:
         raise ValueError('Expected whole 640x360 images')
+    if rendered.get('image_blur_sigma_pixels') != 0.0:
+        raise ValueError('The current experiment requires images without blur')
     if rendered.get('mesh') != mesh:
         raise ValueError('Dataset was rendered from different mesh/origin metadata')
     for split,count,seed in SPLITS:
@@ -66,6 +68,24 @@ def validate_launch(data,run,assets=None):
             'epochs':50,'batch_size':16,'training_seed':20261126}
 
 
+def display_summary(value):
+    if not isinstance(value,dict) or 'tangent_xz' not in value:
+        return value
+    summary={key:item for key,item in value.items() if key != 'tangent_xz'}
+    monitor=value['tangent_xz']
+    brief={'status':monitor.get('status')}
+    if 90. in monitor.get('angles_deg',[]):
+        index=monitor['angles_deg'].index(90.)
+        for axis in ('X','Z'):
+            if axis in monitor:
+                item=monitor[axis][index]
+                brief[axis]={'status':item.get('status'),
+                    'variance_rad2':item.get('principal_variance_rad2'),
+                    'sigma_deg':item.get('principal_sigma_deg')}
+    summary['hidden_90_tangent']=brief
+    return summary
+
+
 def show(run,data=DEFAULT_DATA):
     print(datetime.now().astimezone().isoformat(timespec='seconds'),flush=True)
     print(f'Data: {data}',flush=True)
@@ -80,7 +100,11 @@ def show(run,data=DEFAULT_DATA):
         lines=log.read_text().splitlines()
         progress=[line for line in lines if line.startswith('{')]
         if progress:
-            print('Latest batch/epoch: '+progress[-1],flush=True)
+            try:
+                latest=json.dumps(display_summary(json.loads(progress[-1])),ensure_ascii=False)
+            except ValueError:
+                latest=progress[-1]
+            print('Latest batch/epoch: '+latest,flush=True)
     candidates=[run/'metrics.jsonl',run/'status.json',run/'report.json',run/'final_report.json',run/'test_metrics.json']
     for path in candidates:
         if path.exists():
@@ -90,7 +114,7 @@ def show(run,data=DEFAULT_DATA):
                     value=json.loads(lines[-1]) if lines else {}
                 else:
                     value=json.loads(path.read_text())
-                print(path.name+': '+json.dumps(value,ensure_ascii=False),flush=True)
+                print(path.name+': '+json.dumps(display_summary(value),ensure_ascii=False),flush=True)
             except (ValueError,OSError):
                 print(path.name+': writing',flush=True)
 

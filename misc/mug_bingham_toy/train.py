@@ -229,6 +229,70 @@ def evaluate(model, loader, criterion, device, *, retain_predictions=False):
     return metrics
 
 
+class TangentObserver:
+    """Passive queries of the same current image-conditioned Bingham matrices.
+
+    The observer uses fixed saved RGB bytes, performs one eval/inference-only
+    forward, and restores Python/numpy/Torch RNG plus every module's mode.
+    It neither clears existing gradients nor changes weights or selection.
+    """
+
+    def __init__(self, path):
+        self.path = Path(path).resolve()
+        packet_bytes = self.path.read_bytes()
+        self.input_sha256 = hashlib.sha256(packet_bytes).hexdigest()
+        with np.load(io.BytesIO(packet_bytes), allow_pickle=False) as packet:
+            self.pixels = np.array(packet["rgb"], copy=True)
+            self.angles = np.array(packet["angles_deg"], dtype=np.float64, copy=True)
+            geometry_keys = ("K", "t_camera", "R_world_camera", "R_camera_world",
+                             "R_world_object", "R_camera_object", "q_world_camera_wxyz",
+                             "q_world_object_wxyz", "q_camera_object_wxyz", "elevation_degrees")
+            self.geometry = {key: packet[key].tolist() for key in geometry_keys if key in packet}
+        if self.pixels.dtype != np.uint8 or self.pixels.shape != (5, IMAGE_SIZE[1], IMAGE_SIZE[0], 3):
+            raise ValueError("Monitor inputs must contain five whole uint8 RGB 640x360 images")
+        if not np.array_equal(self.angles, [0., 60., 90., 120., 180.]):
+            raise ValueError("Monitor angles must be exactly 0,60,90,120,180 degrees")
+
+    def evaluate(self, model, device, *, epoch, optimizer_step):
+        python_rng, numpy_rng = random.getstate(), np.random.get_state()
+        modes = [(module, module.training) for module in model.modules()]
+        cuda_devices = [device.index if device.index is not None else torch.cuda.current_device()] if device.type == "cuda" else []
+        result = {"epoch": epoch, "optimizer_step": optimizer_step,
+                  "weights": "current epoch model, before checkpoint saving",
+                  "inputs_path": str(self.path), "inputs_sha256": self.input_sha256,
+                  "angles_deg": self.angles.tolist(), "input_geometry": self.geometry}
+        try:
+            with torch.random.fork_rng(devices=cuda_devices), torch.inference_mode():
+                try:
+                    from .tangent_audit_math import direction_tangent_covariance
+                except ImportError:
+                    from tangent_audit_math import direction_tangent_covariance
+                model.eval()
+                parameters = model(normalize_images(torch.from_numpy(self.pixels), device))
+                matrices = symmetric_matrix(parameters.to(dtype=torch.float64)).cpu().numpy()
+                result.update(status="observed", parameters_9=parameters.float().cpu().tolist(),
+                              A_camera=matrices.tolist())
+                for label, vector in (("X", (1., 0., 0.)), ("Z", (0., 0., 1.))):
+                    values = []
+                    for matrix in matrices:
+                        try:
+                            values.append(direction_tangent_covariance(matrix, v=vector))
+                        except Exception as error:
+                            # An observer failure must not become a training
+                            # quality gate or manufacture a covariance value.
+                            values.append({"status": "observer_error", "covariance_defined": False,
+                                           "error": f"{type(error).__name__}: {error}"})
+                    result[label] = values
+        except Exception as error:
+            result.update(status="observer_error", error=f"{type(error).__name__}: {error}")
+        finally:
+            for module, training in modes:
+                module.training = training
+            random.setstate(python_rng)
+            np.random.set_state(numpy_rng)
+        return result
+
+
 def save_checkpoint(path, payload):
     temporary = path.with_suffix(path.suffix + ".tmp")
     torch.save(payload, temporary)
@@ -264,8 +328,11 @@ def environment(device):
     return result
 
 
-def current_sources():
-    return {name: sha256(HERE / name) for name in ("train.py", "model.py", "bingham.py", "render.py")}
+def current_sources(monitor_inputs=None):
+    names = ["train.py", "model.py", "bingham.py", "render.py"]
+    if monitor_inputs is not None:
+        names.extend(("tangent_audit_math.py", "figure_geometry.py"))
+    return {name: sha256(HERE / name) for name in names}
 
 
 def canonical_config(args):
@@ -274,6 +341,8 @@ def canonical_config(args):
             "seed": args.seed, "workers": args.workers, "cpu_threads": args.cpu_threads,
             "preload": args.preload, "learning_rate": args.learning_rate,
             "weight_decay": args.weight_decay, "quadrature_nodes": args.quadrature_nodes,
+            "monitor_inputs": str(args.monitor_inputs.resolve()) if args.monitor_inputs else None,
+            "monitor_inputs_sha256": sha256(args.monitor_inputs) if args.monitor_inputs else None,
             "image_size": list(IMAGE_SIZE), "normalization": "(uint8/255 - 0.5)/0.5",
             "augmentation": None, "architecture": "standard VGG16 configuration D, full 4096/4096 classifier, 9 outputs",
             "pretrained": False, "last_linear_init_std": 1e-4,
@@ -302,7 +371,10 @@ def run_training(args):
         raise FileExistsError("Output already contains a run; choose a new folder or use --resume last.pt")
     config = canonical_config(args)
     manifest = input_manifest(args.data)
-    sources = current_sources()
+    sources = current_sources(args.monitor_inputs)
+    observer = TangentObserver(args.monitor_inputs) if args.monitor_inputs else None
+    if observer is not None and observer.input_sha256 != config["monitor_inputs_sha256"]:
+        raise ValueError("Monitor inputs changed while the run configuration was being loaded")
     render_metadata = json.loads((args.data / "render_metadata.json").read_text())
     if render_metadata.get("image_size") != list(IMAGE_SIZE):
         raise ValueError("Dataset must contain whole 640x360 renders; resize is not performed")
@@ -404,6 +476,9 @@ def run_training(args):
                    "best_epoch": best_epoch, "best_val_nll": best_val,
                    "seconds_train_and_validation": time.perf_counter() - started,
                    "cuda_peak_allocated_bytes": torch.cuda.max_memory_allocated(device) if device.type == "cuda" else 0}
+        if observer is not None:
+            metrics["tangent_xz"] = observer.evaluate(model, device, epoch=epoch,
+                                                       optimizer_step=epoch * len(train_loader))
         common = {"model": model.state_dict(), "epoch": epoch, "config": config,
                   "source_sha256": sources, "input_sha256": manifest,
                   "best_val_nll": best_val, "best_epoch": best_epoch,
@@ -508,6 +583,8 @@ def parse_args(argv=None):
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--quadrature-nodes", type=int, default=200)
+    parser.add_argument("--monitor-inputs", type=Path,
+                        help="optional fixed five-image NPZ for passive per-epoch X/Z tangent covariance queries")
     parser.add_argument("--resume", type=Path, help="local last.pt; all saved configuration and input/source hashes must match")
     parser.add_argument("--benchmark-steps", type=int, default=0,
                         help="run this many synthetic full-resolution optimizer steps, save timing only")
@@ -522,6 +599,8 @@ def parse_args(argv=None):
         parser.set_defaults(**defaults)
     args = parser.parse_args(argv)
     args.data, args.output = Path(args.data), Path(args.output)
+    if args.monitor_inputs:
+        args.monitor_inputs = Path(args.monitor_inputs)
     if args.resume:
         args.resume = Path(args.resume)
     for name in ("epochs", "batch_size", "cpu_threads"):

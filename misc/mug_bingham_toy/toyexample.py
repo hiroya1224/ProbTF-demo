@@ -13,8 +13,8 @@ import numpy as np
 
 
 HERE=Path(__file__).resolve().parent
-DEFAULT_OUTPUT=HERE/'results/toyexample_vgg16_10000_cylinder_center'
-DEFAULT_RUN=HERE/'runs/vgg16_10000_cylinder_center_20261127'
+DEFAULT_OUTPUT=HERE/'results/toyexample_vgg16_10000_cylinder_center_no_blur'
+DEFAULT_RUN=HERE/'runs/vgg16_10000_cylinder_center_no_blur_20261127'
 REFERENCE=Path('/home/leus/dthesis/figs/symaware-bingham/toyexample.pdf')
 REFERENCE_SOURCE=Path('/home/leus/dthesis/scripts/render_mug_learning_figure.py')
 ANGLES=(0,60,90,120,180)

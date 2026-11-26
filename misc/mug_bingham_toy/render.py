@@ -25,7 +25,7 @@ CYLINDER_CENTER_NATIVE = np.array([40.0, 40.0, 45.0])
 MATERIAL_ROUGHNESS = .4
 POINT_LIGHT_POSITION = np.array([0.0, .8, 2.7])
 POINT_LIGHT_INTENSITY = 20.0
-IMAGE_BLUR_SIGMA_360P = 1.2
+IMAGE_BLUR_SIGMA_360P = 0.0
 COLOR_HEX = "#BC1543"
 COLOR_RGB = np.array([188, 21, 67], dtype=np.uint8)
 DEFAULT_SPLITS = {"train": (10000, 1234),
@@ -190,14 +190,8 @@ class MugRenderer:
         return pose
 
     def render(self, q_object_to_camera: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        from PIL import Image, ImageFilter
-
         self.scene.set_pose(self.object_node, self.world_object_pose(q_object_to_camera))
-        rgb, depth = self.offscreen.render(self.scene, flags=self.pyrender.RenderFlags.NONE)
-        sigma = IMAGE_BLUR_SIGMA_360P * self.height / DEFAULT_HEIGHT
-        rgb = np.asarray(Image.fromarray(rgb, "RGB").filter(
-            ImageFilter.GaussianBlur(radius=sigma))).copy()
-        return rgb, depth
+        return self.offscreen.render(self.scene, flags=self.pyrender.RenderFlags.NONE)
 
     def close(self):
         self.offscreen.delete()
@@ -208,7 +202,7 @@ class MugRenderer:
         return {
             "image_size": [self.width, self.height], "image_size_order": "width,height",
             "channels": "RGB uint8",
-            "image_postprocess": "fixed Gaussian blur of RGB before saving or network input; depth unchanged",
+            "image_postprocess": "none; raw rasterizer RGB before saving or network input",
             "image_blur_sigma_pixels": IMAGE_BLUR_SIGMA_360P * self.height / DEFAULT_HEIGHT,
             "K": self.K.tolist(), "distance_object_units": self.distance,
             "vertical_fov_degrees": float(np.degrees(2*np.arctan(self.height/(2*self.focal)))),
@@ -294,7 +288,7 @@ def validate_output_metadata(output: Path, splits, overwrite: bool = False) -> N
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prepare", type=Path, metavar="SOURCE_STL")
-    parser.add_argument("--output", type=Path, default=HERE / "data/cylinder_center_20261127")
+    parser.add_argument("--output", type=Path, default=HERE / "data/cylinder_center_no_blur_20261127")
     parser.add_argument("--split", choices=["all", *DEFAULT_SPLITS], default="all")
     parser.add_argument("--count", type=int, help="override count for one split")
     parser.add_argument("--seed", type=int, help="override seed for one split")

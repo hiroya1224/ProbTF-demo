@@ -133,7 +133,7 @@ def sigma_label(component: dict | None) -> str:
 
 
 class TrainingViewer:
-    def __init__(self, run: Path, inputs: Path, *, samples: int = 1000,
+    def __init__(self, run: Path, inputs: Path, *, samples: int = 4096,
                  sample_seed: int = 20261127, subdivisions: int = 4):
         import matplotlib.pyplot as plt
 
@@ -180,11 +180,11 @@ class TrainingViewer:
                                                ha="center", va="top", fontsize=8.5))
         top = self.sphere_axes[0].get_position().y1
         self.figure.text(.5, top+.018,
-                         f"同じカメラから見た Bingham {self.samples} 方位の標本 · 赤 X / 緑 Y / 青 Z (各{self.samples}点) · 奥側の不透明度 1/2 · モード軸は不透明",
+                         f"同じカメラから見た Bingham {self.samples} 方位の標本 · 赤 X / 緑 Y / 青 Z (各{self.samples}点) · 点は不透明 · 奥は同じ色相で白を混合（明度1.5倍）",
                          ha="center", va="bottom", fontsize=9)
         self.history_axes, self.history_lines = {}, {}
         for column, axis in enumerate(("X", "Z")):
-            ax = self.figure.add_subplot(history_grid[0, column])
+            ax = self.figure.add_subplot(history_grid[0, column], sharey=self.history_axes.get("X"))
             color = COLORS[0 if axis == "X" else 2]
             ax.set(title=f"取っ手が後ろ (90°): 物体 {axis} 軸", xlabel="epoch",
                    ylabel="接空間の主標準偏差 [deg]", xlim=(0, 1))
@@ -235,20 +235,23 @@ class TrainingViewer:
                                               ha="center", va="top", fontsize=8.5)
 
     def _draw_history(self, records):
+        all_finite = []
+        maximum = max((float(row["epoch"]) for row in records), default=1)
         for axis, ax in self.history_axes.items():
-            all_finite = []
             for start, angle in ((0, 90), (2, 0)):
                 epochs, values = standard_deviation_history(records, axis, angle)
                 for eigen_index in range(2):
                     self.history_lines[axis][start+eigen_index].set_data(epochs, values[:, eigen_index])
                 all_finite.extend(values[np.isfinite(values)].tolist())
-            # A zero value is left unchanged and uses a linear axis. Positive
-            # standard deviations use a log axis without an epsilon or floor.
-            ax.set_yscale("log" if all_finite and min(all_finite) > 0 else "linear")
-            ax.relim()
-            ax.autoscale_view(scalex=False, scaley=True)
-            maximum = max((float(row["epoch"]) for row in records), default=1)
             ax.set_xlim(0, max(1, maximum)*1.04)
+        # Both directions use one scale and one shared range. A zero stays
+        # unchanged on a common linear axis; all-positive data use a common
+        # logarithmic axis, without an epsilon, floor or per-panel scaling.
+        reference = self.history_axes["X"]
+        reference.set_yscale("log" if all_finite and min(all_finite) > 0 else "linear")
+        for ax in self.history_axes.values():
+            ax.relim()
+        reference.autoscale_view(scalex=False, scaley=True)
 
     def poll(self, *, force=False):
         try:
@@ -324,7 +327,7 @@ def main():
     parser.add_argument("--run", type=Path, default=DEFAULT_RUN)
     parser.add_argument("--inputs", type=Path, default=DEFAULT_INPUTS)
     parser.add_argument("--interval", type=float, default=2.)
-    parser.add_argument("--samples", type=int, default=1000)
+    parser.add_argument("--samples", type=int, default=4096)
     parser.add_argument("--sample-seed", type=int, default=20261127)
     parser.add_argument("--subdivisions", type=int, default=4, choices=range(2, 7), help=argparse.SUPPRESS)
     parser.add_argument("--snapshot", type=Path, help="Write one diagnostic PNG under /tmp without opening a window")

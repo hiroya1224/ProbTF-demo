@@ -41,7 +41,7 @@ def render_inputs(args):
 
     output=args.output.resolve()
     output.mkdir(parents=True,exist_ok=True)
-    poses=camera_up_world_poses(ANGLES,elevation_degrees=10.)
+    poses=camera_up_world_poses(ANGLES,elevation_degrees=getattr(args,'elevation_degrees',0.))
     renderer=MugRenderer()
     images=[]
     try:
@@ -55,13 +55,22 @@ def render_inputs(args):
     arrays={key:np.asarray(value) for key,value in poses.items()}
     arrays.update(rgb=np.stack(images),K=np.asarray(metadata['K']),
         t_camera=np.tile([0.,0.,2.5],(len(ANGLES),1)))
-    np.savez_compressed(output/'inputs.npz',**arrays)
+    packet_path=output/'inputs.npz'
+    unchanged=False
+    if packet_path.exists():
+        with np.load(packet_path,allow_pickle=False) as previous:
+            unchanged=set(previous.files)==set(arrays) and all(
+                np.array_equal(previous[key],value) for key,value in arrays.items())
+    # Re-rendering identical inputs must not change the frozen viewer's hash
+    # merely through new ZIP-entry timestamps at final training completion.
+    if not unchanged:
+        np.savez_compressed(packet_path,**arrays)
     save_json(output/'render.json',dict(renderer=metadata,
         reference_pdf=str(REFERENCE),reference_sha256=sha(REFERENCE) if REFERENCE.exists() else None,
         reference_source_sha256=sha(REFERENCE_SOURCE) if REFERENCE_SOURCE.exists() else None,
         source_sha256={name:sha(HERE/name) for name in ('render.py','figure_geometry.py','toyexample.py')},
         poses={key:value.tolist() for key,value in arrays.items() if key not in ('rgb',)},
-        angle_convention='World yaw = 180 deg - displayed angle; camera elevation 10 deg',
+        angle_convention=f"World yaw = 180 deg - displayed angle; camera elevation {poses['elevation_degrees']:g} deg",
         input_to_network='Whole original 640x360 RGB; shared crop is display only',
         shared_display_crop_xyxy=list(CROP),
         mesh_sha256=metadata['mesh']['colored_mesh_sha256'],
@@ -95,13 +104,28 @@ def infer(args):
     from model import VGG16Bingham
     from bingham import symmetric_matrix,PARAMETER_ORDER,BinghamNLL
     from figure_geometry import frame_change_bingham,mode_quaternion
+    from tangent_audit_math import direction_tangent_covariance
 
     output=args.output.resolve()
     inputs=dict(np.load(output/'inputs.npz',allow_pickle=False))
     run=args.run.resolve()
     checkpoint_path=run/'best.pt'
-    checkpoint=load_checkpoint(checkpoint_path)
-    saved=json.loads((run/'test_metrics.json').read_text())
+    # The trainer atomically replaces best.pt. Hold one inode for both the
+    # loaded weights and their hash, without modifying or copying its bytes.
+    with checkpoint_path.open('rb') as stream:
+        checkpoint=load_checkpoint(stream)
+        stream.seek(0)
+        checksum=hashlib.sha256()
+        for block in iter(lambda:stream.read(1024*1024),b''):
+            checksum.update(block)
+        checkpoint_hash=checksum.hexdigest()
+    saved_path=run/'test_metrics.json'
+    saved=json.loads(saved_path.read_text()) if saved_path.exists() else None
+    training_rows=[json.loads(line) for line in (run/'metrics.jsonl').read_text().splitlines()
+                   if line.strip()]
+    checkpoint_epoch=int(checkpoint['epoch'])
+    epoch_metrics=next((row for row in reversed(training_rows) if row['epoch']==checkpoint_epoch),
+        dict(train_nll_mean=None,validation=dict(nll_mean=checkpoint['best_val_nll'])))
     seed_everything(20261126,4)
     device=torch.device(args.device)
     if device.type=='cuda' and not torch.cuda.is_available():
@@ -121,8 +145,9 @@ def infer(args):
     arrays=dict(inputs,parameters_9=parameters,A_camera=camera_A,A_world=world_A,
         mode_camera_wxyz=camera_modes,mode_world_wxyz=world_modes,log_Z_s3=log_Z)
     np.savez_compressed(output/'figure_data.npz',**arrays)
-    save_json(output/'inference.json',dict(checkpoint=str(checkpoint_path),checkpoint_sha256=sha(checkpoint_path),
-        checkpoint_epoch=int(checkpoint['epoch']),trained_epochs=saved['epochs_completed'],
+    save_json(output/'inference.json',dict(checkpoint=str(checkpoint_path),checkpoint_sha256=checkpoint_hash,
+        checkpoint_epoch=checkpoint_epoch,trained_epochs=training_rows[-1]['epoch'],
+        training_complete=saved is not None,
         checkpoint_selection='Saved best validation NLL; no selection using these five images',
         test_metrics=saved,input_sha256=sha(output/'inputs.npz'),figure_data_sha256=sha(output/'figure_data.npz'),
         source_sha256={name:sha(HERE/name) for name in ('model.py','train.py','bingham.py','figure_geometry.py','toyexample.py')},
@@ -136,6 +161,30 @@ def infer(args):
         frame_change='A_world = L(q_world_camera) A_camera L(q_world_camera)^T',
         samples_from_training_or_test_predictions_reused=False,
         distribution_rescaled_or_refitted=False,network_evaluations_per_image=1))
+    # This is a separate requested-elevation display history. The trainer's
+    # frozen ten-degree observer and its metrics remain untouched. All views
+    # and tangent covariances below refer to the one forward pass above.
+    geometry_keys=('K','t_camera','R_world_camera','R_camera_world','R_world_object',
+                   'R_camera_object','q_world_camera_wxyz','q_world_object_wxyz',
+                   'q_camera_object_wxyz','elevation_degrees')
+    observed=dict(epoch=checkpoint_epoch,optimizer_step=checkpoint.get('optimizer_step'),
+        weights='saved best validation-NLL checkpoint; independent display inference',
+        checkpoint_sha256=checkpoint_hash,inputs_path=str(output/'inputs.npz'),
+        inputs_sha256=sha(output/'inputs.npz'),angles_deg=inputs['angles_deg'].tolist(),
+        input_geometry={key:inputs[key].tolist() for key in geometry_keys if key in inputs},
+        status='observed',parameters_9=parameters.tolist(),A_camera=camera_A.tolist())
+    for label,vector in (('X',(1.,0.,0.)),('Z',(0.,0.,1.))):
+        observed[label]=[direction_tangent_covariance(A,v=vector) for A in camera_A]
+    record=dict(epoch=checkpoint_epoch,train_nll_mean=epoch_metrics['train_nll_mean'],
+        validation=epoch_metrics['validation'],tangent_xz=observed)
+    metrics_path=output/'metrics.jsonl'
+    existing=[json.loads(line) for line in metrics_path.read_text().splitlines()
+              if line.strip()] if metrics_path.exists() else []
+    if not any(row['tangent_xz'].get('checkpoint_sha256')==checkpoint_hash for row in existing):
+        with metrics_path.open('a') as stream:
+            stream.write(json.dumps(record,ensure_ascii=False,allow_nan=False)+'\n')
+    if saved is not None:
+        save_json(output/'test_metrics.json',dict(saved,source_training_run=str(run)))
     print('Saved '+str(output/'figure_data.npz'),flush=True)
 
 
@@ -221,8 +270,8 @@ def plot(args):
         shared_display_crop_xyxy=list(CROP),
         color_axis_mapping=dict(x=COLORS[0],y=COLORS[1],z=COLORS[2]),
         sample_meaning='Shared BACG quaternion samples from saved A_camera; each sample rotates object X/Y/Z, giving the displayed camera-frame axis tips',
-        display_alpha='near axis-tip points .7; far camera Z>0 points .35; far wires use one-half opacity; mode axes fully opaque at 1.8pt',
-        display_grid=f'Latitude/longitude wireframe, camera-Z poles; gray {GRID_COLOR}, alpha {GRID_ALPHA}, width {GRID_LINEWIDTH}; far wires use one-half opacity',
+        display_alpha='all axis-tip points alpha=1; far camera Z>0 points use white-mixed RGB at the same hue and 1.5 times HSL lightness; mode axes fully opaque at 1.8pt',
+        display_grid=f'Latitude/longitude wireframe, camera-Z poles; gray {GRID_COLOR}, alpha {GRID_ALPHA}, width {GRID_LINEWIDTH}; far wires use one-fifth opacity',
         network_rerun_by_plot=False,distribution_modified_by_plot=False,
         random_sampling_for_visualization_only=True,covariance_estimated_from_samples=False))
     print('Saved '+str(output/'toyexample.pdf'),flush=True)
@@ -234,9 +283,13 @@ if __name__=='__main__':
     parser.add_argument('--output',type=Path)
     parser.add_argument('--run',type=Path,default=DEFAULT_RUN)
     parser.add_argument('--device',default='cuda')
-    parser.add_argument('--samples',type=int,default=1000,help='Display quaternion samples per panel; does not affect inference')
+    parser.add_argument('--elevation-degrees',type=float,default=0.,
+                        help='Display-input camera elevation in degrees; default 0 is horizontal')
+    parser.add_argument('--samples',type=int,default=4096,help='Display quaternion samples per panel; does not affect inference')
     parser.add_argument('--sample-seed',type=int,default=20261127,help='Local display seed; panel index is added')
     args=parser.parse_args()
+    if not np.isfinite(args.elevation_degrees):
+        parser.error('--elevation-degrees must be finite')
     if args.samples < 1:
         parser.error('--samples must be positive')
     if not 0 <= args.sample_seed < 1 << 64:

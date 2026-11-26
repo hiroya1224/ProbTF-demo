@@ -1,0 +1,1014 @@
+{
+  "panels": [
+    {
+      "angle_deg": 0.0,
+      "parameters_9": [
+        -776.2354736328125,
+        741.7019653320312,
+        -112.37322998046875,
+        -127.80823516845703,
+        -313.6512145996094,
+        -56.63103103637695,
+        -60.75419235229492,
+        754.718994140625,
+        -756.49609375
+      ],
+      "A_camera": [
+        [
+          -776.2354736328125,
+          741.7019653320312,
+          -112.37322998046875,
+          -127.80823516845703
+        ],
+        [
+          741.7019653320312,
+          -313.6512145996094,
+          -56.63103103637695,
+          -60.75419235229492
+        ],
+        [
+          -112.37322998046875,
+          -56.63103103637695,
+          754.718994140625,
+          -756.49609375
+        ],
+        [
+          -127.80823516845703,
+          -60.75419235229492,
+          -756.49609375,
+          335.1676940917969
+        ]
+      ],
+      "mode_camera_wxyz": [
+        -0.00910701262887888,
+        -0.009233827617389095,
+        0.7968171091438414,
+        -0.6040813631657257
+      ],
+      "sphere_samples": {
+        "algorithm": "Kent BACG normalized-Gaussian rejection sampler, equations (3.4)-(3.6)",
+        "thesis_source": "/home/leus/dthesis/chapter/3-mathematical-foundations.tex",
+        "thesis_algorithm": "math:alg:bingham-bacg",
+        "thesis_direction_construction": "/home/leus/dthesis/chapter/4-transform-law-propagation.tex:2419; x_j=Rot(q_j)v",
+        "native_extension": "/home/leus/catkin_ws/devel/lib/python3/dist-packages/probtf/_sampling.cpython-38-x86_64-linux-gnu.so",
+        "native_extension_sha256": "4bdeb7988b3cac6a5e837f84af048f09284d22aeac00d12d8bd879a67715a4f5",
+        "native_sampler_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/bingham_sampler.cpp",
+        "native_sampler_source_sha256": "1831bb436b44581c59d6ebf4ff84c275d7d82fc3e463c44a4e8d3a244dc17896",
+        "native_binding_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/python_sampling.cpp",
+        "native_binding_source_sha256": "11834ac81074694681f7d0831c9326fdada96fc368d4bde28da9c86f6a29d808",
+        "seed": 20261127,
+        "count": 4096,
+        "quaternion_order": "Hamilton wxyz",
+        "tips_layout": "sample,camera_xyz,object_xyz_axis",
+        "direction_frame": "OpenCV camera: x right, y image-down, z forward",
+        "optimal_b": 1.000976480593069,
+        "proposal_count": 9158,
+        "accepted_count": 4096,
+        "acceptance_fraction": 0.44725922690543785,
+        "orientations_shared_by_all_three_axes": true,
+        "colored_axis_tip_count": 12288,
+        "sampling_only_visualization": true,
+        "matrix_modified": false,
+        "training_rng_consumed": false,
+        "native_seed_stream": "local mt19937_64; fixed seed preserves accepted sample prefixes"
+      },
+      "sample_display": {
+        "visualization": "shared Bingham quaternion samples pushed to the three object axes",
+        "projection": "camera (x,y) directly; x right and y image-down; viewer looks along +z",
+        "front_point_alpha": 1.0,
+        "rear_point_alpha": 1.0,
+        "far_opacity_ratio": 1.0,
+        "point_color_mapping": {
+          "color_space": "HSL of display RGB; RGB components are display sRGB values",
+          "rear_lightness_ratio": 1.5,
+          "target_lightness_formula": "L_target = min(1, 1.5 * L_front)",
+          "white_fraction_formula": "t = (L_target - L_front)/(1 - L_front); t=0 when L_front=1",
+          "rear_rgb_formula": "RGB_rear = (1-t)*RGB_front + t*(1,1,1)",
+          "axes": {
+            "x": {
+              "front_rgb": [
+                0.7647058823529411,
+                0.19215686274509805,
+                0.18823529411764706
+              ],
+              "rear_rgb": [
+                0.8717779246530072,
+                0.5597708746419915,
+                0.557633840052875
+              ],
+              "front_hex": "#c33130",
+              "rear_hex": "#de8f8e",
+              "front_hsl_hue": 0.0011337868480725637,
+              "rear_hsl_hue": 0.001133786848072545,
+              "front_hsl_lightness": 0.4764705882352941,
+              "rear_hsl_lightness": 0.7147058823529411,
+              "target_hsl_lightness": 0.7147058823529411,
+              "white_fraction": 0.45505617977528073
+            },
+            "y": {
+              "front_rgb": [
+                0.1411764705882353,
+                0.4823529411764706,
+                0.26666666666666666
+              ],
+              "rear_rgb": [
+                0.3356963298139769,
+                0.5995977878330819,
+                0.43276353276353274
+              ],
+              "front_hex": "#247b44",
+              "rear_hex": "#56996e",
+              "front_hsl_hue": 0.3946360153256705,
+              "rear_hsl_hue": 0.3946360153256705,
+              "front_hsl_lightness": 0.31176470588235294,
+              "rear_hsl_lightness": 0.4676470588235294,
+              "target_hsl_lightness": 0.4676470588235294,
+              "white_fraction": 0.2264957264957265
+            },
+            "z": {
+              "front_rgb": [
+                0.16862745098039217,
+                0.39215686274509803,
+                0.6980392156862745
+              ],
+              "rear_rgb": [
+                0.4865051903114187,
+                0.6245674740484429,
+                0.8134948096885813
+              ],
+              "front_hex": "#2b64b2",
+              "rear_hex": "#7c9fcf",
+              "front_hsl_hue": 0.5962962962962962,
+              "rear_hsl_hue": 0.5962962962962962,
+              "front_hsl_lightness": 0.43333333333333335,
+              "rear_hsl_lightness": 0.65,
+              "target_hsl_lightness": 0.65,
+              "white_fraction": 0.3823529411764706
+            }
+          }
+        },
+        "background_support_order": "both neutral discs precede all sampled points",
+        "rear_definition": "camera z > 0; equator belongs to near layer",
+        "marker_area_points2": 0.8,
+        "near_point_count_per_axis": [
+          1099,
+          4096,
+          4096
+        ],
+        "rear_point_count_per_axis": [
+          2997,
+          0,
+          0
+        ],
+        "axis_colors": {
+          "x": "#c33130",
+          "y": "#247b44",
+          "z": "#2b64b2"
+        },
+        "wire_geometry": "latitude-longitude; camera +/-Z poles and XY equator",
+        "wire_gray": ".70",
+        "wire_front_alpha": 0.7,
+        "wire_rear_alpha": 0.13999999999999999,
+        "wire_rear_opacity_ratio": 0.2,
+        "wire_linewidth_pt": 0.65,
+        "mode_axis_alpha": 1.0,
+        "mode_axis_linewidth_pt": 1.8,
+        "mode_axes_on_top": true,
+        "mode_axis_count": 3,
+        "sample_or_matrix_modified_by_draw": false
+      },
+      "half_height": {
+        "width_deg": 2.876903409684703,
+        "crosses_half_height_within_180_deg": true,
+        "gap": 1099.9460945229157,
+        "mode_cross_term": 6.751823817228532e-15,
+        "axis": [
+          0.0,
+          -0.9659258262890684,
+          -0.2588190451025208
+        ],
+        "peak_log_density_unnormalized": 1330.1728741880697,
+        "target_log_density_drop": -0.6931471805599453,
+        "log_density_drop_residual": 7.333281392681756e-15,
+        "mode_eigenvector_residual": 2.545402205302968e-13
+      }
+    },
+    {
+      "angle_deg": 60.0,
+      "parameters_9": [
+        -130.66934204101562,
+        538.568603515625,
+        -52.35691833496094,
+        -40.34035110473633,
+        136.2596435546875,
+        12.422513961791992,
+        73.3889389038086,
+        156.01502990722656,
+        -558.0946655273438
+      ],
+      "A_camera": [
+        [
+          -130.66934204101562,
+          538.568603515625,
+          -52.35691833496094,
+          -40.34035110473633
+        ],
+        [
+          538.568603515625,
+          136.2596435546875,
+          12.422513961791992,
+          73.3889389038086
+        ],
+        [
+          -52.35691833496094,
+          12.422513961791992,
+          156.01502990722656,
+          -558.0946655273438
+        ],
+        [
+          -40.34035110473633,
+          73.3889389038086,
+          -558.0946655273438,
+          -161.60533142089844
+        ]
+      ],
+      "mode_camera_wxyz": [
+        -0.3723595895267511,
+        -0.48496812688101554,
+        0.6272503038147182,
+        -0.4824016048494578
+      ],
+      "sphere_samples": {
+        "algorithm": "Kent BACG normalized-Gaussian rejection sampler, equations (3.4)-(3.6)",
+        "thesis_source": "/home/leus/dthesis/chapter/3-mathematical-foundations.tex",
+        "thesis_algorithm": "math:alg:bingham-bacg",
+        "thesis_direction_construction": "/home/leus/dthesis/chapter/4-transform-law-propagation.tex:2419; x_j=Rot(q_j)v",
+        "native_extension": "/home/leus/catkin_ws/devel/lib/python3/dist-packages/probtf/_sampling.cpython-38-x86_64-linux-gnu.so",
+        "native_extension_sha256": "4bdeb7988b3cac6a5e837f84af048f09284d22aeac00d12d8bd879a67715a4f5",
+        "native_sampler_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/bingham_sampler.cpp",
+        "native_sampler_source_sha256": "1831bb436b44581c59d6ebf4ff84c275d7d82fc3e463c44a4e8d3a244dc17896",
+        "native_binding_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/python_sampling.cpp",
+        "native_binding_source_sha256": "11834ac81074694681f7d0831c9326fdada96fc368d4bde28da9c86f6a29d808",
+        "seed": 20261128,
+        "count": 4096,
+        "quaternion_order": "Hamilton wxyz",
+        "tips_layout": "sample,camera_xyz,object_xyz_axis",
+        "direction_frame": "OpenCV camera: x right, y image-down, z forward",
+        "optimal_b": 1.0072688052367673,
+        "proposal_count": 9127,
+        "accepted_count": 4096,
+        "acceptance_fraction": 0.44877834995069577,
+        "orientations_shared_by_all_three_axes": true,
+        "colored_axis_tip_count": 12288,
+        "sampling_only_visualization": true,
+        "matrix_modified": false,
+        "training_rng_consumed": false,
+        "native_seed_stream": "local mt19937_64; fixed seed preserves accepted sample prefixes"
+      },
+      "sample_display": {
+        "visualization": "shared Bingham quaternion samples pushed to the three object axes",
+        "projection": "camera (x,y) directly; x right and y image-down; viewer looks along +z",
+        "front_point_alpha": 1.0,
+        "rear_point_alpha": 1.0,
+        "far_opacity_ratio": 1.0,
+        "point_color_mapping": {
+          "color_space": "HSL of display RGB; RGB components are display sRGB values",
+          "rear_lightness_ratio": 1.5,
+          "target_lightness_formula": "L_target = min(1, 1.5 * L_front)",
+          "white_fraction_formula": "t = (L_target - L_front)/(1 - L_front); t=0 when L_front=1",
+          "rear_rgb_formula": "RGB_rear = (1-t)*RGB_front + t*(1,1,1)",
+          "axes": {
+            "x": {
+              "front_rgb": [
+                0.7647058823529411,
+                0.19215686274509805,
+                0.18823529411764706
+              ],
+              "rear_rgb": [
+                0.8717779246530072,
+                0.5597708746419915,
+                0.557633840052875
+              ],
+              "front_hex": "#c33130",
+              "rear_hex": "#de8f8e",
+              "front_hsl_hue": 0.0011337868480725637,
+              "rear_hsl_hue": 0.001133786848072545,
+              "front_hsl_lightness": 0.4764705882352941,
+              "rear_hsl_lightness": 0.7147058823529411,
+              "target_hsl_lightness": 0.7147058823529411,
+              "white_fraction": 0.45505617977528073
+            },
+            "y": {
+              "front_rgb": [
+                0.1411764705882353,
+                0.4823529411764706,
+                0.26666666666666666
+              ],
+              "rear_rgb": [
+                0.3356963298139769,
+                0.5995977878330819,
+                0.43276353276353274
+              ],
+              "front_hex": "#247b44",
+              "rear_hex": "#56996e",
+              "front_hsl_hue": 0.3946360153256705,
+              "rear_hsl_hue": 0.3946360153256705,
+              "front_hsl_lightness": 0.31176470588235294,
+              "rear_hsl_lightness": 0.4676470588235294,
+              "target_hsl_lightness": 0.4676470588235294,
+              "white_fraction": 0.2264957264957265
+            },
+            "z": {
+              "front_rgb": [
+                0.16862745098039217,
+                0.39215686274509803,
+                0.6980392156862745
+              ],
+              "rear_rgb": [
+                0.4865051903114187,
+                0.6245674740484429,
+                0.8134948096885813
+              ],
+              "front_hex": "#2b64b2",
+              "rear_hex": "#7c9fcf",
+              "front_hsl_hue": 0.5962962962962962,
+              "rear_hsl_hue": 0.5962962962962962,
+              "front_hsl_lightness": 0.43333333333333335,
+              "rear_hsl_lightness": 0.65,
+              "target_hsl_lightness": 0.65,
+              "white_fraction": 0.3823529411764706
+            }
+          }
+        },
+        "background_support_order": "both neutral discs precede all sampled points",
+        "rear_definition": "camera z > 0; equator belongs to near layer",
+        "marker_area_points2": 0.8,
+        "near_point_count_per_axis": [
+          0,
+          3857,
+          4096
+        ],
+        "rear_point_count_per_axis": [
+          4096,
+          239,
+          0
+        ],
+        "axis_colors": {
+          "x": "#c33130",
+          "y": "#247b44",
+          "z": "#2b64b2"
+        },
+        "wire_geometry": "latitude-longitude; camera +/-Z poles and XY equator",
+        "wire_gray": ".70",
+        "wire_front_alpha": 0.7,
+        "wire_rear_alpha": 0.13999999999999999,
+        "wire_rear_opacity_ratio": 0.2,
+        "wire_linewidth_pt": 0.65,
+        "mode_axis_alpha": 1.0,
+        "mode_axis_linewidth_pt": 1.8,
+        "mode_axes_on_top": true,
+        "mode_axis_count": 3,
+        "sample_or_matrix_modified_by_draw": false
+      },
+      "half_height": {
+        "width_deg": 10.78451959544493,
+        "crosses_half_height_within_180_deg": true,
+        "gap": 78.48952465037974,
+        "mode_cross_term": 6.170135495274412e-14,
+        "axis": [
+          0.0,
+          -0.9659258262890684,
+          -0.2588190451025208
+        ],
+        "peak_log_density_unnormalized": 606.7072621499793,
+        "target_log_density_drop": -0.6931471805599453,
+        "log_density_drop_residual": -3.664750292779752e-15,
+        "mode_eigenvector_residual": 2.6812987050722663e-13
+      }
+    },
+    {
+      "angle_deg": 90.0,
+      "parameters_9": [
+        -131.85791015625,
+        535.7429809570312,
+        -55.12542724609375,
+        -41.19492721557617,
+        136.68524169921875,
+        11.303833961486816,
+        72.44183349609375,
+        157.1061248779297,
+        -555.1896362304688
+      ],
+      "A_camera": [
+        [
+          -131.85791015625,
+          535.7429809570312,
+          -55.12542724609375,
+          -41.19492721557617
+        ],
+        [
+          535.7429809570312,
+          136.68524169921875,
+          11.303833961486816,
+          72.44183349609375
+        ],
+        [
+          -55.12542724609375,
+          11.303833961486816,
+          157.1061248779297,
+          -555.1896362304688
+        ],
+        [
+          -41.19492721557617,
+          72.44183349609375,
+          -555.1896362304688,
+          -161.93345642089844
+        ]
+      ],
+      "mode_camera_wxyz": [
+        -0.3722850491314761,
+        -0.4846079956562662,
+        0.6288540422313419,
+        -0.4807302011612046
+      ],
+      "sphere_samples": {
+        "algorithm": "Kent BACG normalized-Gaussian rejection sampler, equations (3.4)-(3.6)",
+        "thesis_source": "/home/leus/dthesis/chapter/3-mathematical-foundations.tex",
+        "thesis_algorithm": "math:alg:bingham-bacg",
+        "thesis_direction_construction": "/home/leus/dthesis/chapter/4-transform-law-propagation.tex:2419; x_j=Rot(q_j)v",
+        "native_extension": "/home/leus/catkin_ws/devel/lib/python3/dist-packages/probtf/_sampling.cpython-38-x86_64-linux-gnu.so",
+        "native_extension_sha256": "4bdeb7988b3cac6a5e837f84af048f09284d22aeac00d12d8bd879a67715a4f5",
+        "native_sampler_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/bingham_sampler.cpp",
+        "native_sampler_source_sha256": "1831bb436b44581c59d6ebf4ff84c275d7d82fc3e463c44a4e8d3a244dc17896",
+        "native_binding_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/python_sampling.cpp",
+        "native_binding_source_sha256": "11834ac81074694681f7d0831c9326fdada96fc368d4bde28da9c86f6a29d808",
+        "seed": 20261129,
+        "count": 4096,
+        "quaternion_order": "Hamilton wxyz",
+        "tips_layout": "sample,camera_xyz,object_xyz_axis",
+        "direction_frame": "OpenCV camera: x right, y image-down, z forward",
+        "optimal_b": 1.0070585760834878,
+        "proposal_count": 9017,
+        "accepted_count": 4096,
+        "acceptance_fraction": 0.4542530775202395,
+        "orientations_shared_by_all_three_axes": true,
+        "colored_axis_tip_count": 12288,
+        "sampling_only_visualization": true,
+        "matrix_modified": false,
+        "training_rng_consumed": false,
+        "native_seed_stream": "local mt19937_64; fixed seed preserves accepted sample prefixes"
+      },
+      "sample_display": {
+        "visualization": "shared Bingham quaternion samples pushed to the three object axes",
+        "projection": "camera (x,y) directly; x right and y image-down; viewer looks along +z",
+        "front_point_alpha": 1.0,
+        "rear_point_alpha": 1.0,
+        "far_opacity_ratio": 1.0,
+        "point_color_mapping": {
+          "color_space": "HSL of display RGB; RGB components are display sRGB values",
+          "rear_lightness_ratio": 1.5,
+          "target_lightness_formula": "L_target = min(1, 1.5 * L_front)",
+          "white_fraction_formula": "t = (L_target - L_front)/(1 - L_front); t=0 when L_front=1",
+          "rear_rgb_formula": "RGB_rear = (1-t)*RGB_front + t*(1,1,1)",
+          "axes": {
+            "x": {
+              "front_rgb": [
+                0.7647058823529411,
+                0.19215686274509805,
+                0.18823529411764706
+              ],
+              "rear_rgb": [
+                0.8717779246530072,
+                0.5597708746419915,
+                0.557633840052875
+              ],
+              "front_hex": "#c33130",
+              "rear_hex": "#de8f8e",
+              "front_hsl_hue": 0.0011337868480725637,
+              "rear_hsl_hue": 0.001133786848072545,
+              "front_hsl_lightness": 0.4764705882352941,
+              "rear_hsl_lightness": 0.7147058823529411,
+              "target_hsl_lightness": 0.7147058823529411,
+              "white_fraction": 0.45505617977528073
+            },
+            "y": {
+              "front_rgb": [
+                0.1411764705882353,
+                0.4823529411764706,
+                0.26666666666666666
+              ],
+              "rear_rgb": [
+                0.3356963298139769,
+                0.5995977878330819,
+                0.43276353276353274
+              ],
+              "front_hex": "#247b44",
+              "rear_hex": "#56996e",
+              "front_hsl_hue": 0.3946360153256705,
+              "rear_hsl_hue": 0.3946360153256705,
+              "front_hsl_lightness": 0.31176470588235294,
+              "rear_hsl_lightness": 0.4676470588235294,
+              "target_hsl_lightness": 0.4676470588235294,
+              "white_fraction": 0.2264957264957265
+            },
+            "z": {
+              "front_rgb": [
+                0.16862745098039217,
+                0.39215686274509803,
+                0.6980392156862745
+              ],
+              "rear_rgb": [
+                0.4865051903114187,
+                0.6245674740484429,
+                0.8134948096885813
+              ],
+              "front_hex": "#2b64b2",
+              "rear_hex": "#7c9fcf",
+              "front_hsl_hue": 0.5962962962962962,
+              "rear_hsl_hue": 0.5962962962962962,
+              "front_hsl_lightness": 0.43333333333333335,
+              "rear_hsl_lightness": 0.65,
+              "target_hsl_lightness": 0.65,
+              "white_fraction": 0.3823529411764706
+            }
+          }
+        },
+        "background_support_order": "both neutral discs precede all sampled points",
+        "rear_definition": "camera z > 0; equator belongs to near layer",
+        "marker_area_points2": 0.8,
+        "near_point_count_per_axis": [
+          0,
+          3887,
+          4096
+        ],
+        "rear_point_count_per_axis": [
+          4096,
+          209,
+          0
+        ],
+        "axis_colors": {
+          "x": "#c33130",
+          "y": "#247b44",
+          "z": "#2b64b2"
+        },
+        "wire_geometry": "latitude-longitude; camera +/-Z poles and XY equator",
+        "wire_gray": ".70",
+        "wire_front_alpha": 0.7,
+        "wire_rear_alpha": 0.13999999999999999,
+        "wire_rear_opacity_ratio": 0.2,
+        "wire_linewidth_pt": 0.65,
+        "mode_axis_alpha": 1.0,
+        "mode_axis_linewidth_pt": 1.8,
+        "mode_axes_on_top": true,
+        "mode_axis_count": 3,
+        "sample_or_matrix_modified_by_draw": false
+      },
+      "half_height": {
+        "width_deg": 10.612125153167518,
+        "crosses_half_height_within_180_deg": true,
+        "gap": 81.05277552661096,
+        "mode_cross_term": -1.2965779390138396e-14,
+        "axis": [
+          0.0,
+          -0.9659258262890684,
+          -0.2588190451025208
+        ],
+        "peak_log_density_unnormalized": 605.4468377382402,
+        "target_log_density_drop": -0.6931471805599453,
+        "log_density_drop_residual": 5.4721032102164864e-17,
+        "mode_eigenvector_residual": 1.9691137908567693e-13
+      }
+    },
+    {
+      "angle_deg": 120.0,
+      "parameters_9": [
+        -131.8549041748047,
+        541.3325805664062,
+        -53.49496841430664,
+        -41.024288177490234,
+        138.11607360839844,
+        11.994532585144043,
+        73.638916015625,
+        157.44480895996094,
+        -561.0294799804688
+      ],
+      "A_camera": [
+        [
+          -131.8549041748047,
+          541.3325805664062,
+          -53.49496841430664,
+          -41.024288177490234
+        ],
+        [
+          541.3325805664062,
+          138.11607360839844,
+          11.994532585144043,
+          73.638916015625
+        ],
+        [
+          -53.49496841430664,
+          11.994532585144043,
+          157.44480895996094,
+          -561.0294799804688
+        ],
+        [
+          -41.024288177490234,
+          73.638916015625,
+          -561.0294799804688,
+          -163.7059783935547
+        ]
+      ],
+      "mode_camera_wxyz": [
+        -0.3744178330007313,
+        -0.48800138642437896,
+        0.6255821336301322,
+        -0.47990929065990384
+      ],
+      "sphere_samples": {
+        "algorithm": "Kent BACG normalized-Gaussian rejection sampler, equations (3.4)-(3.6)",
+        "thesis_source": "/home/leus/dthesis/chapter/3-mathematical-foundations.tex",
+        "thesis_algorithm": "math:alg:bingham-bacg",
+        "thesis_direction_construction": "/home/leus/dthesis/chapter/4-transform-law-propagation.tex:2419; x_j=Rot(q_j)v",
+        "native_extension": "/home/leus/catkin_ws/devel/lib/python3/dist-packages/probtf/_sampling.cpython-38-x86_64-linux-gnu.so",
+        "native_extension_sha256": "4bdeb7988b3cac6a5e837f84af048f09284d22aeac00d12d8bd879a67715a4f5",
+        "native_sampler_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/bingham_sampler.cpp",
+        "native_sampler_source_sha256": "1831bb436b44581c59d6ebf4ff84c275d7d82fc3e463c44a4e8d3a244dc17896",
+        "native_binding_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/python_sampling.cpp",
+        "native_binding_source_sha256": "11834ac81074694681f7d0831c9326fdada96fc368d4bde28da9c86f6a29d808",
+        "seed": 20261130,
+        "count": 4096,
+        "quaternion_order": "Hamilton wxyz",
+        "tips_layout": "sample,camera_xyz,object_xyz_axis",
+        "direction_frame": "OpenCV camera: x right, y image-down, z forward",
+        "optimal_b": 1.0071638671242007,
+        "proposal_count": 9162,
+        "accepted_count": 4096,
+        "acceptance_fraction": 0.44706395983409736,
+        "orientations_shared_by_all_three_axes": true,
+        "colored_axis_tip_count": 12288,
+        "sampling_only_visualization": true,
+        "matrix_modified": false,
+        "training_rng_consumed": false,
+        "native_seed_stream": "local mt19937_64; fixed seed preserves accepted sample prefixes"
+      },
+      "sample_display": {
+        "visualization": "shared Bingham quaternion samples pushed to the three object axes",
+        "projection": "camera (x,y) directly; x right and y image-down; viewer looks along +z",
+        "front_point_alpha": 1.0,
+        "rear_point_alpha": 1.0,
+        "far_opacity_ratio": 1.0,
+        "point_color_mapping": {
+          "color_space": "HSL of display RGB; RGB components are display sRGB values",
+          "rear_lightness_ratio": 1.5,
+          "target_lightness_formula": "L_target = min(1, 1.5 * L_front)",
+          "white_fraction_formula": "t = (L_target - L_front)/(1 - L_front); t=0 when L_front=1",
+          "rear_rgb_formula": "RGB_rear = (1-t)*RGB_front + t*(1,1,1)",
+          "axes": {
+            "x": {
+              "front_rgb": [
+                0.7647058823529411,
+                0.19215686274509805,
+                0.18823529411764706
+              ],
+              "rear_rgb": [
+                0.8717779246530072,
+                0.5597708746419915,
+                0.557633840052875
+              ],
+              "front_hex": "#c33130",
+              "rear_hex": "#de8f8e",
+              "front_hsl_hue": 0.0011337868480725637,
+              "rear_hsl_hue": 0.001133786848072545,
+              "front_hsl_lightness": 0.4764705882352941,
+              "rear_hsl_lightness": 0.7147058823529411,
+              "target_hsl_lightness": 0.7147058823529411,
+              "white_fraction": 0.45505617977528073
+            },
+            "y": {
+              "front_rgb": [
+                0.1411764705882353,
+                0.4823529411764706,
+                0.26666666666666666
+              ],
+              "rear_rgb": [
+                0.3356963298139769,
+                0.5995977878330819,
+                0.43276353276353274
+              ],
+              "front_hex": "#247b44",
+              "rear_hex": "#56996e",
+              "front_hsl_hue": 0.3946360153256705,
+              "rear_hsl_hue": 0.3946360153256705,
+              "front_hsl_lightness": 0.31176470588235294,
+              "rear_hsl_lightness": 0.4676470588235294,
+              "target_hsl_lightness": 0.4676470588235294,
+              "white_fraction": 0.2264957264957265
+            },
+            "z": {
+              "front_rgb": [
+                0.16862745098039217,
+                0.39215686274509803,
+                0.6980392156862745
+              ],
+              "rear_rgb": [
+                0.4865051903114187,
+                0.6245674740484429,
+                0.8134948096885813
+              ],
+              "front_hex": "#2b64b2",
+              "rear_hex": "#7c9fcf",
+              "front_hsl_hue": 0.5962962962962962,
+              "rear_hsl_hue": 0.5962962962962962,
+              "front_hsl_lightness": 0.43333333333333335,
+              "rear_hsl_lightness": 0.65,
+              "target_hsl_lightness": 0.65,
+              "white_fraction": 0.3823529411764706
+            }
+          }
+        },
+        "background_support_order": "both neutral discs precede all sampled points",
+        "rear_definition": "camera z > 0; equator belongs to near layer",
+        "marker_area_points2": 0.8,
+        "near_point_count_per_axis": [
+          0,
+          3861,
+          4096
+        ],
+        "rear_point_count_per_axis": [
+          4096,
+          235,
+          0
+        ],
+        "axis_colors": {
+          "x": "#c33130",
+          "y": "#247b44",
+          "z": "#2b64b2"
+        },
+        "wire_geometry": "latitude-longitude; camera +/-Z poles and XY equator",
+        "wire_gray": ".70",
+        "wire_front_alpha": 0.7,
+        "wire_rear_alpha": 0.13999999999999999,
+        "wire_rear_opacity_ratio": 0.2,
+        "wire_linewidth_pt": 0.65,
+        "mode_axis_alpha": 1.0,
+        "mode_axis_linewidth_pt": 1.8,
+        "mode_axes_on_top": true,
+        "mode_axis_count": 3,
+        "sample_or_matrix_modified_by_draw": false
+      },
+      "half_height": {
+        "width_deg": 10.702768357906475,
+        "crosses_half_height_within_180_deg": true,
+        "gap": 79.68960563296434,
+        "mode_cross_term": -2.301049638915635e-13,
+        "axis": [
+          0.0,
+          -0.9659258262890684,
+          -0.2588190451025208
+        ],
+        "peak_log_density_unnormalized": 610.4938430670547,
+        "target_log_density_drop": -0.6931471805599453,
+        "log_density_drop_residual": 9.852006808178438e-18,
+        "mode_eigenvector_residual": 3.4224270219716276e-13
+      }
+    },
+    {
+      "angle_deg": 180.0,
+      "parameters_9": [
+        384.94036865234375,
+        628.670166015625,
+        83.2481689453125,
+        -127.44221496582031,
+        728.2066650390625,
+        -59.410343170166016,
+        69.61872863769531,
+        -263.666748046875,
+        -683.69970703125
+      ],
+      "A_camera": [
+        [
+          384.94036865234375,
+          628.670166015625,
+          83.2481689453125,
+          -127.44221496582031
+        ],
+        [
+          628.670166015625,
+          728.2066650390625,
+          -59.410343170166016,
+          69.61872863769531
+        ],
+        [
+          83.2481689453125,
+          -59.410343170166016,
+          -263.666748046875,
+          -683.69970703125
+        ],
+        [
+          -127.44221496582031,
+          69.61872863769531,
+          -683.69970703125,
+          -849.4802856445312
+        ]
+      ],
+      "mode_camera_wxyz": [
+        0.6085592997767219,
+        0.7933402518566253,
+        0.008790505906914612,
+        -0.013767732029379155
+      ],
+      "sphere_samples": {
+        "algorithm": "Kent BACG normalized-Gaussian rejection sampler, equations (3.4)-(3.6)",
+        "thesis_source": "/home/leus/dthesis/chapter/3-mathematical-foundations.tex",
+        "thesis_algorithm": "math:alg:bingham-bacg",
+        "thesis_direction_construction": "/home/leus/dthesis/chapter/4-transform-law-propagation.tex:2419; x_j=Rot(q_j)v",
+        "native_extension": "/home/leus/catkin_ws/devel/lib/python3/dist-packages/probtf/_sampling.cpython-38-x86_64-linux-gnu.so",
+        "native_extension_sha256": "4bdeb7988b3cac6a5e837f84af048f09284d22aeac00d12d8bd879a67715a4f5",
+        "native_sampler_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/bingham_sampler.cpp",
+        "native_sampler_source_sha256": "1831bb436b44581c59d6ebf4ff84c275d7d82fc3e463c44a4e8d3a244dc17896",
+        "native_binding_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/python_sampling.cpp",
+        "native_binding_source_sha256": "11834ac81074694681f7d0831c9326fdada96fc368d4bde28da9c86f6a29d808",
+        "seed": 20261131,
+        "count": 4096,
+        "quaternion_order": "Hamilton wxyz",
+        "tips_layout": "sample,camera_xyz,object_xyz_axis",
+        "direction_frame": "OpenCV camera: x right, y image-down, z forward",
+        "optimal_b": 1.0010918088916654,
+        "proposal_count": 9095,
+        "accepted_count": 4096,
+        "acceptance_fraction": 0.4503573391973612,
+        "orientations_shared_by_all_three_axes": true,
+        "colored_axis_tip_count": 12288,
+        "sampling_only_visualization": true,
+        "matrix_modified": false,
+        "training_rng_consumed": false,
+        "native_seed_stream": "local mt19937_64; fixed seed preserves accepted sample prefixes"
+      },
+      "sample_display": {
+        "visualization": "shared Bingham quaternion samples pushed to the three object axes",
+        "projection": "camera (x,y) directly; x right and y image-down; viewer looks along +z",
+        "front_point_alpha": 1.0,
+        "rear_point_alpha": 1.0,
+        "far_opacity_ratio": 1.0,
+        "point_color_mapping": {
+          "color_space": "HSL of display RGB; RGB components are display sRGB values",
+          "rear_lightness_ratio": 1.5,
+          "target_lightness_formula": "L_target = min(1, 1.5 * L_front)",
+          "white_fraction_formula": "t = (L_target - L_front)/(1 - L_front); t=0 when L_front=1",
+          "rear_rgb_formula": "RGB_rear = (1-t)*RGB_front + t*(1,1,1)",
+          "axes": {
+            "x": {
+              "front_rgb": [
+                0.7647058823529411,
+                0.19215686274509805,
+                0.18823529411764706
+              ],
+              "rear_rgb": [
+                0.8717779246530072,
+                0.5597708746419915,
+                0.557633840052875
+              ],
+              "front_hex": "#c33130",
+              "rear_hex": "#de8f8e",
+              "front_hsl_hue": 0.0011337868480725637,
+              "rear_hsl_hue": 0.001133786848072545,
+              "front_hsl_lightness": 0.4764705882352941,
+              "rear_hsl_lightness": 0.7147058823529411,
+              "target_hsl_lightness": 0.7147058823529411,
+              "white_fraction": 0.45505617977528073
+            },
+            "y": {
+              "front_rgb": [
+                0.1411764705882353,
+                0.4823529411764706,
+                0.26666666666666666
+              ],
+              "rear_rgb": [
+                0.3356963298139769,
+                0.5995977878330819,
+                0.43276353276353274
+              ],
+              "front_hex": "#247b44",
+              "rear_hex": "#56996e",
+              "front_hsl_hue": 0.3946360153256705,
+              "rear_hsl_hue": 0.3946360153256705,
+              "front_hsl_lightness": 0.31176470588235294,
+              "rear_hsl_lightness": 0.4676470588235294,
+              "target_hsl_lightness": 0.4676470588235294,
+              "white_fraction": 0.2264957264957265
+            },
+            "z": {
+              "front_rgb": [
+                0.16862745098039217,
+                0.39215686274509803,
+                0.6980392156862745
+              ],
+              "rear_rgb": [
+                0.4865051903114187,
+                0.6245674740484429,
+                0.8134948096885813
+              ],
+              "front_hex": "#2b64b2",
+              "rear_hex": "#7c9fcf",
+              "front_hsl_hue": 0.5962962962962962,
+              "rear_hsl_hue": 0.5962962962962962,
+              "front_hsl_lightness": 0.43333333333333335,
+              "rear_hsl_lightness": 0.65,
+              "target_hsl_lightness": 0.65,
+              "white_fraction": 0.3823529411764706
+            }
+          }
+        },
+        "background_support_order": "both neutral discs precede all sampled points",
+        "rear_definition": "camera z > 0; equator belongs to near layer",
+        "marker_area_points2": 0.8,
+        "near_point_count_per_axis": [
+          3167,
+          0,
+          4096
+        ],
+        "rear_point_count_per_axis": [
+          929,
+          4096,
+          0
+        ],
+        "axis_colors": {
+          "x": "#c33130",
+          "y": "#247b44",
+          "z": "#2b64b2"
+        },
+        "wire_geometry": "latitude-longitude; camera +/-Z poles and XY equator",
+        "wire_gray": ".70",
+        "wire_front_alpha": 0.7,
+        "wire_rear_alpha": 0.13999999999999999,
+        "wire_rear_opacity_ratio": 0.2,
+        "wire_linewidth_pt": 0.65,
+        "mode_axis_alpha": 1.0,
+        "mode_axis_linewidth_pt": 1.8,
+        "mode_axes_on_top": true,
+        "mode_axis_count": 3,
+        "sample_or_matrix_modified_by_draw": false
+      },
+      "half_height": {
+        "width_deg": 2.9768085709434775,
+        "crosses_half_height_within_180_deg": true,
+        "gap": 1027.3693300210189,
+        "mode_cross_term": -2.6166878719652543e-13,
+        "axis": [
+          0.0,
+          -0.9659258262890684,
+          -0.2588190451025208
+        ],
+        "peak_log_density_unnormalized": 1208.5835728745408,
+        "target_log_density_drop": -0.6931471805599453,
+        "log_density_drop_residual": 1.7321623457356417e-15,
+        "mode_eigenvector_residual": 2.6022263564911425e-13
+      }
+    }
+  ],
+  "figure_inches": [
+    7.35,
+    4.06
+  ],
+  "reference_sha256": "2dc8392bd3eda03143112df26611af0efd33ea388d3a584f11d3948f67b1b7b5",
+  "reference_source_sha256": "460a854bb54d49b00ae14e8c3e7a8c1a47cb083126798977af9e2d6992bf1b2e",
+  "input_packet_sha256": "38f735f8a08665b2e4d909245dee11acd5ecb978efb7c669c838bedaa0b5877d",
+  "geometry_sha256": "2ee7856f5e378f6b3ed47b18c8bce344dd82b9f9eef2a37d43521e70c44e8001",
+  "source_sha256": {
+    "figure_geometry.py": "7ab4d92000faf597fd61537ed414127c3764e6e61e53f00a05682c6d50ec8225",
+    "sphere_display.py": "cd582cdb0958fc893de088773237fe73344818caa2be7ad30e4d66350fe8eed1",
+    "sample_display.py": "99e64a6a3db1766004212904ae2847bb0c28950a6bb7039ec5169995f3ddd47d",
+    "toyexample.py": "6b569b0a3f64e358e6dd22f608fdddf308ea1af0f226ef9dd41a1caf5084f6bd"
+  },
+  "display_projection": [
+    [
+      1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0
+    ]
+  ],
+  "camera_image_y_down": true,
+  "shared_display_crop_xyxy": [
+    157,
+    74,
+    483,
+    330
+  ],
+  "color_axis_mapping": {
+    "x": "#c33130",
+    "y": "#247b44",
+    "z": "#2b64b2"
+  },
+  "sample_meaning": "Shared BACG quaternion samples from saved A_camera; each sample rotates object X/Y/Z, giving the displayed camera-frame axis tips",
+  "display_alpha": "all axis-tip points alpha=1; far camera Z>0 points use white-mixed RGB at the same hue and 1.5 times HSL lightness; mode axes fully opaque at 1.8pt",
+  "display_grid": "Latitude/longitude wireframe, camera-Z poles; gray .70, alpha 0.7, width 0.65; far wires use one-fifth opacity",
+  "network_rerun_by_plot": false,
+  "distribution_modified_by_plot": false,
+  "random_sampling_for_visualization_only": true,
+  "covariance_estimated_from_samples": false
+}

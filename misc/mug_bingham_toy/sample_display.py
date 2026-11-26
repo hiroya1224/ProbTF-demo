@@ -8,6 +8,7 @@ normalization, covariance evaluation, or checkpoint selection.
 from __future__ import annotations
 
 from functools import lru_cache
+import colorsys
 import hashlib
 import importlib
 from pathlib import Path
@@ -20,9 +21,10 @@ from sphere_display import (FAR_OPACITY_RATIO, GRID_ALPHA, GRID_COLOR,
                             GRID_LINEWIDTH, latitude_longitude_graticule_segments)
 
 
-SAMPLE_COUNT = 1000
+SAMPLE_COUNT = 4096
 DEFAULT_SEED = 20261127
-FRONT_POINT_ALPHA = .7
+FRONT_POINT_ALPHA = 1.
+REAR_LIGHTNESS_RATIO = 1.5
 MODE_LINEWIDTH = 1.8
 AXIS_COLORS = ("#c33130", "#247b44", "#2b64b2")
 REPO = Path(__file__).resolve().parents[2]
@@ -130,12 +132,45 @@ def sample_camera_axes(A_camera, count=SAMPLE_COUNT, seed=DEFAULT_SEED):
             "proposal_count": int(proposals), "metadata": metadata}
 
 
+def point_color_palette(colors=AXIS_COLORS):
+    """Keep front colors and blend rear colors toward white at fixed HSL hue."""
+    from matplotlib.colors import to_hex, to_rgb
+
+    front = np.asarray([to_rgb(color) for color in colors])
+    rear = np.empty_like(front)
+    axes = {}
+    for index, name in enumerate(("x", "y", "z")):
+        hue, lightness, _ = colorsys.rgb_to_hls(*front[index])
+        target = min(1., REAR_LIGHTNESS_RATIO*lightness)
+        fraction = (target-lightness)/(1.-lightness) if lightness < 1. else 0.
+        rear[index] = (1.-fraction)*front[index]+fraction*np.ones(3)
+        rear_hue, rear_lightness, _ = colorsys.rgb_to_hls(*rear[index])
+        axes[name] = {
+            "front_rgb": front[index].tolist(), "rear_rgb": rear[index].tolist(),
+            "front_hex": to_hex(front[index]), "rear_hex": to_hex(rear[index]),
+            "front_hsl_hue": float(hue), "rear_hsl_hue": float(rear_hue),
+            "front_hsl_lightness": float(lightness), "rear_hsl_lightness": float(rear_lightness),
+            "target_hsl_lightness": float(target), "white_fraction": float(fraction),
+        }
+    metadata = {
+        "color_space": "HSL of display RGB; RGB components are display sRGB values",
+        "rear_lightness_ratio": REAR_LIGHTNESS_RATIO,
+        "target_lightness_formula": "L_target = min(1, 1.5 * L_front)",
+        "white_fraction_formula": "t = (L_target - L_front)/(1 - L_front); t=0 when L_front=1",
+        "rear_rgb_formula": "RGB_rear = (1-t)*RGB_front + t*(1,1,1)",
+        "axes": axes,
+    }
+    return front, rear, metadata
+
+
 def draw_sample_sphere(ax, packet, rotation=None, colors=AXIS_COLORS, *,
                        front_alpha=FRONT_POINT_ALPHA, marker_size=.8,
                        mode_linewidth=MODE_LINEWIDTH):
     """Paint the sampled axis clouds in the same camera coordinates as RGB.
 
-    Camera Z>0 is rear: its points and wires use half the near alpha.  The
+    Camera Z>0 is rear. All points are opaque; rear colors blend toward white
+    while preserving hue, with HSL lightness 1.5 times the front lightness
+    (capped at 1). Wires retain one fifth of the near alpha. The
     existing Z-polar latitude/longitude helpers supply visible gray wires;
     no triangulation edges or unrelated oblique camera are added.  Mode axes
     are fully opaque top overlays, including rays pointing toward the rear.
@@ -149,10 +184,11 @@ def draw_sample_sphere(ax, packet, rotation=None, colors=AXIS_COLORS, *,
     if (tips.ndim != 3 or tips.shape[1:] != (3, 3)
             or not np.isfinite(tips).all()):
         raise ValueError("packet tips must have shape (N,3,3)")
-    if not 0. <= front_alpha <= 1. or marker_size <= 0. or mode_linewidth <= 0.:
-        raise ValueError("Display alpha, marker size and mode linewidth must be valid")
+    if front_alpha != 1. or marker_size <= 0. or mode_linewidth <= 0.:
+        raise ValueError("Point opacity must be 1; marker size and mode linewidth must be positive")
     if len(colors) != 3:
         raise ValueError("colors must contain the object X/Y/Z colors")
+    front_colors, rear_colors, color_mapping = point_color_palette(colors)
     if rotation is not None:
         rotation = np.asarray(rotation, dtype=np.float64)
         if rotation.shape != (3, 3) or not np.isfinite(rotation).all():
@@ -163,7 +199,7 @@ def draw_sample_sphere(ax, packet, rotation=None, colors=AXIS_COLORS, *,
     for side, far, fade, zorder in (("far", True, FAR_OPACITY_RATIO, 1.),
                                      ("near", False, 1., 2.)):
         artists[side+"_support"] = Circle((0., 0.), 1.,
-            facecolor=(.89, .89, .89, .14*fade), edgecolor="none", zorder=zorder)
+            facecolor=(.89, .89, .89, .14*fade), edgecolor="none", zorder=.4 if far else .5)
         ax.add_patch(artists[side+"_support"])
         artists[side+"_wire"] = LineCollection(
             segments[side][:, :, :2], colors=GRID_COLOR, alpha=GRID_ALPHA*fade,
@@ -174,7 +210,7 @@ def draw_sample_sphere(ax, packet, rotation=None, colors=AXIS_COLORS, *,
             selected = points[(points[:, 2] > 0.) == far]
             selected = selected[np.argsort(selected[:, 2])[::-1]]
             artist = ax.scatter(selected[:, 0], selected[:, 1], s=marker_size,
-                color=color, alpha=front_alpha*fade, linewidths=0.,
+                color=rear_colors[axis] if far else front_colors[axis], alpha=1., linewidths=0.,
                 rasterized=True, zorder=zorder+.2)
             artists[side+"_points"].append(artist)
             counts[side].append(int(len(selected)))
@@ -188,9 +224,10 @@ def draw_sample_sphere(ax, packet, rotation=None, colors=AXIS_COLORS, *,
     metadata = {
         "visualization": "shared Bingham quaternion samples pushed to the three object axes",
         "projection": "camera (x,y) directly; x right and y image-down; viewer looks along +z",
-        "front_point_alpha": float(front_alpha),
-        "rear_point_alpha": float(front_alpha*FAR_OPACITY_RATIO),
-        "far_opacity_ratio": float(FAR_OPACITY_RATIO),
+        "front_point_alpha": 1., "rear_point_alpha": 1.,
+        "far_opacity_ratio": 1.,
+        "point_color_mapping": color_mapping,
+        "background_support_order": "both neutral discs precede all sampled points",
         "rear_definition": "camera z > 0; equator belongs to near layer",
         "marker_area_points2": float(marker_size),
         "near_point_count_per_axis": counts["near"],
@@ -199,6 +236,7 @@ def draw_sample_sphere(ax, packet, rotation=None, colors=AXIS_COLORS, *,
         "wire_geometry": "latitude-longitude; camera +/-Z poles and XY equator",
         "wire_gray": GRID_COLOR, "wire_front_alpha": float(GRID_ALPHA),
         "wire_rear_alpha": float(GRID_ALPHA*FAR_OPACITY_RATIO),
+        "wire_rear_opacity_ratio": float(FAR_OPACITY_RATIO),
         "wire_linewidth_pt": float(GRID_LINEWIDTH),
         "mode_axis_alpha": 1., "mode_axis_linewidth_pt": float(mode_linewidth),
         "mode_axes_on_top": True,

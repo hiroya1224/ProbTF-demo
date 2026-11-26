@@ -1,5 +1,6 @@
 """Native sample identity and passive camera/depth display checks."""
 import json
+import colorsys
 from pathlib import Path
 import random
 import sys
@@ -32,19 +33,19 @@ class NativeSampleTests(unittest.TestCase):
         original = matrix.copy()
         first = display.sample_camera_axes(matrix, seed=73)
         repeated = display.sample_camera_axes(matrix, seed=73)
-        longer = display.sample_camera_axes(matrix, count=1200, seed=73)
-        self.assertEqual(first["quaternions"].shape, (1000, 4))
+        longer = display.sample_camera_axes(matrix, count=6000, seed=73)
+        self.assertEqual(first["quaternions"].shape, (4096, 4))
         np.testing.assert_array_equal(first["quaternions"], repeated["quaternions"])
-        np.testing.assert_array_equal(first["quaternions"], longer["quaternions"][:1000])
+        np.testing.assert_array_equal(first["quaternions"], longer["quaternions"][:4096])
         np.testing.assert_allclose(np.linalg.norm(first["quaternions"], axis=1), 1., atol=4e-16)
         independent = Rotation.from_quat(first["quaternions"][:, [1, 2, 3, 0]]).as_matrix()
         np.testing.assert_allclose(first["tips"], independent, atol=8e-16)
         np.testing.assert_allclose(np.swapaxes(first["tips"], 1, 2) @ first["tips"],
-                                   np.tile(np.eye(3), (1000, 1, 1)), atol=2e-15)
-        self.assertGreaterEqual(first["proposal_count"], 1000)
+                                   np.tile(np.eye(3), (4096, 1, 1)), atol=2e-15)
+        self.assertGreaterEqual(first["proposal_count"], 4096)
         self.assertGreater(first["optimal_b"], 0.)
         self.assertLessEqual(first["optimal_b"], 4.)
-        self.assertEqual(first["metadata"]["colored_axis_tip_count"], 3000)
+        self.assertEqual(first["metadata"]["colored_axis_tip_count"], 12288)
         np.testing.assert_array_equal(matrix, original)
         json.dumps(first["metadata"], allow_nan=False)
 
@@ -78,7 +79,7 @@ class SamplePainterTests(unittest.TestCase):
         self.assertEqual(artists["display_metadata"]["mode_axis_count"], 0)
         self.assertEqual(len(axes.lines), 0)
 
-    def test_rear_half_opacity_all_points_retained_and_mode_axes_opaque(self):
+    def test_opaque_rear_points_keep_hue_raise_lightness_and_preserve_samples(self):
         packet = display.sample_camera_axes(np.zeros((4, 4)), seed=9)
         tips_before = packet["tips"].copy()
         q_before = packet["quaternions"].copy()
@@ -89,14 +90,30 @@ class SamplePainterTests(unittest.TestCase):
         rotation = Rotation.from_euler("y", -75, degrees=True).as_matrix()
         artists = display.draw_sample_sphere(axes, packet, rotation=rotation)
         canvas.draw()
+        from matplotlib.colors import to_rgb
         for axis in range(3):
             near, far = artists["near_points"][axis], artists["far_points"][axis]
-            self.assertAlmostEqual(near.get_alpha(), .7)
-            self.assertAlmostEqual(far.get_alpha()/near.get_alpha(), .5)
-            self.assertEqual(len(near.get_offsets())+len(far.get_offsets()), 1000)
+            self.assertEqual(near.get_alpha(), 1.)
+            self.assertEqual(far.get_alpha(), 1.)
+            front_rgb = np.asarray(to_rgb(display.AXIS_COLORS[axis]))
+            front_hue, lightness, _ = colorsys.rgb_to_hls(*front_rgb)
+            target = min(1., 1.5*lightness)
+            fraction = (target-lightness)/(1.-lightness)
+            rear_rgb = (1.-fraction)*front_rgb+fraction
+            np.testing.assert_array_equal(near.get_facecolors()[0, :3], front_rgb)
+            np.testing.assert_array_equal(far.get_facecolors()[0, :3], rear_rgb)
+            rear_hue, rear_lightness, _ = colorsys.rgb_to_hls(*far.get_facecolors()[0, :3])
+            self.assertAlmostEqual(rear_hue, front_hue, places=14)
+            self.assertAlmostEqual(rear_lightness, target, places=14)
+            record = artists["display_metadata"]["point_color_mapping"]["axes"]["xyz"[axis]]
+            self.assertEqual(record["white_fraction"], fraction)
+            np.testing.assert_array_equal(record["rear_rgb"], rear_rgb)
+            self.assertEqual(len(near.get_offsets())+len(far.get_offsets()), 4096)
             self.assertEqual(len(far.get_offsets()), np.count_nonzero(packet["tips"][:, 2, axis] > 0.))
-        self.assertAlmostEqual(artists["far_wire"].get_alpha()/artists["near_wire"].get_alpha(), .5)
-        self.assertLess(artists["far_wire"].get_zorder(), artists["near_support"].get_zorder())
+        self.assertAlmostEqual(artists["far_wire"].get_alpha()/artists["near_wire"].get_alpha(), 1/5)
+        self.assertLess(artists["far_support"].get_zorder(), artists["far_points"][0].get_zorder())
+        self.assertLess(artists["near_support"].get_zorder(), artists["far_points"][0].get_zorder())
+        self.assertEqual(artists["display_metadata"]["point_color_mapping"]["rear_lightness_ratio"], 1.5)
         for ray in artists["mode_axes"]:
             self.assertEqual(ray.get_alpha(), 1.)
             self.assertEqual(ray.get_linewidth(), 1.8)

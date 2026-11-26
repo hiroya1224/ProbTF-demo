@@ -24,8 +24,12 @@ case "${1:-launch}" in
     live)
         export DISPLAY="${DISPLAY:-:1}"
         export QT_QPA_PLATFORM=xcb
-        exec /usr/bin/python3 live_training_view.py --run "${TOY_MUG_RUN}" \
-            --inputs "${TOY_MUG_DIR}/examples/cylinder_pointlight_preview/inputs.npz" --samples 1000
+        exec /usr/bin/python3 live_training_view.py \
+            --run "${TOY_MUG_DIR}/results/toyexample_vgg16_10000_cylinder_center_no_blur" \
+            --inputs "${TOY_MUG_DIR}/results/toyexample_vgg16_10000_cylinder_center_no_blur/inputs.npz" --samples 4096
+        ;;
+    front)
+        exec "${TOY_MUG_PYTHON}" -u front_view_watch.py
         ;;
     launch)
         if tmux has-session -t mug-bingham-toy 2>/dev/null; then

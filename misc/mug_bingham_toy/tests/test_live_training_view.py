@@ -105,6 +105,10 @@ class LiveTrainingViewTests(unittest.TestCase):
             np.savez(inputs, rgb=np.full((5, 360, 640, 3), 255, np.uint8), angles_deg=viewer.ANGLES)
             window = viewer.TrainingViewer(root, inputs, subdivisions=2)
             record = epoch_record(1, image_hash=window.preview.sha256)
+            for component in record["tangent_xz"]["Z"]:
+                component["principal_variance_rad2"] = [.25, 1.]
+                component["principal_sigma_deg"] = np.rad2deg(np.sqrt([.25, 1.])).tolist()
+            original_record = json.dumps(record, sort_keys=True)
             (root/"metrics.jsonl").write_text(json.dumps(record)+"\n")
             window.poll()
             window.figure.canvas.draw()
@@ -114,7 +118,7 @@ class LiveTrainingViewTests(unittest.TestCase):
             for index, (packet, artists) in enumerate(zip(window.sample_packets, window.sample_artists)):
                 np.testing.assert_array_equal(packet["A_camera"], record["tangent_xz"]["A_camera"][index])
                 self.assertEqual(packet["seed"], window.sample_seed+index)
-                self.assertEqual(packet["quaternions"].shape, (1000, 4))
+                self.assertEqual(packet["quaternions"].shape, (4096, 4))
                 for axis in range(3):
                     near = packet["tips"][:, 2, axis] <= 0.
                     far = ~near
@@ -125,9 +129,9 @@ class LiveTrainingViewTests(unittest.TestCase):
                     far_tips = far_tips[np.argsort(far_tips[:, 2])[::-1]]
                     np.testing.assert_array_equal(near_points.get_offsets(), near_tips[:, :2])
                     np.testing.assert_array_equal(far_points.get_offsets(), far_tips[:, :2])
-                    self.assertEqual(len(near_points.get_offsets())+len(far_points.get_offsets()), 1000)
-                    self.assertEqual(near_points.get_alpha(), .7)
-                    self.assertEqual(far_points.get_alpha(), .35)
+                    self.assertEqual(len(near_points.get_offsets())+len(far_points.get_offsets()), 4096)
+                    self.assertEqual(near_points.get_alpha(), 1.)
+                    self.assertEqual(far_points.get_alpha(), 1.)
                 self.assertTrue(all(line.get_alpha() == 1. and line.get_linewidth() == 1.8
                                     for line in artists["mode_axes"]))
             originals = [packet["quaternions"].copy() for packet in window.sample_packets]
@@ -140,8 +144,20 @@ class LiveTrainingViewTests(unittest.TestCase):
             np.testing.assert_array_equal(random_state[1], after_state[1])
             self.assertEqual(random_state[2:], after_state[2:])
             self.assertEqual(window.history_lines["X"][0].get_ydata()[0], np.rad2deg(np.sqrt(1e-50)))
+            self.assertEqual(window.history_lines["Z"][0].get_ydata()[0], np.rad2deg(np.sqrt(.25)))
+            self.assertEqual(window.history_lines["Z"][1].get_ydata()[0], np.rad2deg(np.sqrt(1.)))
             self.assertEqual(window.history_axes["X"].get_ylabel(), "接空間の主標準偏差 [deg]")
-            self.assertEqual(window.history_axes["X"].get_yscale(), "log")
+            x_axis, z_axis = window.history_axes["X"], window.history_axes["Z"]
+            self.assertTrue(x_axis.get_shared_y_axes().joined(x_axis, z_axis))
+            self.assertEqual(x_axis.get_yscale(), "log")
+            self.assertEqual(z_axis.get_yscale(), "log")
+            np.testing.assert_array_equal(x_axis.get_ylim(), z_axis.get_ylim())
+            np.testing.assert_array_equal(x_axis.get_yticks(), z_axis.get_yticks())
+            np.testing.assert_array_equal(x_axis.get_yticks(minor=True), z_axis.get_yticks(minor=True))
+            lower, upper = x_axis.get_ylim()
+            self.assertLess(lower, np.rad2deg(np.sqrt(1e-50)))
+            self.assertGreater(upper, np.rad2deg(np.sqrt(1.)))
+            self.assertEqual(json.dumps(record, sort_keys=True), original_record)
             self.assertNotIn("torch", viewer.__dict__)
             (root/"test_metrics.json").write_text("{}\n")
             window.poll()

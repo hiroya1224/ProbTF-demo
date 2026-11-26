@@ -17,7 +17,7 @@ from figure_geometry import axis_direction_log_density, SPHERICAL_DENSITY_PROVEN
 GRID_COLOR = ".70"
 GRID_ALPHA = .70
 GRID_LINEWIDTH = .65
-FAR_OPACITY_RATIO = .5
+FAR_OPACITY_RATIO = .2
 
 
 def _positive_integer(value, minimum, name):
@@ -238,7 +238,7 @@ def draw_latitude_longitude_sphere(ax, mesh: dict, rotation: np.ndarray | None,
     Each hemisphere is one RGBA image, avoiding translucent face overpainting.
     The two images share one density maximum per RGB channel; the mesh's raw
     RGB/log-density arrays remain unchanged. The far layer's opacity is
-    uniformly one half of the near layer's opacity.
+    uniformly one fifth of the near layer's opacity.
     Graticule segments retain camera Z until they are assigned to a layer,
     so the far wire stays behind the near sphere surface. Mode axes are
     fully opaque overlays, including axes pointing toward the far hemisphere.

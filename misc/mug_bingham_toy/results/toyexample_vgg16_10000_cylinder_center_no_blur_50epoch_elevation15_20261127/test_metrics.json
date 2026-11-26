@@ -1,0 +1,23 @@
+{
+  "count": 1000,
+  "nll_mean": -7.565478375070568,
+  "mode_error_deg_mean": 3.7370165834895634,
+  "mode_error_deg_median": 1.1299015923595555,
+  "mode_error_deg_p90": 8.947110196600233,
+  "top_eigen_gap_mean": 783.5549620770823,
+  "checkpoint": "best.pt",
+  "best_epoch": 50,
+  "selection": "validation NLL only",
+  "epochs_completed": 50,
+  "total_training_images_seen": 500000,
+  "dataset": {
+    "count": 1000,
+    "seed": 1236,
+    "actual_images_concat_sha256": "79c19b30969ef6e731e54990b5f56acb1cb2669d76503d1d82ecd2c9a5724b81",
+    "poses_sha256": "7600064e72ff8c10a46634369fb6565e93dea30f3c269593a28e97e7e2bc7c61",
+    "sorted_indices_sha256": "702746827e553786bb026ac120cb58745fef3d3f554c33891809001cc37639f0",
+    "preloaded_uint8_bytes": 0
+  },
+  "predictions_sha256": "8ad4e566045e79aa35b9451cf84e5cc44eda3572ab5ba6a1d64e098b5bd723f7",
+  "source_training_run": "/home/leus/catkin_ws/src/ProbTF-demo/misc/mug_bingham_toy/runs/vgg16_10000_cylinder_center_no_blur_20261127"
+}

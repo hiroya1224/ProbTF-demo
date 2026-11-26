@@ -105,7 +105,22 @@ class LiveTrainingViewTests(unittest.TestCase):
             window.poll()
             window.figure.canvas.draw()
             self.assertIn("epoch 1", window.status.get_text())
-            self.assertTrue(all(len(ax.collections) == 3 for ax in window.sphere_axes))
+            self.assertTrue(all(len(ax.collections) == 2 for ax in window.sphere_axes))
+            from sphere_display import latitude_longitude_graticule, GRID_COLOR
+            for ax in window.sphere_axes:
+                grid = [line for line in ax.lines if line.get_color() == GRID_COLOR]
+                self.assertEqual(len(grid), len(latitude_longitude_graticule()))
+                self.assertTrue(all(line.get_alpha() == .30 for line in grid))
+                from sphere_display import latitude_longitude_density_mesh
+                mesh = latitude_longitude_density_mesh(np.diag([3., 1., -1., -3.]), 12, 24)
+                order = np.argsort(mesh["face_depth"])[::-1]
+                fade = np.where(mesh["face_depth"][order] > 0., .25, 1.)
+                np.testing.assert_array_equal(ax.collections[0].get_facecolors()[:, 3], .14*fade)
+                rgba = ax.collections[1].get_facecolors()
+                np.testing.assert_array_equal(rgba[:, :3], mesh["face_rgb"][order])
+                np.testing.assert_allclose(rgba[:, 3], .9*mesh["face_rgb"][order].max(axis=1)*fade, atol=0)
+                rays = [line for line in ax.lines if line.get_color() != GRID_COLOR]
+                self.assertEqual([line.get_alpha() for line in rays], [1., 1., .25])
             self.assertEqual(window.history_lines["X"][0].get_ydata()[0], 1e-50)
             self.assertEqual(window.history_axes["X"].get_yscale(), "log")
             self.assertNotIn("torch", viewer.__dict__)

@@ -19,6 +19,13 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE / "assets"
+COLORED_MESH = ASSETS / "mug_cylinder_centered_colored.ply"
+MESH_METADATA = ASSETS / "mug_cylinder_center_metadata.json"
+CYLINDER_CENTER_NATIVE = np.array([40.0, 40.0, 45.0])
+MATERIAL_ROUGHNESS = .4
+POINT_LIGHT_POSITION = np.array([0.0, .8, 2.7])
+POINT_LIGHT_INTENSITY = 20.0
+IMAGE_BLUR_SIGMA_360P = 1.2
 COLOR_HEX = "#BC1543"
 COLOR_RGB = np.array([188, 21, 67], dtype=np.uint8)
 DEFAULT_SPLITS = {"train": (10000, 1234),
@@ -54,24 +61,31 @@ def uniform_quaternions(count: int, seed: int) -> np.ndarray:
 
 
 def prepare_assets(source: Path) -> dict:
-    """Retain the original STL bytes and write an explicitly colored PLY."""
+    """Retain STL bytes and center the colored mesh on the cup cylinder axis.
+
+    The verified cylinder axis is native X=40, Y=40.  Native Z=45 is the
+    midpoint of the cylinder's 0..90 height.  It is a geometric rotation
+    center, rather than a whole-mesh bounding-box center or a mass estimate.
+    """
     import trimesh
 
     ASSETS.mkdir(parents=True, exist_ok=True)
     original = ASSETS / "mug_original.stl"
     if source.resolve() != original.resolve():
-        if original.exists() and sha256(original) != sha256(source):
-            raise FileExistsError("The existing original STL differs from source")
-        shutil.copyfile(source, original)
+        if original.exists():
+            if sha256(original) != sha256(source):
+                raise FileExistsError("The existing original STL differs from source")
+        else:
+            shutil.copyfile(source, original)
     mesh = trimesh.load(original, force="mesh", process=True)
     bounds = mesh.bounds.copy()
-    center = bounds.mean(axis=0)
+    center = CYLINDER_CENTER_NATIVE.copy()
     scale = 1.0 / np.max(bounds[1] - bounds[0])
     mesh.vertices = (mesh.vertices - center) * scale
     # PLY vertex RGBA stores the selected solid material without STL's missing
     # material ambiguity.  The renderer reads this exact asset.
     mesh.visual.vertex_colors = np.tile(np.r_[COLOR_RGB, 255], (len(mesh.vertices), 1))
-    colored = ASSETS / "mug_centered_colored.ply"
+    colored = COLORED_MESH
     mesh.export(colored, encoding="binary_little_endian")
     metadata = {
         "source_filename": source.name,
@@ -82,6 +96,10 @@ def prepare_assets(source: Path) -> dict:
         "native_bounds": bounds.tolist(),
         "native_units": "unspecified STL length units; no physical unit inferred",
         "center_native": center.tolist(),
+        "origin_definition": "cup cylinder axis and native height midpoint",
+        "cylinder_axis_native": {"point": center.tolist(), "direction": [0., 0., 1.]},
+        "center_provenance": "Original STL inner/outer circular rings have common XY center (40,40); native height is 0..90",
+        "native_full_bounds_center": bounds.mean(axis=0).tolist(),
         "scale_native_to_object": float(scale),
         "coordinate_transform": "v_object = scale * (v_native - center_native)",
         "axes": "Original STL axes preserved; no semantic-axis rotation",
@@ -92,21 +110,8 @@ def prepare_assets(source: Path) -> dict:
         "material_srgb_hex": COLOR_HEX,
         "material_srgb_rgba": [188, 21, 67, 255],
     }
-    (ASSETS / "mesh_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    MESH_METADATA.write_text(json.dumps(metadata, indent=2) + "\n")
     return metadata
-
-
-def _look_at_light(position: np.ndarray) -> np.ndarray:
-    """OpenGL light local -z points toward object origin."""
-    z = np.asarray(position, dtype=np.float64)
-    z = z / np.linalg.norm(z)
-    x = np.cross([0., 1., 0.], z)
-    x = x / np.linalg.norm(x)
-    y = np.cross(z, x)
-    pose = np.eye(4)
-    pose[:3, :3] = np.column_stack((x, y, z))
-    pose[:3, 3] = position
-    return pose
 
 
 class MugRenderer:
@@ -121,6 +126,17 @@ class MugRenderer:
         import trimesh
         import pyrender
 
+        # Mesa may enumerate an inaccessible hardware device before llvmpipe
+        # on the host. Select the software device explicitly for this fixed
+        # headless renderer, while respecting an explicit device override.
+        if (backend == "egl" and os.environ.get("__EGL_VENDOR_LIBRARY_FILENAMES") == mesa
+                and "EGL_DEVICE_ID" not in os.environ):
+            from pyrender.platforms.egl import query_devices
+            for index, device in enumerate(query_devices()):
+                if device.name is None:
+                    os.environ["EGL_DEVICE_ID"] = str(index)
+                    break
+
         self.pyrender = pyrender
         if width < 1 or height < 1:
             raise ValueError("Image width and height must be positive")
@@ -133,7 +149,12 @@ class MugRenderer:
         # therefore (dimension-1)/2; pyrender uses dimension/2 at pixel edges.
         self.K = np.array([[self.focal, 0., (width-1)/2],
                            [0., self.focal, (height-1)/2], [0., 0., 1.]])
-        mesh = trimesh.load(ASSETS / "mug_centered_colored.ply", force="mesh")
+        self.mesh_metadata = json.loads(MESH_METADATA.read_text())
+        if self.mesh_metadata["colored_mesh"] != COLORED_MESH.name:
+            raise ValueError("Mesh metadata does not select the cylinder-centered asset")
+        if self.mesh_metadata["colored_mesh_sha256"] != sha256(COLORED_MESH):
+            raise ValueError("Colored mesh differs from its recorded SHA256")
+        mesh = trimesh.load(COLORED_MESH, force="mesh")
         colors = np.asarray(mesh.visual.vertex_colors)
         if not np.all(colors == np.array([188, 21, 67, 255])):
             raise ValueError("Colored mesh material no longer matches #BC1543")
@@ -145,7 +166,7 @@ class MugRenderer:
         mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh)
         material = pyrender.MetallicRoughnessMaterial(
             baseColorFactor=np.r_[linear, 1.], metallicFactor=0.,
-            roughnessFactor=.65, doubleSided=False)
+            roughnessFactor=MATERIAL_ROUGHNESS, doubleSided=False)
         self.scene = pyrender.Scene(bg_color=[1., 1., 1., 1.],
                                     ambient_light=[.50, .50, .50])
         self.object_node = self.scene.add(pyrender.Mesh.from_trimesh(
@@ -155,13 +176,12 @@ class MugRenderer:
         self.T_world_gl_camera = np.eye(4)
         self.T_world_gl_camera[2, 3] = self.distance
         self.scene.add(camera, pose=self.T_world_gl_camera)
-        # A deterministic broad cluster behind/above the camera approximates a
-        # soft source; ambient fill illuminates the mouth in visible viewpoints.
-        lights = [([-.9, 1.0, 3.5], .45), ([.9, 1.0, 3.5], .45),
-                  ([-.9, 2.0, 3.5], .45), ([.9, 2.0, 3.5], .45)]
-        for position, intensity in lights:
-            light = pyrender.DirectionalLight(color=np.ones(3), intensity=intensity)
-            self.scene.add(light, pose=_look_at_light(np.array(position)))
+        # A true positional source behind and above the camera, with ambient
+        # fill and moderate surface roughness to keep the highlight broad.
+        light_pose = np.eye(4)
+        light_pose[:3, 3] = POINT_LIGHT_POSITION
+        self.point_light_node = self.scene.add(pyrender.PointLight(
+            color=np.ones(3), intensity=POINT_LIGHT_INTENSITY), pose=light_pose)
         self.offscreen = pyrender.OffscreenRenderer(width, height)
 
     def world_object_pose(self, q_object_to_camera: np.ndarray) -> np.ndarray:
@@ -170,8 +190,14 @@ class MugRenderer:
         return pose
 
     def render(self, q_object_to_camera: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        from PIL import Image, ImageFilter
+
         self.scene.set_pose(self.object_node, self.world_object_pose(q_object_to_camera))
-        return self.offscreen.render(self.scene, flags=self.pyrender.RenderFlags.NONE)
+        rgb, depth = self.offscreen.render(self.scene, flags=self.pyrender.RenderFlags.NONE)
+        sigma = IMAGE_BLUR_SIGMA_360P * self.height / DEFAULT_HEIGHT
+        rgb = np.asarray(Image.fromarray(rgb, "RGB").filter(
+            ImageFilter.GaussianBlur(radius=sigma))).copy()
+        return rgb, depth
 
     def close(self):
         self.offscreen.delete()
@@ -182,24 +208,32 @@ class MugRenderer:
         return {
             "image_size": [self.width, self.height], "image_size_order": "width,height",
             "channels": "RGB uint8",
+            "image_postprocess": "fixed Gaussian blur of RGB before saving or network input; depth unchanged",
+            "image_blur_sigma_pixels": IMAGE_BLUR_SIGMA_360P * self.height / DEFAULT_HEIGHT,
             "K": self.K.tolist(), "distance_object_units": self.distance,
             "vertical_fov_degrees": float(np.degrees(2*np.arctan(self.height/(2*self.focal)))),
             "t_object_to_camera": [0., 0., self.distance],
             "camera_coordinates": "OpenCV: x right, y down, z forward",
-            "object_coordinates": "Centered/scaled original STL axes",
+            "object_coordinates": "Original STL axes, translated by native cylinder center (40,40,45), uniformly scaled",
             "quaternion": "Hamilton wxyz, active object→OpenCV camera; q and -q equivalent",
             "pixel_projection": "u=fx*X_C/Z_C+cx; v=fy*Y_C/Z_C+cy",
             "pixel_coordinates": "Integer pixel centers; top-left center (0,0). K principal point=((width-1)/2,(height-1)/2). OpenGL viewport-edge cx/cy=(width/2,height/2).",
             "world_camera_rotation": R_CAMERA_WORLD.tolist(),
             "T_world_opengl_camera": self.T_world_gl_camera.tolist(),
             "object_center_world": [0., 0., 0.],
+            "mesh": dict(self.mesh_metadata),
+            "mesh_metadata_file": MESH_METADATA.name,
+            "mesh_metadata_sha256": sha256(MESH_METADATA),
             "background": "white empty world, no ground plane or other geometry",
             "material_srgb_hex": COLOR_HEX,
-            "material_roughness": .65, "material_metallic": 0.,
+            "material_roughness": MATERIAL_ROUGHNESS, "material_metallic": 0.,
             "ambient_light": [.50, .50, .50],
-            "lights": "four fixed white directional lights behind/above camera, intensity .45 each; shadow maps disabled",
+            "lights": "one fixed white point light behind/above camera; shadow maps disabled",
+            "point_light_position_world": POINT_LIGHT_POSITION.tolist(),
+            "point_light_intensity_candela": POINT_LIGHT_INTENSITY,
             "rasterizer": "pyrender OpenGL offscreen triangle rasterization, smooth vertex normals",
             "backend": os.environ.get("PYOPENGL_PLATFORM"),
+            "egl_device_id": os.environ.get("EGL_DEVICE_ID"),
             "egl_vendor": os.environ.get("__EGL_VENDOR_LIBRARY_FILENAMES"),
             "numpy_version": np.__version__, "pyrender_version": pyrender.__version__,
             "trimesh_version": trimesh.__version__,
@@ -238,15 +272,29 @@ def render_split(renderer: MugRenderer, output: Path, split: str,
                              "t_camera": "float64 [N,3]", "seed": "int64 scalar"},
             "poses_sha256": sha256(folder / "poses.npz"),
             "images_concat_sha256": image_hash.hexdigest(),
+            "mesh": dict(renderer.mesh_metadata),
             "elapsed_seconds": time.monotonic()-started}
     (folder / "metadata.json").write_text(json.dumps(info, indent=2) + "\n")
     return info
 
 
+def validate_output_metadata(output: Path, splits, overwrite: bool = False) -> None:
+    """Reject split replacement or mixed mesh identities before any write."""
+    for split in splits:
+        if (output / split / "poses.npz").exists() and not overwrite:
+            raise FileExistsError(f"{output / split} already has labels; use --overwrite")
+    metadata_path = output / "render_metadata.json"
+    if metadata_path.exists():
+        recorded = json.loads(metadata_path.read_text())
+        selected = json.loads(MESH_METADATA.read_text())
+        if recorded.get("mesh", {}).get("colored_mesh_sha256") != selected["colored_mesh_sha256"]:
+            raise FileExistsError("Output records a different mesh; choose a new dataset directory")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prepare", type=Path, metavar="SOURCE_STL")
-    parser.add_argument("--output", type=Path, default=HERE / "data")
+    parser.add_argument("--output", type=Path, default=HERE / "data/cylinder_center_20261127")
     parser.add_argument("--split", choices=["all", *DEFAULT_SPLITS], default="all")
     parser.add_argument("--count", type=int, help="override count for one split")
     parser.add_argument("--seed", type=int, help="override seed for one split")
@@ -261,13 +309,13 @@ def main():
         parser.error("--count requires one --split")
     if args.seed is not None and args.split == "all":
         parser.error("--seed requires one --split")
+    splits = DEFAULT_SPLITS if args.split == "all" else {args.split: DEFAULT_SPLITS[args.split]}
+    validate_output_metadata(args.output, splits, args.overwrite)
     renderer = MugRenderer(width=args.width, height=args.height, backend=args.backend)
     args.output.mkdir(parents=True, exist_ok=True)
-    splits = DEFAULT_SPLITS if args.split == "all" else {args.split: DEFAULT_SPLITS[args.split]}
     results = []
     try:
         metadata = renderer.metadata()
-        metadata["mesh"] = json.loads((ASSETS / "mesh_metadata.json").read_text())
         (args.output / "render_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
         for split, (default_count, default_seed) in splits.items():
             results.append(render_split(renderer, args.output, split,

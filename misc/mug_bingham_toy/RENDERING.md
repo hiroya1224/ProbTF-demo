@@ -1,6 +1,6 @@
 # Rendering and exact pose labels
 
-The renderer reads `assets/mug_centered_colored.ply`. Its solid vertex RGBA is
+The renderer reads `assets/mug_cylinder_centered_colored.ply`. Its solid vertex RGBA is
 `(188, 21, 67, 255)`, corresponding to sRGB `#BC1543`. The original source STL is
 retained byte-for-byte as `assets/mug_original.stl`, with SHA-256
 `b594ed7482a3e1148de7407d6b690c03a9a0b44a3d5d1d06b62e4e5c9bc243eb`.
@@ -10,24 +10,33 @@ The original bounds are `[0,0,0]` to `[112.11322021484375,80,90]`. Only a fixed
 translation and positive uniform scale are applied:
 
 ```text
-v_object = 0.008919554697329088 * (v_native - [56.056610107421875,40,45])
+v_object = 0.008919554697329088 * (v_native - [40,40,45])
 ```
 
-The native axes are preserved. No opening axis is guessed or rotated into a
-preferred orientation. The longest object extent is 1, and the bounding radius
-is approximately 0.637481. The material is nonmetallic, roughness 0.65. The
+The cylinder axis is native x=40, y=40, verified from the inner and outer
+circular sections. Its height midpoint is native z=45. This cylinder midpoint
+is the object origin; the whole bounding-box center is not the rotation
+pivot. The native axes are preserved without rotation. The longest object extent is 1, and the bounding radius
+is recorded in the mesh metadata. The material is nonmetallic, roughness 0.4. The
 renderer converts the asset's selected sRGB color to linear RGB for the glTF
 material; illumination produces ordinary shading rather than constant pixels.
 
-The empty world background is pure white. The object center remains at the
+The empty world background is pure white. The cylinder midpoint remains at the
 world origin; the camera remains at `[0,0,2.5]` looking toward the origin. At
 640×360 pixels, focal length is 590.625 pixels in both axes. The vertical field
 of view is approximately 33.9 degrees. Bright white ambient
-fill and four fixed directional lights above/behind the camera illuminate the
-rim and interior when the opening is visible. Their cluster gives broad
-shading; shadow maps are disabled, so this is deliberately simple illumination,
-not a physically accurate area-light simulation. A camera view directed at the
+fill and one white point light above/behind the camera illuminate the
+rim and interior when the opening is visible. The point source is at
+`[0,0.8,2.7]` with intensity 20 candela, 0.2 units behind and 0.8 units above
+the camera. Shadow maps are disabled; ambient fill and moderate surface
+roughness soften the contrast. A camera view directed at the
 bottom of an opaque mug naturally cannot show its interior.
+
+Before saving or passing RGB to the network, a fixed Gaussian blur is applied:
+sigma=1.2 pixels at 640x360, proportional to image height at other resolutions.
+This reduces small STL faceting/reflection artifacts. Train, validation, test,
+and preview use this identical process. The depth buffer and pose labels are
+not blurred or changed. There is no random blur or extra online augmentation.
 
 `q_wxyz[i]` is the active object-to-OpenCV-camera rotation, with Hamilton
 quaternions in scalar-first order. OpenCV camera axes are x right, y down,
@@ -58,7 +67,7 @@ fixed before training:
 Each split has `images/000000.png`, etc., and `poses.npz` with float64
 `q_wxyz[N,4]`, int64 `index[N]`, float64 `t_camera[N,3]`, and an int64 scalar
 `seed`. `metadata.json` records count, label hash, concatenated image-file hash,
-and generation time. `data/render_metadata.json` records geometry, camera,
+and generation time. `data/cylinder_center_20261127/render_metadata.json` records geometry, camera,
 material, rendering stack, driver selection, coordinate conventions, and code
 hash. Pixel reproducibility is guaranteed only on the same rendering stack;
 GPU drivers can change rasterization rounding.
@@ -74,7 +83,7 @@ pyrender, and Pillow:
 
 ```bash
 /usr/bin/python3 misc/mug_bingham_toy/render.py \
-  --output misc/mug_bingham_toy/data
+  --output misc/mug_bingham_toy/data/cylinder_center_20261127
 ```
 
 The asset preparation command, needed only when reconstructing the local
@@ -86,8 +95,10 @@ assets from the originally supplied STL, is:
   --output /tmp/mug-render-preview --split train --count 12 --seed 1234
 ```
 
-The default headless renderer is Mesa EGL. Explicit environment selections are
-respected; `--backend osmesa` can select OSMesa if installed. No display or
+The default headless renderer is Mesa EGL. Its software device is selected
+explicitly when Mesa enumerates a hardware device first; the selected index is
+recorded as `egl_device_id`. Explicit environment selections are respected;
+`--backend osmesa` can select OSMesa if installed. No display or
 Blender application is required. Meaningful source, geometry, quaternion,
 projection, antipodal, and saved-label/pixel checks run with:
 

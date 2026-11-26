@@ -6,6 +6,8 @@
     ],
     "image_size_order": "width,height",
     "channels": "RGB uint8",
+    "image_postprocess": "fixed Gaussian blur of RGB before saving or network input; depth unchanged",
+    "image_blur_sigma_pixels": 1.2,
     "K": [
       [
         590.625,
@@ -31,7 +33,7 @@
       2.5
     ],
     "camera_coordinates": "OpenCV: x right, y down, z forward",
-    "object_coordinates": "Centered/scaled original STL axes",
+    "object_coordinates": "Original STL axes, translated by native cylinder center (40,40,45), uniformly scaled",
     "quaternion": "Hamilton wxyz, active object→OpenCV camera; q and -q equivalent",
     "pixel_projection": "u=fx*X_C/Z_C+cx; v=fy*Y_C/Z_C+cy",
     "pixel_coordinates": "Integer pixel centers; top-left center (0,0). K principal point=((width-1)/2,(height-1)/2). OpenGL viewport-edge cx/cy=(width/2,height/2).",
@@ -83,33 +85,101 @@
       0.0,
       0.0
     ],
+    "mesh": {
+      "source_filename": "mug.STL",
+      "original_stl": "mug_original.stl",
+      "original_sha256": "b594ed7482a3e1148de7407d6b690c03a9a0b44a3d5d1d06b62e4e5c9bc243eb",
+      "colored_mesh": "mug_cylinder_centered_colored.ply",
+      "colored_mesh_sha256": "a2b645ea436f3186a8aec58df48a31c28e2c872c042072a3fc89215ce02963f4",
+      "native_bounds": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          112.11322021484375,
+          80.0,
+          90.0
+        ]
+      ],
+      "native_units": "unspecified STL length units; no physical unit inferred",
+      "center_native": [
+        40.0,
+        40.0,
+        45.0
+      ],
+      "origin_definition": "cup cylinder axis and native height midpoint",
+      "cylinder_axis_native": {
+        "point": [
+          40.0,
+          40.0,
+          45.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "center_provenance": "Original STL inner/outer circular rings have common XY center (40,40); native height is 0..90",
+      "native_full_bounds_center": [
+        56.056610107421875,
+        40.0,
+        45.0
+      ],
+      "scale_native_to_object": 0.008919554697329088,
+      "coordinate_transform": "v_object = scale * (v_native - center_native)",
+      "axes": "Original STL axes preserved; no semantic-axis rotation",
+      "object_max_extent": 1.0,
+      "object_bounding_radius": 0.6764378200527773,
+      "vertices": 8077,
+      "faces": 16154,
+      "watertight": true,
+      "material_srgb_hex": "#BC1543",
+      "material_srgb_rgba": [
+        188,
+        21,
+        67,
+        255
+      ]
+    },
+    "mesh_metadata_file": "mug_cylinder_center_metadata.json",
+    "mesh_metadata_sha256": "00f9785d6e5833839406b8917dffe36ba790816b49079ecefd1f7834b9591e33",
     "background": "white empty world, no ground plane or other geometry",
     "material_srgb_hex": "#BC1543",
-    "material_roughness": 0.65,
+    "material_roughness": 0.4,
     "material_metallic": 0.0,
     "ambient_light": [
       0.5,
       0.5,
       0.5
     ],
-    "lights": "four fixed white directional lights behind/above camera, intensity .45 each; shadow maps disabled",
+    "lights": "one fixed white point light behind/above camera; shadow maps disabled",
+    "point_light_position_world": [
+      0.0,
+      0.8,
+      2.7
+    ],
+    "point_light_intensity_candela": 20.0,
     "rasterizer": "pyrender OpenGL offscreen triangle rasterization, smooth vertex normals",
     "backend": "egl",
+    "egl_device_id": "0",
     "egl_vendor": "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
     "numpy_version": "1.24.3",
     "pyrender_version": "0.1.45",
     "trimesh_version": "4.12.2",
     "randomness": "PCG64 standard_normal 4-vectors normalized onto S³; independent split seeds; no image/light randomization",
     "pixel_reproducibility": "Exact on the same software/driver stack; other GPU drivers may change rasterization rounding",
-    "source_code_sha256": "d0224576716ef10a4b3733493387c63ed8b2c9cd307236abb34d51839b45ce9c"
+    "source_code_sha256": "18c0a1eebc454e09b464f89caf9559613b348c8ff002f280836ee33e2b7ea3bb"
   },
   "reference_pdf": "/home/leus/dthesis/figs/symaware-bingham/toyexample.pdf",
   "reference_sha256": "2dc8392bd3eda03143112df26611af0efd33ea388d3a584f11d3948f67b1b7b5",
   "reference_source_sha256": "460a854bb54d49b00ae14e8c3e7a8c1a47cb083126798977af9e2d6992bf1b2e",
   "source_sha256": {
-    "render.py": "d0224576716ef10a4b3733493387c63ed8b2c9cd307236abb34d51839b45ce9c",
-    "figure_geometry.py": "af672f6450efc7c17b80ab3ef355ed7b46d31326b589eed3e3664e6b87fce6e8",
-    "toyexample.py": "adec2e2cb7b2ecf79fd2415993e71fc2bdd81dec91ad668086b3ab42baf6ba98"
+    "render.py": "18c0a1eebc454e09b464f89caf9559613b348c8ff002f280836ee33e2b7ea3bb",
+    "figure_geometry.py": "7ab4d92000faf597fd61537ed414127c3764e6e61e53f00a05682c6d50ec8225",
+    "toyexample.py": "2909144c3b9fe24cce5dda63f2a1f878930281b8d7ed308d35eadc1581b0b6a0"
   },
   "poses": {
     "angles_deg": [
@@ -451,6 +521,6 @@
     483,
     330
   ],
-  "mesh_sha256": "e1577bbfb34c376245e56d2f61c5a6c7da186baf78418f8a969e3be2cb9c17fc",
+  "mesh_sha256": "a2b645ea436f3186a8aec58df48a31c28e2c872c042072a3fc89215ce02963f4",
   "old_reference_images_or_predictions_used": false
 }

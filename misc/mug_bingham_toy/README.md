@@ -1,98 +1,88 @@
 # 単色マグの画像からBingham分布を学ぶtoy example
 
-`mug.STL`を一色の`#BC1543`にして白い空間で回転させ、画像と四元数の組からVGG16全体を学習する。方位の出力はtrace zeroの対称4×4行列を表す9成分で、損失はBinghamの負の対数尤度である。
+指定`mug.STL`を単色`#BC1543`にし、白い空間で回転させた画像からVGG16全体を学習する。出力はtrace zeroの対称4×4 Bingham行列を表す9成分、損失はBingham NLL。
 
-## 学習完了と図
+## 円筒中心への修正
 
-50 epochを完了し、毎epochで学習10,000枚すべてを一度ずつ使用した。検証NLLで選んだepoch 48の重みを使う。独立テスト1,000枚のモード方位誤差は平均1.072度、中央値0.919度だった。[完了記録](verification/training_completed.json)と[全epochのログ](verification/training_metrics.jsonl)を保存している。
+回転中心は**マグの円筒の中心**とする。元STLでは円筒軸が`x=40, y=40`、高さの中点が`z=45`なので、`(40,40,45)`を原点へ移す。取っ手込みの外接箱中心は使わない。
 
-`~/dthesis/figs/symaware-bingham/toyexample.pdf`と同じ形式の[PDF図](results/toyexample_vgg16_10000/toyexample.pdf)と[PNG図](results/toyexample_vgg16_10000/toyexample.png)を生成した。元図は保持している。指定STLの着色メッシュを同じレンダラで描き、この保存重みで新たに推論した5例である。[数値の意味・再現方法](results/toyexample_vgg16_10000/README.md)を参照。
+旧実装は`(56.0566101074,40,45)`を回転中心にし、円筒が回転に伴って移動する誤りがあった。誤った学習画像・重み・図・数値・例示・検証記録を削除した。修正版では画像から全生成し、旧重みを使わず乱数初期値から再学習する。旧結果は本実験の結果として扱わない。
 
-## 学習に使ったセッション
+- 元STL：[assets/mug_original.stl](assets/mug_original.stl)。ユーザー指定ファイルと同一bytes。
+- 修正した着色メッシュ：[assets/mug_cylinder_centered_colored.ply](assets/mug_cylinder_centered_colored.ply)。すべての頂点はRGBA `[188,21,67,255]`。
+- 中心と変換の記録：[assets/mug_cylinder_center_metadata.json](assets/mug_cylinder_center_metadata.json)。元の軸を維持し、一様scaleは`1/112.11322021484375`のまま。
+- カメラ距離2.5、画像全体640×360、白背景、ambientとカメラ後方上側の点光源。roughnessは0.4。固定Gaussianブラーσ=1.2pxを全画像へ適用する。[描画規約](RENDERING.md)。
+
+最新の[レンダリング一覧](examples/cylinder_pointlight_preview/render_preview.png)は、次で元画像・設定と一緒に上書きする。
+
+```bash
+/usr/bin/python3 misc/mug_bingham_toy/toyexample.py preview
+```
+
+## 学習と起動
+
+標準VGG16 configuration D、13畳み込み層、adaptive average pooling 7×7、4096→4096→9の全結合部を全体学習する。事前学習重みは使わない。全134,297,417パラメータを乱数初期化し、50 epoch、batch 16、AdamW、初期学習率1e-4、weight decay 1e-4、cosine scheduleで学習する。各epochは10,000枚をすべて一度ずつ使用する。検証NLLで重みを選び、全epoch完了後に独立テストを実行する。画像のcrop・resize・augmentationはしない。
+
+データは`data/cylinder_center_20261127/`、重みとログは`runs/vgg16_10000_cylinder_center_20261127/`へ保存する。学習・検証・テストの枚数は10,000／1,000／1,000、四元数生成のPCG64 seedは1234／1235／1236。4次元標準Gaussianを単位長へ正規化してHaar一様回転を生成する。教師は物体からOpenCVカメラへのHamilton四元数wxyzで、画像の実際の回転と一致する。
+
+長時間処理用の専用セッションに接続する。
 
 ```bash
 tmux a -t mug-bingham-toy
 ```
 
-`train`ウィンドウには学習ログ、`status`ウィンドウには進行状況を表示する。学習はすでに完了している。`Ctrl-b`を押してから`d`で離れられる。
+`Ctrl-b`、続けて`d`で離れられる。現在の生成・学習状況は次で確認できる。
 
-## メッシュと画像
+```bash
+/usr/bin/python3 misc/mug_bingham_toy/status.py
+```
 
-- 元のSTL：[assets/mug_original.stl](assets/mug_original.stl)。指定された`/home/leus/Downloads/mug.STL`と同一のbytesを保存した。
-- 単色の入力メッシュ：[assets/mug_centered_colored.ply](assets/mug_centered_colored.ply)。すべての頂点がRGBA `[188,21,67,255]` で、レンダラはこのファイルを読む。
-- 元の軸を保ち、boundsの中心を原点へ移して最長辺を1にした。STLの物理単位は仮定しない。変換とhashは[mesh_metadata.json](assets/mesh_metadata.json)に記録する。
-- 画像はRGB、640×360。カメラ距離は正規化後の座標で2.5、白背景、固定のambientとカメラ後方上側の光源群を使う。[レンダリングの詳細](RENDERING.md)。
-- 学習10,000枚、検証1,000枚、独立テスト1,000枚。PCG64のseedを1234／1235／1236に固定し、それぞれ独立に生成する。
-- 4次元標準Gaussianを単位長へ正規化して一様なS³四元数を作る。各四元数は物体からOpenCVカメラへの能動回転を表し、順序はwxyz。画像の向きと同じ座標規約の四元数を教師にする。
+専用セッションを新規に立てるコマンドは`bash misc/mug_bingham_toy/launch_tmux.sh`。画像生成、画像の完了を待つ新規学習、進行表示の3ウィンドウを作る。全学習と独立テストが完了したら、同じ新しい重みで5方向図も自動生成する。
 
-生成物は`data/{train,val,test}/images/000000.png`等と、それに対応する`poses.npz`・`metadata.json`へ保存する。`q`と`-q`は同じ画像・同じ密度を表す。
+リポジトリrootからの再生成・新規学習は次の順序。`run.sh`はデータが揃い、円筒中心のメッシュで生成されたことを確認してから、空の新規runで開始する。
 
-[入力12例](examples/contact_sheet.png)は学習集合の先頭12件と同じ四元数で描画した。対応する四元数とカメラ設定も`examples/`へ保存している。
+```bash
+/usr/bin/python3 misc/mug_bingham_toy/render.py --output misc/mug_bingham_toy/data/cylinder_center_20261127
+bash misc/mug_bingham_toy/run.sh
+```
 
-## ネットワークと学習
+## 分布と損失
 
-標準VGG16の13畳み込み層、7×7のadaptive average pooling、4096→4096→9の全結合部を使う。実装はPyTorchだけで自己完結する。初期値は乱数で、畳み込みを含む134,297,417個のパラメータすべてを学習する。画像全体640×360を入力し、学習時の切り出しや拡大縮小は行わない。
-
-設定は50 epoch、batch 16、AdamW、初期学習率1e-4、weight decay 1e-4、cosine learning-rate schedule。GPUの画像ネットワークにはbfloat16 AMPを使い、出力をfloat32、NLLをfloat64で計算する。各epochは学習10,000枚をすべて一度ずつ使う。検証NLLが最良の重みを別保存し、全epoch後にその重みで独立テストを評価する。途中の検証値による早期終了は行わない。
-
-出力順は
+出力は
 
 \[
 \theta=(A_{00},A_{01},A_{02},A_{03},A_{11},A_{12},A_{13},A_{22},A_{23}),
 \qquad A_{33}=-A_{00}-A_{11}-A_{22}.
 \]
 
-下三角には上三角をコピーする。分布と損失は
+下三角を対称に補い、
 
 \[
 p(q\mid I)=\frac{\exp(q^TA_\theta(I)q)}{Z(A_\theta(I))},
-\qquad
-\mathcal L(I,q)=\log Z(A_\theta(I))-q^TA_\theta(I)q.
+\qquad \mathcal L(I,q)=\log Z(A_\theta(I))-q^TA_\theta(I)q.
 \]
 
-積分測度はS³の表面積で、一様分布の正規化定数は`2*pi**2`。正規化定数はChen–Tanaka式の決定論的数値積分で評価し、解析的な一次微分を逆伝播する。重複固有値を持つ一様分布付近でも、固有ベクトルの微分へ依存しない形で計算する。元の実装・hashは[bingham.py](bingham.py)に記録した。
+S³の表面積測度を用い、一様分布の正規化定数は`2*pi**2`。Chen–Tanaka式の決定論的数値積分と解析的一次微分を使う。有限の求積誤差があり、厳密な正規化定数とは区別する。既存のProbTF coreは変更しない。画像ネットワークはGPU bfloat16、最終出力float32、NLL float64で計算する。
 
-有限の積分誤差を持つ実装であり、すべての集中度で厳密解であるとは扱わない。モードの角度誤差は補助指標で、広い分布や最大固有値の重複では代表姿勢が一意でない点に注意する。
+## 検査と図
 
-## 再現コマンドと保存先
-
-リポジトリrootから画像を生成する。
-
-```bash
-/usr/bin/python3 misc/mug_bingham_toy/render.py --output misc/mug_bingham_toy/data
-```
-
-画像生成が終わってから、次のコマンドで学習を実行できる。使用するPythonは`TOY_MUG_PYTHON`で指定でき、既定はPyTorchが入っている既存環境である。
-
-```bash
-bash misc/mug_bingham_toy/run.sh
-```
-
-学習の重み・optimizer・ログは`runs/vgg16_10000_20261126/`へ保存する。`status.py`で参照できる。
-
-```bash
-/usr/bin/python3 misc/mug_bingham_toy/status.py
-```
-
-保存済みepoch末尾から再開する場合は、同じコード・データ・設定で次を実行する。
-
-```bash
-bash misc/mug_bingham_toy/run.sh --resume /home/leus/catkin_ws/src/ProbTF-demo/misc/mug_bingham_toy/runs/vgg16_10000_20261126/last.pt
-```
-
-レンダラと学習器は既存の別Python環境を使うため、検査も分けて実行する。
+円筒軸上の中点が原点へ移され、その投影が回転しても固定されることを検査する。円筒断面の外周・内周の円からも軸が`(40,40)`であることを確認する。
 
 ```bash
 /usr/bin/python3 -m unittest discover -s misc/mug_bingham_toy/tests -p test_render.py -v
+/usr/bin/python3 -m unittest discover -s misc/mug_bingham_toy/tests -p test_figure_geometry.py -v
 /home/leus/posecnn_ws/.venv/bin/python -m unittest discover -s misc/mug_bingham_toy/tests -p test_bingham.py -v
 /home/leus/posecnn_ws/.venv/bin/python -m unittest discover -s misc/mug_bingham_toy/tests -p test_model_training.py -v
 ```
 
-生成画像、特徴cache、全VGG16の大きなcheckpointはGitの対象外とする。コード、元メッシュ・単色メッシュ、入力例、検証数値だけを通常commit/pushする。以前のマグ・ボトル・IMUの実験やProbTF coreは変更しない。
+修正版の学習完了後、`~/dthesis/figs/symaware-bingham/toyexample.pdf`形式で図を作れる。画像生成・推論・描画を分離し、描画は保存された同じBingham行列を参照する。
 
-## 今回の実行確認
+方位分布は入力と同じカメラ座標系で、物体X/Y/Z軸を球面へ押し出した解析的な密度を表示する。球面全体20,480三角形を塗り、前後の半球を透明表示する。各軸の密度をそれぞれ表示最大1にした値をRGBへ割り当てる。生の密度・色正規化係数・同じ行列を保存し、Bingham自体の集中度は調節しない。半値角は従来どおりマグの上向き軸周りの物理回転角で、カメラ座標へ同じ軸を移して評価する。
 
-[生成記録](verification/dataset_generation.json)、[19件の検査](verification/unit_tests.json)、
-[GPUのメモリ・速度確認](verification/gpu_benchmark_batch16.json)、
-[学習開始時の記録](verification/training_launch.json)を保存した。開始記録は途中のスナップショットで、学習完了を意味しない。
-最新の進行状況と最終テスト結果はローカルrunディレクトリの`metrics.jsonl`／`test_metrics.json`を参照する。
+```bash
+/usr/bin/python3 misc/mug_bingham_toy/toyexample.py render
+/home/leus/posecnn_ws/.venv/bin/python misc/mug_bingham_toy/toyexample.py infer
+/usr/bin/python3 misc/mug_bingham_toy/toyexample.py plot
+```
+
+生成画像・巨大checkpoint・optimizer・中間cacheはGitへ入れない。元STL、修正メッシュ、コード、少数の入力例、検証記録を通常commit/pushする。

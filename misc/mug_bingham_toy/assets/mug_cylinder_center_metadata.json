@@ -2,8 +2,8 @@
   "source_filename": "mug.STL",
   "original_stl": "mug_original.stl",
   "original_sha256": "b594ed7482a3e1148de7407d6b690c03a9a0b44a3d5d1d06b62e4e5c9bc243eb",
-  "colored_mesh": "mug_centered_colored.ply",
-  "colored_mesh_sha256": "e1577bbfb34c376245e56d2f61c5a6c7da186baf78418f8a969e3be2cb9c17fc",
+  "colored_mesh": "mug_cylinder_centered_colored.ply",
+  "colored_mesh_sha256": "a2b645ea436f3186a8aec58df48a31c28e2c872c042072a3fc89215ce02963f4",
   "native_bounds": [
     [
       0.0,
@@ -18,6 +18,25 @@
   ],
   "native_units": "unspecified STL length units; no physical unit inferred",
   "center_native": [
+    40.0,
+    40.0,
+    45.0
+  ],
+  "origin_definition": "cup cylinder axis and native height midpoint",
+  "cylinder_axis_native": {
+    "point": [
+      40.0,
+      40.0,
+      45.0
+    ],
+    "direction": [
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "center_provenance": "Original STL inner/outer circular rings have common XY center (40,40); native height is 0..90",
+  "native_full_bounds_center": [
     56.056610107421875,
     40.0,
     45.0
@@ -26,7 +45,7 @@
   "coordinate_transform": "v_object = scale * (v_native - center_native)",
   "axes": "Original STL axes preserved; no semantic-axis rotation",
   "object_max_extent": 1.0,
-  "object_bounding_radius": 0.637480823233202,
+  "object_bounding_radius": 0.6764378200527773,
   "vertices": 8077,
   "faces": 16154,
   "watertight": true,

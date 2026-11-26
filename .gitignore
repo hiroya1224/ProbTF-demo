@@ -28,3 +28,4 @@ ros/examples/deflecomp/outputs/
 /misc/mug_bingham_toy/runs/
 /misc/mug_bingham_toy/results/*/inputs.npz
 /misc/mug_bingham_toy/results/*/input_*.png
+/misc/mug_bingham_toy/examples/*/inputs.npz

@@ -25,6 +25,8 @@
 
 データは`data/cylinder_center_20261127/`、重みとログは`runs/vgg16_10000_cylinder_center_20261127/`へ保存する。学習・検証・テストの枚数は10,000／1,000／1,000、四元数生成のPCG64 seedは1234／1235／1236。4次元標準Gaussianを単位長へ正規化してHaar一様回転を生成する。教師は物体からOpenCVカメラへのHamilton四元数wxyzで、画像の実際の回転と一致する。
 
+全12,000枚の再生成を終え、新規学習のGPU更新を確認した。[開始記録](verification/cylinder_center_training_launch.json)は途中の状態であり、50epochの完了記録ではない。[修正検証](verification/cylinder_center_correction.json)には、描画・幾何・起動の35件の検査と設定を保存した。
+
 長時間処理用の専用セッションに接続する。
 
 ```bash

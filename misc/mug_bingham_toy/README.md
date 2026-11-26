@@ -2,13 +2,19 @@
 
 `mug.STL`を一色の`#BC1543`にして白い空間で回転させ、画像と四元数の組からVGG16全体を学習する。方位の出力はtrace zeroの対称4×4行列を表す9成分で、損失はBinghamの負の対数尤度である。
 
-## 起動中のセッション
+## 学習完了と図
+
+50 epochを完了し、毎epochで学習10,000枚すべてを一度ずつ使用した。検証NLLで選んだepoch 48の重みを使う。独立テスト1,000枚のモード方位誤差は平均1.072度、中央値0.919度だった。[完了記録](verification/training_completed.json)と[全epochのログ](verification/training_metrics.jsonl)を保存している。
+
+`~/dthesis/figs/symaware-bingham/toyexample.pdf`と同じ形式の[PDF図](results/toyexample_vgg16_10000/toyexample.pdf)と[PNG図](results/toyexample_vgg16_10000/toyexample.png)を生成した。元図は保持している。指定STLの着色メッシュを同じレンダラで描き、この保存重みで新たに推論した5例である。[数値の意味・再現方法](results/toyexample_vgg16_10000/README.md)を参照。
+
+## 学習に使ったセッション
 
 ```bash
 tmux a -t mug-bingham-toy
 ```
 
-`train`ウィンドウは画像生成の完了を待って学習を開始する。`status`ウィンドウには生成枚数と学習の状況を表示する。`Ctrl-b`を押してから`d`で離れられ、学習は継続する。
+`train`ウィンドウには学習ログ、`status`ウィンドウには進行状況を表示する。学習はすでに完了している。`Ctrl-b`を押してから`d`で離れられる。
 
 ## メッシュと画像
 

@@ -26,3 +26,5 @@ ros/examples/deflecomp/outputs/
 # Toy mug: generated images and full VGG16 optimizer/checkpoints stay local.
 /misc/mug_bingham_toy/data/
 /misc/mug_bingham_toy/runs/
+/misc/mug_bingham_toy/results/*/inputs.npz
+/misc/mug_bingham_toy/results/*/input_*.png

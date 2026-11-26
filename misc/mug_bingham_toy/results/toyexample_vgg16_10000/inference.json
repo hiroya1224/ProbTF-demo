@@ -1,0 +1,71 @@
+{
+  "checkpoint": "/home/leus/catkin_ws/src/ProbTF-demo/misc/mug_bingham_toy/runs/vgg16_10000_20261126/best.pt",
+  "checkpoint_sha256": "5e9c0648087fa3256369b8c0f05af1233c8219fc1d0d84239f3dd2df21e50997",
+  "checkpoint_epoch": 48,
+  "trained_epochs": 50,
+  "checkpoint_selection": "Saved best validation NLL; no selection using these five images",
+  "test_metrics": {
+    "count": 1000,
+    "nll_mean": -8.073471411671168,
+    "mode_error_deg_mean": 1.071563015661174,
+    "mode_error_deg_median": 0.9188902271854726,
+    "mode_error_deg_p90": 1.7251782287626307,
+    "top_eigen_gap_mean": 822.1194666754526,
+    "checkpoint": "best.pt",
+    "best_epoch": 48,
+    "selection": "validation NLL only",
+    "epochs_completed": 50,
+    "total_training_images_seen": 500000,
+    "dataset": {
+      "count": 1000,
+      "seed": 1236,
+      "actual_images_concat_sha256": "c34d3384a230cab5b5fde90cf010dc77d9bea6c91ea8c39f5f5e9292f0ff6255",
+      "poses_sha256": "7600064e72ff8c10a46634369fb6565e93dea30f3c269593a28e97e7e2bc7c61",
+      "sorted_indices_sha256": "702746827e553786bb026ac120cb58745fef3d3f554c33891809001cc37639f0",
+      "preloaded_uint8_bytes": 0
+    },
+    "predictions_sha256": "21e2c3d74abfa93d0f08ddc2688e60bc5dbf1a2d95a5fe38aa96d4de21fda35b"
+  },
+  "input_sha256": "97efaec731b17d31ede28afb2311cdbf6eca3970714120feb5966294220c18f9",
+  "figure_data_sha256": "d91ab6e6e44f92a4edfb99c6585649edf1d7eaba98d4cbb9171598382b940ffc",
+  "source_sha256": {
+    "model.py": "c39d1cac6031ba78c6e2d773b5eeb28416e14d7cc547fa141cdf53c55c37151c",
+    "train.py": "05d799679d8e2f8dc4b57d88633c43512ed9c51ddced9b454ba13aa591d63c26",
+    "bingham.py": "1fb44f76262dd06d2259f529286ce53a60210b8598490d09944df5f8828e102c",
+    "figure_geometry.py": "af672f6450efc7c17b80ab3ef355ed7b46d31326b589eed3e3664e6b87fce6e8",
+    "toyexample.py": "adec2e2cb7b2ecf79fd2415993e71fc2bdd81dec91ad668086b3ab42baf6ba98"
+  },
+  "frozen_training_source_matches": {
+    "train.py": true,
+    "model.py": true,
+    "bingham.py": true,
+    "render.py": true
+  },
+  "pytorch_version": "2.5.1+cu121",
+  "device": "cuda",
+  "amp_features": "bfloat16",
+  "head_dtype": "float32",
+  "quaternion_order": "wxyz",
+  "network_frame": "object to OpenCV camera",
+  "display_frame": "upright world related to camera by the saved fixed proper rotation",
+  "parameter_order": [
+    "A00",
+    "A01",
+    "A02",
+    "A03",
+    "A11",
+    "A12",
+    "A13",
+    "A22",
+    "A23"
+  ],
+  "output_parameter_rows": [
+    1,
+    2,
+    9
+  ],
+  "frame_change": "A_world = L(q_world_camera) A_camera L(q_world_camera)^T",
+  "samples_from_training_or_test_predictions_reused": false,
+  "distribution_rescaled_or_refitted": false,
+  "network_evaluations_per_image": 1
+}

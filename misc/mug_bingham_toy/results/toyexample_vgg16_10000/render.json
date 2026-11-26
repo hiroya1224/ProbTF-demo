@@ -1,0 +1,456 @@
+{
+  "renderer": {
+    "image_size": [
+      640,
+      360
+    ],
+    "image_size_order": "width,height",
+    "channels": "RGB uint8",
+    "K": [
+      [
+        590.625,
+        0.0,
+        319.5
+      ],
+      [
+        0.0,
+        590.625,
+        179.5
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "distance_object_units": 2.5,
+    "vertical_fov_degrees": 33.89844846764288,
+    "t_object_to_camera": [
+      0.0,
+      0.0,
+      2.5
+    ],
+    "camera_coordinates": "OpenCV: x right, y down, z forward",
+    "object_coordinates": "Centered/scaled original STL axes",
+    "quaternion": "Hamilton wxyz, active object→OpenCV camera; q and -q equivalent",
+    "pixel_projection": "u=fx*X_C/Z_C+cx; v=fy*Y_C/Z_C+cy",
+    "pixel_coordinates": "Integer pixel centers; top-left center (0,0). K principal point=((width-1)/2,(height-1)/2). OpenGL viewport-edge cx/cy=(width/2,height/2).",
+    "world_camera_rotation": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -1.0
+      ]
+    ],
+    "T_world_opengl_camera": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        2.5
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "object_center_world": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "background": "white empty world, no ground plane or other geometry",
+    "material_srgb_hex": "#BC1543",
+    "material_roughness": 0.65,
+    "material_metallic": 0.0,
+    "ambient_light": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "lights": "four fixed white directional lights behind/above camera, intensity .45 each; shadow maps disabled",
+    "rasterizer": "pyrender OpenGL offscreen triangle rasterization, smooth vertex normals",
+    "backend": "egl",
+    "egl_vendor": "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+    "numpy_version": "1.24.3",
+    "pyrender_version": "0.1.45",
+    "trimesh_version": "4.12.2",
+    "randomness": "PCG64 standard_normal 4-vectors normalized onto S³; independent split seeds; no image/light randomization",
+    "pixel_reproducibility": "Exact on the same software/driver stack; other GPU drivers may change rasterization rounding",
+    "source_code_sha256": "d0224576716ef10a4b3733493387c63ed8b2c9cd307236abb34d51839b45ce9c"
+  },
+  "reference_pdf": "/home/leus/dthesis/figs/symaware-bingham/toyexample.pdf",
+  "reference_sha256": "2dc8392bd3eda03143112df26611af0efd33ea388d3a584f11d3948f67b1b7b5",
+  "reference_source_sha256": "460a854bb54d49b00ae14e8c3e7a8c1a47cb083126798977af9e2d6992bf1b2e",
+  "source_sha256": {
+    "render.py": "d0224576716ef10a4b3733493387c63ed8b2c9cd307236abb34d51839b45ce9c",
+    "figure_geometry.py": "af672f6450efc7c17b80ab3ef355ed7b46d31326b589eed3e3664e6b87fce6e8",
+    "toyexample.py": "adec2e2cb7b2ecf79fd2415993e71fc2bdd81dec91ad668086b3ab42baf6ba98"
+  },
+  "poses": {
+    "angles_deg": [
+      0.0,
+      60.0,
+      90.0,
+      120.0,
+      180.0
+    ],
+    "R_world_camera": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -0.17364817766693036,
+        0.984807753012208
+      ],
+      [
+        0.0,
+        -0.984807753012208,
+        -0.17364817766693036
+      ]
+    ],
+    "R_camera_world": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -0.17364817766693036,
+        -0.984807753012208
+      ],
+      [
+        0.0,
+        0.984807753012208,
+        -0.17364817766693036
+      ]
+    ],
+    "R_world_object": [
+      [
+        [
+          -1.0,
+          -1.2246467991473532e-16,
+          0.0
+        ],
+        [
+          1.2246467991473532e-16,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      [
+        [
+          -0.4999999999999998,
+          -0.8660254037844388,
+          0.0
+        ],
+        [
+          0.8660254037844388,
+          -0.4999999999999998,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      [
+        [
+          2.220446049250313e-16,
+          -1.0,
+          0.0
+        ],
+        [
+          1.0,
+          2.220446049250313e-16,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      [
+        [
+          0.5000000000000002,
+          -0.8660254037844386,
+          0.0
+        ],
+        [
+          0.8660254037844386,
+          0.5000000000000002,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    ],
+    "R_camera_object": [
+      [
+        [
+          -1.0,
+          -1.2246467991473532e-16,
+          0.0
+        ],
+        [
+          -2.1265768495757716e-17,
+          0.17364817766693036,
+          -0.984807753012208
+        ],
+        [
+          1.2060416625018976e-16,
+          -0.984807753012208,
+          -0.17364817766693036
+        ]
+      ],
+      [
+        [
+          -0.4999999999999998,
+          -0.8660254037844388,
+          0.0
+        ],
+        [
+          -0.15038373318043533,
+          0.08682408883346514,
+          -0.984807753012208
+        ],
+        [
+          0.8528685319524434,
+          -0.4924038765061038,
+          -0.17364817766693036
+        ]
+      ],
+      [
+        [
+          2.220446049250313e-16,
+          -1.0,
+          0.0
+        ],
+        [
+          -0.17364817766693036,
+          -3.8557641006005196e-17,
+          -0.984807753012208
+        ],
+        [
+          0.984807753012208,
+          2.1867124844470354e-16,
+          -0.17364817766693036
+        ]
+      ],
+      [
+        [
+          0.5000000000000002,
+          -0.8660254037844386,
+          0.0
+        ],
+        [
+          -0.1503837331804353,
+          -0.08682408883346522,
+          -0.984807753012208
+        ],
+        [
+          0.8528685319524432,
+          0.49240387650610423,
+          -0.17364817766693036
+        ]
+      ],
+      [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -0.17364817766693036,
+          -0.984807753012208
+        ],
+        [
+          0.0,
+          0.984807753012208,
+          -0.17364817766693036
+        ]
+      ]
+    ],
+    "q_world_camera_wxyz": [
+      -0.6427876096865394,
+      0.766044443118978,
+      0.0,
+      0.0
+    ],
+    "q_world_object_wxyz": [
+      [
+        6.123233995736766e-17,
+        0.0,
+        0.0,
+        1.0
+      ],
+      [
+        0.5000000000000001,
+        0.0,
+        0.0,
+        0.8660254037844386
+      ],
+      [
+        0.7071067811865477,
+        0.0,
+        0.0,
+        0.7071067811865475
+      ],
+      [
+        0.8660254037844386,
+        0.0,
+        0.0,
+        0.4999999999999999
+      ],
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "q_camera_object_wxyz": [
+      [
+        -3.9359389436709925e-17,
+        -4.690669376351366e-17,
+        0.766044443118978,
+        -0.6427876096865394
+      ],
+      [
+        -0.32139380484326974,
+        -0.3830222215594891,
+        0.6634139481689383,
+        -0.5566703992264193
+      ],
+      [
+        0.45451947767204376,
+        0.541675220419702,
+        -0.5416752204197018,
+        0.45451947767204365
+      ],
+      [
+        0.5566703992264194,
+        0.6634139481689385,
+        -0.38302222155948906,
+        0.3213938048432696
+      ],
+      [
+        0.6427876096865394,
+        0.766044443118978,
+        0.0,
+        0.0
+      ]
+    ],
+    "elevation_degrees": 10.0,
+    "K": [
+      [
+        590.625,
+        0.0,
+        319.5
+      ],
+      [
+        0.0,
+        590.625,
+        179.5
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "t_camera": [
+      [
+        0.0,
+        0.0,
+        2.5
+      ],
+      [
+        0.0,
+        0.0,
+        2.5
+      ],
+      [
+        0.0,
+        0.0,
+        2.5
+      ],
+      [
+        0.0,
+        0.0,
+        2.5
+      ],
+      [
+        0.0,
+        0.0,
+        2.5
+      ]
+    ]
+  },
+  "angle_convention": "World yaw = 180 deg - displayed angle; camera elevation 10 deg",
+  "input_to_network": "Whole original 640x360 RGB; shared crop is display only",
+  "shared_display_crop_xyxy": [
+    157,
+    74,
+    483,
+    330
+  ],
+  "mesh_sha256": "e1577bbfb34c376245e56d2f61c5a6c7da186baf78418f8a969e3be2cb9c17fc",
+  "old_reference_images_or_predictions_used": false
+}

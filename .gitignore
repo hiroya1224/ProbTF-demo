@@ -22,3 +22,7 @@ ros/examples/deflecomp/outputs/
 /ros/examples/grape-param-estim/minimal/imu-first-order-lag/inputs/
 /ros/examples/grape-param-estim/minimal/imu-first-order-lag/outputs/
 /ros/examples/probtf_switch_press_demo/outputs/
+
+# Toy mug: generated images and full VGG16 optimizer/checkpoints stay local.
+/misc/mug_bingham_toy/data/
+/misc/mug_bingham_toy/runs/

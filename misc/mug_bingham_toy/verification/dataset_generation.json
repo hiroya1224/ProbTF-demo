@@ -1,0 +1,213 @@
+{
+  "splits": {
+    "train": {
+      "split": "train",
+      "count": 10000,
+      "seed": 1234,
+      "images": "images/{index:06d}.png",
+      "labels": "poses.npz",
+      "label_arrays": {
+        "q_wxyz": "float64 [N,4]",
+        "index": "int64 [N]",
+        "t_camera": "float64 [N,3]",
+        "seed": "int64 scalar"
+      },
+      "poses_sha256": "b60433ec25f4ca7122d4c664091a95f7fc0d8c95a3031a26b694105353f65ac6",
+      "images_concat_sha256": "f2886c44b98c64eaccd2da83f88592f9903a7e88a14bf74a9608c4f017813e04",
+      "elapsed_seconds": 217.73787263408303
+    },
+    "val": {
+      "split": "val",
+      "count": 1000,
+      "seed": 1235,
+      "images": "images/{index:06d}.png",
+      "labels": "poses.npz",
+      "label_arrays": {
+        "q_wxyz": "float64 [N,4]",
+        "index": "int64 [N]",
+        "t_camera": "float64 [N,3]",
+        "seed": "int64 scalar"
+      },
+      "poses_sha256": "e22502dad55d94f20400967769d8342557152e9715044bc8f2f308adf2e65635",
+      "images_concat_sha256": "c73961bdbb4a8deed65f5595bd654f2680179ffd8440c49259b2660541da9912",
+      "elapsed_seconds": 21.454141065943986
+    },
+    "test": {
+      "split": "test",
+      "count": 1000,
+      "seed": 1236,
+      "images": "images/{index:06d}.png",
+      "labels": "poses.npz",
+      "label_arrays": {
+        "q_wxyz": "float64 [N,4]",
+        "index": "int64 [N]",
+        "t_camera": "float64 [N,3]",
+        "seed": "int64 scalar"
+      },
+      "poses_sha256": "7600064e72ff8c10a46634369fb6565e93dea30f3c269593a28e97e7e2bc7c61",
+      "images_concat_sha256": "c34d3384a230cab5b5fde90cf010dc77d9bea6c91ea8c39f5f5e9292f0ff6255",
+      "elapsed_seconds": 21.72451616777107
+    }
+  },
+  "ready": {
+    "ready": true,
+    "training_count": 10000,
+    "validation_count": 1000,
+    "test_count": 1000,
+    "batch_size": 16,
+    "epochs": 50,
+    "seed": 20261126,
+    "source_sha256": {
+      "train.py": "05d799679d8e2f8dc4b57d88633c43512ed9c51ddced9b454ba13aa591d63c26",
+      "model.py": "c39d1cac6031ba78c6e2d773b5eeb28416e14d7cc547fa141cdf53c55c37151c",
+      "bingham.py": "1fb44f76262dd06d2259f529286ce53a60210b8598490d09944df5f8828e102c",
+      "render.py": "d0224576716ef10a4b3733493387c63ed8b2c9cd307236abb34d51839b45ce9c"
+    },
+    "preview_matches_first_12_training_labels": true
+  },
+  "renderer_seconds_sum": 260.9165298677981,
+  "render_metadata": {
+    "image_size": [
+      640,
+      360
+    ],
+    "image_size_order": "width,height",
+    "channels": "RGB uint8",
+    "K": [
+      [
+        590.625,
+        0.0,
+        319.5
+      ],
+      [
+        0.0,
+        590.625,
+        179.5
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "distance_object_units": 2.5,
+    "vertical_fov_degrees": 33.89844846764288,
+    "t_object_to_camera": [
+      0.0,
+      0.0,
+      2.5
+    ],
+    "camera_coordinates": "OpenCV: x right, y down, z forward",
+    "object_coordinates": "Centered/scaled original STL axes",
+    "quaternion": "Hamilton wxyz, active object\u2192OpenCV camera; q and -q equivalent",
+    "pixel_projection": "u=fx*X_C/Z_C+cx; v=fy*Y_C/Z_C+cy",
+    "pixel_coordinates": "Integer pixel centers; top-left center (0,0). K principal point=((width-1)/2,(height-1)/2). OpenGL viewport-edge cx/cy=(width/2,height/2).",
+    "world_camera_rotation": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -1.0
+      ]
+    ],
+    "T_world_opengl_camera": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        2.5
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "object_center_world": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "background": "white empty world, no ground plane or other geometry",
+    "material_srgb_hex": "#BC1543",
+    "material_roughness": 0.65,
+    "material_metallic": 0.0,
+    "ambient_light": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "lights": "four fixed white directional lights behind/above camera, intensity .45 each; shadow maps disabled",
+    "rasterizer": "pyrender OpenGL offscreen triangle rasterization, smooth vertex normals",
+    "backend": "egl",
+    "egl_vendor": "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+    "numpy_version": "1.24.3",
+    "pyrender_version": "0.1.45",
+    "trimesh_version": "4.12.2",
+    "randomness": "PCG64 standard_normal 4-vectors normalized onto S\u00b3; independent split seeds; no image/light randomization",
+    "pixel_reproducibility": "Exact on the same software/driver stack; other GPU drivers may change rasterization rounding",
+    "source_code_sha256": "d0224576716ef10a4b3733493387c63ed8b2c9cd307236abb34d51839b45ce9c",
+    "mesh": {
+      "source_filename": "mug.STL",
+      "original_stl": "mug_original.stl",
+      "original_sha256": "b594ed7482a3e1148de7407d6b690c03a9a0b44a3d5d1d06b62e4e5c9bc243eb",
+      "colored_mesh": "mug_centered_colored.ply",
+      "colored_mesh_sha256": "e1577bbfb34c376245e56d2f61c5a6c7da186baf78418f8a969e3be2cb9c17fc",
+      "native_bounds": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          112.11322021484375,
+          80.0,
+          90.0
+        ]
+      ],
+      "native_units": "unspecified STL length units; no physical unit inferred",
+      "center_native": [
+        56.056610107421875,
+        40.0,
+        45.0
+      ],
+      "scale_native_to_object": 0.008919554697329088,
+      "coordinate_transform": "v_object = scale * (v_native - center_native)",
+      "axes": "Original STL axes preserved; no semantic-axis rotation",
+      "object_max_extent": 1.0,
+      "object_bounding_radius": 0.637480823233202,
+      "vertices": 8077,
+      "faces": 16154,
+      "watertight": true,
+      "material_srgb_hex": "#BC1543",
+      "material_srgb_rgba": [
+        188,
+        21,
+        67,
+        255
+      ]
+    }
+  }
+}

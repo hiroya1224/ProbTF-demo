@@ -1,0 +1,58 @@
+{
+  "kind": "synthetic throughput/memory benchmark; not a training result",
+  "steps": 4,
+  "batch_size": 8,
+  "image_size": [
+    640,
+    360
+  ],
+  "step_seconds": [
+    0.43310643592849374,
+    0.10439751390367746,
+    0.09932902595028281,
+    0.10168176190927625
+  ],
+  "step_nll": [
+    2.9823159525999703,
+    2.964293043576302,
+    2.8797065426199984,
+    2.7502772141250738
+  ],
+  "steady_seconds_per_step": 0.10180276725441217,
+  "steady_training_images_per_second": 78.58332553974142,
+  "estimated_training_seconds_per_10000_images": 127.25345906801522,
+  "cuda_peak_allocated_bytes": 3917365248,
+  "cuda_peak_reserved_bytes": 5060427776,
+  "model_parameter_counts": {
+    "total": 134297417,
+    "trainable": 134297417,
+    "frozen": 0
+  },
+  "environment": {
+    "python": "3.10.8",
+    "numpy": "1.26.4",
+    "pytorch": "2.5.1+cu121",
+    "cuda_runtime": "12.1",
+    "cudnn": 90100,
+    "device": "cuda",
+    "cpu_threads": 4,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false,
+    "cuda_bitwise_reproducibility": "Not guaranteed: standard adaptive-pooling backward can use CUDA atomic additions",
+    "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+    "gpu_memory_bytes": 16825122816,
+    "gpu_compute_capability": [
+      8,
+      9
+    ],
+    "amp_bfloat16_supported": true
+  },
+  "amp_feature_dtype": "bfloat16",
+  "source_sha256": {
+    "train.py": "91765fa4b68d7036491137e80746758242e251623938a569889764bf543134a7",
+    "model.py": "c39d1cac6031ba78c6e2d773b5eeb28416e14d7cc547fa141cdf53c55c37151c",
+    "bingham.py": "1fb44f76262dd06d2259f529286ce53a60210b8598490d09944df5f8828e102c",
+    "render.py": "d0224576716ef10a4b3733493387c63ed8b2c9cd307236abb34d51839b45ce9c"
+  },
+  "seed": 20261126
+}

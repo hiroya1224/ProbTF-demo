@@ -189,7 +189,7 @@ def plot(args):
         mode_rotation=quaternion_matrix(mode)
         eigenvalues=np.linalg.eigvalsh(A)
         artists=draw_latitude_longitude_sphere(sphere,mesh,
-            mode_rotation if eigenvalues[-1]>eigenvalues[-2] else None,COLORS,mode_linewidth=1.05)
+            mode_rotation if eigenvalues[-1]>eigenvalues[-2] else None,COLORS,mode_linewidth=1.8)
         for name,artist in artists.items():
             if name.endswith(('_support','_density')):
                 artist.set_rasterized(True)
@@ -205,12 +205,13 @@ def plot(args):
             geometry['mesh_camera_xy']=mesh['camera_xy']
             geometry['mesh_face_depth']=mesh['face_depth']
         geometry[f'face_log_density_{int(angle):03d}']=mesh['face_log_density']
-        geometry[f'face_rgb_{int(angle):03d}']=mesh['face_rgb']
-        geometry[f'face_color_log_offsets_{int(angle):03d}']=mesh['face_color_log_offsets']
+        raster=artists['raster_metadata']
+        geometry[f'raster_color_log_offsets_{int(angle):03d}']=np.asarray(raster['color_log_offsets'])
+        geometry[f'raster_pixel_size_{int(angle):03d}']=np.asarray(raster['pixel_size'])
         geometry[f'peak_{int(angle):03d}']=peak
         panels.append(dict(angle_deg=float(angle),parameters_9=parameters.tolist(),
             A_camera=A.tolist(),mode_camera_wxyz=mode.tolist(),
-            sphere_density=mesh['diagnostics'],half_height=half_width))
+            sphere_density=mesh['diagnostics'],density_raster=raster,half_height=half_width))
     fig.savefig(output/'toyexample.pdf',dpi=280,metadata={'CreationDate':None,'ModDate':None})
     fig.savefig(output/'toyexample.png',dpi=200)
     plt.close(fig)
@@ -224,7 +225,7 @@ def plot(args):
         shared_display_crop_xyxy=list(CROP),
         color_axis_mapping=dict(x=COLORS[0],y=COLORS[1],z=COLORS[2]),
         surface_meaning='Analytic quaternion-Bingham push-forward densities for object X/Y/Z on the complete camera-frame unit sphere',
-        display_alpha='gray support .14; density .9 times max(R,G,B); far camera-Z-positive hemisphere and axis rays use one-quarter opacity',
+        display_alpha='one analytic RGBA image per hemisphere; gray support .14; density .9 times max(R,G,B); far hemisphere and wires use one-quarter opacity; mode axes fully opaque at 1.8pt',
         display_grid=f'Latitude/longitude wireframe, camera-Z poles; gray {GRID_COLOR}, alpha {GRID_ALPHA}, width {GRID_LINEWIDTH}; far wires use one-quarter opacity',
         network_rerun_by_plot=False,distribution_modified_by_plot=False,monte_carlo=False))
     print('Saved '+str(output/'toyexample.pdf'),flush=True)

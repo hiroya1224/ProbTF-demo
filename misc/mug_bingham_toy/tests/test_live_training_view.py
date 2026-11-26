@@ -105,26 +105,22 @@ class LiveTrainingViewTests(unittest.TestCase):
             window.poll()
             window.figure.canvas.draw()
             self.assertIn("epoch 1", window.status.get_text())
-            self.assertTrue(all(len(ax.collections) == 4 and len(ax.patches) == 2
+            self.assertTrue(all(len(ax.collections) == 2 and len(ax.patches) == 2 and len(ax.images) == 2
                                 for ax in window.sphere_axes))
             from sphere_display import GRID_ALPHA, GRID_LINEWIDTH
+            from sphere_display import camera_sphere_density_raster
+            raster = camera_sphere_density_raster(np.diag([3., 1., -1., -3.]))
             for ax in window.sphere_axes:
-                from sphere_display import latitude_longitude_density_mesh
-                mesh = latitude_longitude_density_mesh(np.diag([3., 1., -1., -3.]), 12, 24)
-                order = np.argsort(mesh["face_depth"])[::-1]
-                for patch, base, far, fade in ((0, 0, True, .25), (1, 2, False, 1.)):
-                    indices = order[(mesh["face_depth"][order] > 0.) == far]
+                for patch, side, fade in ((0, "far", .25), (1, "near", 1.)):
                     np.testing.assert_array_equal(ax.patches[patch].get_facecolor(), [.89, .89, .89, .14*fade])
-                    rgba = ax.collections[base].get_facecolors()
-                    np.testing.assert_array_equal(rgba[:, :3], mesh["face_rgb"][indices])
-                    np.testing.assert_allclose(rgba[:, 3], .9*mesh["face_rgb"][indices].max(axis=1)*fade, atol=0)
-                    self.assertEqual(ax.collections[base+1].get_alpha(), GRID_ALPHA*fade)
-                    np.testing.assert_array_equal(ax.collections[base+1].get_linewidths(), [GRID_LINEWIDTH])
-                self.assertLess(ax.collections[1].get_zorder(), ax.patches[1].get_zorder())
+                    np.testing.assert_array_equal(ax.images[patch].get_array(), raster[side+"_rgba"])
+                    self.assertEqual(ax.collections[patch].get_alpha(), GRID_ALPHA*fade)
+                    np.testing.assert_array_equal(ax.collections[patch].get_linewidths(), [GRID_LINEWIDTH])
+                self.assertLess(ax.collections[0].get_zorder(), ax.patches[1].get_zorder())
                 rays = {line.get_color(): line for line in ax.lines}
                 self.assertEqual(rays[viewer.COLORS[0]].get_alpha(), 1.)
                 self.assertEqual(rays[viewer.COLORS[1]].get_alpha(), 1.)
-                self.assertEqual(rays[viewer.COLORS[2]].get_alpha(), .25)
+                self.assertEqual(rays[viewer.COLORS[2]].get_alpha(), 1.)
             self.assertEqual(window.history_lines["X"][0].get_ydata()[0], 1e-50)
             self.assertEqual(window.history_axes["X"].get_yscale(), "log")
             self.assertNotIn("torch", viewer.__dict__)

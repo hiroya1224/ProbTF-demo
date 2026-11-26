@@ -163,7 +163,7 @@ class TrainingViewer:
                                                ha="center", va="top", fontsize=8.5))
         top = self.sphere_axes[0].get_position().y1
         self.figure.text(.5, top+.018,
-                         "同じカメラから見た球面密度 · 赤 X / 緑 Y / 青 Z · 各軸のメッシュ最大値に対する相対色 · 奥側の不透明度は 1/4",
+                         "同じカメラから見た球面密度 · 赤 X / 緑 Y / 青 Z · 表示格子上の最大値に対する相対色 · 球面の奥側 1/4 · モード軸は不透明",
                          ha="center", va="bottom", fontsize=9)
         self.history_axes, self.history_lines = {}, {}
         for column, axis in enumerate(("X", "Z")):

@@ -149,6 +149,7 @@ def latitude_longitude_density_mesh(matrix_camera: np.ndarray, latitude_steps: i
     face_logs = axis_direction_log_density(matrix_camera, mesh["centers"], log_normalizer)
     vertex_offsets, face_offsets = vertex_logs.max(axis=0), face_logs.max(axis=0)
     mesh.update({
+        "A_camera": np.array(matrix_camera, dtype=float, copy=True),
         "vertex_log_density": vertex_logs, "face_log_density": face_logs,
         "vertex_rgb": np.exp(vertex_logs-vertex_offsets),
         "face_rgb": np.exp(face_logs-face_offsets),
@@ -178,6 +179,44 @@ def latitude_longitude_density_mesh(matrix_camera: np.ndarray, latitude_steps: i
     return mesh
 
 
+@lru_cache(maxsize=4)
+def _orthographic_pixel_directions(pixel_size: int) -> tuple[np.ndarray, np.ndarray]:
+    pixel_size = _positive_integer(pixel_size, 8, "pixel_size")
+    coordinate = -1.+(np.arange(pixel_size)+.5)*2./pixel_size
+    x, y = np.meshgrid(coordinate, coordinate)
+    inside = x*x+y*y <= 1.
+    directions = np.column_stack((x[inside], y[inside], np.sqrt(1.-x[inside]**2-y[inside]**2)))
+    inside.setflags(write=False)
+    directions.setflags(write=False)
+    return inside, directions
+
+
+def camera_sphere_density_raster(matrix_camera: np.ndarray, pixel_size: int = 320,
+                                  log_normalizer: float | None = None) -> dict:
+    """Evaluate each orthographic pixel once on each spherical hemisphere.
+
+    The two images share one maximum per object-axis density. Rasterization
+    replaces overlapping translucent face painting; neither A nor the analytic
+    S2 law changes. Pixels outside the unit disc are fully transparent.
+    """
+    inside, far_directions = _orthographic_pixel_directions(pixel_size)
+    near_directions = far_directions.copy()
+    near_directions[:, 2] *= -1.
+    far_logs = axis_direction_log_density(matrix_camera, far_directions, log_normalizer)
+    near_logs = axis_direction_log_density(matrix_camera, near_directions, log_normalizer)
+    offsets = np.maximum(far_logs.max(axis=0), near_logs.max(axis=0))
+    result = {"inside": inside, "far_directions": far_directions, "near_directions": near_directions,
+              "far_log_density": far_logs, "near_log_density": near_logs,
+              "color_log_offsets": offsets, "pixel_size": int(pixel_size)}
+    for side, logs, fade in (("far", far_logs, .25), ("near", near_logs, 1.)):
+        rgb = np.exp(logs-offsets)
+        rgba = np.zeros((pixel_size, pixel_size, 4))
+        rgba[inside, :3] = rgb
+        rgba[inside, 3] = .9*rgb.max(axis=1)*fade
+        result[side+"_rgba"] = rgba
+    return result
+
+
 def latitude_longitude_graticule_segments() -> dict[str, np.ndarray]:
     """Keep the wire depth while splitting each polyline into short segments.
 
@@ -191,51 +230,58 @@ def latitude_longitude_graticule_segments() -> dict[str, np.ndarray]:
 
 
 def draw_latitude_longitude_sphere(ax, mesh: dict, rotation: np.ndarray | None,
-                                    colors, mode_linewidth: float = 1.1) -> dict:
-    """Paint far support/density/wire/rays, then the corresponding near layer.
+                                    colors, mode_linewidth: float = 1.8) -> dict:
+    """Paint far support/density/wire, near layers, and opaque mode axes.
 
-    Both hemispheres use the mesh's unmodified RGB density colors. The far
-    layer's opacity is uniformly one quarter of the near layer's opacity.
+    The saved A is evaluated analytically at orthographic pixel centers.
+    Each hemisphere is one RGBA image, avoiding translucent face overpainting.
+    The two images share one density maximum per RGB channel; the mesh's raw
+    RGB/log-density arrays remain unchanged. The far layer's opacity is
+    uniformly one quarter of the near layer's opacity.
     Graticule segments retain camera Z until they are assigned to a layer,
-    so the far wire and far mode rays stay behind the near sphere surface.
+    so the far wire stays behind the near sphere surface. Mode axes are
+    fully opaque overlays, including axes pointing toward the far hemisphere.
     The returned artists expose their alpha and zorder for display tests.
     """
-    from matplotlib.collections import LineCollection, PolyCollection
+    from matplotlib.collections import LineCollection
     from matplotlib.patches import Circle
 
-    face_depth = np.asarray(mesh["face_depth"])
-    order = np.argsort(face_depth)[::-1]
-    vertices = np.asarray(mesh["camera_xy"])
-    faces = np.asarray(mesh["faces"])
-    rgb = np.asarray(mesh["face_rgb"])
+    raster = camera_sphere_density_raster(
+        mesh["A_camera"], log_normalizer=mesh["diagnostics"]["log_normalizer_s3"])
     segments = latitude_longitude_graticule_segments()
     if rotation is not None:
         rotation = np.asarray(rotation, dtype=float)
         if rotation.shape != (3, 3) or not np.isfinite(rotation).all():
             raise ValueError("Mode rotation must be a finite 3 by 3 matrix")
-    artists = {}
+    artists = {"raster_metadata": {
+        "pixel_size": raster["pixel_size"],
+        "color_log_offsets": raster["color_log_offsets"].tolist(),
+        "extent": [-1., 1., 1., -1.],
+        "color_mapping": "RGB_i = exp(log p_i - color_log_offsets_i); each axis shares one maximum across both raster hemispheres",
+        "sample_coordinates_rule": "x=-1+(column+0.5)*2/pixel_size; y=-1+(row+0.5)*2/pixel_size; z=+/-sqrt(1-x*x-y*y); only x*x+y*y<=1 evaluated",
+        "density_alpha": "0.9*max(RGB); far camera Z>0 multiplied by 0.25",
+        "image_interpolation": "bilinear RGBA, clipped to unit circle; one image per hemisphere",
+    }}
     for side, far, fade, zorder in (("far", True, .25, 1.), ("near", False, 1., 2.)):
-        indices = order[(face_depth[order] > 0.) == far]
-        polygons = vertices[faces[indices]]
         # An orthographic hemisphere projects to one exact unit disc. Painting
         # its neutral support once avoids translucent triangle edge overlaps.
         artists[side+"_support"] = Circle(
             (0., 0.), 1., facecolor=(.89, .89, .89, .14*fade), edgecolor="none", zorder=zorder)
-        density_rgba = np.column_stack((rgb[indices], .9*rgb[indices].max(axis=1)*fade))
-        artists[side+"_density"] = PolyCollection(
-            polygons, facecolors=density_rgba, edgecolors="none", antialiaseds=False, zorder=zorder+.1)
+        artists[side+"_density"] = ax.imshow(
+            raster[side+"_rgba"], origin="upper", extent=(-1., 1., 1., -1.),
+            interpolation="bilinear", zorder=zorder+.1)
+        artists[side+"_density"].set_clip_path(Circle((0., 0.), 1., transform=ax.transData))
         artists[side+"_wire"] = LineCollection(
             segments[side][:, :, :2], colors=GRID_COLOR, alpha=GRID_ALPHA*fade,
             linewidths=GRID_LINEWIDTH, antialiaseds=True, zorder=zorder+.2)
         ax.add_patch(artists[side+"_support"])
-        for component in ("_density", "_wire"):
-            ax.add_collection(artists[side+component])
+        ax.add_collection(artists[side+"_wire"])
         rays = []
         if rotation is not None:
             for axis, color in enumerate(colors):
                 if (rotation[2, axis] > 0.) == far:
                     line, = ax.plot([0., rotation[0, axis]], [0., rotation[1, axis]],
-                                    color=color, linewidth=mode_linewidth, alpha=fade, zorder=zorder+.3)
+                                    color=color, linewidth=mode_linewidth, alpha=1., zorder=3.)
                     rays.append(line)
         artists[side+"_axes"] = rays
     return artists

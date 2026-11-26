@@ -48,6 +48,10 @@ class LiveTrainingViewTests(unittest.TestCase):
         np.testing.assert_array_equal(epochs, [1, 2])
         self.assertEqual(values[0, 0], 1e-50)
         self.assertTrue(np.isnan(values[1]).all())
+        sigma_epochs, sigma = viewer.standard_deviation_history(rows, "X", 90)
+        np.testing.assert_array_equal(sigma_epochs, epochs)
+        self.assertEqual(sigma[0, 0], np.rad2deg(np.sqrt(1e-50)))
+        self.assertTrue(np.isnan(sigma[1]).all())
         self.assertEqual(viewer.sigma_label(None), "— / —")
         failure = {"covariance_defined": False, "principal_variance_rad2": [-1., 2.]}
         self.assertTrue(np.isnan(viewer.principal_values(failure, "principal_variance_rad2")).all())
@@ -111,7 +115,7 @@ class LiveTrainingViewTests(unittest.TestCase):
             from sphere_display import camera_sphere_density_raster
             raster = camera_sphere_density_raster(np.diag([3., 1., -1., -3.]))
             for ax in window.sphere_axes:
-                for patch, side, fade in ((0, "far", .25), (1, "near", 1.)):
+                for patch, side, fade in ((0, "far", .5), (1, "near", 1.)):
                     np.testing.assert_array_equal(ax.patches[patch].get_facecolor(), [.89, .89, .89, .14*fade])
                     np.testing.assert_array_equal(ax.images[patch].get_array(), raster[side+"_rgba"])
                     self.assertEqual(ax.collections[patch].get_alpha(), GRID_ALPHA*fade)
@@ -121,7 +125,8 @@ class LiveTrainingViewTests(unittest.TestCase):
                 self.assertEqual(rays[viewer.COLORS[0]].get_alpha(), 1.)
                 self.assertEqual(rays[viewer.COLORS[1]].get_alpha(), 1.)
                 self.assertEqual(rays[viewer.COLORS[2]].get_alpha(), 1.)
-            self.assertEqual(window.history_lines["X"][0].get_ydata()[0], 1e-50)
+            self.assertEqual(window.history_lines["X"][0].get_ydata()[0], np.rad2deg(np.sqrt(1e-50)))
+            self.assertEqual(window.history_axes["X"].get_ylabel(), "接空間の主標準偏差 [deg]")
             self.assertEqual(window.history_axes["X"].get_yscale(), "log")
             self.assertNotIn("torch", viewer.__dict__)
             (root/"test_metrics.json").write_text("{}\n")

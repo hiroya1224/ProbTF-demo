@@ -120,6 +120,12 @@ def variance_history(records: list[dict], axis: str, angle: int) -> tuple[np.nda
     return np.asarray(epochs), np.asarray(values).reshape((-1, 2))
 
 
+def standard_deviation_history(records: list[dict], axis: str, angle: int) -> tuple[np.ndarray, np.ndarray]:
+    """Display sqrt of the same saved principal variances, converted to deg."""
+    epochs, variance = variance_history(records, axis, angle)
+    return epochs, np.rad2deg(np.sqrt(variance))
+
+
 def sigma_label(component: dict | None) -> str:
     values = principal_values(component, "principal_sigma_deg")
     return " / ".join("—" if np.isnan(value) else f"{value:.2f}" for value in values)
@@ -140,8 +146,8 @@ class TrainingViewer:
         self.figure = plt.figure(figsize=(14.4, 9.0), dpi=100, facecolor="white")
         manager = self.figure.canvas.manager
         if manager is not None:
-            manager.set_window_title("Mug Bingham training | no blur | X/Z tangent variances")
-        self.figure.text(.5, .975, "ぼかしなし · 全 VGG16 の学習と X/Z 軸の接分散",
+            manager.set_window_title("Mug Bingham training | no blur | X/Z tangent std [deg]")
+        self.figure.text(.5, .975, "ぼかしなし · 全 VGG16 の学習と X/Z 軸の接標準偏差",
                          ha="center", va="top", fontsize=16)
         self.status = self.figure.text(.5, .938, "測定待ち", ha="center", va="top", fontsize=10)
         outer = self.figure.add_gridspec(3, 1, left=.062, right=.985, bottom=.075,
@@ -163,26 +169,26 @@ class TrainingViewer:
                                                ha="center", va="top", fontsize=8.5))
         top = self.sphere_axes[0].get_position().y1
         self.figure.text(.5, top+.018,
-                         "同じカメラから見た球面密度 · 赤 X / 緑 Y / 青 Z · 表示格子上の最大値に対する相対色 · 球面の奥側 1/4 · モード軸は不透明",
+                         "同じカメラから見た球面密度 · 赤 X / 緑 Y / 青 Z · 表示格子上の最大値に対する相対色 · 球面の奥側 1/2 · モード軸は不透明",
                          ha="center", va="bottom", fontsize=9)
         self.history_axes, self.history_lines = {}, {}
         for column, axis in enumerate(("X", "Z")):
             ax = self.figure.add_subplot(history_grid[0, column])
             color = COLORS[0 if axis == "X" else 2]
             ax.set(title=f"取っ手が後ろ (90°): 物体 {axis} 軸", xlabel="epoch",
-                   ylabel="接共分散の主値 [rad²]", xlim=(0, 1))
+                   ylabel="接空間の主標準偏差 [deg]", xlim=(0, 1))
             ax.grid(True, alpha=.2, which="both")
             lines = []
             for angle, linestyle, alpha in ((90, "-", 1.), (0, "--", .5)):
                 for eigen_index, width in ((0, 1.1), (1, 2.0)):
                     line, = ax.plot([], [], color=color, ls=linestyle, alpha=alpha, lw=width,
                                     marker="o" if angle == 90 else ".", markersize=3,
-                                    label=f"{angle}° / 主値 {eigen_index+1}")
+                                    label=f"{angle}° / σ{eigen_index+1}")
                     lines.append(line)
             ax.legend(loc="best", fontsize=7.5, ncol=2)
             self.history_axes[axis], self.history_lines[axis] = ax, lines
         self.figure.text(.5, .018,
-                         "第4章の有限主要指数代理による接共分散 (+I/3) · 定義できない値は欠測として表示 · 分散の倍率変更なし",
+                         "第4章の接共分散 (+I/3) から σ = sqrt(λ) × 180/π · 定義できない値は欠測として表示",
                          ha="center", va="bottom", fontsize=9)
         self.poll(force=True)
 
@@ -218,12 +224,12 @@ class TrainingViewer:
         for axis, ax in self.history_axes.items():
             all_finite = []
             for start, angle in ((0, 90), (2, 0)):
-                epochs, values = variance_history(records, axis, angle)
+                epochs, values = standard_deviation_history(records, axis, angle)
                 for eigen_index in range(2):
                     self.history_lines[axis][start+eigen_index].set_data(epochs, values[:, eigen_index])
                 all_finite.extend(values[np.isfinite(values)].tolist())
             # A zero value is left unchanged and uses a linear axis. Positive
-            # variances use a log axis without an epsilon, lower bound or floor.
+            # standard deviations use a log axis without an epsilon or floor.
             ax.set_yscale("log" if all_finite and min(all_finite) > 0 else "linear")
             ax.relim()
             ax.autoscale_view(scalex=False, scaley=True)

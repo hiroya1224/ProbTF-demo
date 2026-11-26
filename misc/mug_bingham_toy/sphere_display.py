@@ -17,6 +17,7 @@ from figure_geometry import axis_direction_log_density, SPHERICAL_DENSITY_PROVEN
 GRID_COLOR = ".70"
 GRID_ALPHA = .70
 GRID_LINEWIDTH = .65
+FAR_OPACITY_RATIO = .5
 
 
 def _positive_integer(value, minimum, name):
@@ -208,7 +209,7 @@ def camera_sphere_density_raster(matrix_camera: np.ndarray, pixel_size: int = 32
     result = {"inside": inside, "far_directions": far_directions, "near_directions": near_directions,
               "far_log_density": far_logs, "near_log_density": near_logs,
               "color_log_offsets": offsets, "pixel_size": int(pixel_size)}
-    for side, logs, fade in (("far", far_logs, .25), ("near", near_logs, 1.)):
+    for side, logs, fade in (("far", far_logs, FAR_OPACITY_RATIO), ("near", near_logs, 1.)):
         rgb = np.exp(logs-offsets)
         rgba = np.zeros((pixel_size, pixel_size, 4))
         rgba[inside, :3] = rgb
@@ -237,7 +238,7 @@ def draw_latitude_longitude_sphere(ax, mesh: dict, rotation: np.ndarray | None,
     Each hemisphere is one RGBA image, avoiding translucent face overpainting.
     The two images share one density maximum per RGB channel; the mesh's raw
     RGB/log-density arrays remain unchanged. The far layer's opacity is
-    uniformly one quarter of the near layer's opacity.
+    uniformly one half of the near layer's opacity.
     Graticule segments retain camera Z until they are assigned to a layer,
     so the far wire stays behind the near sphere surface. Mode axes are
     fully opaque overlays, including axes pointing toward the far hemisphere.
@@ -259,10 +260,10 @@ def draw_latitude_longitude_sphere(ax, mesh: dict, rotation: np.ndarray | None,
         "extent": [-1., 1., 1., -1.],
         "color_mapping": "RGB_i = exp(log p_i - color_log_offsets_i); each axis shares one maximum across both raster hemispheres",
         "sample_coordinates_rule": "x=-1+(column+0.5)*2/pixel_size; y=-1+(row+0.5)*2/pixel_size; z=+/-sqrt(1-x*x-y*y); only x*x+y*y<=1 evaluated",
-        "density_alpha": "0.9*max(RGB); far camera Z>0 multiplied by 0.25",
+        "density_alpha": f"0.9*max(RGB); far camera Z>0 multiplied by {FAR_OPACITY_RATIO}",
         "image_interpolation": "bilinear RGBA, clipped to unit circle; one image per hemisphere",
     }}
-    for side, far, fade, zorder in (("far", True, .25, 1.), ("near", False, 1., 2.)):
+    for side, far, fade, zorder in (("far", True, FAR_OPACITY_RATIO, 1.), ("near", False, 1., 2.)):
         # An orthographic hemisphere projects to one exact unit disc. Painting
         # its neutral support once avoids translucent triangle edge overlaps.
         artists[side+"_support"] = Circle(

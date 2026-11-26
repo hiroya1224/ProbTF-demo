@@ -225,8 +225,8 @@ def plot(args):
         shared_display_crop_xyxy=list(CROP),
         color_axis_mapping=dict(x=COLORS[0],y=COLORS[1],z=COLORS[2]),
         surface_meaning='Analytic quaternion-Bingham push-forward densities for object X/Y/Z on the complete camera-frame unit sphere',
-        display_alpha='one analytic RGBA image per hemisphere; gray support .14; density .9 times max(R,G,B); far hemisphere and wires use one-quarter opacity; mode axes fully opaque at 1.8pt',
-        display_grid=f'Latitude/longitude wireframe, camera-Z poles; gray {GRID_COLOR}, alpha {GRID_ALPHA}, width {GRID_LINEWIDTH}; far wires use one-quarter opacity',
+        display_alpha='one analytic RGBA image per hemisphere; gray support .14; density .9 times max(R,G,B); far hemisphere and wires use one-half opacity; mode axes fully opaque at 1.8pt',
+        display_grid=f'Latitude/longitude wireframe, camera-Z poles; gray {GRID_COLOR}, alpha {GRID_ALPHA}, width {GRID_LINEWIDTH}; far wires use one-half opacity',
         network_rerun_by_plot=False,distribution_modified_by_plot=False,monte_carlo=False))
     print('Saved '+str(output/'toyexample.pdf'),flush=True)
 

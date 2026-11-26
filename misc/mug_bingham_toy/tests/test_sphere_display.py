@@ -92,7 +92,7 @@ class LatitudeLongitudeDisplayTests(unittest.TestCase):
         self.assertEqual(artists["raster_metadata"]["pixel_size"], 320)
         np.testing.assert_array_equal(artists["raster_metadata"]["color_log_offsets"], raster["color_log_offsets"])
         self.assertEqual(artists["raster_metadata"]["extent"], [-1., 1., 1., -1.])
-        for side, far, fade in (("far", True, .25), ("near", False, 1.)):
+        for side, far, fade in (("far", True, .5), ("near", False, 1.)):
             np.testing.assert_array_equal(artists[side+"_density"].get_array(), raster[side+"_rgba"])
             self.assertIsNotNone(artists[side+"_density"].get_clip_path())
             self.assertEqual(artists[side+"_wire"].get_alpha(), display.GRID_ALPHA*fade)
@@ -120,7 +120,7 @@ class LatitudeLongitudeDisplayTests(unittest.TestCase):
         packet = display.camera_sphere_density_raster(A, pixel_size=32, log_normalizer=4.)
         np.testing.assert_array_equal(A, original)
         logs = []
-        for side, fade in (("far", .25), ("near", 1.)):
+        for side, fade in (("far", .5), ("near", 1.)):
             directions = packet[side+"_directions"]
             np.testing.assert_allclose(np.linalg.norm(directions, axis=1), 1., atol=2e-16)
             expected = axis_direction_log_density(A, directions, 4.)
@@ -143,7 +143,7 @@ class LatitudeLongitudeDisplayTests(unittest.TestCase):
 
         inside, _ = display._orthographic_pixel_directions(320)
         constant = {"pixel_size": 320, "color_log_offsets": np.zeros(3)}
-        for side, fade in (("far", .25), ("near", 1.)):
+        for side, fade in (("far", .5), ("near", 1.)):
             rgba = np.zeros((320, 320, 4))
             rgba[inside, :3] = .2
             rgba[inside, 3] = .9*.2*fade
@@ -169,7 +169,11 @@ class LatitudeLongitudeDisplayTests(unittest.TestCase):
         center = images[0][radius < .7, :3].mean(axis=1)/255.
         limb = images[0][(radius > .95) & (radius < .98), :3].mean(axis=1)/255.
         self.assertLess(abs(float(np.median(center))-float(np.median(limb))), 1/255.)
-        self.assertGreater(float(limb.min()), .80)
+        expected = 1.
+        for fade in (.5, 1.):
+            expected = .89*(.14*fade)+expected*(1.-.14*fade)
+            expected = .2*(.9*.2*fade)+expected*(1.-.9*.2*fade)
+        self.assertAlmostEqual(float(np.median(limb)), expected, delta=3/255.)
 
 
 if __name__ == "__main__":
